@@ -6,9 +6,16 @@ readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "gtfs-realtime-bindings>=3.0.0",
+    "httpx>=0.28.1",
+    "protobuf>=7.36.2",
     "pydantic>=2",
+    "python-ulid>=4.2.0",
     "pyyaml",
 ]
+
+[project.scripts]
+headway = "headway.cli:main"
 
 [dependency-groups]
 dev = [
@@ -35,6 +42,10 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 [tool.mypy]
 strict = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["google.transit.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
