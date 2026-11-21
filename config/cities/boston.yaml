@@ -1,0 +1,17 @@
+city_id: boston
+agency: MBTA
+timezone: America/New_York
+service_day_cutoff_hour: 3
+route_types: [0, 1]
+feeds:
+  trip_updates: https://cdn.mbta.com/realtime/TripUpdates.pb
+  vehicle_positions: https://cdn.mbta.com/realtime/VehiclePositions.pb
+  alerts: https://cdn.mbta.com/realtime/Alerts.pb
+  gtfs_static: https://cdn.mbta.com/MBTA_GTFS.zip
+storage_prefix: boston
+lines: [Red, Orange, Blue, Green-B, Green-C, Green-D, Green-E, Mattapan]
+bbox:
+  lat_min: 41.0
+  lat_max: 43.0
+  lon_min: -72.0
+  lon_max: -70.0
