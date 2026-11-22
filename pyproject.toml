@@ -30,6 +30,14 @@ dev = [
     "types-PyYAML",
 ]
 
+# Streamlit app (app/); not part of the default sync or the Lambda zip.
+app = [
+    "pandas>=2.2",
+    "plotly>=5.24",
+    "pydeck>=0.9",
+    "streamlit>=1.40",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -39,7 +47,7 @@ packages = ["src/headway"]
 
 [tool.ruff]
 line-length = 100
-src = ["src", "tests"]
+src = ["src", "tests", "app"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
