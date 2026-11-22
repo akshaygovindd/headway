@@ -1,7 +1,10 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: check lambda-zip tf-validate dbt e2e
+.PHONY: check lambda-zip tf-validate dbt e2e app-test demo-data demo
+
+DEMO_DIR := .local/demo
+DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
 
 check:
 	uv run ruff check .
@@ -36,3 +39,15 @@ dbt:
 # Replay samples/boston into a temp dir, build dbt against it and compare key tables.
 e2e:
 	uv run --project dbt python scripts/e2e.py
+
+# Streamlit app tests (own dependency group; not part of `make check`).
+app-test:
+	uv run --group app pytest app/tests -q
+
+# Replay the sample, build dbt, export gold and write the live snapshot into .local/demo.
+demo-data:
+	uv run python scripts/build_demo.py $(DEMO_DIR)
+
+# Build the demo data and launch the app on it.
+demo: demo-data
+	HEADWAY_DATA_URL=$(DEMO_DATA_URL) uv run --group app streamlit run app/Home.py

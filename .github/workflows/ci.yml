@@ -23,6 +23,14 @@ jobs:
       - run: uv sync
       - run: make e2e
 
+  app-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --group app
+      - run: make app-test
+
   tf-validate:
     runs-on: ubuntu-latest
     steps:
