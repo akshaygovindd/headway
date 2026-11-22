@@ -14,6 +14,7 @@ Every object lives under a city prefix (`boston` below). Keys are UTC.
 | compacted | `curated/{prefix}/table={table}/dt=YYYY-MM-DD/hour=HH/part-compacted.parquet` | `compact_hour` |
 | static | `curated/{prefix}/static/table={table}/feed_version={v}/part.parquet` | `load_static` |
 | quarantine | `quarantine/{prefix}/table={table}/dt=YYYY-MM-DD/{capture_id}.jsonl` | `normalize_batch` |
+| raw static | `raw/{prefix}/feed=gtfs_static/dt=YYYY-MM-DD/hour=HH/gtfs-{timestamp}.zip` | static Lambda |
 | watermark | `state/{prefix}/curate_watermark.json` | `curate_new` |
 
 - **Raw is never modified or deleted.** Curation only reads it, so any curated or quarantine
@@ -41,3 +42,25 @@ Every object lives under a city prefix (`boston` below). Keys are UTC.
   inputs only after the merged row count equals the sum of the inputs. Re-running it is a no-op.
 - **Static** tables are loaded once per `feed_version` (path-safe form in the key, raw value in
   the `feed_version` column); an existing version is skipped.
+
+## Curated to gold (AWS)
+
+| Step | Function | Schedule (UTC) | Reads | Writes |
+| --- | --- | --- | --- | --- |
+| curate | `headway-curate` | every 15 minutes | manifests, raw | curated, quarantine, state |
+| compact | `headway-curate` with `{"task":"compact"}` | `:05` hourly | previous hour's parts | `part-compacted.parquet` |
+| static | `headway-static` | daily 09:00 | `MBTA_GTFS.zip` | raw static, curated static |
+| transform | `headway-transform` | `:20` hourly | curated, manifests, quarantine (last `lookback_days`) | gold, MotherDuck |
+
+- **Gold** lives at `s3://headway-public-<account>/public/{prefix}/gold/` as the dbt allowlist
+  tables, `manifest.json` (row counts, `dbt_run_at`, `metrics_as_of`) and `cost_daily.parquet`.
+  The Streamlit app reads them through `HEADWAY_DATA_URL`.
+- **Lookback.** Staging models of realtime sources (`trip_updates`, `vehicle_positions`,
+  `alerts`, manifests, quarantine) keep rows whose `dt` partition is within `lookback_days` of
+  today (UTC). Static GTFS tables are not filtered. Local and replay builds leave the variable
+  unset and read everything.
+- **`cost_daily`** is written by the transform Lambda once per UTC day (first run at or after
+  06:00): one row per day and AWS service for resources tagged `project=headway`, with the day
+  total, capture count from `agg_pipeline_health`, and `cost_per_1000_captures`. It is not a dbt
+  model; the app treats a missing file as "no cost data yet".
+- **MotherDuck** holds a copy of each gold table (and `cost_daily`), replaced on every run.
