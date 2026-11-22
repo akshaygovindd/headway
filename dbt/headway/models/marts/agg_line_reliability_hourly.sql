@@ -1,16 +1,21 @@
 -- Prediction reliability per line, direction, service date and scheduled hour.
 -- Rows exist only for hours inside the trip_updates observation window.
+-- Coverage counts only observable trip stops (a capture within 30 minutes before the
+-- scheduled arrival), so pipeline outages appear in missed_runs, not in coverage.
 -- Coverage (data availability) and deviation/revision (prediction accuracy) use
 -- different populations: skipped stops are covered but have no deviation.
 with scheduled as (
     select
-        line,
-        direction_id,
-        service_date,
-        hour_local,
-        count(*) as coverage_denominator
-    from {{ ref('int_scheduled_stop_times') }}
-    group by line, direction_id, service_date, hour_local
+        s.line,
+        s.direction_id,
+        s.service_date,
+        s.hour_local,
+        count(*) as scheduled_trip_stops,
+        count(o.trip_instance_key) as observable_trip_stops
+    from {{ ref('int_scheduled_stop_times') }} s
+    left join {{ ref('int_observable_trip_stops') }} o
+        on o.trip_instance_key = s.trip_instance_key and o.stop_sequence = s.stop_sequence
+    group by s.line, s.direction_id, s.service_date, s.hour_local
 ),
 
 eligible as (
@@ -49,10 +54,12 @@ select
     e.median_abs_revision_s,
     coalesce(e.n_eligible, 0) as n_eligible,
     coalesce(c.coverage_numerator, 0) as coverage_numerator,
-    s.coverage_denominator,
-    100.0 * coalesce(c.coverage_numerator, 0) / s.coverage_denominator as coverage_pct,
+    s.observable_trip_stops as coverage_denominator,
+    s.observable_trip_stops,
+    s.scheduled_trip_stops,
+    100.0 * coalesce(c.coverage_numerator, 0) / s.observable_trip_stops as coverage_pct,
     coalesce(c.skipped_stop_count, 0) as skipped_stop_count,
-    coalesce(c.skipped_stop_count, 0) / s.coverage_denominator as skipped_share,
+    coalesce(c.skipped_stop_count, 0) / s.observable_trip_stops as skipped_share,
     w.capture_minutes,
     w.window_complete
 from scheduled s
@@ -68,3 +75,4 @@ left join covered c
     and c.direction_id is not distinct from s.direction_id
     and c.service_date = s.service_date
     and c.hour_local = s.hour_local
+where s.observable_trip_stops > 0

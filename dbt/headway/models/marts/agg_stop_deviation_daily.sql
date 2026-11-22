@@ -1,6 +1,6 @@
 -- Prediction deviation per line, direction, stop and service date, counting only
 -- scheduled trip stops in hours inside the trip_updates observation window.
--- Coverage counts covered trip stops (including SKIPPED); deviation uses eligible
+-- Coverage counts only observable trip stops; it counts covered trip stops (including SKIPPED); deviation uses eligible
 -- predictions only.
 with observed as (
     select service_date, hour_local
@@ -15,7 +15,7 @@ scheduled as (
         s.stop_id,
         s.service_date,
         count(*) as coverage_denominator
-    from {{ ref('int_scheduled_stop_times') }} s
+    from {{ ref('int_observable_trip_stops') }} s
     join observed w on w.service_date = s.service_date and w.hour_local = s.hour_local
     group by s.line, s.direction_id, s.stop_id, s.service_date
 ),
@@ -53,6 +53,7 @@ select
     e.median_predicted_deviation_s,
     coalesce(e.n_eligible, 0) as n_eligible,
     coalesce(c.coverage_numerator, 0) as coverage_numerator,
+    s.coverage_denominator as observable_trip_stops,
     s.coverage_denominator,
     100.0 * coalesce(c.coverage_numerator, 0) / s.coverage_denominator as coverage_pct
 from scheduled s

@@ -45,8 +45,16 @@ models:
         description: "Scheduled trip stops with at least one usable observation: non-duplicate, schedule-matched, not NO_DATA, collected 0-30 minutes before the scheduled arrival. SKIPPED stops count as covered."
         data_tests:
           - not_null
+      - name: observable_trip_stops
+        description: "Scheduled trip stops in the hour that could have been observed: at least one ok, non-duplicate trip_updates capture fetched within 30 minutes up to the scheduled arrival."
+        data_tests:
+          - not_null
+      - name: scheduled_trip_stops
+        description: "All scheduled trip stops in the hour, observable or not; the gap to observable_trip_stops is time the pipeline was not capturing."
+        data_tests:
+          - not_null
       - name: coverage_denominator
-        description: "Scheduled trip stops in the hour."
+        description: "Observable trip stops in the hour (equals observable_trip_stops)."
         data_tests:
           - not_null
       - name: coverage_pct
@@ -62,7 +70,7 @@ models:
         data_tests:
           - not_null
       - name: skipped_share
-        description: "skipped_stop_count / coverage_denominator, a fraction between 0 and 1."
+        description: "skipped_stop_count / observable_trip_stops, a fraction between 0 and 1."
         data_tests:
           - not_null
           - accepted_range:
@@ -82,7 +90,7 @@ models:
         data_tests:
           - not_null
   - name: agg_stop_deviation_daily
-    description: "Predicted deviation per line, direction, stop and service date, counting only observed hours."
+    description: "Predicted deviation per line, direction, stop and service date, counting only observed hours and observable trip stops."
     config:
       meta:
         grain: "line x direction_id x stop_id x service_date"
@@ -121,8 +129,12 @@ models:
         description: "Scheduled trip stops at the stop in observed hours with a usable observation (SKIPPED counts as covered)."
         data_tests:
           - not_null
+      - name: observable_trip_stops
+        description: "Observable scheduled trip stops at the stop in observed hours (equals coverage_denominator)."
+        data_tests:
+          - not_null
       - name: coverage_denominator
-        description: "Scheduled trip stops at the stop in observed hours."
+        description: "Observable scheduled trip stops at the stop in observed hours."
         data_tests:
           - not_null
       - name: coverage_pct
@@ -210,7 +222,7 @@ models:
         data_tests:
           - not_null
   - name: agg_quality_checks_hourly
-    description: "Hourly data-quality checks with warn/fail status from the quality_thresholds seed. Values are percentages except missed_runs (count). late_event_share counts records fetched more than 300 seconds after their event_ts. vehicle_count_drop compares with the same hour one week earlier and is no_baseline when that hour was not observed."
+    description: "Hourly data-quality checks (prediction_coverage and schedule_join_coverage consider observable trip stops only) with warn/fail status from the quality_thresholds seed. Values are percentages except missed_runs (count). late_event_share counts records fetched more than 300 seconds after their event_ts. vehicle_count_drop compares with the same hour one week earlier and is no_baseline when that hour was not observed."
     config:
       meta:
         grain: "service_date x hour_local x check_name"

@@ -59,8 +59,9 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
 
 ## 3. Coverage
 
-- **Business meaning:** the share of scheduled trip stops for which the feed gave us a
-  usable observation. It measures data availability, not service delivery.
+- **Business meaning:** the share of observable scheduled trip stops for which the feed
+  gave us a usable observation. It measures feed completeness during observed periods,
+  not service delivery and not pipeline uptime.
 - **Formula:** `coverage_pct = 100 * coverage_numerator / coverage_denominator`.
 - **Grain:** line x direction_id x service_date x hour_local; also per stop and service
   date in `agg_stop_deviation_daily`.
@@ -69,19 +70,28 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
   0 to 30 minutes before the scheduled arrival (`int_covered_trip_stops`). For SKIPPED
   snapshots, which have no predicted time, the 30 minutes are measured from the scheduled
   arrival; for other snapshots `horizon_s` is used.
-- **Denominator:** scheduled subway trip stops whose scheduled arrival falls in the hour
-  (`int_scheduled_stop_times`).
+- **Denominator:** observable scheduled subway trip stops whose scheduled arrival falls in
+  the hour (`int_observable_trip_stops`, column `observable_trip_stops`). A trip stop
+  scheduled at T is observable when at least one ok, non-duplicate `trip_updates` capture
+  has `fetched_at` in [T - 30 min, T]. `scheduled_trip_stops` reports all scheduled stops
+  for comparison; the gap is time the pipeline was not capturing.
+- **Outages.** Stops we could not have observed are left out of numerator and denominator.
+  Pipeline gaps are reported by `missed_runs` and the freshness checks, not by coverage.
 - **Skipped stops.** A SKIPPED stop is covered: it is a usable observation of a service
   change. It is reported separately as `skipped_stop_count` (covered trip stops whose
   latest usable snapshot is SKIPPED) and `skipped_share = skipped_stop_count /
-  coverage_denominator`. SKIPPED stops stay out of deviation and revision, so
+  observable_trip_stops`. SKIPPED stops stay out of deviation and revision, so
   `coverage_numerator` can exceed `n_eligible`.
 - **Exclusion:** NO_DATA, duplicate captures, ADDED trips (not in the schedule, so not in
-  the denominator), hours outside the observation window.
-- **Source models:** `int_covered_trip_stops`, `int_scheduled_stop_times`,
+  the denominator), unobservable trip stops, hours outside the observation window.
+- **Source models:** `int_covered_trip_stops`, `int_observable_trip_stops`,
+  `int_scheduled_stop_times`, `int_captures`,
   `int_observation_window`, `agg_line_reliability_hourly`.
 - **Quality link:** `agg_quality_checks_hourly.prediction_coverage` is the hourly
-  coverage over all lines (warns below 80, fails below 50).
+  coverage over all lines, observable trip stops only (warns below 80, fails below 50).
+  `schedule_join_coverage` is the share of non-added snapshots matched to the schedule among
+  snapshots taken within 30 minutes before the stop's arrival (scheduled time when matched,
+  predicted time otherwise); snapshots with no arrival time are not evaluable.
 
 ## 4. Freshness
 

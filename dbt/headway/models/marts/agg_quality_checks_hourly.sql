@@ -98,6 +98,7 @@ missing_trip_id_share as (
     left join quarantine_counts q on q.service_date = t.service_date and q.hour_local = t.hour_local
 ),
 
+-- coverage over observable trip stops only (see agg_line_reliability_hourly)
 prediction_coverage as (
     select
         service_date,
@@ -108,6 +109,9 @@ prediction_coverage as (
     group by service_date, hour_local
 ),
 
+-- share of non-added snapshots that match the schedule, among snapshots taken
+-- within 30 minutes before the stop's arrival (scheduled time when matched,
+-- predicted time otherwise); snapshots without any arrival time are not evaluable
 schedule_join_coverage as (
     select
         c.service_date,
@@ -116,7 +120,10 @@ schedule_join_coverage as (
         100.0 * avg(p.schedule_matched::int) as value
     from {{ ref('fct_stop_predictions') }} p
     join {{ ref('int_captures') }} c on c.capture_id = p.capture_id
-    where not p.is_added_trip and not p.is_duplicate_capture
+    where not p.is_added_trip
+        and not p.is_duplicate_capture
+        and p.collected_at >= coalesce(p.scheduled_arrival_ts, p.predicted_arrival_ts) - interval 30 minute
+        and p.collected_at <= coalesce(p.scheduled_arrival_ts, p.predicted_arrival_ts)
     group by c.service_date, c.hour_local
 ),
 
