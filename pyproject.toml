@@ -22,6 +22,7 @@ headway = "headway.cli:main"
 [dependency-groups]
 dev = [
     "boto3-stubs[s3]",
+    "duckdb>=2.0.1",
     "moto[s3]",
     "mypy",
     "pytest",
@@ -47,7 +48,7 @@ packages = ["src/headway"]
 
 [tool.ruff]
 line-length = 100
-src = ["src", "tests", "app"]
+src = ["src", "tests", "app", "dbt"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
@@ -61,10 +62,10 @@ strict = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["google.transit.*", "pyarrow.*"]
+module = ["google.transit.*", "pyarrow.*", "dbt.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
-pythonpath = ["tests"]
+pythonpath = ["tests", "dbt"]

@@ -9,7 +9,7 @@ DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
 check:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy src
+	uv run mypy src dbt/headway_transform
 	uv run pytest
 
 lambda-zip:
