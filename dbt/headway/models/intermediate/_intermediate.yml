@@ -1,0 +1,215 @@
+version: 2
+
+models:
+  - name: int_captures
+    description: One row per capture attempt with its feed, run, timing and duplicate flag. A capture is a duplicate when its payload hash equals the previous successful capture of the same feed.
+    config:
+      meta:
+        grain: "capture_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [capture_id]
+    columns:
+      - name: capture_id
+        description: Capture identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_manifests')
+                field: capture_id
+      - name: run_id
+        description: Ingest run that scheduled the capture.
+        data_tests:
+          - not_null
+      - name: feed
+        description: Feed fetched (trip_updates, vehicle_positions, alerts).
+        data_tests:
+          - not_null
+      - name: scheduled_at
+        description: UTC time the run was scheduled for.
+        data_tests:
+          - not_null
+      - name: capture_minute
+        description: scheduled_at truncated to the minute; the unit of observation coverage.
+        data_tests:
+          - not_null
+      - name: fetched_at
+        description: UTC time the fetch completed; null on failure.
+      - name: status
+        description: ok or error.
+        data_tests:
+          - not_null
+      - name: content_hash
+        description: SHA-256 of the payload; null on error.
+      - name: entity_count
+        description: Entities in the payload.
+      - name: bytes
+        description: Payload size in bytes.
+      - name: is_duplicate_capture
+        description: True when content_hash equals the previous successful capture of the same feed; false for failed captures.
+        data_tests:
+          - not_null
+      - name: service_date
+        description: Service date of scheduled_at (03:00 local cutoff).
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: Local clock hour (0-23) of scheduled_at.
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 23
+  - name: int_feed_version_by_service_date
+    description: "Current GTFS feed version for each service date seen in the data: the loaded version with the latest feed_start_date on or before the service date."
+    config:
+      meta:
+        grain: "service_date"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [service_date]
+    columns:
+      - name: service_date
+        description: Service date.
+        data_tests:
+          - not_null
+      - name: feed_version
+        description: Current feed version for the service date.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gtfs__feed_info')
+                field: feed_version
+      - name: feed_start_date
+        description: feed_start_date of the selected version.
+        data_tests:
+          - not_null
+  - name: int_active_services
+    description: service_ids running on each service date, from calendar weekday patterns and calendar_dates additions and removals.
+    config:
+      meta:
+        grain: "service_date x service_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [service_date, service_id]
+    columns:
+      - name: service_date
+        description: Service date.
+        data_tests:
+          - not_null
+      - name: feed_version
+        description: Feed version the service is taken from.
+        data_tests:
+          - not_null
+      - name: service_id
+        description: Active service identifier.
+        data_tests:
+          - not_null
+  - name: int_scheduled_stop_times
+    description: Scheduled stop times of subway routes for every active trip on each service date, with the scheduled arrival as a UTC timestamp.
+    config:
+      meta:
+        grain: "trip_instance_key x stop_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [trip_instance_key, stop_sequence]
+    columns:
+      - name: trip_instance_key
+        description: trip_id, service_date and start_time joined with '|'.
+        data_tests:
+          - not_null
+      - name: service_date
+        description: Service date of the trip.
+        data_tests:
+          - not_null
+      - name: feed_version
+        description: Feed version the schedule comes from.
+        data_tests:
+          - not_null
+      - name: trip_id
+        description: Trip identifier.
+        data_tests:
+          - not_null
+      - name: route_id
+        description: Route identifier.
+        data_tests:
+          - not_null
+      - name: line
+        description: Reporting line; equal to route_id (for example Red, Green-B).
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: Direction of travel (0 or 1).
+      - name: trip_headsign
+        description: Destination sign text.
+      - name: start_time
+        description: "Scheduled trip start: first stop departure time (HH:MM:SS, may exceed 24h)."
+      - name: stop_id
+        description: Stop identifier.
+        data_tests:
+          - not_null
+      - name: stop_sequence
+        description: Order of the stop within the trip.
+        data_tests:
+          - not_null
+      - name: arrival_time
+        description: Scheduled arrival as GTFS HH:MM:SS.
+      - name: departure_time
+        description: Scheduled departure as GTFS HH:MM:SS.
+      - name: scheduled_arrival_ts
+        description: Scheduled arrival as UTC timestamp using the GTFS noon-minus-12h rule.
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: Local clock hour (0-23) of the scheduled arrival.
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 23
+  - name: int_observation_window
+    description: Hours in which the pipeline was observing each feed. Aggregates only report hours present here.
+    config:
+      meta:
+        grain: "service_date x hour_local x feed"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [service_date, hour_local, feed]
+    columns:
+      - name: service_date
+        description: Service date of the captures.
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: Local clock hour (0-23) of the captures.
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 23
+      - name: feed
+        description: Feed observed.
+        data_tests:
+          - not_null
+      - name: capture_minutes
+        description: Distinct minutes in the hour with a successful, non-duplicate capture.
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 60
+      - name: window_complete
+        description: True when capture_minutes is at least 55.
+        data_tests:
+          - not_null

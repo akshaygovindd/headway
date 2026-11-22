@@ -16,6 +16,8 @@ vars:
   city_prefix: boston
   timezone: America/New_York
   service_day_cutoff_hour: 3
+  # GTFS route_type values treated as subway (0 light rail, 1 subway) for scheduled stop times.
+  subway_route_types: [0, 1]
 
 models:
   headway:
