@@ -1,5 +1,6 @@
 """City configuration loading and validation."""
 
+import os
 from pathlib import Path
 from typing import Self
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -59,7 +60,12 @@ class CityConfig(_Frozen):
 
 def load_city_config(city_id: str, config_dir: Path | None = None) -> CityConfig:
     """Load and validate the YAML config for ``city_id``."""
-    directory = config_dir if config_dir is not None else DEFAULT_CONFIG_DIR
+    if config_dir is not None:
+        directory = config_dir
+    elif env_dir := os.environ.get("HEADWAY_CONFIG_DIR"):
+        directory = Path(env_dir)
+    else:
+        directory = DEFAULT_CONFIG_DIR
     path = directory / f"{city_id}.yaml"
     with path.open(encoding="utf-8") as handle:
         data = yaml.safe_load(handle)

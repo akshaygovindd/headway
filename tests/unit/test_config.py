@@ -54,3 +54,17 @@ def test_rejects_inverted_bbox(tmp_path: Path) -> None:
     data["bbox"]["lat_min"], data["bbox"]["lat_max"] = 43.0, 41.0
     with pytest.raises(ValidationError):
         load_city_config("test", _write(tmp_path, data))
+
+
+def test_env_config_dir_used_when_arg_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write(tmp_path, _boston_dict())
+    monkeypatch.setenv("HEADWAY_CONFIG_DIR", str(tmp_path))
+    assert load_city_config("test").city_id == "boston"
+
+
+def test_explicit_dir_beats_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    explicit = _write(tmp_path, _boston_dict())
+    monkeypatch.setenv("HEADWAY_CONFIG_DIR", str(tmp_path / "missing"))
+    assert load_city_config("test", explicit).city_id == "boston"
