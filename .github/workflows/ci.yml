@@ -15,6 +15,15 @@ jobs:
       - run: uv sync
       - run: make check
 
+  tf-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - run: make tf-validate
+
   secrets:
     runs-on: ubuntu-latest
     steps:

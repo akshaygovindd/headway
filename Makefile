@@ -20,3 +20,8 @@ lambda-zip:
 	cp -R config build/lambda/config
 	uv run python scripts/make_zip.py build/lambda build/ingest.zip
 	@ls -l build/ingest.zip
+
+tf-validate:
+	terraform fmt -check -recursive infra
+	cd infra/bootstrap && terraform init -backend=false -input=false >/dev/null && terraform validate
+	cd infra/main && terraform init -backend=false -input=false >/dev/null && terraform validate
