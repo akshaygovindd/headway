@@ -37,6 +37,7 @@ def test_built_zip_contents_and_size() -> None:
         names = zf.namelist()
     assert "headway/ingest/handler.py" in names
     assert "config/cities/boston.yaml" in names
-    assert not [n for n in names if n.split("/")[0] in {"boto3", "botocore", "s3transfer"}]
+    excluded = {"boto3", "botocore", "s3transfer", "pyarrow"}
+    assert not [n for n in names if n.split("/")[0] in excluded]
     assert not [n for n in names if "__pycache__" in n]
     assert ZIP.stat().st_size < 50 * 1024 * 1024

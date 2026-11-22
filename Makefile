@@ -1,5 +1,5 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
-LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3
+LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
 .PHONY: check lambda-zip tf-validate
 
