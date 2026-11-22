@@ -137,3 +137,22 @@ def test_manifest_error_entry_and_forbid() -> None:
     assert e.status == "error"
     with pytest.raises(ValidationError):
         ManifestEntry.model_validate(_entry(extra=1))
+
+
+@pytest.mark.parametrize("relationship", ["SKIPPED", "NO_DATA"])
+def test_trip_update_without_times_is_valid_when_skipped_or_no_data(relationship: str) -> None:
+    row = trip_update_row(
+        predicted_arrival_ts=None,
+        predicted_departure_ts=None,
+        schedule_relationship=relationship,
+        event_ts=None,
+        vehicle_id=None,
+    )
+    valid, bad = validate_records([row], TripUpdateRecord, CTX)
+    assert len(valid) == 1 and not bad
+
+
+def test_scheduled_trip_update_without_times_is_still_quarantined() -> None:
+    row = trip_update_row(predicted_arrival_ts=None, predicted_departure_ts=None)
+    valid, bad = validate_records([row], TripUpdateRecord, CTX)
+    assert not valid and bad[0].reason == QuarantineReason.SCHEMA_ERROR

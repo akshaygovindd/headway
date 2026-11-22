@@ -19,6 +19,9 @@ PAST_WINDOW = timedelta(hours=6)
 FUTURE_WINDOW = timedelta(hours=24)
 MAX_EVENT_LAG = timedelta(minutes=10)
 
+# Stop updates that legitimately carry no predicted time (the stop is skipped or has no data).
+NO_PREDICTION_RELATIONSHIPS = frozenset({"SKIPPED", "NO_DATA"})
+
 ERR_TIMESTAMP = "timestamp_out_of_range"
 ERR_COORDINATES = "invalid_coordinates"
 
@@ -49,6 +52,8 @@ class TripUpdateRecord(_Record):
     def _check_predictions(self) -> Self:
         times = [t for t in (self.predicted_arrival_ts, self.predicted_departure_ts) if t]
         if not times:
+            if self.schedule_relationship in NO_PREDICTION_RELATIONSHIPS:
+                return self
             raise ValueError("at least one predicted time is required")
         lo, hi = self.fetched_at - PAST_WINDOW, self.fetched_at + FUTURE_WINDOW
         if any(t < lo or t > hi for t in times):
