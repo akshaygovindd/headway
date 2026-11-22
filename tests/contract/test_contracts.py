@@ -56,11 +56,6 @@ CASES: list[tuple[type[Any], dict[str, Any], QuarantineReason]] = [
     ),
     (VehiclePositionRecord, vehicle_row(lat=10.0), QuarantineReason.INVALID_COORDINATES),
     (VehiclePositionRecord, vehicle_row(lon=999.0), QuarantineReason.INVALID_COORDINATES),
-    (
-        VehiclePositionRecord,
-        vehicle_row(event_ts=HEADER_TS - timedelta(minutes=11)),
-        QuarantineReason.TIMESTAMP_OUT_OF_RANGE,
-    ),
     (VehiclePositionRecord, vehicle_row(vehicle_id=None), QuarantineReason.SCHEMA_ERROR),
     (AlertRecord, alert_row(entity_index=-1), QuarantineReason.SCHEMA_ERROR),
 ]
@@ -90,6 +85,21 @@ def test_vehicle_boundary_event_lag_ok() -> None:
         [vehicle_row(event_ts=HEADER_TS - timedelta(minutes=10))], VehiclePositionRecord, CTX
     )
     assert len(valid) == 1
+    assert valid[0].is_stale_position is False
+
+
+def test_vehicle_old_event_ts_is_kept_and_flagged_stale() -> None:
+    valid, bad = validate_records(
+        [vehicle_row(event_ts=HEADER_TS - timedelta(minutes=11))], VehiclePositionRecord, CTX
+    )
+    assert bad == []
+    assert len(valid) == 1
+    assert valid[0].is_stale_position is True
+
+
+def test_vehicle_without_event_ts_is_not_stale() -> None:
+    valid, _ = validate_records([vehicle_row(event_ts=None)], VehiclePositionRecord, CTX)
+    assert valid[0].is_stale_position is False
 
 
 def test_vehicle_requires_bbox_context() -> None:

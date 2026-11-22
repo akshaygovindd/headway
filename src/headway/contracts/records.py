@@ -79,6 +79,9 @@ class VehiclePositionRecord(_Record):
     event_ts: UtcDatetime | None = None
     feed_header_ts: UtcDatetime
     fetched_at: UtcDatetime
+    # Derived during validation: event_ts is more than MAX_EVENT_LAG behind the feed header
+    # (typically a train sitting on layover). Such rows are kept, not quarantined.
+    is_stale_position: bool = False
 
     @field_validator("lat", "lon")
     @classmethod
@@ -88,15 +91,16 @@ class VehiclePositionRecord(_Record):
         return value
 
     @model_validator(mode="after")
-    def _check_bbox_and_lag(self, info: ValidationInfo) -> Self:
+    def _check_bbox_and_flag_stale(self, info: ValidationInfo) -> Self:
         ctx: dict[str, Any] = info.context or {}
         bbox: BBox | None = ctx.get("bbox")
         if bbox is not None and not (
             bbox.lat_min <= self.lat <= bbox.lat_max and bbox.lon_min <= self.lon <= bbox.lon_max
         ):
             raise PydanticCustomError(ERR_COORDINATES, "position outside city bounding box")
-        if self.event_ts is not None and self.feed_header_ts - self.event_ts > MAX_EVENT_LAG:
-            raise PydanticCustomError(ERR_TIMESTAMP, "event_ts more than 10 minutes before header")
+        self.is_stale_position = (
+            self.event_ts is not None and self.feed_header_ts - self.event_ts > MAX_EVENT_LAG
+        )
         return self
 
 

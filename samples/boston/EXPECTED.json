@@ -13,8 +13,7 @@
       "protobuf_parse_error": 1
     },
     "vehicle_positions": {
-      "invalid_coordinates": 3,
-      "timestamp_out_of_range": 99
+      "invalid_coordinates": 3
     }
   },
   "rows_parsed": {
@@ -25,7 +24,7 @@
   "rows_valid": {
     "alerts": 74681,
     "trip_updates": 83312,
-    "vehicle_positions": 4251
+    "vehicle_positions": 4350
   },
   "unparseable_captures_per_feed": {
     "trip_updates": 1
