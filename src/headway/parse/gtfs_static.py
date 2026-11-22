@@ -3,7 +3,7 @@
 import csv
 import io
 import zipfile
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, ClassVar, TextIO
@@ -212,7 +212,10 @@ class GtfsSource:
                 return name in zf.namelist()
         return (self.path / name).is_file()
 
-    def iter_rows[R: _Row](self, model: type[R]) -> Iterator[R]:
+    def iter_rows[R: _Row](
+        self, model: type[R], raw_filter: Callable[[dict[str, str]], bool] | None = None
+    ) -> Iterator[R]:
+        """Yield typed rows; ``raw_filter`` skips unwanted rows before validation."""
         table = model.table
         if not self.has_table(table):
             if table in OPTIONAL_TABLES:
@@ -221,6 +224,8 @@ class GtfsSource:
         with self._open(table) as handle:
             reader = csv.DictReader(handle)
             for raw in reader:
+                if raw_filter is not None and not raw_filter(raw):
+                    continue
                 try:
                     row = model.from_csv(raw)
                 except ValidationError as exc:

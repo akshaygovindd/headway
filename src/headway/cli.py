@@ -12,6 +12,7 @@ from headway.config import CityConfig, load_city_config
 from headway.contracts.manifest import ManifestEntry
 from headway.ingest.capture import Clock, Fetcher, capture_run
 from headway.ingest.fetch import fetch_feed
+from headway.samples.build import build_sample
 from headway.storage import LocalStorage, Storage
 
 
@@ -65,12 +66,23 @@ def build_parser() -> argparse.ArgumentParser:
     cap.add_argument("--city", required=True, help="city id, e.g. boston")
     cap.add_argument("--minutes", type=_positive_int, required=True, help="number of runs")
     cap.add_argument("--out", type=Path, required=True, help="output directory")
+    samples = sub.add_parser("samples", help="sample dataset tools")
+    samples_sub = samples.add_subparsers(dest="samples_command", required=True)
+    build = samples_sub.add_parser("build", help="build the subway sample from a real capture")
+    build.add_argument("--source", type=Path, required=True, help="capture directory")
+    build.add_argument("--gtfs", type=Path, required=True, help="GTFS zip or folder")
+    build.add_argument("--out", type=Path, required=True, help="output directory")
+    build.add_argument("--city", required=True, help="city id, e.g. boston")
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     config = load_city_config(args.city)
+    if args.command == "samples":
+        counts = build_sample(config, args.source, args.gtfs, args.out)
+        print(" ".join(f"{k}={v}" for k, v in counts.items()))
+        return 0
     with httpx.Client(follow_redirects=True) as client:
         run_captures(
             config,
