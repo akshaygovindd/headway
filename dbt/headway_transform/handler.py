@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import time
+import traceback
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -53,10 +54,17 @@ def run_dbt(args: list[str]) -> DbtOutcome:
 
     res = dbtRunner().invoke([*args, *_dbt_flags()])
     if res.exception is not None:
+        logger.error(
+            "dbt %s raised:\n%s",
+            args[0],
+            "".join(traceback.format_exception(res.exception)),
+        )
         raise TransformError(f"dbt {args[0]} failed: {res.exception}")
     outcome = DbtOutcome(success=bool(res.success))
     results = getattr(res.result, "results", None) or []
     for r in results:
+        if getattr(r, "node", None) is None:  # run-operation results carry no node
+            continue
         status = str(getattr(r.status, "value", r.status))
         is_test = str(getattr(r.node.resource_type, "value", r.node.resource_type)) == "test"
         if is_test and status in ("fail", "error"):
@@ -79,8 +87,43 @@ def _tables_to_publish(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
     return tables
 
 
+def _smoke(started: float) -> dict[str, Any]:
+    """Image smoke test: dbt build + gold export on a local curated root; no AWS, no publish."""
+    root = os.environ["HEADWAY_SMOKE_CURATED_ROOT"]
+    gold = os.environ["HEADWAY_SMOKE_GOLD_DIR"]
+    os.makedirs(gold, exist_ok=True)
+    variables = json.dumps(
+        {
+            "curated_root": root,
+            "city_prefix": os.environ["CITY_ID"],
+            "lookback_days": int(os.environ.get("LOOKBACK_DAYS", DEFAULT_LOOKBACK_DAYS)),
+        }
+    )
+    build = run_dbt(["build", "--vars", variables])
+    if build.node_errors:
+        raise TransformError(f"dbt models failed: {', '.join(build.node_errors)}")
+    run_dbt(["run-operation", "export_gold", "--vars", variables,
+             "--args", json.dumps({"target_dir": gold})])  # fmt: skip
+    with open(f"{gold}/manifest.json") as handle:
+        counts = json.load(handle)["row_counts"]
+    summary = {
+        "smoke": True,
+        "dbt_status": "success" if build.success else "tests_failed",
+        "tests_failed": build.tests_failed,
+        "tests_passed": build.tests_passed,
+        "rows_exported": sum(counts.values()),
+        "tables_exported": len(counts),
+        "duration_ms": round((time.monotonic() - started) * 1000),
+    }
+    logger.info(json.dumps(summary, sort_keys=True))
+    return summary
+
+
 def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     started = time.monotonic()
+    os.environ.setdefault("HOME", "/tmp")  # noqa: S108  Lambda leaves HOME unset
+    if os.environ.get("HEADWAY_SMOKE_GOLD_DIR"):
+        return _smoke(started)
     raw_bucket = os.environ["RAW_BUCKET"]
     public_bucket = os.environ["PUBLIC_BUCKET"]
     city = os.environ["CITY_ID"]

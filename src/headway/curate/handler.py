@@ -17,7 +17,7 @@ from headway.curate.pipeline import curate_new
 from headway.curate.schemas import REALTIME_SCHEMAS
 from headway.curate.static import load_static
 from headway.parse.gtfs_static import GtfsSource
-from headway.storage import S3Storage
+from headway.storage import LocalStorage, S3Storage, Storage
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -30,13 +30,20 @@ def _now() -> datetime:
 
 
 def _download(url: str) -> bytes:
+    local = os.environ.get("HEADWAY_GTFS_ZIP")  # image smoke test: no network
+    if local:
+        return Path(local).read_bytes()
     response = httpx.get(url, follow_redirects=True, timeout=DOWNLOAD_TIMEOUT_SECONDS)
     response.raise_for_status()
     return response.content
 
 
-def _storage_and_config() -> tuple[S3Storage, CityConfig]:
-    return S3Storage(os.environ["RAW_BUCKET"]), load_city_config(os.environ["CITY_ID"])
+def _storage_and_config() -> tuple[Storage, CityConfig]:
+    config = load_city_config(os.environ["CITY_ID"])
+    local = os.environ.get("HEADWAY_STORAGE_DIR")  # image smoke test: no S3
+    if local:
+        return LocalStorage(Path(local)), config
+    return S3Storage(os.environ["RAW_BUCKET"]), config
 
 
 def _log(summary: dict[str, Any], started: float) -> dict[str, Any]:
@@ -45,7 +52,7 @@ def _log(summary: dict[str, Any], started: float) -> dict[str, Any]:
     return summary
 
 
-def _compact_previous_hour(storage: S3Storage, config: CityConfig, now: datetime) -> dict[str, Any]:
+def _compact_previous_hour(storage: Storage, config: CityConfig, now: datetime) -> dict[str, Any]:
     hour = now.astimezone(UTC).replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
     rows = 0
     removed = 0

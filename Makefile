@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push
+.PHONY: check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke images-smoke
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -66,6 +66,16 @@ images-build:
 		docker image inspect headway-$$name:local --format "headway-$$name:$(IMAGE_TAG) {{.Size}}" \
 			| awk '{printf "%s  %.0f MB\n", $$1, $$2 / 1000000}'; \
 	done
+
+# Lambda-conditions smoke tests (docker + the images from `make images-build`): Runtime Interface
+# Emulator, read-only root, writable /tmp only, unprivileged user, HOME unset, local fixtures.
+transform-smoke:
+	scripts/smoke_image.sh transform
+
+curate-smoke:
+	scripts/smoke_image.sh curate
+
+images-smoke: curate-smoke transform-smoke
 
 # Logs in to ECR, tags with the git short sha and pushes. The ECR repositories must already exist
 # (see docs/DEPLOY.md). Prints the image URIs to put in terraform.tfvars.

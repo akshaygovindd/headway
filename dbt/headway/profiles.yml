@@ -14,10 +14,13 @@ headway:
       threads: 4
       extensions:
         - httpfs
-      settings:
-        TimeZone: UTC
+      # Connect-time options: dbt-duckdb installs extensions right after connecting, before any
+      # `settings` apply, so the read-only default home (~/.duckdb) must be overridden here.
+      config_options:
         home_directory: /tmp
         extension_directory: "{{ env_var('HEADWAY_DUCKDB_EXTENSIONS', '/tmp/duckdb_extensions') }}"
+      settings:
+        TimeZone: UTC
       secrets:
         - type: s3
           provider: credential_chain

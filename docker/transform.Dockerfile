@@ -11,14 +11,15 @@ RUN uv export --frozen --only-group dbt --no-hashes --no-emit-project > requirem
 RUN PYTHONPATH=/deps /var/lang/bin/python3.12 -c "\
 import duckdb; \
 con = duckdb.connect(config={'extension_directory': '/duckdb_extensions', 'home_directory': '/tmp'}); \
-con.execute('install httpfs'); con.execute('install motherduck')"
+con.execute('install httpfs'); con.execute('install aws'); con.execute('install motherduck')"
 
 FROM public.ecr.aws/lambda/python:3.12
 COPY --from=build /deps ${LAMBDA_TASK_ROOT}
 COPY --from=build /duckdb_extensions ${LAMBDA_TASK_ROOT}/duckdb_extensions
 COPY dbt/headway ${LAMBDA_TASK_ROOT}/dbt_project
 COPY dbt/headway_transform ${LAMBDA_TASK_ROOT}/headway_transform
-ENV DBT_PROJECT_DIR=${LAMBDA_TASK_ROOT}/dbt_project \
+ENV HOME=/tmp \
+    DBT_PROJECT_DIR=${LAMBDA_TASK_ROOT}/dbt_project \
     HEADWAY_DUCKDB_EXTENSIONS=${LAMBDA_TASK_ROOT}/duckdb_extensions \
     HEADWAY_DUCKDB_PATH=/tmp/headway.duckdb \
     DBT_SEND_ANONYMOUS_USAGE_STATS=False
