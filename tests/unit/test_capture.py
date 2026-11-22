@@ -31,7 +31,7 @@ def fetcher_for(tu: FetchResult, vp: FetchResult, al: FetchResult):  # type: ign
 def test_capture_run_keys_manifest_and_roundtrip(tmp_path: Path) -> None:
     tu_body, vp_body, al_body = fx.trip_updates_feed(), fx.vehicles_feed(), fx.alerts_feed()
     storage = LocalStorage(tmp_path)
-    entries = capture_run(
+    captures = capture_run(
         CONFIG,
         storage,
         fetcher_for(ok(tu_body), ok(vp_body), ok(al_body)),
@@ -48,7 +48,7 @@ def test_capture_run_keys_manifest_and_roundtrip(tmp_path: Path) -> None:
     manifest_keys = [k for k in keys if k.startswith("manifests/")]
     assert len(raw_keys) == 3 and raw_key in raw_keys
     assert len(manifest_keys) == 1
-    run_id = entries[0].run_id
+    run_id = captures[0].entry.run_id
     assert manifest_keys[0] == f"manifests/{prefix}/dt=2026-06-01/hour=12/{run_id}.json"
     assert len(run_id) == 26
 
@@ -72,16 +72,18 @@ def test_capture_run_keys_manifest_and_roundtrip(tmp_path: Path) -> None:
 def test_fetch_failure_records_error_and_stores_nothing(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path)
     failed = FetchResult("error", 503, None, NOW, "HTTP 503")
-    entries = capture_run(
+    captures = capture_run(
         CONFIG,
         storage,
         fetcher_for(ok(fx.trip_updates_feed()), failed, ok(fx.alerts_feed())),
         lambda: NOW,
         SCHEDULED,
     )
-    vp = entries[1]
+    vp = captures[1].entry
     assert (vp.status, vp.http_status, vp.error) == ("error", 503, "HTTP 503")
     assert vp.s3_key is None and vp.content_hash is None
+    assert captures[1].body is None
+    assert captures[0].body == fx.trip_updates_feed()
     assert not [k for k in storage.list_keys("raw/") if "feed=vehicle_positions" in k]
     assert len(storage.list_keys("raw/")) == 2
     manifest = json.loads(storage.get_bytes(storage.list_keys("manifests/")[0]))
@@ -90,14 +92,14 @@ def test_fetch_failure_records_error_and_stores_nothing(tmp_path: Path) -> None:
 
 def test_header_parse_failure_keeps_bytes(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path)
-    entries = capture_run(
+    captures = capture_run(
         CONFIG,
         storage,
         fetcher_for(ok(fx.CORRUPT), ok(fx.vehicles_feed()), ok(fx.alerts_feed())),
         lambda: NOW,
         SCHEDULED,
     )
-    e = entries[0]
+    e = captures[0].entry
     assert e.status == "ok" and e.header_parse_error
     assert e.feed_header_ts is None and e.entity_count is None
     assert e.s3_key is not None

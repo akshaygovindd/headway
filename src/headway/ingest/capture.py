@@ -4,6 +4,7 @@ import gzip
 import hashlib
 import json
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from ulid import ULID
@@ -19,6 +20,14 @@ Fetcher = Callable[[str], FetchResult]
 Clock = Callable[[], datetime]
 
 FEEDS: tuple[FeedName, ...] = ("trip_updates", "vehicle_positions", "alerts")
+
+
+@dataclass(frozen=True)
+class FeedCapture:
+    """Outcome of fetching one feed: its manifest entry and the raw body (None on failure)."""
+
+    entry: ManifestEntry
+    body: bytes | None
 
 
 def _partition(ts: datetime) -> str:
@@ -85,22 +94,24 @@ def capture_run(
     fetcher: Fetcher,
     clock: Clock,
     scheduled_at: datetime,
-) -> list[ManifestEntry]:
-    """Fetch all realtime feeds once; return and persist the run's manifest entries."""
+) -> list[FeedCapture]:
+    """Fetch all realtime feeds once; persist the manifest and return per-feed results."""
     run_id = str(ULID.from_datetime(clock()))
     urls: dict[FeedName, str] = {
         "trip_updates": str(config.feeds.trip_updates),
         "vehicle_positions": str(config.feeds.vehicle_positions),
         "alerts": str(config.feeds.alerts),
     }
-    entries = [
-        _capture_entry(config, storage, feed, fetcher(urls[feed]), run_id, scheduled_at)
-        for feed in FEEDS
-    ]
+    captures: list[FeedCapture] = []
+    for feed in FEEDS:
+        result = fetcher(urls[feed])
+        entry = _capture_entry(config, storage, feed, result, run_id, scheduled_at)
+        captures.append(FeedCapture(entry, result.body if entry.status == "ok" else None))
+    entries = [c.entry for c in captures]
     manifest = {
         "run_id": run_id,
         "entries": [e.model_dump(mode="json") for e in entries],
     }
     key = f"manifests/{config.storage_prefix}/{_partition(scheduled_at)}/{run_id}.json"
     storage.put_bytes(key, json.dumps(manifest, indent=2, sort_keys=True).encode())
-    return entries
+    return captures

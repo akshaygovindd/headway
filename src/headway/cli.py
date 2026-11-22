@@ -47,8 +47,8 @@ def run_captures(
         wait = (scheduled_at - clock()).total_seconds()
         if wait > 0:
             sleep(wait)
-        entries = capture_run(config, storage, fetcher, clock, scheduled_at)
-        emit(format_run(scheduled_at, entries))
+        captures = capture_run(config, storage, fetcher, clock, scheduled_at)
+        emit(format_run(scheduled_at, [c.entry for c in captures]))
         scheduled_at += timedelta(minutes=1)
 
 
