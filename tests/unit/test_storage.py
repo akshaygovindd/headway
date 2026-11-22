@@ -1,8 +1,10 @@
 from pathlib import Path
 
+import boto3
 import pytest
+from moto import mock_aws
 
-from headway.storage import LocalStorage
+from headway.storage import LocalStorage, S3Storage
 
 
 def test_roundtrip_and_exists(tmp_path: Path) -> None:
@@ -29,3 +31,30 @@ def test_list_keys_missing_root(tmp_path: Path) -> None:
 def test_rejects_bad_keys(tmp_path: Path, key: str) -> None:
     with pytest.raises(ValueError):
         LocalStorage(tmp_path).put_bytes(key, b"")
+
+
+def _s3() -> S3Storage:
+    client = boto3.client("s3", region_name="us-east-1")
+    client.create_bucket(Bucket="test-bucket")
+    return S3Storage("test-bucket", client)
+
+
+def test_s3_roundtrip_exists_and_list() -> None:
+    with mock_aws():
+        s = _s3()
+        assert not s.exists("a/b.bin")
+        s.put_bytes("a/b.bin", b"xyz")
+        s.put_bytes("raw/b", b"1")
+        s.put_bytes("raw/a", b"1")
+        assert s.exists("a/b.bin")
+        assert s.get_bytes("a/b.bin") == b"xyz"
+        assert s.list_keys("raw/") == ["raw/a", "raw/b"]
+
+
+def test_s3_put_sets_content_type_and_cache_control() -> None:
+    with mock_aws():
+        s = _s3()
+        s.put_bytes("k.json", b"{}", content_type="application/json", cache_control="max-age=30")
+        head = s.client.head_object(Bucket="test-bucket", Key="k.json")
+        assert head["ContentType"] == "application/json"
+        assert head["CacheControl"] == "max-age=30"

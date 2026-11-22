@@ -1,11 +1,20 @@
 """Object storage abstraction with a local filesystem implementation."""
 
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3 import S3Client
 
 
 class Storage(Protocol):
-    def put_bytes(self, key: str, data: bytes) -> None: ...
+    def put_bytes(
+        self,
+        key: str,
+        data: bytes,
+        content_type: str | None = None,
+        cache_control: str | None = None,
+    ) -> None: ...
 
     def get_bytes(self, key: str) -> bytes: ...
 
@@ -25,7 +34,13 @@ class LocalStorage:
             raise ValueError(f"invalid storage key: {key!r}")
         return self.root / key
 
-    def put_bytes(self, key: str, data: bytes) -> None:
+    def put_bytes(
+        self,
+        key: str,
+        data: bytes,
+        content_type: str | None = None,
+        cache_control: str | None = None,
+    ) -> None:
         path = self._path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
@@ -41,3 +56,49 @@ class LocalStorage:
 
     def exists(self, key: str) -> bool:
         return self._path(key).is_file()
+
+
+class S3Storage:
+    """Stores objects in an S3 bucket."""
+
+    def __init__(self, bucket: str, client: "S3Client | None" = None) -> None:
+        self.bucket = bucket
+        if client is None:
+            import boto3
+
+            client = boto3.client("s3")
+        self.client = client
+
+    def put_bytes(
+        self,
+        key: str,
+        data: bytes,
+        content_type: str | None = None,
+        cache_control: str | None = None,
+    ) -> None:
+        extra: dict[str, Any] = {}
+        if content_type is not None:
+            extra["ContentType"] = content_type
+        if cache_control is not None:
+            extra["CacheControl"] = cache_control
+        self.client.put_object(Bucket=self.bucket, Key=key, Body=data, **extra)
+
+    def get_bytes(self, key: str) -> bytes:
+        response = self.client.get_object(Bucket=self.bucket, Key=key)
+        return response["Body"].read()
+
+    def list_keys(self, prefix: str) -> list[str]:
+        paginator = self.client.get_paginator("list_objects_v2")
+        keys: list[str] = []
+        for page in paginator.paginate(Bucket=self.bucket, Prefix=prefix):
+            keys.extend(obj["Key"] for obj in page.get("Contents", []))
+        return sorted(keys)
+
+    def exists(self, key: str) -> bool:
+        try:
+            self.client.head_object(Bucket=self.bucket, Key=key)
+        except self.client.exceptions.ClientError as exc:
+            if exc.response["Error"]["Code"] in ("404", "NoSuchKey", "NotFound"):
+                return False
+            raise
+        return True

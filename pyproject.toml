@@ -6,6 +6,7 @@ readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "boto3>=1.35",
     "gtfs-realtime-bindings>=3.0.0",
     "httpx>=0.28.1",
     "protobuf>=7.36.2",
@@ -19,6 +20,8 @@ headway = "headway.cli:main"
 
 [dependency-groups]
 dev = [
+    "boto3-stubs[s3]",
+    "moto[s3]",
     "mypy",
     "pytest",
     "ruff",
