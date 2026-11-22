@@ -4,6 +4,25 @@
     "trip_updates": 59,
     "vehicle_positions": 59
   },
+  "curated": {
+    "quarantine_by_reason": {
+      "alerts": {
+        "unknown_route": 39317
+      },
+      "trip_updates": {
+        "missing_trip_id": 41,
+        "protobuf_parse_error": 1
+      },
+      "vehicle_positions": {
+        "invalid_coordinates": 3
+      }
+    },
+    "rows_per_table": {
+      "alerts": 35364,
+      "trip_updates": 83312,
+      "vehicle_positions": 4350
+    }
+  },
   "failed_fetches_per_feed": {},
   "header_parse_failures": 1,
   "quarantine_by_reason": {
