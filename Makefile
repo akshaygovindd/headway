@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: check lambda-zip tf-validate dbt e2e app-test demo-data demo
+.PHONY: check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -51,3 +51,34 @@ demo-data:
 # Build the demo data and launch the app on it.
 demo: demo-data
 	HEADWAY_DATA_URL=$(DEMO_DATA_URL) uv run --group app streamlit run app/Home.py
+
+# Container images for the curate/static and transform Lambdas (linux/arm64).
+IMAGE_TAG ?= $(shell git rev-parse --short HEAD)
+AWS_REGION ?= us-east-1
+IMAGES := curate transform
+
+images-build:
+	@set -e; for name in $(IMAGES); do \
+		docker buildx build --platform linux/arm64 --provenance=false --sbom=false --load -f docker/$$name.Dockerfile \
+			-t headway-$$name:$(IMAGE_TAG) -t headway-$$name:local .; \
+	done
+	@for name in $(IMAGES); do \
+		docker image inspect headway-$$name:local --format "headway-$$name:$(IMAGE_TAG) {{.Size}}" \
+			| awk '{printf "%s  %.0f MB\n", $$1, $$2 / 1000000}'; \
+	done
+
+# Logs in to ECR, tags with the git short sha and pushes. The ECR repositories must already exist
+# (see docs/DEPLOY.md). Prints the image URIs to put in terraform.tfvars.
+images-push: images-build
+	@set -eo pipefail; \
+	account=$$(aws sts get-caller-identity --query Account --output text); \
+	registry=$$account.dkr.ecr.$(AWS_REGION).amazonaws.com; \
+	aws ecr get-login-password --region $(AWS_REGION) \
+		| docker login --username AWS --password-stdin $$registry; \
+	for name in $(IMAGES); do \
+		docker tag headway-$$name:$(IMAGE_TAG) $$registry/headway-$$name:$(IMAGE_TAG); \
+		docker push $$registry/headway-$$name:$(IMAGE_TAG); \
+	done; \
+	echo; \
+	echo "curate_image_uri    = \"$$registry/headway-curate:$(IMAGE_TAG)\""; \
+	echo "transform_image_uri = \"$$registry/headway-transform:$(IMAGE_TAG)\""
