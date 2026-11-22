@@ -49,7 +49,7 @@ strict = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["google.transit.*"]
+module = ["google.transit.*", "pyarrow.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
