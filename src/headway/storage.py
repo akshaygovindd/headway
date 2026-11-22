@@ -22,6 +22,8 @@ class Storage(Protocol):
 
     def exists(self, key: str) -> bool: ...
 
+    def delete(self, key: str) -> None: ...
+
 
 class LocalStorage:
     """Stores objects as files under a root directory."""
@@ -56,6 +58,9 @@ class LocalStorage:
 
     def exists(self, key: str) -> bool:
         return self._path(key).is_file()
+
+    def delete(self, key: str) -> None:
+        self._path(key).unlink(missing_ok=True)
 
 
 class S3Storage:
@@ -102,3 +107,6 @@ class S3Storage:
                 return False
             raise
         return True
+
+    def delete(self, key: str) -> None:
+        self.client.delete_object(Bucket=self.bucket, Key=key)

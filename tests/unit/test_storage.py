@@ -58,3 +58,19 @@ def test_s3_put_sets_content_type_and_cache_control() -> None:
         head = s.client.head_object(Bucket="test-bucket", Key="k.json")
         assert head["ContentType"] == "application/json"
         assert head["CacheControl"] == "max-age=30"
+
+
+def test_local_delete_is_idempotent(tmp_path: Path) -> None:
+    s = LocalStorage(tmp_path)
+    s.put_bytes("a/b.bin", b"xyz")
+    s.delete("a/b.bin")
+    s.delete("a/b.bin")
+    assert not s.exists("a/b.bin")
+
+
+def test_s3_delete() -> None:
+    with mock_aws():
+        s = _s3()
+        s.put_bytes("a/b.bin", b"xyz")
+        s.delete("a/b.bin")
+        assert not s.exists("a/b.bin")
