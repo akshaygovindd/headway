@@ -35,6 +35,10 @@ sources:
         description: Static GTFS stop times, one partition per loaded feed_version.
         meta:
           external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=stop_times/feed_version=*/part.parquet', hive_partitioning=true)"
+      - name: gtfs_shapes
+        description: Static GTFS shapes, one partition per loaded feed_version.
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=shapes/feed_version=*/part.parquet', hive_partitioning=true)"
       - name: gtfs_calendar
         description: Static GTFS calendar, one partition per loaded feed_version.
         meta:

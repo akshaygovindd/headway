@@ -119,6 +119,10 @@ models:
         description: "Service date."
         data_tests:
           - not_null
+      - name: stop_sequence
+        description: "Median scheduled stop_sequence of the stop within the line and direction, used to order stops along the line."
+        data_tests:
+          - not_null
       - name: median_predicted_deviation_s
         description: "Median predicted minus scheduled arrival in seconds over eligible predictions."
       - name: n_eligible

@@ -313,6 +313,34 @@ models:
         description: Wheelchair boarding code.
       - name: level_id
         description: Level identifier.
+  - name: stg_gtfs__shapes
+    description: Static GTFS shape points, all loaded feed versions.
+    config:
+      meta:
+        grain: "feed_version x shape_id x shape_pt_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [feed_version, shape_id, shape_pt_sequence]
+    columns:
+      - name: feed_version
+        description: GTFS feed version the row belongs to.
+        data_tests:
+          - not_null
+      - name: shape_id
+        description: Shape identifier.
+        data_tests:
+          - not_null
+      - name: shape_pt_lat
+        description: Shape point latitude.
+      - name: shape_pt_lon
+        description: Shape point longitude.
+      - name: shape_pt_sequence
+        description: Order of the point along the shape.
+        data_tests:
+          - not_null
+      - name: shape_dist_traveled
+        description: Distance along the shape, when provided.
   - name: stg_gtfs__trips
     description: Static GTFS trips, all loaded feed versions.
     config:

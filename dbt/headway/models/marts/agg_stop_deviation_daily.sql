@@ -33,6 +33,16 @@ eligible as (
     group by p.line, p.direction_id, p.stop_id, p.service_date
 ),
 
+stop_order as (
+    select
+        line,
+        direction_id,
+        stop_id,
+        median(stop_sequence) as stop_sequence
+    from {{ ref('int_scheduled_stop_times') }}
+    group by line, direction_id, stop_id
+),
+
 covered as (
     select
         c.line,
@@ -50,6 +60,7 @@ select
     s.direction_id,
     s.stop_id,
     s.service_date,
+    o.stop_sequence,
     e.median_predicted_deviation_s,
     coalesce(e.n_eligible, 0) as n_eligible,
     coalesce(c.coverage_numerator, 0) as coverage_numerator,
@@ -57,6 +68,10 @@ select
     s.coverage_denominator,
     100.0 * coalesce(c.coverage_numerator, 0) / s.coverage_denominator as coverage_pct
 from scheduled s
+left join stop_order o
+    on o.line = s.line
+    and o.direction_id is not distinct from s.direction_id
+    and o.stop_id = s.stop_id
 left join eligible e
     on e.line = s.line
     and e.direction_id is not distinct from s.direction_id

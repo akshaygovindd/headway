@@ -283,3 +283,35 @@ models:
         description: "Number of captures that reported this event."
         data_tests:
           - not_null
+  - name: route_shapes
+    description: "One row per shape point of each current subway route, with the route colour (no trip or schedule data)."
+    config:
+      meta:
+        grain: "route_id x shape_id x shape_pt_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [route_id, shape_id, shape_pt_sequence]
+    columns:
+      - name: route_id
+        description: "Route identifier."
+        data_tests:
+          - not_null
+      - name: route_color
+        description: "Route colour as a hex string without #, from GTFS routes."
+      - name: shape_id
+        description: "Shape identifier."
+        data_tests:
+          - not_null
+      - name: shape_pt_sequence
+        description: "Order of the point along the shape."
+        data_tests:
+          - not_null
+      - name: shape_pt_lat
+        description: "Latitude of the shape point."
+        data_tests:
+          - not_null
+      - name: shape_pt_lon
+        description: "Longitude of the shape point."
+        data_tests:
+          - not_null
