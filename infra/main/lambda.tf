@@ -66,7 +66,6 @@ resource "aws_lambda_function" "ingest" {
   source_code_hash = filebase64sha256("${path.module}/../../build/ingest.zip")
 
   # One run at a time: overlapping runs would double-capture the same minute.
-  reserved_concurrent_executions = 1
 
   environment {
     variables = {

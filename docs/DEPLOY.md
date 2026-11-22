@@ -8,9 +8,9 @@ a `cd` is shown.
 
 - AWS credentials for the target account in your shell (`aws sts get-caller-identity` works).
 - `terraform` >= 1.10, `uv`, `make`.
-- Account note: Lambda requires at least 10 unreserved concurrent executions. A brand-new
-  account with the default limit of 10 cannot reserve concurrency of 1. If `apply` fails on
-  `reserved_concurrent_executions`, request a quota increase for "Concurrent executions" first.
+- Account note: the ingest Lambda sets no reserved concurrency, because an account with the
+  default limit of 10 cannot reserve any. Runs take seconds once a minute and the scheduler
+  never retries, so overlapping runs are unlikely.
 
 ## 1. Bootstrap the state bucket (once, local state)
 
