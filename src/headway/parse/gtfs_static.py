@@ -4,9 +4,10 @@ import csv
 import io
 import zipfile
 from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, ClassVar, TextIO
+from typing import IO, Any, ClassVar, TextIO
 
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
@@ -234,6 +235,17 @@ class GtfsSource:
                     ) from exc
                 assert isinstance(row, model)
                 yield row
+
+    @contextmanager
+    def open_binary(self, table: str) -> Iterator[IO[bytes]]:
+        """Raw byte stream of one table file, for vectorized readers."""
+        name = f"{table}.txt"
+        if self._is_zip:
+            with zipfile.ZipFile(self.path) as zf, zf.open(name) as stream:
+                yield stream
+        else:
+            with (self.path / name).open("rb") as stream:
+                yield stream
 
     def _open(self, table: str) -> "_Handle":
         return _Handle(self, f"{table}.txt")

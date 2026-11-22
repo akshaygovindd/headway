@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from datetime import date
 from pathlib import Path
 
+from headway.parse.gtfs_scope import route_ids_of_types, with_parent_stations
 from headway.parse.gtfs_static import (
     Agency,
     Calendar,
@@ -48,9 +49,8 @@ def build_gtfs_subset(
 
     # routes.txt keeps every route, as production does; the other tables cover subway only.
     routes = sorted(src.routes(), key=lambda r: r.route_id)
-    kept_routes = {
-        r.route_id for r in routes if r.route_id in route_ids and r.route_type in route_types
-    }
+    kept_routes = route_ids_of_types(((r.route_id, r.route_type) for r in routes), route_types)
+    kept_routes &= route_ids
     services = active_services(src, days)
     trips = sorted(
         (t for t in src.trips() if t.route_id in kept_routes and t.service_id in services),
@@ -63,16 +63,9 @@ def build_gtfs_subset(
     )
 
     all_stops = {s.stop_id: s for s in src.stops()}
-    needed: set[str] = set()
-    frontier = {st.stop_id for st in stop_times}
-    while frontier:
-        needed |= frontier
-        frontier = {
-            parent
-            for sid in frontier
-            if sid in all_stops and (parent := all_stops[sid].parent_station)
-            if parent not in needed
-        }
+    needed = with_parent_stations(
+        {st.stop_id for st in stop_times}, {sid: s.parent_station for sid, s in all_stops.items()}
+    )
     stops = sorted((all_stops[s] for s in needed if s in all_stops), key=lambda s: s.stop_id)
 
     shape_ids = {t.shape_id for t in trips if t.shape_id}

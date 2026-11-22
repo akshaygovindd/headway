@@ -226,8 +226,8 @@ resource "aws_lambda_function" "static" {
   package_type  = "Image"
   image_uri     = var.curate_image_uri
   architectures = ["arm64"]
-  memory_size   = 1024
-  timeout       = 300
+  memory_size   = 3008
+  timeout       = 900
 
   image_config {
     command = ["headway.curate.handler.static_handler"]
