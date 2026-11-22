@@ -1,0 +1,4 @@
+bucket       = "headway-tfstate-<account_id>"
+key          = "headway/main.tfstate"
+region       = "us-east-1"
+use_lockfile = true
