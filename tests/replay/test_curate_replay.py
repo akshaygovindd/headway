@@ -33,7 +33,14 @@ def test_curated_rows_match_expected(replayed: Path) -> None:
 
 def test_quarantine_counts_by_reason_match_expected(replayed: Path) -> None:
     summary = summarize(LocalStorage(replayed), CONFIG)
-    assert summary.quarantine == EXPECTED["quarantine_by_reason"]
+    expected = {t: r for t, r in EXPECTED["quarantine_by_reason"].items() if r}
+    assert summary.quarantine == expected
+
+
+def test_out_of_scope_rows_are_filtered_not_quarantined(tmp_path: Path) -> None:
+    summary, _ = replay(SAMPLE, tmp_path, CONFIG, compact=False)
+    assert summary.filtered_out_of_scope == EXPECTED["filtered_out_of_scope"]
+    assert "unknown_route" not in {r for by in summary.quarantine.values() for r in by}
 
 
 def test_every_hour_is_compacted(replayed: Path) -> None:

@@ -1,5 +1,181 @@
 route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color,route_sort_order,line_id
+1,1,1,Harvard Square - Nubian Station,Frequent Bus,3,https://www.mbta.com/schedules/1,FFC72C,000000,50010,line-1
+10,1,10,City Point - Arlington Station,Local Bus,3,https://www.mbta.com/schedules/10,FFC72C,000000,50100,line-10
+100,1,100,Elm Street - Wellington Station,Local Bus,3,https://www.mbta.com/schedules/100,FFC72C,000000,51000,line-100
+101,1,101,Malden Center Station - Sullivan Square Station via Winter Hill,Local Bus,3,https://www.mbta.com/schedules/101,FFC72C,000000,51010,line-101
+104,1,104,Malden Center Station - Airport Station,Frequent Bus,3,https://www.mbta.com/schedules/104,FFC72C,000000,51040,line-104
+105,1,105,Malden Center Station - Sullivan Square Station via Newland Street Housing,Local Bus,3,https://www.mbta.com/schedules/105,FFC72C,000000,51050,line-105
+106,1,106,Lebanon Loop - Wellington Station,Local Bus,3,https://www.mbta.com/schedules/106,FFC72C,000000,51060,line-106
+108,1,108,Linden Square - Wellington Station,Local Bus,3,https://www.mbta.com/schedules/108,FFC72C,000000,51080,line-108
+109,1,109,Linden Square - Harvard Square via Sullivan,Frequent Bus,3,https://www.mbta.com/schedules/109,FFC72C,000000,51090,line-109
+11,1,11,City Point - Chauncy Street & Summer Street,Local Bus,3,https://www.mbta.com/schedules/11,FFC72C,000000,50110,line-11
+110,1,110,Wonderland Station - Wellington Station,Frequent Bus,3,https://www.mbta.com/schedules/110,FFC72C,000000,51100,line-110
+111,1,111,Woodlawn - Haymarket Station,Frequent Bus,3,https://www.mbta.com/schedules/111,FFC72C,000000,51110,line-111
+112,1,112,Wellington Station - Wood Island Station,Local Bus,3,https://www.mbta.com/schedules/112,FFC72C,000000,51120,line-112
+114,1,114,Market Basket - Maverick Station,Supplemental Bus,3,https://www.mbta.com/schedules/114,FFC72C,000000,51140,line-114
+116,1,116,Wonderland Station - Maverick Station,Frequent Bus,3,https://www.mbta.com/schedules/116,FFC72C,000000,51160,line-116
+119,1,119,Northgate Shopping Center - Beachmont Station,Local Bus,3,https://www.mbta.com/schedules/119,FFC72C,000000,51190,line-119
+120,1,120,Orient Heights Station - Jeffries Point,Local Bus,3,https://www.mbta.com/schedules/120,FFC72C,000000,51200,line-120
+121,1,121,Wood Island Station - Maverick Station,Commuter Bus,3,https://www.mbta.com/schedules/121,FFC72C,000000,51210,line-121
+131,1,131,Melrose Highlands - Malden Center Station,Commuter Bus,3,https://www.mbta.com/schedules/131,FFC72C,000000,51310,line-131
+132,1,132,Redstone Shopping Center - Malden Center Station,Local Bus,3,https://www.mbta.com/schedules/132,FFC72C,000000,51320,line-132
+134,1,134,North Woburn - Wellington Station,Local Bus,3,https://www.mbta.com/schedules/134,FFC72C,000000,51340,line-134
+137,1,137,Reading Depot - Malden Center Station,Local Bus,3,https://www.mbta.com/schedules/137,FFC72C,000000,51370,line-137
+14,1,14,Roslindale Square - Heath Street,Local Bus,3,https://www.mbta.com/schedules/14,FFC72C,000000,50140,line-14
+15,1,15,Fields Corner Station - Ruggles Station,Frequent Bus,3,https://www.mbta.com/schedules/15,FFC72C,000000,50150,line-15171
+16,1,16,Forest Hills Station - Andrew Station or Harbor Point,Local Bus,3,https://www.mbta.com/schedules/16,FFC72C,000000,50160,line-16
+17,1,17,Fields Corner Station - Andrew Station,Local Bus,3,https://www.mbta.com/schedules/17,FFC72C,000000,50170,line-17
+171,1,171,Logan Airport Terminals - Nubian Station,Supplemental Bus,3,https://www.mbta.com/schedules/171,FFC72C,000000,51710,line-15171
+18,1,18,Ashmont Station - Andrew Station,Coverage Bus,3,https://www.mbta.com/schedules/18,FFC72C,000000,50180,line-18
+19,1,19,Fields Corner Station - Kenmore or Ruggles Station,Local Bus,3,https://www.mbta.com/schedules/19,FFC72C,000000,50190,line-19
+195,1,195,Lemuel Shattuck Hospital - Park Street & Tremont Street,Supplemental Bus,3,https://www.mbta.com/schedules/195,FFC72C,000000,51950,line-195
+201,1,201,Fields Corner Loop via Neponset Avenue,Local Bus,3,https://www.mbta.com/schedules/201,FFC72C,000000,52010,line-201202
+202,1,202,Fields Corner Loop via Adams Street,Local Bus,3,https://www.mbta.com/schedules/202,FFC72C,000000,52020,line-201202
+21,1,21,Ashmont Station - Forest Hills Station,Local Bus,3,https://www.mbta.com/schedules/21,FFC72C,000000,50210,line-21
+210,1,210,Quincy Center Station - Fields Corner Station,Local Bus,3,https://www.mbta.com/schedules/210,FFC72C,000000,52100,line-210
+211,1,211,Quincy Center Station - Squantum,Local Bus,3,https://www.mbta.com/schedules/211,FFC72C,000000,52110,line-211
+215,1,215,Quincy Center Station - Ashmont Station via West Quincy,Local Bus,3,https://www.mbta.com/schedules/215,FFC72C,000000,52150,line-215
+216,1,216,Houghs Neck - Quincy Center Station via Germantown,Local Bus,3,https://www.mbta.com/schedules/216,FFC72C,000000,52160,line-216
+217,1,217,Quincy Center Station - Ashmont Station,Coverage Bus,3,https://www.mbta.com/schedules/217,FFC72C,000000,52170,line-217
+22,1,22,Ashmont Station - Ruggles Station via Talbot Avenue,Frequent Bus,3,https://www.mbta.com/schedules/22,FFC72C,000000,50220,line-22
+220,1,220,Hingham Depot - Quincy Center Station,Local Bus,3,https://www.mbta.com/schedules/220,FFC72C,000000,52200,line-220
+222,1,222,Lovell Corners - Quincy Center Station,Local Bus,3,https://www.mbta.com/schedules/222,FFC72C,000000,52220,line-222
+225,1,225,Weymouth Landing - Quincy Center Station,Local Bus,3,https://www.mbta.com/schedules/225,FFC72C,000000,52250,line-225
+226,1,226,Columbian Square - Braintree Station,Local Bus,3,https://www.mbta.com/schedules/226,FFC72C,000000,52260,line-226
+23,1,23,Ashmont Station - Ruggles Station via Washington Street,Frequent Bus,3,https://www.mbta.com/schedules/23,FFC72C,000000,50230,line-23
+230,1,230,Montello Station - Quincy Center Station,Local Bus,3,https://www.mbta.com/schedules/230,FFC72C,000000,52300,line-230
+236,1,236,South Shore Plaza - Quincy Center Station,Local Bus,3,https://www.mbta.com/schedules/236,FFC72C,000000,52360,line-236
+238,1,238,Holbrook/Randolph Station - Quincy Center Station,Local Bus,3,https://www.mbta.com/schedules/238,FFC72C,000000,52380,line-238
+24,1,24,Wakefield Avenue & Truman Parkway - Ashmont Station,Local Bus,3,https://www.mbta.com/schedules/24,FFC72C,000000,50240,line-24
+240,1,240,Avon Square - Ashmont Station,Local Bus,3,https://www.mbta.com/schedules/240,FFC72C,000000,52400,line-240
+245,1,245,Quincy Center Station - Mattapan Station,Local Bus,3,https://www.mbta.com/schedules/245,FFC72C,000000,52450,line-245
+26,1,26,Ashmont Station - Norfolk Street Loop,Local Bus,3,https://www.mbta.com/schedules/26,FFC72C,000000,50260,line-26
+28,1,28,Mattapan Station - Ruggles Station,Frequent Bus,3,https://www.mbta.com/schedules/28,FFC72C,000000,50280,line-28
+29,1,29,Mattapan Station - Jackson Square Station,Local Bus,3,https://www.mbta.com/schedules/29,FFC72C,000000,50290,line-29
+30,1,30,Mattapan Station - Forest Hills Station via Cummins Highway and Roslindale Square,Local Bus,3,https://www.mbta.com/schedules/30,FFC72C,000000,50300,line-30
+31,1,31,Mattapan Station - Forest Hills Station via Morton Street,Frequent Bus,3,https://www.mbta.com/schedules/31,FFC72C,000000,50310,line-31
+32,1,32,Wolcott Square - Forest Hills Station,Frequent Bus,3,https://www.mbta.com/schedules/32,FFC72C,000000,50320,line-32
+33,1,33,River Street & Milton Street - Mattapan Station,Local Bus,3,https://www.mbta.com/schedules/33,FFC72C,000000,50330,line-33
+34,1,34,Dedham Mall - Forest Hills Station,Local Bus,3,https://www.mbta.com/schedules/34,FFC72C,000000,50340,line-3434E
+34E,1,34E,Walpole Center - Forest Hills Station,Local Bus,3,https://www.mbta.com/schedules/34E,FFC72C,000000,50341,line-3434E
+35,1,35,Dedham Mall or Stimson Street - Forest Hills Station,Local Bus,3,https://www.mbta.com/schedules/35,FFC72C,000000,50350,line-35
+350,1,350,North Burlington - Alewife Station,Local Bus,3,https://www.mbta.com/schedules/350,FFC72C,000000,53500,line-350351
+351,1,351,"Bedford Woods Drive - Third Avenue, Burlington",Commuter Bus,3,https://www.mbta.com/schedules/351,FFC72C,000000,53510,line-350351
+354,1,354,"North Burlington - State Street, Boston",Commuter Bus,3,https://www.mbta.com/schedules/354,FFC72C,000000,53540,line-354
+36,1,36,Millennium Park or VA Hospital - Forest Hills Station,Local Bus,3,https://www.mbta.com/schedules/36,FFC72C,000000,50360,line-36
+37,1,37,Baker Street & Vermont Street - Forest Hills Station,Local Bus,3,https://www.mbta.com/schedules/37,FFC72C,000000,50370,line-37
+38,1,38,Wren Street - Forest Hills Station,Local Bus,3,https://www.mbta.com/schedules/38,FFC72C,000000,50380,line-38
+39,1,39,Forest Hills Station - Back Bay Station,Frequent Bus,3,https://www.mbta.com/schedules/39,FFC72C,000000,50390,line-39
+4,1,4,North Station - Design Center,Commuter Bus,3,https://www.mbta.com/schedules/4,FFC72C,000000,50040,line-4
+40,1,40,Georgetowne - Forest Hills Station,Local Bus,3,https://www.mbta.com/schedules/40,FFC72C,000000,50400,line-40
+41,1,41,Centre Street & Eliot Street - JFK/UMass Station,Local Bus,3,https://www.mbta.com/schedules/41,FFC72C,000000,50410,line-41
+411,1,411,Kennedy Drive or Jack Satter House - Malden Center Station,Local Bus,3,https://www.mbta.com/schedules/411,FFC72C,000000,54110,line-411
+42,1,42,Forest Hills Station - Nubian Station,Local Bus,3,https://www.mbta.com/schedules/42,FFC72C,000000,50420,line-42
+424,1,424,Eastern Avenue & Essex Street - Wonderland Station,Commuter Bus,3,https://www.mbta.com/schedules/424,FFC72C,000000,54240,line-424
+426,1,426,"Central Square, Lynn - Haymarket or Wonderland Station",Local Bus,3,https://www.mbta.com/schedules/426,FFC72C,000000,54260,line-426
+428,1,428,Oaklandvale - Haymarket Station,Commuter Bus,3,https://www.mbta.com/schedules/428,FFC72C,000000,54280,line-428
+429,1,429,"Northgate Shopping Center - Central Square, Lynn",Local Bus,3,https://www.mbta.com/schedules/429,FFC72C,000000,54290,line-429
+43,1,43,Ruggles Station - Park Street Station,Local Bus,3,https://www.mbta.com/schedules/43,FFC72C,000000,50430,line-43
+430,1,430,Saugus Center - Malden Center Station,Local Bus,3,https://www.mbta.com/schedules/430,FFC72C,000000,54300,line-430
+435,1,435,"Liberty Tree Mall - Central Square, Lynn via Peabody Square",Local Bus,3,https://www.mbta.com/schedules/435,FFC72C,000000,54350,line-435
+436,1,436,"Liberty Tree Mall - Central Square, Lynn via Goodwin Circle",Local Bus,3,https://www.mbta.com/schedules/436,FFC72C,000000,54360,line-436
+439,1,439,Nahant - Wonderland Station,Coverage Bus,3,https://www.mbta.com/schedules/439,FFC72C,000000,54390,line-439
+44,1,44,Jackson Square Station - Ruggles Station,Local Bus,3,https://www.mbta.com/schedules/44,FFC72C,000000,50440,line-44
+441,1,441,Marblehead - Wonderland Station via Paradise Road,Local Bus,3,https://www.mbta.com/schedules/441,FFC72C,000000,54410,line-441442
+441442,1,441/442,Marblehead - Wonderland Station,Local Bus,3,,FFC72C,000000,54411,line-441442
+442,1,442,Marblehead - Wonderland Station via Humphrey Street,Local Bus,3,https://www.mbta.com/schedules/442,FFC72C,000000,54420,line-441442
+45,1,45,Franklin Park - Ruggles Station,Local Bus,3,https://www.mbta.com/schedules/45,FFC72C,000000,50450,line-45
+450,1,450,Salem Depot - Wonderland or Haymarket Station,Local Bus,3,https://www.mbta.com/schedules/450,FFC72C,000000,54500,line-450
+451,1,451,North Beverly Station - Salem Depot,Commuter Bus,3,https://www.mbta.com/schedules/451,FFC72C,000000,54510,line-451465
+455,1,455,Salem Depot - Wonderland Station,Local Bus,3,https://www.mbta.com/schedules/455,FFC72C,000000,54550,line-455
+456,1,456,"Salem Depot - Central Square, Lynn",Coverage Bus,3,https://www.mbta.com/schedules/456,FFC72C,000000,54560,line-456
+465,1,465,Danvers Square - Salem Depot via Liberty Tree Mall,Local Bus,3,https://www.mbta.com/schedules/465,FFC72C,000000,54650,line-451465
+47,1,47,"Central Square, Cambridge - Broadway Station",Local Bus,3,https://www.mbta.com/schedules/47,FFC72C,000000,50470,line-47
+50,1,50,Cleary Square - Forest Hills Station,Local Bus,3,https://www.mbta.com/schedules/50,FFC72C,000000,50500,line-50
+501,1,501,Brighton Center - Federal Street & Franklin Street,Commuter Bus,3,https://www.mbta.com/schedules/501,FFC72C,000000,55010,line-501503
+504,1,504,Watertown Yard - Federal Street & Franklin Street,Commuter Bus,3,https://www.mbta.com/schedules/504,FFC72C,000000,55040,line-502504
+505,1,505,Waltham Center - Federal Street & Franklin Street,Commuter Bus,3,https://www.mbta.com/schedules/505,FFC72C,000000,55050,line-505
+51,1,51,Reservoir Station - Forest Hills Station,Local Bus,3,https://www.mbta.com/schedules/51,FFC72C,000000,50510,line-51
+52,1,52,Dedham Mall - Watertown Yard,Local Bus,3,https://www.mbta.com/schedules/52,FFC72C,000000,50520,line-52
+55,1,55,West Fenway - Arlington Station,Coverage Bus,3,https://www.mbta.com/schedules/55,FFC72C,000000,50550,line-55
+553,1,553,Roberts - Newton Corner,Local Bus,3,https://www.mbta.com/schedules/553,FFC72C,000000,55530,line-553554
+554,1,554,Waverley Square - Newton Corner,Commuter Bus,3,https://www.mbta.com/schedules/554,FFC72C,000000,55540,line-553554
+556,1,556,Waltham Highlands - Newton Corner,Commuter Bus,3,https://www.mbta.com/schedules/556,FFC72C,000000,55560,line-556558
+558,1,558,Riverside Station - Newton Corner,Commuter Bus,3,https://www.mbta.com/schedules/558,FFC72C,000000,55580,line-556558
+57,1,57,Watertown Yard - Kenmore Station,Frequent Bus,3,https://www.mbta.com/schedules/57,FFC72C,000000,50570,line-57
+59,1,59,Needham Junction - Watertown Square,Local Bus,3,https://www.mbta.com/schedules/59,FFC72C,000000,50590,line-59
+60,1,60,Chestnut Hill - Kenmore Station,Local Bus,3,https://www.mbta.com/schedules/60,FFC72C,000000,50600,line-60
+61,1,61,North Waltham - Waltham Center,Local Bus,3,https://www.mbta.com/schedules/61,FFC72C,000000,50610,line-61
+62,1,62,Bedford VA Hospital - Alewife Station,Local Bus,3,https://www.mbta.com/schedules/62,FFC72C,000000,50620,line-62
+64,1,64,Oak Square - Kendall/MIT Station,Local Bus,3,https://www.mbta.com/schedules/64,FFC72C,000000,50640,line-64
+65,1,65,Brighton Center - Ruggles Station,Local Bus,3,https://www.mbta.com/schedules/65,FFC72C,000000,50650,line-65
+66,1,66,Harvard Square - Nubian Station,Frequent Bus,3,https://www.mbta.com/schedules/66,FFC72C,000000,50660,line-66
+67,1,67,Turkey Hill - Alewife Station,Local Bus,3,https://www.mbta.com/schedules/67,FFC72C,000000,50670,line-67
+68,1,68,Harvard Square - Kendall/MIT Station,Local Bus,3,https://www.mbta.com/schedules/68,FFC72C,000000,50680,line-68
+69,1,69,Harvard Square - Lechmere Station,Local Bus,3,https://www.mbta.com/schedules/69,FFC72C,000000,50690,line-69
+7,1,7,City Point - Otis Street & Summer Street,Local Bus,3,https://www.mbta.com/schedules/7,FFC72C,000000,50070,line-7
+70,1,70,Market Place Drive or Waltham Center - University Park,Local Bus,3,https://www.mbta.com/schedules/70,FFC72C,000000,50700,line-70
+708,1,CT3,Beth Israel Deaconess Hospital - Andrew Station,Local Bus,3,https://www.mbta.com/schedules/708,FFC72C,000000,40030,line-708
+71,1,71,Watertown Square - Harvard Station,Frequent Bus,3,https://www.mbta.com/schedules/71,FFC72C,000000,50710,line-71
+712,1,712,Point Shirley - Orient Heights Station via Revere Street,Local Bus,3,https://www.mbta.com/schedules/712,FFC72C,000000,57120,line-712713
+713,1,713,Point Shirley - Orient Heights Station via Winthrop Center,Local Bus,3,https://www.mbta.com/schedules/713,FFC72C,000000,57130,line-712713
+714,1,714,Hull Ferry - Hingham Depot,Coverage Bus,3,https://www.mbta.com/schedules/714,FFC72C,000000,57140,line-714
+716,1,716,Canton Village Shoppes - Mattapan Station,Coverage Bus,3,https://www.mbta.com/schedules/716,FFC72C,000000,57160,line-716
+73,1,73,Waverley Square - Harvard Station,Frequent Bus,3,https://www.mbta.com/schedules/73,FFC72C,000000,50730,line-73
+74,1,74,Belmont Center - Harvard via Concord Avenue,Local Bus,3,https://www.mbta.com/schedules/74,FFC72C,000000,50740,line-7475
+741,1,SL1,Logan Airport Terminals - South Station,Frequent Bus,3,https://www.mbta.com/schedules/741,7C878E,FFFFFF,10051,line-SLWaterfront
+742,1,SL2,Design Center - South Station,Frequent Bus,3,https://www.mbta.com/schedules/742,7C878E,FFFFFF,10052,line-SLWaterfront
+743,1,SL3,Chelsea Station - South Station,Frequent Bus,3,https://www.mbta.com/schedules/743,7C878E,FFFFFF,10053,line-SLWaterfront
+746,1,SLW,Silver Line Way - South Station,Frequent Bus,3,,7C878E,FFFFFF,10057,line-SLWaterfront
+749,1,SL5,Nubian Station - Temple Place,Frequent Bus,3,https://www.mbta.com/schedules/749,7C878E,FFFFFF,10056,line-SLWashington
+75,1,75,Belmont Center - Harvard via Huron Avenue,Local Bus,3,https://www.mbta.com/schedules/75,FFC72C,000000,50750,line-7475
+751,1,SL4,Nubian Station - South Station,Frequent Bus,3,https://www.mbta.com/schedules/751,7C878E,FFFFFF,10055,line-SLWashington
+76,1,76,Lincoln Lab - Alewife Station,Local Bus,3,https://www.mbta.com/schedules/76,FFC72C,000000,50760,line-76
+77,1,77,Arlington Heights - Harvard Station,Frequent Bus,3,https://www.mbta.com/schedules/77,FFC72C,000000,50770,line-77
+78,1,78,Arlmont Village - Harvard Station,Local Bus,3,https://www.mbta.com/schedules/78,FFC72C,000000,50780,line-78
+8,1,8,Harbor Point - Kenmore Station,Local Bus,3,https://www.mbta.com/schedules/8,FFC72C,000000,50080,line-8
+80,1,80,Arlington Center - Lechmere Station,Local Bus,3,https://www.mbta.com/schedules/80,FFC72C,000000,50800,line-80
+83,1,83,"Rindge Avenue - Central Square, Cambridge",Local Bus,3,https://www.mbta.com/schedules/83,FFC72C,000000,50830,line-83
+85,1,85,Assembly Row - Ruggles Station,Local Bus,3,https://www.mbta.com/schedules/85,FFC72C,000000,50850,line-85
+86,1,86,Harvard Square - Reservoir Station,Local Bus,3,https://www.mbta.com/schedules/86,FFC72C,000000,50860,line-86
+87,1,87,Arlington Center - Lechmere Station,Local Bus,3,https://www.mbta.com/schedules/87,FFC72C,000000,50870,line-87
+88,1,88,Clarendon Hill - Lechmere Station,Local Bus,3,https://www.mbta.com/schedules/88,FFC72C,000000,50880,line-88
+89,1,89,Clarendon Hill or Davis Station - Sullivan Square Station,Local Bus,3,https://www.mbta.com/schedules/89,FFC72C,000000,50890,line-89
+8993,1,89/93,Clarendon Hill - Haymarket Station,Supplemental Bus,3,,FFC72C,000000,50891,line-89
+9,1,9,City Point - Copley Square,Frequent Bus,3,https://www.mbta.com/schedules/9,FFC72C,000000,50090,line-9
+90,1,90,Davis Station - Assembly Row,Local Bus,3,https://www.mbta.com/schedules/90,FFC72C,000000,50900,line-90
+91,1,91,"Sullivan Square Station - Central Square, Cambridge",Local Bus,3,https://www.mbta.com/schedules/91,FFC72C,000000,50910,line-91
+92,1,92,Sullivan Square Station - Downtown via Main Street,Local Bus,3,https://www.mbta.com/schedules/92,FFC72C,000000,50920,line-92
+93,1,93,Sullivan Square Station - Downtown via Bunker Hill Street,Local Bus,3,https://www.mbta.com/schedules/93,FFC72C,000000,50930,line-93
+94,1,94,Medford Square - Davis Station,Local Bus,3,https://www.mbta.com/schedules/94,FFC72C,000000,50940,line-94
+95,1,95,West Medford or Arlington Center - Sullivan Square Station,Local Bus,3,https://www.mbta.com/schedules/95,FFC72C,000000,50950,line-95
+96,1,96,Medford Square - Harvard Station,Local Bus,3,https://www.mbta.com/schedules/96,FFC72C,000000,50960,line-96
+97,1,97,Malden Center Station - Wellington Station,Local Bus,3,https://www.mbta.com/schedules/97,FFC72C,000000,50970,line-97
+99,1,99,Woodland Road - Wellington Station,Local Bus,3,https://www.mbta.com/schedules/99,FFC72C,000000,50990,line-99
 Blue,1,,Blue Line,Rapid Transit,1,https://www.mbta.com/schedules/Blue,003DA5,FFFFFF,10040,line-Blue
+Boat-EastBoston,1,,East Boston Ferry,Seasonal Ferry,4,https://www.mbta.com/schedules/Boat-EastBoston,008EAA,FFFFFF,30005,line-Boat-EastBoston
+Boat-F1,1,,Hingham Ferry,Ferry,4,https://www.mbta.com/schedules/Boat-F1,008EAA,FFFFFF,30002,line-Boat-F1
+Boat-F10,1,,Harbor Loop Ferry,Ferry,4,https://www.mbta.com/schedules/Boat-F10,008EAA,FFFFFF,30011,line-Boat-F10
+Boat-F2H,1,,Hingham/Hull Ferry,Ferry,4,https://www.mbta.com/schedules/Boat-F2H,008EAA,FFFFFF,30003,line-Boat-F2H
+Boat-F4,1,,Charlestown Ferry,Ferry,4,https://www.mbta.com/schedules/Boat-F4,008EAA,FFFFFF,30001,line-Boat-F4
+Boat-F6,1,,Winthrop Ferry,Seasonal Ferry,4,https://www.mbta.com/schedules/Boat-F6,008EAA,FFFFFF,30008,line-Boat-F6
+Boat-F7,1,,Quincy Ferry,Seasonal Ferry,4,https://www.mbta.com/schedules/Boat-F7,008EAA,FFFFFF,30009,line-Boat-F7
+Boat-F8,1,,Winthrop/Quincy Ferry,Seasonal Ferry,4,https://www.mbta.com/schedules/Boat-F8,008EAA,FFFFFF,30010,line-Boat-F8
+Boat-Lynn,1,,Lynn Ferry,Seasonal Ferry,4,https://www.mbta.com/schedules/Boat-Lynn,008EAA,FFFFFF,30007,line-Boat-Lynn
+CR-Fairmount,1,,Fairmount Line,Regional Rail,2,https://www.mbta.com/schedules/CR-Fairmount,80276C,FFFFFF,20001,line-Fairmount
+CR-Fitchburg,1,,Fitchburg Line,Regional Rail,2,https://www.mbta.com/schedules/CR-Fitchburg,80276C,FFFFFF,20003,line-Fitchburg
+CR-Foxboro,1,,Foxboro Event Service,Regional Rail,2,https://www.mbta.com/schedules/CR-Foxboro,80276C,FFFFFF,20014,line-Foxboro
+CR-Franklin,1,,Franklin/Foxboro Line,Regional Rail,2,https://www.mbta.com/schedules/CR-Franklin,80276C,FFFFFF,20005,line-Franklin
+CR-Greenbush,1,,Greenbush Line,Regional Rail,2,https://www.mbta.com/schedules/CR-Greenbush,80276C,FFFFFF,20006,line-Greenbush
+CR-Haverhill,1,,Haverhill Line,Regional Rail,2,https://www.mbta.com/schedules/CR-Haverhill,80276C,FFFFFF,20007,line-Haverhill
+CR-Kingston,1,,Kingston Line,Regional Rail,2,https://www.mbta.com/schedules/CR-Kingston,80276C,FFFFFF,20008,line-Kingston
+CR-Lowell,1,,Lowell Line,Regional Rail,2,https://www.mbta.com/schedules/CR-Lowell,80276C,FFFFFF,20009,line-Lowell
+CR-Needham,1,,Needham Line,Regional Rail,2,https://www.mbta.com/schedules/CR-Needham,80276C,FFFFFF,20011,line-Needham
+CR-NewBedford,1,,Fall River/New Bedford Line,Regional Rail,2,https://www.mbta.com/schedules/CR-NewBedford,80276C,FFFFFF,20002,line-NewBedford
+CR-Newburyport,1,,Newburyport/Rockport Line,Regional Rail,2,https://www.mbta.com/schedules/CR-Newburyport,80276C,FFFFFF,20012,line-Newburyport
+CR-Providence,1,,Providence/Stoughton Line,Regional Rail,2,https://www.mbta.com/schedules/CR-Providence,80276C,FFFFFF,20013,line-Providence
+CR-Worcester,1,,Framingham/Worcester Line,Regional Rail,2,https://www.mbta.com/schedules/CR-Worcester,80276C,FFFFFF,20004,line-Worcester
+CapeFlyer,3,,CapeFLYER,Regional Rail,2,http://capeflyer.com/,006595,FFFFFF,21000,line-CapeFlyer
 Green-B,1,B,Green Line B,Rapid Transit,0,https://www.mbta.com/schedules/Green-B,00843D,FFFFFF,10032,line-Green
 Green-C,1,C,Green Line C,Rapid Transit,0,https://www.mbta.com/schedules/Green-C,00843D,FFFFFF,10033,line-Green
 Green-D,1,D,Green Line D,Rapid Transit,0,https://www.mbta.com/schedules/Green-D,00843D,FFFFFF,10034,line-Green
@@ -7,3 +183,221 @@ Green-E,1,E,Green Line E,Rapid Transit,0,https://www.mbta.com/schedules/Green-E,
 Mattapan,1,,Mattapan Line,Rapid Transit,0,https://www.mbta.com/schedules/Mattapan,DA291C,FFFFFF,10011,line-Mattapan
 Orange,1,,Orange Line,Rapid Transit,1,https://www.mbta.com/schedules/Orange,ED8B00,FFFFFF,10020,line-Orange
 Red,1,,Red Line,Rapid Transit,1,https://www.mbta.com/schedules/Red,DA291C,FFFFFF,10010,line-Red
+Shuttle-AirportGovernmentCenterExpress,1,Blue Line Shuttle,Airport - Government Center (Express),Rail Replacement Bus,3,,FFC72C,000000,62637,line-Blue
+Shuttle-AirportGovernmentCenterLocal,1,Blue Line Shuttle,Airport - Government Center (Local),Rail Replacement Bus,3,,FFC72C,000000,62638,line-Blue
+Shuttle-AirportGovernmentCenterLocalViaGate,1,Blue Line Shuttle,Airport - Government Center via Maverick,Rail Replacement Bus,3,,FFC72C,000000,62639,line-Blue
+Shuttle-AirportHaymarket,1,Blue Line Shuttle,Haymarket - Airport (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62629,line-Blue
+Shuttle-AirportHaymarketExpress,1,Blue Line Shuttle,Haymarket - Airport (Express),Rail Replacement Bus,3,,FFC72C,000000,62620,line-Blue
+Shuttle-AirportHaymarketLocal,1,Blue Line Shuttle,Haymarket - Airport (Local),Rail Replacement Bus,3,,FFC72C,000000,62619,line-Blue
+Shuttle-AirportMaverick,1,Blue Line Shuttle,Airport - Maverick,Rail Replacement Bus,3,,FFC72C,000000,62640,line-Blue
+Shuttle-AirportWonderland,1,Blue Line Shuttle,Airport - Wonderland (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62613,line-Blue
+Shuttle-AlewifeDavis,1,Red Line Shuttle,Alewife - Davis,Rail Replacement Bus,3,,FFC72C,000000,62745,line-Red
+Shuttle-AlewifeHarvardViaBrattle,1,Red Line Shuttle,Alewife - Harvard via Brattle Street,Rail Replacement Bus,3,,FFC72C,000000,62746,line-Red
+Shuttle-AlewifeHarvardViaHolyoke,1,Red Line Shuttle,Alewife - Harvard via Holyoke Street,Rail Replacement Bus,3,,FFC72C,000000,62747,line-Red
+Shuttle-AlewifeKendall,1,Red Line Shuttle,Alewife - Kendall/MIT,Rail Replacement Bus,3,,FFC72C,000000,62748,line-Red
+Shuttle-AlewifeKendallExpress,1,Red Line Shuttle,Alewife - Kendall/MIT via Porter (Express),Rail Replacement Bus,3,,FFC72C,000000,62749,line-Red
+Shuttle-AlewifeLittletonExpress,1,Fitchburg Line Shuttle,Littleton/Route 495 - Alewife (Express),Rail Replacement Bus,3,,FFC72C,000000,62647,line-Fitchburg
+Shuttle-AlewifeLittletonLocal,1,Fitchburg Line Shuttle,Littleton/Route 495 - Alewife (Local),Rail Replacement Bus,3,,FFC72C,000000,62648,line-Fitchburg
+Shuttle-AlewifeParkSt,1,Red Line Shuttle,Alewife - Park Street,Rail Replacement Bus,3,,FFC72C,000000,62750,line-Red
+Shuttle-AlewifeParkStreet,1,Red Line Shuttle,Park Street - Alewife (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62634,line-Red
+Shuttle-AndersonWoburnLowell,1,Lowell Line Shuttle,Lowell - Anderson/Woburn,Rail Replacement Bus,3,,FFC72C,000000,62714,line-Lowell
+Shuttle-AndersonWoburnNorthStationExpress,1,Lowell Line Shuttle,Anderson/Woburn - North Station (Express),Rail Replacement Bus,3,,FFC72C,000000,62712,line-Lowell
+Shuttle-AndersonWoburnNorthStationLocal,1,Lowell Line Shuttle,Anderson/Woburn - North Station (Local),Rail Replacement Bus,3,,FFC72C,000000,62713,line-Lowell
+Shuttle-AndersonWoburnReading,1,Haverhill Line Shuttle,Reading - Anderson/Woburn,Rail Replacement Bus,3,,FFC72C,000000,62707,line-Haverhill
+Shuttle-AndoverHaverhill,1,Haverhill Line Shuttle,Haverhill - Andover,Rail Replacement Bus,3,,FFC72C,000000,62701,line-Haverhill
+Shuttle-AshlandFramingham,1,Worcester Line Shuttle,Ashland - Framingham,Rail Replacement Bus,3,,FFC72C,000000,62779,line-Worcester
+Shuttle-AshmontBraintree,1,Red Line Shuttle,Ashmont - Braintree,Rail Replacement Bus,3,,FFC72C,000000,62751,line-Red
+Shuttle-AshmontBroadway,1,Red Line Shuttle,Ashmont - Broadway (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62624,line-Red
+Shuttle-AshmontJFK,1,Red Line Shuttle,Ashmont - JFK/UMass,Rail Replacement Bus,3,,FFC72C,000000,62752,line-Red
+Shuttle-AshmontJFKUMass,1,Red Line Shuttle,Ashmont - JFK/UMass (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62603,line-Red
+Shuttle-AshmontJFKUMassNoFCBusway,1,Red Line Shuttle,Ashmont - JFK/UMass (NoFCBusway),Rail Replacement Bus,3,,FFC72C,000000,62630,line-Red
+Shuttle-AshmontMattapan,1,Mattapan Line Shuttle,Mattapan - Ashmont (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62633,line-Mattapan
+Shuttle-AshmontParkStreetViaPostOffice,1,Red Line Shuttle,Ashmont - Park Street via Post Office,Rail Replacement Bus,3,,FFC72C,000000,62753,line-Red
+Shuttle-AttleboroProvidenceExpress,1,Providence Line Shuttle,Providence - Attleboro (Express),Rail Replacement Bus,3,,FFC72C,000000,62741,line-Providence
+Shuttle-AttleboroProvidenceLocal,1,Providence Line Shuttle,Providence - Attleboro (Local),Rail Replacement Bus,3,,FFC72C,000000,62742,line-Providence
+Shuttle-BabcockBackBay,1,Green Line B Shuttle,Babcock Street - Back Bay,Rail Replacement Bus,3,,FFC72C,000000,62652,line-Green
+Shuttle-BabcockBlandford,1,Green Line B Shuttle,Babcock Street - Blandford Street,Rail Replacement Bus,3,,FFC72C,000000,62653,line-Green
+Shuttle-BabcockBostonCollege,1,Green Line B Shuttle,Boston College - Babcock Street,Rail Replacement Bus,3,,FFC72C,000000,62656,line-Green
+Shuttle-BabcockCopley,1,Green Line B Shuttle,Babcock Street - Copley,Rail Replacement Bus,3,,FFC72C,000000,62654,line-Green
+Shuttle-BabcockKenmore,1,Green Line B Shuttle,Babcock Street - Kenmore,Rail Replacement Bus,3,,FFC72C,000000,62655,line-Green
+Shuttle-BabcockStreetBackBay,1,Green Line B Shuttle,Babcock Street - Back Bay (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62610,line-Green
+Shuttle-BackBayBostonCollege,1,Green Line B Shuttle,Boston College - Back Bay (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62627,line-Green
+Shuttle-BackBayBostonLanding,1,Worcester Line Shuttle,Boston Landing - Back Bay,Rail Replacement Bus,3,,FFC72C,000000,62780,line-Worcester
+Shuttle-BackBayBostonUniversityEast,1,Green Line B Shuttle,Boston University East - Back Bay,Rail Replacement Bus,3,,FFC72C,000000,62660,line-Green
+Shuttle-BackBayBrooklineHills,1,Green Line D Shuttle,Brookline Hills - Back Bay (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62628,line-Green
+Shuttle-BackBayClevelandCircle,1,Green Line C Shuttle,Cleveland Circle - Back Bay (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62636,line-Green
+Shuttle-BackBayForestHillsViaCopley,1,Orange Line Shuttle,Forest Hills - Back Bay via Copley (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62616,line-Orange
+Shuttle-BackBayForestHillsViaRugglesBusway,1,Orange Line Shuttle,Forest Hills - Back Bay (ViaRugglesBusway),Rail Replacement Bus,3,,FFC72C,000000,62623,line-Orange
+Shuttle-BackBayFraminghamExpress,1,Worcester Line Shuttle,Framingham - Back Bay (Express),Rail Replacement Bus,3,,FFC72C,000000,60533,line-Worcester
+Shuttle-BackBayJackson,1,Orange Line Shuttle,Jackson Square - Back Bay,Rail Replacement Bus,3,,FFC72C,000000,62736,line-Orange
+Shuttle-BackBayKenmore,1,Green Line B Shuttle,Kenmore - Back Bay (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62609,line-Green
+Shuttle-BackBayRuggles,1,Orange Line Shuttle,Ruggles - Back Bay,Rail Replacement Bus,3,,FFC72C,000000,62738,line-Orange
+Shuttle-BackBayStMarys,1,Green Line C Shuttle,Saint Mary's Street - Back Bay,Rail Replacement Bus,3,,FFC72C,000000,62665,line-Green
+Shuttle-BackBayWellesleyHillsLocalViaRiverside,1,Worcester Line Shuttle,Wellesley Hills - Back Bay via Riverside (Local),Rail Replacement Bus,3,,FFC72C,000000,60640,line-Worcester
+Shuttle-BallardvaleMaldenCenter,1,Haverhill Line Shuttle,Ballardvale - Malden Center,Rail Replacement Bus,3,,FFC72C,000000,62699,line-Haverhill
+Shuttle-BallardvaleNorthStation,1,Haverhill Line Shuttle,Ballardvale - North Station,Rail Replacement Bus,3,,FFC72C,000000,62700,line-Haverhill
+Shuttle-BeverlyNewburyportExpress,1,Newburyport Line Shuttle,Newburyport - Beverly (Express),Rail Replacement Bus,3,,FFC72C,000000,62719,line-Newburyport
+Shuttle-BeverlyNewburyportLocal,1,Newburyport Line Shuttle,Newburyport - Beverly (Local),Rail Replacement Bus,3,,FFC72C,000000,62720,line-Newburyport
+Shuttle-BeverlyNorthStationLimited,1,Newburyport/Rockport Line Shuttle,Beverly - North Station (Limited),Rail Replacement Bus,3,,FFC72C,000000,62728,line-Newburyport
+Shuttle-BeverlyRockportExpress,1,Rockport Line Shuttle,Beverly - Rockport (Express),Rail Replacement Bus,3,,FFC72C,000000,62772,line-Newburyport
+Shuttle-BeverlyRockportLocal,1,Rockport Line Shuttle,Beverly - Rockport (Local),Rail Replacement Bus,3,,FFC72C,000000,62773,line-Newburyport
+Shuttle-BlandfordBostonCollege,1,Green Line B Shuttle,Boston College - Blandford Street,Rail Replacement Bus,3,,FFC72C,000000,62657,line-Green
+Shuttle-BlandfordWashington,1,Green Line B Shuttle,Washington Street - Blandford Street,Rail Replacement Bus,3,,FFC72C,000000,62661,line-Green
+Shuttle-BostonCollegeKenmore,1,Shuttle,Boston College - Kenmore (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62626,
+Shuttle-BostonCollegePackardsCorner,1,Green Line B Shuttle,Boston College - Packard's Corner,Rail Replacement Bus,3,,FFC72C,000000,62658,line-Green
+Shuttle-BostonCollegeWashington,1,Green Line B Shuttle,Boston College - Washington Street,Rail Replacement Bus,3,,FFC72C,000000,62659,line-Green
+Shuttle-BostonLandingSouthStationExpress,1,Worcester Line Shuttle,Boston Landing - South Station (Express),Rail Replacement Bus,3,,FFC72C,000000,62781,line-Worcester
+Shuttle-BostonUniversityEastPark,1,Green Line Shuttle,Boston University East - Park Street,Rail Replacement Bus,3,,FFC72C,000000,62690,line-Green
+Shuttle-BradfordHaverhill,1,Haverhill Line Shuttle,Haverhill - Bradford,Rail Replacement Bus,3,,FFC72C,000000,62702,line-Haverhill
+Shuttle-BraintreeBroadway,1,Red Line Shuttle,Braintree - Broadway,Rail Replacement Bus,3,,FFC72C,000000,62754,line-Red
+Shuttle-BraintreeJFKUMass,1,Red Line Shuttle,Braintree - JFK/UMass (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62606,line-Red
+Shuttle-BraintreeNorthQuincy,1,Red Line Shuttle,Braintree - North Quincy (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62622,line-Red
+Shuttle-BraintreeQuincyCenter,1,Red Line Shuttle,Braintree - Quincy Center,Rail Replacement Bus,3,,FFC72C,000000,62755,line-Red
+Shuttle-BraintreeSouthStationExpress,1,Commuter Rail Shuttle,Braintree - South Station (Express),Rail Replacement Bus,3,,FFC72C,000000,62645,line-Greenbush
+Shuttle-BraintreeSouthWeymouth,1,Kingston Line Shuttle,South Weymouth - Braintree,Rail Replacement Bus,3,,FFC72C,000000,62710,line-Kingston
+Shuttle-BroadwayHarvard,1,Red Line Shuttle,Harvard - Broadway,Rail Replacement Bus,3,,FFC72C,000000,62756,line-Red
+Shuttle-BroadwayJFK,1,Red Line Shuttle,JFK/UMass - Broadway,Rail Replacement Bus,3,,FFC72C,000000,62762,line-Red
+Shuttle-BroadwayJFKUMass,1,Red Line Shuttle,JFK/UMass - Broadway (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62601,line-Red
+Shuttle-BroadwayKendall,1,Red Line Shuttle,Kendall/MIT - Broadway via Downtown Crossing,Rail Replacement Bus,3,,FFC72C,000000,62765,line-Red
+Shuttle-BroadwayKendallOmitDTX,1,Red Line Shuttle,Kendall/MIT - Broadway via Pearl Street,Rail Replacement Bus,3,,FFC72C,000000,62766,line-Red
+Shuttle-BroadwayNorthQuincy,1,Red Line Shuttle,North Quincy - Broadway,Rail Replacement Bus,3,,FFC72C,000000,61080,line-Red
+Shuttle-BroadwayQuincyCenter,1,Red Line Shuttle,Quincy Center - Broadway (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62632,line-Red
+Shuttle-BroadwayQuincyCenterExpress,1,Red Line Shuttle,Quincy Center - Broadway (Express),Rail Replacement Bus,3,,FFC72C,000000,62770,line-Red
+Shuttle-BrooklineHillsKenmore,1,Green Line D Shuttle,Brookline Hills - Kenmore,Rail Replacement Bus,3,,FFC72C,000000,62667,line-Green
+Shuttle-BrooklineHillsNewtonHighlands,1,Green Line D Shuttle,Newton Highlands - Brookline Hills,Rail Replacement Bus,3,,FFC72C,000000,62669,line-Green
+Shuttle-BrooklineHillsReservoir,1,Green Line D Shuttle,Reservoir - Brookline Hills,Rail Replacement Bus,3,,FFC72C,000000,62674,line-Green
+Shuttle-BrooklineHillsRiverside,1,Green Line D Shuttle,Riverside - Brookline Hills,Rail Replacement Bus,3,,FFC72C,000000,62677,line-Green
+Shuttle-BrooklineVillageRiverside,1,Green Line D Shuttle,Riverside - Brookline Village,Rail Replacement Bus,3,,FFC72C,000000,62678,line-Green
+Shuttle-ChelseaLynn,1,Newburyport/Rockport Line Shuttle,Lynn - Chelsea,Rail Replacement Bus,3,,FFC72C,000000,62729,line-Newburyport
+Shuttle-ClevelandCircleCoolidgeCorner,1,Green Line C Shuttle,Cleveland Circle - Coolidge Corner,Rail Replacement Bus,3,,FFC72C,000000,62663,line-Green
+Shuttle-ClevelandCircleKenmore,1,Shuttle,Cleveland Circle - Kenmore (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62631,
+Shuttle-ClevelandCircleStMarys,1,Green Line C Shuttle,Cleveland Circle - Saint Mary's Street,Rail Replacement Bus,3,,FFC72C,000000,62664,line-Green
+Shuttle-CopleyForestHills,1,Orange Line Shuttle,Forest Hills - Copley,Rail Replacement Bus,3,,FFC72C,000000,62733,line-Orange
+Shuttle-CopleyJacksonSquare,1,Orange Line Shuttle,Jackson Square - Copley,Rail Replacement Bus,3,,FFC72C,000000,62737,line-Orange
+Shuttle-CopleyKenmore,1,Green Line Shuttle,Kenmore - Copley,Rail Replacement Bus,3,,FFC72C,000000,62691,line-Green
+Shuttle-CopleyRiverside,1,Green Line D Shuttle,Riverside - Copley (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62615,line-Green
+Shuttle-CopleyRiversideExpress,1,Green Line D Shuttle,Riverside - Copley (Express),Rail Replacement Bus,3,,FFC72C,000000,62679,line-Green
+Shuttle-CopleyRiversideLimited,1,Green Line D Shuttle,Riverside - Copley via Woodland (Express),Rail Replacement Bus,3,,FFC72C,000000,62680,line-Green
+Shuttle-CopleyRuggles,1,Orange Line Shuttle,Ruggles - Copley,Rail Replacement Bus,3,,FFC72C,000000,62739,line-Orange
+Shuttle-CopleyWoodlandLimited,1,Green Line D Shuttle,Woodland - Copley via Riverside (Express),Rail Replacement Bus,3,,FFC72C,000000,62685,line-Green
+Shuttle-EastSomervilleMedford,1,Green Line E Shuttle,Medford/Tufts - East Somerville,Rail Replacement Bus,3,,FFC72C,000000,62688,line-Green
+Shuttle-FenwayKenmore,1,Green Line D Shuttle,Fenway - Kenmore,Rail Replacement Bus,3,,FFC72C,000000,62668,line-Green
+Shuttle-FenwayNewtonHighlands,1,Green Line D Shuttle,Newton Highlands - Fenway,Rail Replacement Bus,3,,FFC72C,000000,62670,line-Green
+Shuttle-FenwayReservoir,1,Green Line D Shuttle,Reservoir - Fenway,Rail Replacement Bus,3,,FFC72C,000000,62675,line-Green
+Shuttle-FenwayRiverside,1,Green Line D Shuttle,Riverside - Fenway,Rail Replacement Bus,3,,FFC72C,000000,62681,line-Green
+Shuttle-ForestHillsJackson,1,Orange Line Shuttle,Forest Hills - Jackson Square,Rail Replacement Bus,3,,FFC72C,000000,62734,line-Orange
+Shuttle-ForestHillsJacksonSquare,1,Orange Line Shuttle,Forest Hills - Jackson Square (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62625,line-Orange
+Shuttle-ForestHillsNeedhamHeights,1,Needham Line Shuttle,Needham Heights - Forest Hills,Rail Replacement Bus,3,,FFC72C,000000,62717,line-Needham
+Shuttle-ForestHillsNewtonHighlands,1,Needham Line Shuttle,Newton Highlands - Forest Hills,Rail Replacement Bus,3,,FFC72C,000000,62718,line-Needham
+Shuttle-ForestHillsRuggles,1,Orange Line Shuttle,Forest Hills - Ruggles,Rail Replacement Bus,3,,FFC72C,000000,62735,line-Orange
+Shuttle-ForgeParkNorwoodCentral,1,Franklin Line Shuttle,Forge Park/495 - Norwood Central,Rail Replacement Bus,3,,FFC72C,000000,61740,line-Franklin
+Shuttle-ForgeParkWalpole,1,Franklin Line Shuttle,Forge Park/495 - Walpole,Rail Replacement Bus,3,,FFC72C,000000,61770,line-Franklin
+Shuttle-FoxboroNorwoodCentral,1,Franklin Line Shuttle,Foxboro - Norwood Central,Rail Replacement Bus,3,,FFC72C,000000,61756,line-Franklin
+Shuttle-FraminghamSouthStationExpress,1,Worcester Line Shuttle,Framingham - South Station (Express),Rail Replacement Bus,3,,FFC72C,000000,61810,line-Worcester
+Shuttle-Generic,1,Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61910,
+Shuttle-Generic-Blue,1,Blue Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61911,line-Blue
+Shuttle-Generic-CommuterRail,1,Commuter Rail Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61912,
+Shuttle-Generic-CommuterRail-North,1,North Side Commuter Rail Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61913,
+Shuttle-Generic-CommuterRail-South,1,South Side Commuter Rail Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61914,
+Shuttle-Generic-Elevator,1,Elevator Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61915,
+Shuttle-Generic-Fairmount,1,Fairmount Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61916,line-Fairmount
+Shuttle-Generic-Fitchburg,1,Fitchburg Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61917,line-Fitchburg
+Shuttle-Generic-Franklin,1,Franklin/Foxboro Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61918,line-Franklin
+Shuttle-Generic-Green,1,Green Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61919,line-Green
+Shuttle-Generic-Green-B,1,Green Line B Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61920,line-Green
+Shuttle-Generic-Green-C,1,Green Line C Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61922,line-Green
+Shuttle-Generic-Green-D,1,Green Line D Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61923,line-Green
+Shuttle-Generic-Green-E,1,Green Line E Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61924,line-Green
+Shuttle-Generic-Green-Trunk,1,Green Line Subway Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61925,line-Green
+Shuttle-Generic-Greenbush,1,Greenbush Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61921,line-Greenbush
+Shuttle-Generic-Haverhill,1,Haverhill Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61926,line-Haverhill
+Shuttle-Generic-Kingston,1,Kingston Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61927,line-Kingston
+Shuttle-Generic-Lowell,1,Lowell Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61928,line-Lowell
+Shuttle-Generic-Mattapan,1,Mattapan Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61929,line-Mattapan
+Shuttle-Generic-Needham,1,Needham Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61931,line-Needham
+Shuttle-Generic-Newburyport,1,Newburyport/Rockport Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61932,line-Newburyport
+Shuttle-Generic-Orange,1,Orange Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61933,line-Orange
+Shuttle-Generic-Providence,1,Providence/Stoughton Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61934,line-Providence
+Shuttle-Generic-Red,1,Red Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61935,line-Red
+Shuttle-Generic-Red-Ashmont,1,Red Line Ashmont Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61936,line-Red
+Shuttle-Generic-Red-Braintree,1,Red Line Braintree Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61937,line-Red
+Shuttle-Generic-Red-Trunk,1,Red Line Trunk Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61938,line-Red
+Shuttle-Generic-Worcester,1,Framingham/Worcester Line Shuttle,,Rail Replacement Bus,3,,FFC72C,000000,61939,line-Worcester
+Shuttle-GovernmentCenterMedfordTufts,1,Green Line E Shuttle,Government Center - Medford/Tufts (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62602,line-Green
+Shuttle-GovernmentCenterMedfordViaUnionSq,1,Green Line Shuttle,Medford/Tufts - Government Center via Union Square,Rail Replacement Bus,3,,FFC72C,000000,62693,line-Green
+Shuttle-GovernmentCenterNorthStation,1,Green Line Shuttle,North Station - Government Center,Rail Replacement Bus,3,,FFC72C,000000,62694,line-Green
+Shuttle-GovernmentCenterOrientHeightsExpress,1,Blue Line Shuttle,Orient Heights - Government Center (Express),Rail Replacement Bus,3,,FFC72C,000000,62612,line-Blue
+Shuttle-GovernmentCenterOrientHeightsLocal,1,Blue Line Shuttle,Orient Heights - Government Center (Local),Rail Replacement Bus,3,,FFC72C,000000,62614,line-Blue
+Shuttle-GovernmentCenterUnionSquare,1,Green Line Shuttle,Union Square - Government Center,Rail Replacement Bus,3,,FFC72C,000000,62696,line-Green
+Shuttle-GovernmentCenterWonderland,1,Blue Line Shuttle,Wonderland - Government Center,Rail Replacement Bus,3,,FFC72C,000000,62642,line-Blue
+Shuttle-GreenbushNorthScituate,1,Greenbush Line Shuttle,Greenbush - North Scituate,Rail Replacement Bus,3,,FFC72C,000000,62698,line-Greenbush
+Shuttle-HalifaxKingston,1,Kingston Line Shuttle,Kingston - Halifax,Rail Replacement Bus,3,,FFC72C,000000,62709,line-Kingston
+Shuttle-HarvardJFK,1,Red Line Shuttle,Harvard - JFK/UMass via Congress Street,Rail Replacement Bus,3,,FFC72C,000000,62757,line-Red
+Shuttle-HarvardJFKOmitCongress,1,Red Line Shuttle,Harvard - JFK/UMass via State Street,Rail Replacement Bus,3,,FFC72C,000000,62758,line-Red
+Shuttle-HarvardKendall,1,Red Line Shuttle,Harvard - Kendall/MIT (Loop),Rail Replacement Bus,3,,FFC72C,000000,62759,line-Red
+Shuttle-HarvardPark,1,Red Line Shuttle,Harvard - Park Street,Rail Replacement Bus,3,,FFC72C,000000,62760,line-Red
+Shuttle-HarvardSouthStation,1,Red Line Shuttle,Harvard - South Station,Rail Replacement Bus,3,,FFC72C,000000,62761,line-Red
+Shuttle-HarvardSouthStationExpress,1,Red Line Shuttle,South Station - Harvard (Express),Rail Replacement Bus,3,,FFC72C,000000,62635,line-Red
+Shuttle-HaverhillMaldenCenter,1,Haverhill Line Shuttle,Haverhill - Malden Center,Rail Replacement Bus,3,,FFC72C,000000,62703,line-Haverhill
+Shuttle-HaverhillNorthStation,1,Haverhill Line Shuttle,Haverhill - North Station,Rail Replacement Bus,3,,FFC72C,000000,62704,line-Haverhill
+Shuttle-HaverhillReadingExpress,1,Haverhill Line Shuttle,Haverhill - Reading (Express),Rail Replacement Bus,3,,FFC72C,000000,62705,line-Haverhill
+Shuttle-HaverhillReadingLocal,1,Haverhill Line Shuttle,Haverhill - Reading (Local),Rail Replacement Bus,3,,FFC72C,000000,62706,line-Haverhill
+Shuttle-HeathPark,1,Green Line E Shuttle,Heath Street - Park Street,Rail Replacement Bus,3,,FFC72C,000000,62686,line-Green
+Shuttle-HeathPrudential,1,Green Line E Shuttle,Heath Street - Prudential,Rail Replacement Bus,3,,FFC72C,000000,62687,line-Green
+Shuttle-JFKKendall,1,Red Line Shuttle,Kendall/MIT - JFK/UMass,Rail Replacement Bus,3,,FFC72C,000000,62767,line-Red
+Shuttle-JFKMattapan,1,Red/Mattapan Line Shuttle,Mattapan - JFK/UMass,Rail Replacement Bus,3,,FFC72C,000000,62771,line-Red
+Shuttle-JFKNorthQuincy,1,Red Line Shuttle,North Quincy - JFK/UMass,Rail Replacement Bus,3,,FFC72C,000000,62769,line-Red
+Shuttle-JFKPark,1,Red Line Shuttle,JFK/UMass - Park Street,Rail Replacement Bus,3,,FFC72C,000000,62763,line-Red
+Shuttle-JFKParkStreetViaPostOffice,1,Red Line Shuttle,JFK/UMass - Park Street via Post Office,Rail Replacement Bus,3,,FFC72C,000000,62764,line-Red
+Shuttle-JFKUMassKendallMIT,1,Red Line Shuttle,JFK/UMass - Kendall/MIT (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62607,line-Red
+Shuttle-KendallPark,1,Red Line Shuttle,Kendall/MIT - Park Street,Rail Replacement Bus,3,,FFC72C,000000,62768,line-Red
+Shuttle-KenmoreReservoir,1,Green Line D Shuttle,Reservoir - Kenmore,Rail Replacement Bus,3,,FFC72C,000000,62676,line-Green
+Shuttle-KenmoreRiverside,1,Green Line D Shuttle,Riverside - Kenmore (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62618,line-Green
+Shuttle-KenmoreStMarysNotFenway,1,Green Line C Shuttle,Saint Mary's Street - Kenmore,Rail Replacement Bus,3,,FFC72C,000000,62666,line-Green
+Shuttle-KenmoreStMarysRiverside,1,Green Line D Shuttle,Riverside - Kenmore via Saint Mary's Street,Rail Replacement Bus,3,,FFC72C,000000,62682,line-Green
+Shuttle-KenmoreWashington,1,Green Line B Shuttle,Washington Street - Kenmore,Rail Replacement Bus,3,,FFC72C,000000,62662,line-Green
+Shuttle-LechmereNorthStation,1,Green Line Shuttle,Lechmere - North Station,Rail Replacement Bus,3,,FFC72C,000000,62692,line-Green
+Shuttle-LittletonWachusett,1,Fitchburg Line Shuttle,Wachusett - Littleton/Route 495,Rail Replacement Bus,3,,FFC72C,000000,62649,line-Fitchburg
+Shuttle-LowellWilmington,1,Lowell Line Shuttle,Lowell - Wilmington,Rail Replacement Bus,3,,FFC72C,000000,62716,line-Lowell
+Shuttle-LynnNorthStationExpress,1,Newburyport/Rockport Line Shuttle,Lynn - North Station (Express),Rail Replacement Bus,3,,FFC72C,000000,62730,line-Newburyport
+Shuttle-LynnSwampscott,1,Newburyport/Rockport Line Shuttle,Lynn - Swampscott,Rail Replacement Bus,3,,FFC72C,000000,62731,line-Newburyport
+Shuttle-ManchesterGloucester,1,Rockport Line Shuttle,Manchester - Gloucester,Rail Replacement Bus,3,,FFC72C,000000,62774,line-Newburyport
+Shuttle-ManchesterRockport,1,Rockport Line Shuttle,Manchester - Rockport,Rail Replacement Bus,3,,FFC72C,000000,62775,line-Newburyport
+Shuttle-MaverickWonderland,1,Blue Line Shuttle,Maverick - Wonderland,Rail Replacement Bus,3,,FFC72C,000000,62641,line-Blue
+Shuttle-MedfordNorthStation,1,Green Line E Shuttle,Medford/Tufts - North Station,Rail Replacement Bus,3,,FFC72C,000000,62689,line-Green
+Shuttle-MedfordTuftsNorthStation,1,Green Line E Shuttle,North Station - Medford/Tufts (Shuttle),Rail Replacement Bus,3,,FFC72C,000000,62621,line-Green
+Shuttle-NewburyportOakGroveExpress,1,Newburyport Line Shuttle,Newburyport - Oak Grove (Express),Rail Replacement Bus,3,,FFC72C,000000,62721,line-Newburyport
+Shuttle-NewburyportOakGroveLimited,1,Newburyport Line Shuttle,Newburyport - Oak Grove (Limited),Rail Replacement Bus,3,,FFC72C,000000,62722,line-Newburyport
+Shuttle-NewburyportSalemExpress,1,Newburyport Line Shuttle,Newburyport - Salem (Express),Rail Replacement Bus,3,,FFC72C,000000,62723,line-Newburyport
+Shuttle-NewburyportSalemLocal,1,Newburyport Line Shuttle,Newburyport - Salem (Local),Rail Replacement Bus,3,,FFC72C,000000,62724,line-Newburyport
+Shuttle-NewtonHighlandsKenmore,1,Green Line D Shuttle,Newton Highlands - Kenmore,Rail Replacement Bus,3,,FFC72C,000000,62671,line-Green
+Shuttle-NewtonHighlandsReservoir,1,Green Line D Shuttle,Newton Highlands - Reservoir,Rail Replacement Bus,3,,FFC72C,000000,62673,line-Green
+Shuttle-NewtonHighlandsRiverside,1,Green Line D Shuttle,Riverside - Newton Highlands,Rail Replacement Bus,3,,FFC72C,000000,62683,line-Green
+Shuttle-NewtonHighlandsStMarysKenmore,1,Green Line D Shuttle,Newton Highlands - Kenmore via Saint Mary's Street,Rail Replacement Bus,3,,FFC72C,000000,62672,line-Green
+Shuttle-NorthBillericaLowell,1,Lowell Line Shuttle,Lowell - North Billerica,Rail Replacement Bus,3,,FFC72C,000000,62715,line-Lowell
+Shuttle-NorthLeominsterWachusett,1,Fitchburg Line Shuttle,Wachusett - North Leominster,Rail Replacement Bus,3,,FFC72C,000000,62650,line-Fitchburg
+Shuttle-NorthStationOakGroveExpress,1,Orange Line Shuttle,North Station - Oak Grove (Express),Rail Replacement Bus,3,,FFC72C,000000,62605,line-Orange
+Shuttle-NorthStationOakGroveLocal,1,Orange Line Shuttle,North Station - Oak Grove (Local),Rail Replacement Bus,3,,FFC72C,000000,62604,line-Orange
+Shuttle-NorthStationOakGroveViaWellingtonExpress,1,Orange Line Shuttle,Oak Grove - North Station via Wellington (Express),Rail Replacement Bus,3,,FFC72C,000000,62611,line-Orange
+Shuttle-NorthStationSullivanSquare,1,Green Line Shuttle,North Station - Sullivan Square via East Somerville,Rail Replacement Bus,3,,FFC72C,000000,62695,line-Green
+Shuttle-NorthStationSwampscottLimited,1,Newburyport/Rockport Line Shuttle,Swampscott - North Station (Limited),Rail Replacement Bus,3,,FFC72C,000000,62732,line-Newburyport
+Shuttle-NorthStationUnionSquare,1,Green Line Shuttle,Union Square - North Station,Rail Replacement Bus,3,,FFC72C,000000,62697,line-Green
+Shuttle-NorthStationWellingtonExpress,1,Orange Line Shuttle,North Station - Wellington (Express),Rail Replacement Bus,3,,FFC72C,000000,62617,line-Orange
+Shuttle-NorthStationWellingtonLocal,1,Orange Line Shuttle,North Station - Wellington (Local),Rail Replacement Bus,3,,FFC72C,000000,62608,line-Orange
+Shuttle-OakGroveReading,1,Haverhill Line Shuttle,Reading - Oak Grove,Rail Replacement Bus,3,,FFC72C,000000,62708,line-Haverhill
+Shuttle-OakGroveRockportExpress,1,Newburyport Line Shuttle,Rockport - Oak Grove (Express),Rail Replacement Bus,3,,FFC72C,000000,62725,line-Newburyport
+Shuttle-OakGroveRockportLimited,1,Newburyport Line Shuttle,Rockport - Oak Grove (Limited),Rail Replacement Bus,3,,FFC72C,000000,62726,line-Newburyport
+Shuttle-OakGroveSalemLocal,1,Newburyport Line Shuttle,Salem - Oak Grove (Local),Rail Replacement Bus,3,,FFC72C,000000,62727,line-Newburyport
+Shuttle-OrientHeightsWonderland,1,Blue Line Shuttle,Wonderland - Orient Heights,Rail Replacement Bus,3,,FFC72C,000000,62643,line-Blue
+Shuttle-PawtucketProvidence,1,Providence Line Shuttle,Providence - Pawtucket/Central Falls,Rail Replacement Bus,3,,FFC72C,000000,62743,line-Providence
+Shuttle-ReadvilleSouthStation,1,Fairmount Line Shuttle,Readville - South Station,Rail Replacement Bus,3,,FFC72C,000000,62646,line-Fairmount
+Shuttle-ReservoirRiverside,1,Green Line D Shuttle,Riverside - Reservoir,Rail Replacement Bus,3,,FFC72C,000000,62684,line-Green
+Shuttle-RockportSalemExpress,1,Rockport Line Shuttle,Rockport - Salem (Express),Rail Replacement Bus,3,,FFC72C,000000,62776,line-Newburyport
+Shuttle-RockportSalemLocal,1,Rockport Line Shuttle,Rockport - Salem (Local),Rail Replacement Bus,3,,FFC72C,000000,62777,line-Newburyport
+Shuttle-RockportWestGloucester,1,Rockport Line Shuttle,Rockport - West Gloucester,Rail Replacement Bus,3,,FFC72C,000000,62778,line-Newburyport
+Shuttle-ShirleyWachusett,1,Fitchburg Line Shuttle,Wachusett - Shirley,Rail Replacement Bus,3,,FFC72C,000000,62651,line-Fitchburg
+Shuttle-SouthStationSouthWeymouth,1,Kingston Line Shuttle,South Weymouth - South Station,Rail Replacement Bus,3,,FFC72C,000000,62711,line-Kingston
+Shuttle-SouthStationWellesleyHillsLocalViaRiverside,1,Worcester Line Shuttle,Wellesley Hills - South Station via Riverside (Local),Rail Replacement Bus,3,,FFC72C,000000,62482,line-Worcester
+Shuttle-StateSullivan,1,Orange Line Shuttle,Sullivan Square - State,Rail Replacement Bus,3,,FFC72C,000000,62740,line-Orange
+Shuttle-SuffolkDownsWonderland,1,Blue Line Shuttle,Wonderland - Suffolk Downs,Rail Replacement Bus,3,,FFC72C,000000,62644,line-Blue
+Shuttle-TFGreenWickfordJunction,1,Providence Line Shuttle,Wickford Junction - TF Green Airport,Rail Replacement Bus,3,,FFC72C,000000,62744,line-Providence

@@ -159,7 +159,8 @@ def test_build_filters_and_subsets_gtfs(tmp_path: Path) -> None:
     assert [s.trip_id for s in gtfs.stop_times()] == ["t1", "t1"]
     assert {p.shape_id for p in gtfs.shapes()} == {"sh1"}
     assert [c.service_id for c in gtfs.calendar()] == ["sun"]
-    assert [r.route_id for r in gtfs.routes()] == ["Red"]
+    # routes.txt keeps every route (production-like); other tables are subway only.
+    assert [r.route_id for r in gtfs.routes()] == ["Bus1", "Red"]
     assert [c.service_id for c in gtfs.calendar_dates()] == ["sun"]
 
 

@@ -46,11 +46,11 @@ def build_gtfs_subset(
     out_dir.mkdir(parents=True, exist_ok=True)
     counts: dict[str, int] = {}
 
-    routes = sorted(
-        (r for r in src.routes() if r.route_id in route_ids and r.route_type in route_types),
-        key=lambda r: r.route_id,
-    )
-    kept_routes = {r.route_id for r in routes}
+    # routes.txt keeps every route, as production does; the other tables cover subway only.
+    routes = sorted(src.routes(), key=lambda r: r.route_id)
+    kept_routes = {
+        r.route_id for r in routes if r.route_id in route_ids and r.route_type in route_types
+    }
     services = active_services(src, days)
     trips = sorted(
         (t for t in src.trips() if t.route_id in kept_routes and t.service_id in services),
