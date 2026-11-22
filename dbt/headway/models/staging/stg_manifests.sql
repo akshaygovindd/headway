@@ -2,6 +2,7 @@
 with runs as (
     select run_id, unnest(entries) as e
     from {{ source('curated', 'manifests') }}
+    {{ lookback_filter() }}
 )
 
 select

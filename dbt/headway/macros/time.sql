@@ -21,3 +21,14 @@
 {% macro service_date_from_ts(ts) -%}
 cast(({{ ts }} at time zone '{{ var("timezone") }}') - interval {{ var("service_day_cutoff_hour") }} hour as date)
 {%- endmacro %}
+
+{#
+  Rolling window over the hive `dt` partition column of a realtime source. Emits nothing
+  unless the lookback_days var is set, so local and replay builds read everything.
+  Used only in staging models of realtime sources (never static tables).
+#}
+{% macro lookback_filter() -%}
+{%- if var('lookback_days', none) is not none -%}
+where cast(dt as date) >= cast(now() at time zone 'UTC' as date) - {{ var('lookback_days') | int }}
+{%- endif -%}
+{%- endmacro %}

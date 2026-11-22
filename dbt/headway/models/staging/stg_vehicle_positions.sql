@@ -19,3 +19,4 @@ select
     event_ts,
     is_stale_position
 from {{ source('curated', 'vehicle_positions') }}
+{{ lookback_filter() }}

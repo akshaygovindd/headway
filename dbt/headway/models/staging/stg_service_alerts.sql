@@ -15,3 +15,4 @@ select
     active_end,
     header_text
 from {{ source('curated', 'alerts') }}
+{{ lookback_filter() }}

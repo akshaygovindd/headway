@@ -7,6 +7,20 @@ headway:
       threads: 4
       settings:
         TimeZone: UTC
+    # Lambda: DuckDB file in /tmp, S3 read/write through httpfs with the function role.
+    lambda:
+      type: duckdb
+      path: "{{ env_var('HEADWAY_DUCKDB_PATH', '/tmp/headway.duckdb') }}"
+      threads: 4
+      extensions:
+        - httpfs
+      settings:
+        TimeZone: UTC
+        home_directory: /tmp
+        extension_directory: "{{ env_var('HEADWAY_DUCKDB_EXTENSIONS', '/tmp/duckdb_extensions') }}"
+      secrets:
+        - type: s3
+          provider: credential_chain
     # Defined only; not run in Release 1 local work.
     motherduck:
       type: duckdb

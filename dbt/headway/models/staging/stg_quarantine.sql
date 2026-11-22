@@ -8,6 +8,7 @@ with q as (
         split_part(error, chr(10), 1) as error,
         dt
     from {{ source('curated', 'quarantine') }}
+    {{ lookback_filter() }}
 )
 
 select

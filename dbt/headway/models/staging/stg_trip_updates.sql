@@ -2,6 +2,7 @@
 -- capture_id x trip_id x stop_id x stop_sequence are collapsed to one.
 with src as (
     select * from {{ source('curated', 'trip_updates') }}
+    {{ lookback_filter() }}
 ),
 
 deduped as (

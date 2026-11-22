@@ -46,7 +46,7 @@ TS_CASES = [
 ]
 
 
-def _dbt_show(sql: str, tmp_path: Path) -> list[dict[str, str]]:
+def _dbt_show(sql: str, tmp_path: Path, vars_json: str = "{}") -> list[dict[str, str]]:
     if shutil.which("uv") is None:
         pytest.skip("uv is required to run dbt")
     env = {**os.environ, "HEADWAY_DUCKDB_PATH": str(tmp_path / "macros.duckdb")}
@@ -54,7 +54,7 @@ def _dbt_show(sql: str, tmp_path: Path) -> list[dict[str, str]]:
         [
             "uv", "run", "--project", "dbt", "dbt", "show", "--quiet",
             "--project-dir", "dbt/headway", "--profiles-dir", "dbt/headway",
-            "--target", "local", "--output", "json", "--limit", "1000",
+            "--target", "local", "--output", "json", "--limit", "1000", "--vars", vars_json,
             "--inline", sql,
         ],  # fmt: skip
         cwd=ROOT, env=env, capture_output=True, text=True, check=False,
@@ -84,3 +84,14 @@ def test_service_date_from_ts_macro_matches_python(tmp_path: Path) -> None:
     rows = {int(r["k"]): r["got"] for r in _dbt_show(" union all ".join(selects), tmp_path)}
     for i, ts in enumerate(TS_CASES):
         assert rows[i] == service_date_for(ts, TZ, 3).isoformat(), ts
+
+
+def test_lookback_filter_is_empty_without_the_var(tmp_path: Path) -> None:
+    sql = "select '{{ lookback_filter() }}' as got"
+    assert _dbt_show(sql, tmp_path)[0]["got"] == ""
+
+
+def test_lookback_filter_bounds_the_dt_partition(tmp_path: Path) -> None:
+    sql = 'select \'{{ lookback_filter() | replace("\'", "") }}\' as got'
+    got = _dbt_show(sql, tmp_path, '{"lookback_days": 7}')[0]["got"]
+    assert got == "where cast(dt as date) >= cast(now() at time zone UTC as date) - 7"
