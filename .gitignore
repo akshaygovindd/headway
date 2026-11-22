@@ -29,3 +29,9 @@ dbt/**/dbt_packages/
 
 # Build output
 build/
+
+# Terraform
+*.tfstate*
+.terraform/
+infra/main/backend.hcl
+infra/main/terraform.tfvars
