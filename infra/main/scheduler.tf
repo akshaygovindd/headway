@@ -38,7 +38,8 @@ resource "aws_scheduler_schedule" "ingest" {
   target {
     arn      = aws_lambda_function.ingest.arn
     role_arn = aws_iam_role.scheduler.arn
-    input    = jsonencode({ scheduled_at = "<aws.scheduler.scheduled-time>" })
+    # Literal string: jsonencode() would escape < and > and block substitution.
+    input = "{\"scheduled_at\": \"<aws.scheduler.scheduled-time>\"}"
 
     retry_policy {
       maximum_retry_attempts = 0

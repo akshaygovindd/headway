@@ -83,3 +83,9 @@ resource "aws_lambda_function" "ingest" {
 
   depends_on = [aws_iam_role_policy.ingest]
 }
+
+resource "aws_lambda_function_event_invoke_config" "ingest" {
+  function_name                = aws_lambda_function.ingest.function_name
+  maximum_retry_attempts       = 0
+  maximum_event_age_in_seconds = 60
+}
