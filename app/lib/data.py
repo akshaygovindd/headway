@@ -24,6 +24,7 @@ GOLD_TABLES = (
     "dim_route",
     "dim_stop",
     "route_shapes",
+    "cost_daily",
 )
 
 

@@ -1,6 +1,7 @@
 """Smoke tests: every page renders against an export built from the sample."""
 
 import re
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -64,9 +65,38 @@ def test_line_explorer_filters(data_url: str) -> None:
     assert "Slowest stretches" in _text(at)
 
 
-def test_pipeline_health_cost_panel_has_no_numbers(data_url: str) -> None:
+def test_pipeline_health_cost_panel_without_data(data_url: str) -> None:
     at = AppTest.from_file(str(APP / "pages/3_Pipeline_health.py"), default_timeout=60).run()
-    assert any("available after Phase 5b" in i.value for i in at.info)
+    assert not at.exception
+    assert any("No cost data yet" in i.value for i in at.info)
+
+
+def test_pipeline_health_cost_panel_with_data(
+    export_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import shutil
+
+    import pandas as pd
+
+    root = export_root.parent / "with_cost"
+    shutil.copytree(export_root, root, dirs_exist_ok=True)
+    pd.DataFrame(
+        {
+            "date": [date(2026, 11, 21)] * 2,
+            "service": ["AWS Lambda", "Amazon S3"],
+            "cost_usd": [0.30, 0.10],
+            "day_total_usd": [0.40, 0.40],
+            "captures": [4000, 4000],
+            "cost_per_1000_captures": [0.10, 0.10],
+        }
+    ).to_parquet(root / "gold" / "cost_daily.parquet")
+    monkeypatch.setenv("HEADWAY_DATA_URL", f"file://{root}")
+    at = AppTest.from_file(str(APP / "pages/3_Pipeline_health.py"), default_timeout=60).run()
+    assert not at.exception
+    metrics = {m.label: m.value for m in at.metric}
+    assert metrics["Spend on 2026-11-21"] == "$0.40"
+    assert metrics["Per 1,000 captures"] == "$0.1000"
+    assert not any("No cost data yet" in i.value for i in at.info)
 
 
 def test_missing_data_url_stops_cleanly(monkeypatch: pytest.MonkeyPatch) -> None:

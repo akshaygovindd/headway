@@ -116,3 +116,21 @@ def test_captures_per_hour_marks_gaps() -> None:
     out = health.captures_per_hour(df)
     assert out["runs"].tolist() == [58] and out["expected"].tolist() == [60]
     assert out["missed"].tolist() == [2]
+
+
+def test_cost_summary_uses_latest_day_and_orders_services() -> None:
+    cost = pd.DataFrame(
+        {
+            "date": [date(2026, 11, 20)] * 2 + [date(2026, 11, 21)] * 2,
+            "service": ["Lambda", "S3", "S3", "Lambda"],
+            "cost_usd": [0.2, 0.1, 0.05, 0.25],
+            "day_total_usd": [0.3, 0.3, 0.3, 0.3],
+            "captures": [3000, 3000, None, None],
+            "cost_per_1000_captures": [0.1, 0.1, None, None],
+        }
+    )
+    out = health.cost_summary(cost)
+    assert out["latest_date"] == date(2026, 11, 21)
+    assert out["last_7_days_usd"] == 0.6
+    assert out["cost_per_1000_captures"] is None
+    assert list(out["by_service"]["service"]) == ["Lambda", "S3"]

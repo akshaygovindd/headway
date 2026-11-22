@@ -105,3 +105,20 @@ def check_series(checks: pd.DataFrame, check_name: str) -> pd.DataFrame:
         }
     )
     return frame.sort_values("order").drop(columns="order").reset_index(drop=True)
+
+
+def cost_summary(cost: pd.DataFrame) -> dict[str, object]:
+    """Latest-day and 7-day totals, cost per 1,000 captures, and the latest day by service."""
+    day_totals = cost.drop_duplicates("date").sort_values("date")
+    latest = day_totals.iloc[-1]
+    latest_services = cost[cost["date"] == latest["date"]][["service", "cost_usd"]]
+    per_1000 = latest["cost_per_1000_captures"]
+    return {
+        "latest_date": latest["date"],
+        "latest_total_usd": float(latest["day_total_usd"]),
+        "last_7_days_usd": float(day_totals.tail(7)["day_total_usd"].sum()),
+        "cost_per_1000_captures": None if pd.isna(per_1000) else float(per_1000),
+        "by_service": latest_services.sort_values("cost_usd", ascending=False).reset_index(
+            drop=True
+        ),
+    }

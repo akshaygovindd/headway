@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import ui
-from lib import health
+from lib import data, health
 
 ui.page_header("Pipeline health")
 base = ui.data_base()
@@ -66,4 +66,17 @@ else:
     st.plotly_chart(fig, width="stretch")
 
 st.subheader("Cost")
-st.info("Cost metrics: available after Phase 5b.")
+try:
+    cost = ui.gold_table(base, "cost_daily")
+except data.DataUnavailableError:
+    cost = None
+if cost is None or cost.empty:
+    st.info("No cost data yet.")
+else:
+    spend = health.cost_summary(cost)
+    c1, c2, c3 = st.columns(3)
+    c1.metric(f"Spend on {spend['latest_date']}", f"${spend['latest_total_usd']:.2f}")
+    c2.metric("Last 7 days", f"${spend['last_7_days_usd']:.2f}")
+    per_1000 = spend["cost_per_1000_captures"]
+    c3.metric("Per 1,000 captures", "n/a" if per_1000 is None else f"${per_1000:.4f}")
+    st.dataframe(spend["by_service"], hide_index=True, width="stretch")
