@@ -36,3 +36,4 @@ build/
 infra/main/backend.hcl
 infra/main/terraform.tfvars
 tfplan
+dbt/**/.user.yml

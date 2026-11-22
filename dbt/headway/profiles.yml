@@ -1,0 +1,18 @@
+headway:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: "{{ env_var('HEADWAY_DUCKDB_PATH', '.local/headway.duckdb') }}"
+      threads: 4
+      settings:
+        TimeZone: UTC
+    # Defined only; not run in Release 1 local work.
+    motherduck:
+      type: duckdb
+      path: "md:headway"
+      threads: 4
+      settings:
+        TimeZone: UTC
+      config_options:
+        motherduck_token: "{{ env_var('MOTHERDUCK_TOKEN') }}"

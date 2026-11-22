@@ -1,0 +1,34 @@
+name: headway
+version: "0.1.0"
+config-version: 2
+profile: headway
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Root of a `headway replay` target (contains curated/, quarantine/, manifests/).
+  curated_root: .local/replay
+  city_prefix: boston
+  timezone: America/New_York
+  service_day_cutoff_hour: 3
+
+models:
+  headway:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table
+
+seeds:
+  headway:
+    quality_thresholds:
+      +column_types:
+        warn: double
+        fail: double
