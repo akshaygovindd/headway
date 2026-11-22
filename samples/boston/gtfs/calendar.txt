@@ -1,0 +1,5 @@
+service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
+DIV20264-hmo46cw7-Sunday-01,0,0,0,0,0,0,1,20261122,20261122
+DIV20264-hms46bn7-Sunday-01,0,0,0,0,0,0,1,20261122,20261122
+FallSunday,0,0,0,0,0,0,1,20261115,20261206
+LRV20264-hlb46017-Sunday-01,0,0,0,0,0,0,1,20261122,20261206

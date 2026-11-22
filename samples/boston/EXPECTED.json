@@ -1,0 +1,33 @@
+{
+  "captures_per_feed": {
+    "alerts": 59,
+    "trip_updates": 59,
+    "vehicle_positions": 59
+  },
+  "failed_fetches_per_feed": {},
+  "header_parse_failures": 1,
+  "quarantine_by_reason": {
+    "alerts": {},
+    "trip_updates": {
+      "missing_trip_id": 41,
+      "protobuf_parse_error": 1
+    },
+    "vehicle_positions": {
+      "invalid_coordinates": 3,
+      "timestamp_out_of_range": 99
+    }
+  },
+  "rows_parsed": {
+    "alerts": 74681,
+    "trip_updates": 83353,
+    "vehicle_positions": 4353
+  },
+  "rows_valid": {
+    "alerts": 74681,
+    "trip_updates": 83312,
+    "vehicle_positions": 4251
+  },
+  "unparseable_captures_per_feed": {
+    "trip_updates": 1
+  }
+}

@@ -1,0 +1,2 @@
+feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date,feed_version,feed_contact_email
+MBTA,http://www.mbta.com,EN,20261112,20261212,"Fall 2026, 2026-11-19T01:01:13+00:00, version D",developer@mbta.com

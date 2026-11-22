@@ -1,0 +1,56 @@
+{
+  "entries": [
+    {
+      "bytes": 52535,
+      "capture_id": "trip_updates-20261122T153100Z-bda1903d",
+      "city_id": "boston",
+      "content_hash": "bda1903d6fa0da55c413377aee67e93c50da6545dd57fec3c987174c2ff3b693",
+      "entity_count": 114,
+      "error": null,
+      "feed": "trip_updates",
+      "feed_header_ts": "2026-11-22T15:30:58Z",
+      "fetched_at": "2026-11-22T15:31:00.254844Z",
+      "header_parse_error": null,
+      "http_status": 200,
+      "run_id": "01M81Y3KS5DH5WB3EGNDPAGY3F",
+      "s3_key": "raw/boston/feed=trip_updates/dt=2026-11-22/hour=15/trip_updates-20261122T153100Z-bda1903d.pb.gz",
+      "scheduled_at": "2026-11-22T15:31:00Z",
+      "status": "ok"
+    },
+    {
+      "bytes": 11686,
+      "capture_id": "vehicle_positions-20261122T153100Z-143f14ae",
+      "city_id": "boston",
+      "content_hash": "143f14ae3b0bd2f873933d445e49a5c94797edcee0bdbcd76b038cb5166a2f1e",
+      "entity_count": 72,
+      "error": null,
+      "feed": "vehicle_positions",
+      "feed_header_ts": "2026-11-22T15:30:58Z",
+      "fetched_at": "2026-11-22T15:31:00.432265Z",
+      "header_parse_error": null,
+      "http_status": 200,
+      "run_id": "01M81Y3KS5DH5WB3EGNDPAGY3F",
+      "s3_key": "raw/boston/feed=vehicle_positions/dt=2026-11-22/hour=15/vehicle_positions-20261122T153100Z-143f14ae.pb.gz",
+      "scheduled_at": "2026-11-22T15:31:00Z",
+      "status": "ok"
+    },
+    {
+      "bytes": 109050,
+      "capture_id": "alerts-20261122T153100Z-6b8abe37",
+      "city_id": "boston",
+      "content_hash": "6b8abe3773a7d120b020921b0f37fbdcda6d28a2d79b09a15f7fff9e2bdb1750",
+      "entity_count": 42,
+      "error": null,
+      "feed": "alerts",
+      "feed_header_ts": "2026-11-22T15:30:31Z",
+      "fetched_at": "2026-11-22T15:31:00.499168Z",
+      "header_parse_error": null,
+      "http_status": 200,
+      "run_id": "01M81Y3KS5DH5WB3EGNDPAGY3F",
+      "s3_key": "raw/boston/feed=alerts/dt=2026-11-22/hour=15/alerts-20261122T153100Z-6b8abe37.pb.gz",
+      "scheduled_at": "2026-11-22T15:31:00Z",
+      "status": "ok"
+    }
+  ],
+  "run_id": "01M81Y3KS5DH5WB3EGNDPAGY3F"
+}
