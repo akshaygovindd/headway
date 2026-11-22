@@ -1,0 +1,245 @@
+version: 2
+
+models:
+  - name: agg_line_reliability_hourly
+    description: "Prediction reliability per line, direction, service date and scheduled hour. Rows exist only for hours inside the trip_updates observation window."
+    config:
+      meta:
+        grain: "line x direction_id x service_date x hour_local"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, service_date, hour_local]
+    columns:
+      - name: line
+        description: "Reporting line (route_id)."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel (0 or 1)."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour (0-23) of the scheduled arrival."
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 23
+      - name: median_predicted_deviation_s
+        description: "Median predicted minus scheduled arrival in seconds over eligible predictions; null without any."
+      - name: p90_predicted_deviation_s
+        description: "90th percentile of predicted deviation in seconds."
+      - name: median_abs_revision_s
+        description: "Median absolute revision in seconds over eligible predictions with a prior snapshot."
+      - name: n_eligible
+        description: "Eligible predictions (one per trip stop)."
+        data_tests:
+          - not_null
+      - name: coverage_numerator
+        description: "Scheduled trip stops with at least one eligible prediction."
+        data_tests:
+          - not_null
+      - name: coverage_denominator
+        description: "Scheduled trip stops in the hour."
+        data_tests:
+          - not_null
+      - name: coverage_pct
+        description: "100 * coverage_numerator / coverage_denominator."
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: capture_minutes
+        description: "Minutes of the hour with a successful non-duplicate trip_updates capture."
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 60
+      - name: window_complete
+        description: "True when capture_minutes is at least 55."
+        data_tests:
+          - not_null
+  - name: agg_stop_deviation_daily
+    description: "Predicted deviation per line, direction, stop and service date, counting only observed hours."
+    config:
+      meta:
+        grain: "line x direction_id x stop_id x service_date"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, stop_id, service_date]
+    columns:
+      - name: line
+        description: "Reporting line (route_id)."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel (0 or 1)."
+        data_tests:
+          - not_null
+      - name: stop_id
+        description: "Stop identifier."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_stop')
+                field: stop_id
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: median_predicted_deviation_s
+        description: "Median predicted minus scheduled arrival in seconds over eligible predictions."
+      - name: n_eligible
+        description: "Eligible predictions (one per trip stop)."
+        data_tests:
+          - not_null
+      - name: coverage_denominator
+        description: "Scheduled trip stops at the stop in observed hours."
+        data_tests:
+          - not_null
+      - name: coverage_pct
+        description: "100 * n_eligible / coverage_denominator."
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+  - name: agg_pipeline_health
+    description: "One row per ingest run: per-feed capture status, size and duplication, vehicle count and quarantine counts by reason. Records filtered out of scope are not persisted by curation and so are not reported."
+    config:
+      meta:
+        grain: "run_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [run_id]
+    columns:
+      - name: run_id
+        description: "Ingest run identifier."
+        data_tests:
+          - not_null
+      - name: scheduled_at
+        description: "UTC time the run was scheduled for."
+        data_tests:
+          - not_null
+      - name: n_captures
+        description: "Captures recorded for the run (one per feed)."
+        data_tests:
+          - not_null
+      - name: trip_updates_status
+        description: "Capture status of the trip_updates feed in the run (ok or error)."
+      - name: trip_updates_bytes
+        description: "Payload bytes of the trip_updates capture."
+      - name: trip_updates_entity_count
+        description: "Entities in the trip_updates payload."
+      - name: trip_updates_is_duplicate
+        description: "True when the trip_updates payload equals the previous capture's."
+        data_tests:
+          - not_null
+      - name: vehicle_positions_status
+        description: "Capture status of the vehicle_positions feed in the run (ok or error)."
+      - name: vehicle_positions_bytes
+        description: "Payload bytes of the vehicle_positions capture."
+      - name: vehicle_positions_entity_count
+        description: "Entities in the vehicle_positions payload."
+      - name: vehicle_positions_is_duplicate
+        description: "True when the vehicle_positions payload equals the previous capture's."
+        data_tests:
+          - not_null
+      - name: alerts_status
+        description: "Capture status of the alerts feed in the run (ok or error)."
+      - name: alerts_bytes
+        description: "Payload bytes of the alerts capture."
+      - name: alerts_entity_count
+        description: "Entities in the alerts payload."
+      - name: alerts_is_duplicate
+        description: "True when the alerts payload equals the previous capture's."
+        data_tests:
+          - not_null
+      - name: subway_vehicle_count
+        description: "Distinct vehicles in the run's vehicle_positions capture."
+        data_tests:
+          - not_null
+      - name: quarantine_total
+        description: "Records quarantined from the run's captures."
+        data_tests:
+          - not_null
+      - name: quarantine_missing_trip_id
+        description: "Quarantined for a missing trip_id."
+        data_tests:
+          - not_null
+      - name: quarantine_invalid_coordinates
+        description: "Quarantined for invalid coordinates."
+        data_tests:
+          - not_null
+      - name: quarantine_protobuf_parse_error
+        description: "Whole captures quarantined for a protobuf parse error."
+        data_tests:
+          - not_null
+      - name: quarantine_other
+        description: "Quarantined for any other reason."
+        data_tests:
+          - not_null
+  - name: agg_quality_checks_hourly
+    description: "Hourly data-quality checks with warn/fail status from the quality_thresholds seed. Values are percentages except missed_runs (count). late_event_share counts records fetched more than 300 seconds after their event_ts. vehicle_count_drop compares with the same hour one week earlier and is no_baseline when that hour was not observed."
+    config:
+      meta:
+        grain: "service_date x hour_local x check_name"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [service_date, hour_local, check_name]
+    columns:
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour (0-23)."
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 23
+      - name: check_name
+        description: "Name of the check."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [missed_runs, duplicate_share, invalid_coordinate_share, missing_trip_id_share, prediction_coverage, schedule_join_coverage, late_event_share, vehicle_count_drop]
+      - name: value
+        description: "Measured value; null when it cannot be computed."
+      - name: direction
+        description: "above: bad when the value is at or above the thresholds; below: bad when under them."
+        data_tests:
+          - not_null
+      - name: warn_threshold
+        description: "Value at which the check warns."
+        data_tests:
+          - not_null
+      - name: fail_threshold
+        description: "Value at which the check fails."
+        data_tests:
+          - not_null
+      - name: status
+        description: "ok, warn, fail, no_baseline or no_data."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [ok, warn, fail, no_baseline, no_data]

@@ -1,0 +1,28 @@
+version: 2
+
+seeds:
+  - name: quality_thresholds
+    description: Warn and fail thresholds of each hourly quality check.
+    config:
+      meta:
+        grain: check_name
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [check_name]
+    columns:
+      - name: check_name
+        description: Name of the check the thresholds apply to.
+        data_tests: [not_null]
+      - name: direction
+        description: "above: bad when the value is at or above a threshold; below: bad when under it."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [above, below]
+      - name: warn
+        description: Value at which the check warns.
+        data_tests: [not_null]
+      - name: fail
+        description: Value at which the check fails.
+        data_tests: [not_null]

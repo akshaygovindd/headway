@@ -1,0 +1,73 @@
+version: 2
+
+models:
+  - name: int_eligible_predictions
+    description: "The eligible prediction per scheduled trip stop: the last snapshot before the scheduled arrival that is schedule matched, non-duplicate, not SKIPPED or NO_DATA, and 0 to 30 minutes ahead."
+    config:
+      meta:
+        grain: "trip_instance_key x stop_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [trip_instance_key, stop_sequence]
+    columns:
+      - name: trip_instance_key
+        description: "Trip instance identifier."
+        data_tests:
+          - not_null
+      - name: stop_sequence
+        description: "Order of the stop within the trip."
+        data_tests:
+          - not_null
+      - name: capture_id
+        description: "Capture of the eligible snapshot."
+        data_tests:
+          - not_null
+      - name: collected_at
+        description: "UTC fetch time of the snapshot."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: line
+        description: "Line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel."
+      - name: stop_id
+        description: "Stop identifier."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour (0-23) of the scheduled arrival."
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 23
+      - name: scheduled_arrival_ts
+        description: "Scheduled arrival (UTC)."
+        data_tests:
+          - not_null
+      - name: predicted_arrival_ts
+        description: "Predicted arrival (UTC)."
+        data_tests:
+          - not_null
+      - name: predicted_deviation_s
+        description: "Predicted minus scheduled arrival in seconds."
+        data_tests:
+          - not_null
+      - name: horizon_s
+        description: "Predicted arrival minus collection time in seconds (0-1800)."
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1800
+      - name: revision_s
+        description: "Change from the previous non-duplicate snapshot in seconds; null for the first snapshot."

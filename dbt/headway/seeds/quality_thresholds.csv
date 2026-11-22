@@ -1,0 +1,9 @@
+check_name,direction,warn,fail
+missed_runs,above,3,10
+duplicate_share,above,20,50
+invalid_coordinate_share,above,0.5,5
+missing_trip_id_share,above,5,20
+prediction_coverage,below,80,50
+schedule_join_coverage,below,90,70
+late_event_share,above,5,20
+vehicle_count_drop,above,25,50
