@@ -1,6 +1,8 @@
 """Command-line interface."""
 
 import argparse
+import gzip
+import json
 import time
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime, timedelta
@@ -10,9 +12,12 @@ import httpx
 
 from headway.config import CityConfig, load_city_config
 from headway.contracts.manifest import ManifestEntry
+from headway.curate.pipeline import list_manifest_entries
 from headway.curate.replay import Summary, replay
 from headway.ingest.capture import Clock, Fetcher, capture_run
 from headway.ingest.fetch import fetch_feed
+from headway.ingest.live import build_live_snapshot
+from headway.parse.gtfs_rt import CaptureMeta
 from headway.samples.build import build_sample
 from headway.storage import LocalStorage, Storage
 
@@ -53,6 +58,29 @@ def run_captures(
         scheduled_at += timedelta(minutes=1)
 
 
+LIVE_SNAPSHOT_FILE = "vehicles_latest.json"
+
+
+def write_live_snapshot(source: Path, out: Path, config: CityConfig) -> Path:
+    """Write the live snapshot for the last vehicle_positions capture under source."""
+    storage = LocalStorage(source)
+    captures = [
+        e
+        for e in list_manifest_entries(storage, config.storage_prefix)
+        if e.feed == "vehicle_positions" and e.status == "ok" and e.s3_key
+    ]
+    if not captures:
+        raise SystemExit(f"no successful vehicle_positions capture under {source}")
+    last = max(captures, key=lambda e: (e.fetched_at, e.capture_id))
+    assert last.s3_key is not None
+    body = gzip.decompress(storage.get_bytes(last.s3_key))
+    snapshot = build_live_snapshot(body, CaptureMeta(last.capture_id, last.fetched_at), config)
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / LIVE_SNAPSHOT_FILE
+    path.write_text(json.dumps(snapshot, indent=2) + "\n")
+    return path
+
+
 def _positive_int(value: str) -> int:
     n = int(value)
     if n < 1:
@@ -79,6 +107,10 @@ def build_parser() -> argparse.ArgumentParser:
     rep.add_argument("--target", type=Path, required=True, help="output directory")
     rep.add_argument("--city", required=True, help="city id, e.g. boston")
     rep.add_argument("--compact", action="store_true", help="compact every hour partition")
+    live = sub.add_parser("live-snapshot", help="write vehicles_latest.json from the last capture")
+    live.add_argument("--source", type=Path, required=True, help="dir with raw/ manifests/")
+    live.add_argument("--out", type=Path, required=True, help="output directory")
+    live.add_argument("--city", default="boston", help="city id (default boston)")
     return parser
 
 
@@ -101,6 +133,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "samples":
         counts = build_sample(config, args.source, args.gtfs, args.out)
         print(" ".join(f"{k}={v}" for k, v in counts.items()))
+        return 0
+    if args.command == "live-snapshot":
+        print(write_live_snapshot(args.source, args.out, config))
         return 0
     if args.command == "replay":
         summary, static = replay(args.source, args.target, config, args.compact)

@@ -53,3 +53,24 @@ def test_run_captures_aligns_and_prints(tmp_path: Path) -> None:
     )
     assert lines[1].startswith("2026-06-01T12:02:00Z")
     assert len(LocalStorage(tmp_path).list_keys("manifests/")) == 2
+
+
+def test_live_snapshot_uses_last_vehicle_capture(tmp_path: Path) -> None:
+    import json
+
+    from headway.cli import main
+
+    sample = Path(__file__).resolve().parents[2] / "samples" / "boston"
+    out = tmp_path / "live"
+    assert main(["live-snapshot", "--source", str(sample), "--out", str(out)]) == 0
+    snap = json.loads((out / "vehicles_latest.json").read_text())
+    assert snap["generated_at"].startswith("2026-11-22T")
+    assert snap["vehicle_count"] == len(snap["vehicles"]) > 0
+    assert {v["route_id"] for v in snap["vehicles"]} <= set(load_city_config("boston").lines)
+
+
+def test_live_snapshot_requires_a_capture(tmp_path: Path) -> None:
+    from headway.cli import main
+
+    with pytest.raises(SystemExit):
+        main(["live-snapshot", "--source", str(tmp_path), "--out", str(tmp_path / "o")])
