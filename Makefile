@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: check lambda-zip tf-validate
+.PHONY: check lambda-zip tf-validate dbt e2e
 
 check:
 	uv run ruff check .
@@ -25,3 +25,14 @@ tf-validate:
 	terraform fmt -check -recursive infra
 	cd infra/bootstrap && terraform init -backend=false -input=false >/dev/null && terraform validate
 	cd infra/main && terraform init -backend=false -input=false >/dev/null && terraform validate
+
+# Build the dbt project against .local/replay (populate it first with
+# `uv run headway replay --source samples/boston --target .local/replay --city boston`).
+dbt:
+	mkdir -p .local
+	uv run --project dbt dbt build --project-dir dbt/headway --profiles-dir dbt/headway --target local
+	uv run --project dbt python scripts/check_dbt_docs.py
+
+# Replay samples/boston into a temp dir, build dbt against it and compare key tables.
+e2e:
+	uv run --project dbt python scripts/e2e.py
