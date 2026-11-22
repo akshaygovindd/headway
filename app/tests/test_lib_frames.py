@@ -4,30 +4,34 @@ from pathlib import Path
 import pandas as pd
 
 from lib import data, explorer, health, livemap, overview
-from tests.conftest import hourly_row
 
 
-def test_line_summary_weights_by_eligible_predictions(hourly: pd.DataFrame) -> None:
-    s = overview.line_summary(hourly).set_index("line")
-    # Red: (60*10 + 120*30) / 40
+def _window_row(line: str, **over: object) -> dict[str, object]:
+    row: dict[str, object] = {
+        "line": line,
+        "window_label": "last_24h",
+        "median_predicted_deviation_s": 105.0,
+        "p90_predicted_deviation_s": 200.0,
+        "median_abs_revision_s": 12.0,
+        "n_eligible": 40,
+        "coverage_pct": 90.0,
+        "skipped_share": 0.1,
+    }
+    row.update(over)
+    return row
+
+
+def test_line_summary_passes_exact_values_through() -> None:
+    df = pd.DataFrame([_window_row("Red"), _window_row("Red", window_label="other")])
+    s = overview.line_summary(df).set_index("line")
+    assert len(s) == 1
     assert s.loc["Red", "median_deviation_s"] == 105.0
+    assert s.loc["Red", "p90_deviation_s"] == 200.0
     assert s.loc["Red", "coverage_pct"] == 90.0
-    assert s.loc["Red", "skipped_share"] == 0.1
-    assert s.loc["Red", "hours"] == 2
-    assert s.loc["Orange", "coverage_pct"] == 40.0
-
-
-def test_line_summary_window_keeps_recent_hours() -> None:
-    df = pd.DataFrame(
-        [hourly_row("Red", 9), hourly_row("Red", 20, median_predicted_deviation_s=300.0)]
-    )
-    s = overview.line_summary(df, window_hours=3).set_index("line")
-    assert s.loc["Red", "median_deviation_s"] == 300.0
-    assert s.loc["Red", "hours"] == 1
 
 
 def test_line_summary_handles_missing_deviation() -> None:
-    df = pd.DataFrame([hourly_row("Red", 9, median_predicted_deviation_s=None, n_eligible=0)])
+    df = pd.DataFrame([_window_row("Red", median_predicted_deviation_s=None, n_eligible=0)])
     assert overview.line_summary(df)["median_deviation_s"].isna().all()
 
 
@@ -81,8 +85,8 @@ def test_slowest_stretches_empty_when_too_few_stops() -> None:
 
 def test_export_roundtrip_frames(export_root: Path) -> None:
     base = f"file://{export_root}"
-    hourly = data.load_table(base, "agg_line_reliability_hourly")
-    assert not overview.line_summary(hourly).empty
+    window = data.load_table(base, "agg_line_reliability_window")
+    assert not overview.line_summary(window).empty
     stops = data.load_table(base, "agg_stop_deviation_daily")
     dim = data.load_table(base, "dim_stop")
     line = stops["line"].iloc[0]

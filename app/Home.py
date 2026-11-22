@@ -15,7 +15,7 @@ snapshot = ui.live_snapshot(base)
 ui.show_as_of_and_freshness(manifest, snapshot)
 freshness = ui.freshness_text(manifest, snapshot)
 
-summary = line_summary(ui.gold_table(base, "agg_line_reliability_hourly"))
+summary = line_summary(ui.gold_table(base, "agg_line_reliability_window"))
 if summary.empty:
     st.info("No reliability data in the exported window yet.")
     st.stop()

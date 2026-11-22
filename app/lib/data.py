@@ -17,6 +17,7 @@ TIMEOUT_SECONDS = 15
 ENV_VAR = "HEADWAY_DATA_URL"
 GOLD_TABLES = (
     "agg_line_reliability_hourly",
+    "agg_line_reliability_window",
     "agg_stop_deviation_daily",
     "agg_pipeline_health",
     "agg_quality_checks_hourly",
