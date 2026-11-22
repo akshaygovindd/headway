@@ -1,0 +1,285 @@
+version: 2
+
+models:
+  - name: dim_route
+    description: "Current definition of each route, from the latest loaded feed version."
+    config:
+      meta:
+        grain: "route_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [route_id]
+    columns:
+      - name: route_id
+        description: "Route identifier."
+        data_tests:
+          - not_null
+      - name: line
+        description: "Reporting line; equal to route_id."
+        data_tests:
+          - not_null
+      - name: route_short_name
+        description: "Short route name."
+      - name: route_long_name
+        description: "Long route name."
+      - name: route_type
+        description: "GTFS route type."
+        data_tests:
+          - not_null
+      - name: is_subway
+        description: "True when route_type is in the subway_route_types var (0 light rail, 1 subway)."
+        data_tests:
+          - not_null
+      - name: line_id
+        description: "Line the route belongs to."
+      - name: route_color
+        description: "Route colour as hex."
+      - name: feed_version
+        description: "Feed version the definition comes from."
+        data_tests:
+          - not_null
+  - name: dim_stop
+    description: "Current definition of each stop, from the latest loaded feed version."
+    config:
+      meta:
+        grain: "stop_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [stop_id]
+    columns:
+      - name: stop_id
+        description: "Stop identifier."
+        data_tests:
+          - not_null
+      - name: stop_name
+        description: "Stop name."
+      - name: stop_lat
+        description: "Latitude in degrees."
+      - name: stop_lon
+        description: "Longitude in degrees."
+      - name: location_type
+        description: "GTFS location type."
+      - name: parent_station
+        description: "Parent station stop_id."
+      - name: feed_version
+        description: "Feed version the definition comes from."
+        data_tests:
+          - not_null
+  - name: dim_trip
+    description: "Every trip instance seen in the schedule or in realtime; trip_instance_key is trip_id + service_date + start_time."
+    config:
+      meta:
+        grain: "trip_instance_key"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [trip_instance_key]
+    columns:
+      - name: trip_instance_key
+        description: "trip_id, service_date and start_time joined with '|'."
+        data_tests:
+          - not_null
+      - name: trip_id
+        description: "Trip identifier."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date: the trip's start_date, else the service date of the capture time."
+        data_tests:
+          - not_null
+      - name: start_time
+        description: "Scheduled start time (HH:MM:SS, may exceed 24h)."
+      - name: route_id
+        description: "Route identifier."
+      - name: line
+        description: "Reporting line; equal to route_id."
+      - name: direction_id
+        description: "Direction of travel (0 or 1)."
+      - name: trip_headsign
+        description: "Destination sign text from the schedule; null for unscheduled trips."
+      - name: is_scheduled
+        description: "True when the trip instance is in the schedule."
+        data_tests:
+          - not_null
+      - name: is_observed_realtime
+        description: "True when the trip instance appeared in the realtime feed."
+        data_tests:
+          - not_null
+      - name: is_added_trip
+        description: "True for added trips (schedule_relationship ADDED or trip_id prefixed ADDED-)."
+        data_tests:
+          - not_null
+  - name: fct_stop_predictions
+    description: "Predicted arrival of a trip at a stop as seen by each capture, next to the scheduled arrival. Predictions are never arrivals."
+    config:
+      meta:
+        grain: "trip_instance_key x stop_sequence x capture_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [trip_instance_key, stop_sequence, capture_id]
+    columns:
+      - name: trip_instance_key
+        description: "Trip instance identifier."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_trip')
+                field: trip_instance_key
+      - name: stop_sequence
+        description: "Order of the stop within the trip."
+        data_tests:
+          - not_null
+      - name: capture_id
+        description: "Capture the prediction was collected in."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_captures')
+                field: capture_id
+      - name: run_id
+        description: "Ingest run of the capture."
+        data_tests:
+          - not_null
+      - name: collected_at
+        description: "UTC time the capture was fetched."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date of the trip."
+        data_tests:
+          - not_null
+      - name: trip_id
+        description: "Trip identifier."
+        data_tests:
+          - not_null
+      - name: stop_id
+        description: "Stop identifier."
+        data_tests:
+          - not_null
+      - name: line
+        description: "Line of the scheduled trip when matched, else the feed route_id."
+      - name: direction_id
+        description: "Direction of the scheduled trip when matched, else the feed value."
+      - name: scheduled_arrival_ts
+        description: "Scheduled arrival (UTC); null when the stop is not matched to the schedule."
+        data_tests:
+          - not_null_where:
+              arguments:
+                where: schedule_matched
+      - name: scheduled_hour_local
+        description: "Local clock hour (0-23) of the scheduled arrival."
+        data_tests:
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 23
+      - name: predicted_arrival_ts
+        description: "Predicted arrival (UTC); null for skipped stops and stops without data."
+      - name: predicted_deviation_s
+        description: "predicted_arrival_ts minus scheduled_arrival_ts in seconds; positive is late."
+      - name: horizon_s
+        description: "predicted_arrival_ts minus collected_at in seconds; negative when the prediction is in the past."
+        data_tests:
+          - accepted_range:
+              arguments:
+                min_value: -86400
+                max_value: 86400
+      - name: prior_predicted_arrival_ts
+        description: "Predicted arrival in the previous non-duplicate snapshot of the same trip stop."
+      - name: revision_s
+        description: "predicted_arrival_ts minus prior_predicted_arrival_ts in seconds."
+      - name: uncertainty
+        description: "Feed-reported uncertainty in seconds."
+      - name: is_duplicate_capture
+        description: "True when the capture payload equals the previous capture of the feed."
+        data_tests:
+          - not_null
+      - name: schedule_matched
+        description: "True when trip, service date, stop_sequence and stop_id match a scheduled stop time."
+        data_tests:
+          - not_null
+      - name: schedule_relationship
+        description: "Stop-level relationship to the schedule."
+      - name: is_added_trip
+        description: "True for added trips (ADDED relationship or ADDED- trip_id prefix)."
+        data_tests:
+          - not_null
+  - name: fct_vehicle_observations
+    description: "Vehicle position events; the first capture to report a vehicle_id and event_ts wins."
+    config:
+      meta:
+        grain: "vehicle_id x event_ts"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [vehicle_id, event_ts]
+    columns:
+      - name: vehicle_id
+        description: "Vehicle identifier."
+        data_tests:
+          - not_null
+      - name: event_ts
+        description: "UTC time the position was observed."
+        data_tests:
+          - not_null
+      - name: capture_id
+        description: "First capture that reported the event."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_captures')
+                field: capture_id
+      - name: run_id
+        description: "Ingest run of that capture."
+        data_tests:
+          - not_null
+      - name: collected_at
+        description: "UTC fetch time of that capture."
+        data_tests:
+          - not_null
+      - name: trip_id
+        description: "Trip served; null when unassigned."
+      - name: route_id
+        description: "Route served; null when unassigned."
+      - name: direction_id
+        description: "Direction of travel."
+      - name: lat
+        description: "Latitude in degrees."
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: -90
+                max_value: 90
+      - name: lon
+        description: "Longitude in degrees."
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: -180
+                max_value: 180
+      - name: bearing
+        description: "Heading in degrees."
+      - name: speed
+        description: "Speed in metres per second."
+      - name: current_status
+        description: "Vehicle status relative to the current stop."
+      - name: stop_id
+        description: "Current stop."
+      - name: current_stop_sequence
+        description: "Current stop sequence."
+      - name: is_stale_position
+        description: "True when the position repeats an earlier observation."
+        data_tests:
+          - not_null
+      - name: n_captures_seen
+        description: "Number of captures that reported this event."
+        data_tests:
+          - not_null
