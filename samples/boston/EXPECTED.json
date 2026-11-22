@@ -5,6 +5,7 @@
     "vehicle_positions": 59
   },
   "curated": {
+    "filtered_out_of_scope": {},
     "quarantine_by_reason": {
       "alerts": {
         "unknown_route": 39317

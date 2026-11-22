@@ -3,7 +3,7 @@
 import json
 import re
 from collections import defaultdict
-from collections.abc import Collection
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
@@ -40,6 +40,13 @@ class CurateResult:
         totals: dict[str, int] = defaultdict(int)
         for b in self.batches:
             for table, n in b.rows.items():
+                totals[table] += n
+        return dict(totals)
+
+    def filtered_out_of_scope(self) -> dict[str, int]:
+        totals: dict[str, int] = defaultdict(int)
+        for b in self.batches:
+            for table, n in b.filtered_out_of_scope.items():
                 totals[table] += n
         return dict(totals)
 
@@ -104,7 +111,7 @@ def list_manifest_entries(
 
 
 def curate_new(
-    storage: Storage, config: CityConfig, dim_routes: Collection[str] | None = None
+    storage: Storage, config: CityConfig, dim_routes: Mapping[str, int] | None = None
 ) -> CurateResult:
     """Curate manifest entries newer than the watermark, one hourly group at a time.
 

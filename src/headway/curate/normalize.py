@@ -10,7 +10,7 @@ import hashlib
 import io
 import json
 from collections import defaultdict
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import Any
@@ -48,6 +48,7 @@ class BatchResult:
     captures: int = 0
     rows: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     quarantined: dict[str, dict[str, int]] = field(default_factory=dict)
+    filtered_out_of_scope: dict[str, int] = field(default_factory=dict)
     keys: list[str] = field(default_factory=list)
 
     def count_quarantine(self, table: str, reason: str, n: int = 1) -> None:
@@ -113,7 +114,7 @@ def normalize_batch(
     storage: Storage,
     config: CityConfig,
     manifest_entries: list[ManifestEntry],
-    dim_routes: Collection[str],
+    dim_routes: Mapping[str, int],
 ) -> BatchResult:
     """Parse, validate and write one batch of captures; returns counts and written keys."""
     seen: set[str] = set()
@@ -125,7 +126,7 @@ def normalize_batch(
 
     result = BatchResult(batch_id=batch_id_for(seen), captures=len(entries))
     prefix = config.storage_prefix
-    known_routes = frozenset(dim_routes)
+    in_scope = set(config.route_types)
     # (table, dt, hour) -> rows
     parts: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
     part_ts: dict[tuple[str, str, str], datetime] = {}
@@ -156,16 +157,20 @@ def normalize_batch(
         kept: list[BaseModel] = []
         for rec in valid:
             route_id = getattr(rec, "route_id", None)
-            if route_id is not None and route_id not in known_routes:
+            if route_id is None:
+                kept.append(rec)  # stop-only or agency-wide: no route to scope by
+            elif route_id not in dim_routes:
                 bad.append(
                     QuarantinedRow(
                         row=rec.model_dump(mode="json"),
                         reason=QuarantineReason.UNKNOWN_ROUTE,
-                        error=f"route_id {route_id!r} not in current routes",
+                        error=f"route_id {route_id!r} not in current GTFS routes",
                     )
                 )
-            else:
+            elif dim_routes[route_id] in in_scope:
                 kept.append(rec)
+            else:
+                result.filtered_out_of_scope[table] = result.filtered_out_of_scope.get(table, 0) + 1
 
         if kept:
             ts = entry.fetched_at.astimezone(UTC)

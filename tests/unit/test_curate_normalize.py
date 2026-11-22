@@ -3,15 +3,17 @@ import json
 from pathlib import Path
 
 import pyarrow.parquet as pq
+from google.transit import gtfs_realtime_pb2 as pb
 
 from fixtures import gtfs_rt as fx
-from fixtures.rows import FETCHED_AT
+from fixtures.rows import FETCHED_AT, HEADER_TS
 from headway.config import load_city_config
 from headway.contracts.manifest import ManifestEntry
 from headway.curate.normalize import batch_id_for, normalize_batch
 from headway.storage import LocalStorage
 
 CONFIG = load_city_config("boston")
+ROUTES = {"Red": 1}
 
 
 def put_capture(
@@ -45,7 +47,7 @@ def test_batch_id_is_order_and_duplicate_independent() -> None:
 def test_unknown_route_is_quarantined(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path)
     entry = put_capture(storage, "c1", fx.trip_updates_feed())
-    result = normalize_batch(storage, CONFIG, [entry], dim_routes={"Blue"})
+    result = normalize_batch(storage, CONFIG, [entry], dim_routes={"Blue": 1})
     assert result.rows == {}
     assert result.quarantined == {"trip_updates": {"unknown_route": 2}}
     keys = [k for k in storage.list_keys("quarantine/") if k.endswith("c1.jsonl")]
@@ -54,10 +56,40 @@ def test_unknown_route_is_quarantined(tmp_path: Path) -> None:
     assert first["reason"] == "unknown_route" and first["capture_id"] == "c1"
 
 
+def test_out_of_scope_route_is_filtered_not_quarantined(tmp_path: Path) -> None:
+    storage = LocalStorage(tmp_path)
+    entry = put_capture(storage, "c1", fx.trip_updates_feed())
+    result = normalize_batch(storage, CONFIG, [entry], dim_routes={"Red": 3})  # bus
+    assert result.rows == {}
+    assert result.quarantined == {}
+    assert result.filtered_out_of_scope == {"trip_updates": 2}
+    assert storage.list_keys("quarantine/") == []
+    assert [k for k in result.keys if k.startswith("curated/")] == []
+
+
+def test_alert_without_route_is_kept_and_out_of_scope_route_dropped(tmp_path: Path) -> None:
+    storage = LocalStorage(tmp_path)
+    feed = pb.FeedMessage()
+    feed.header.gtfs_realtime_version = "2.0"
+    feed.header.timestamp = fx.epoch(HEADER_TS)
+    for alert_id, route in (("a-none", ""), ("a-bus", "Bus1"), ("a-red", "Red")):
+        a = feed.entity.add()
+        a.id = alert_id
+        a.alert.effect = pb.Alert.SIGNIFICANT_DELAYS
+        ie = a.alert.informed_entity.add()
+        ie.route_id = route
+        ie.stop_id = "70061"
+    entry = put_capture(storage, "c1", feed.SerializeToString(), feed="alerts")
+    result = normalize_batch(storage, CONFIG, [entry], {"Red": 1, "Bus1": 3})
+    assert result.rows == {"alerts": 2}
+    assert result.filtered_out_of_scope == {"alerts": 1}
+    assert result.quarantined == {}
+
+
 def test_known_route_is_written_with_lineage(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path)
     entry = put_capture(storage, "c1", fx.trip_updates_feed())
-    result = normalize_batch(storage, CONFIG, [entry], dim_routes={"Red"})
+    result = normalize_batch(storage, CONFIG, [entry], dim_routes=ROUTES)
     assert result.rows == {"trip_updates": 2}
     (key,) = [k for k in result.keys if k.startswith("curated/")]
     assert f"part-{result.batch_id}.parquet" in key
@@ -70,7 +102,7 @@ def test_known_route_is_written_with_lineage(tmp_path: Path) -> None:
 def test_corrupt_capture_is_quarantined_not_lost(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path)
     entry = put_capture(storage, "bad", b"\xff\xfenot a protobuf")
-    result = normalize_batch(storage, CONFIG, [entry], dim_routes={"Red"})
+    result = normalize_batch(storage, CONFIG, [entry], dim_routes=ROUTES)
     assert result.quarantined == {"trip_updates": {"protobuf_parse_error": 1}}
     assert result.rows == {}
     assert storage.exists(entry.s3_key or "")
@@ -81,7 +113,7 @@ def test_duplicate_content_kept_but_repeated_capture_id_written_once(tmp_path: P
     body = fx.trip_updates_feed()
     a = put_capture(storage, "c1", body)
     b = put_capture(storage, "c2", body)
-    result = normalize_batch(storage, CONFIG, [a, b, a], dim_routes={"Red"})
+    result = normalize_batch(storage, CONFIG, [a, b, a], dim_routes=ROUTES)
     assert result.captures == 2
     assert result.rows == {"trip_updates": 4}
 
@@ -89,8 +121,8 @@ def test_duplicate_content_kept_but_repeated_capture_id_written_once(tmp_path: P
 def test_rerun_is_byte_identical(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path)
     entries = [put_capture(storage, c, fx.trip_updates_feed()) for c in ("c1", "c2")]
-    first = normalize_batch(storage, CONFIG, entries, dim_routes={"Red"})
+    first = normalize_batch(storage, CONFIG, entries, dim_routes=ROUTES)
     before = {k: storage.get_bytes(k) for k in first.keys}
-    second = normalize_batch(storage, CONFIG, list(reversed(entries)), dim_routes={"Red"})
+    second = normalize_batch(storage, CONFIG, list(reversed(entries)), dim_routes=ROUTES)
     assert second.keys == first.keys
     assert {k: storage.get_bytes(k) for k in second.keys} == before

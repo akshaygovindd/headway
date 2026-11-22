@@ -96,14 +96,13 @@ def _latest_token(storage: Storage, config: CityConfig) -> str | None:
     return best[1] if best else None
 
 
-def load_dim_routes(storage: Storage, config: CityConfig) -> frozenset[str]:
-    """route_ids of the latest loaded feed_version limited to the city's route_types."""
+def load_dim_routes(storage: Storage, config: CityConfig) -> dict[str, int]:
+    """Every route_id of the latest loaded feed_version mapped to its route_type."""
     token = _latest_token(storage, config)
     if token is None:
         raise LookupError("no static GTFS loaded; run load_static first")
     key = f"curated/{config.storage_prefix}/static/table=routes/feed_version={token}/part.parquet"
     table = pq.read_table(io.BytesIO(storage.get_bytes(key)), schema=STATIC_SCHEMAS["routes"])
-    allowed = set(config.route_types)
     ids = table.column("route_id").to_pylist()
     types = table.column("route_type").to_pylist()
-    return frozenset(r for r, t in zip(ids, types, strict=True) if t in allowed)
+    return dict(zip(ids, types, strict=True))

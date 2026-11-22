@@ -25,9 +25,13 @@ Every object lives under a city prefix (`boston` below). Keys are UTC.
   downstream models flag them. The same `capture_id` in one batch is written once.
 - **Quarantine** holds one JSON line per rejected row with `capture_id`, `reason`, `error` and the
   original row. Reasons: `schema_error`, `missing_trip_id`, `missing_stop_id`,
-  `invalid_coordinates`, `timestamp_out_of_range`, `unknown_route` (`route_id` not among the
-  current routes of the city's route types) and `protobuf_parse_error` (one line for the whole
-  capture; its raw object stays in place).
+  `invalid_coordinates`, `timestamp_out_of_range`, `unknown_route` (`route_id` absent from the
+  current GTFS routes) and `protobuf_parse_error` (one line for the whole capture; its raw object
+  stays in place).
+- **Scope filter.** Raw captures cover every mode. Rows whose route exists in GTFS but whose
+  `route_type` is not in the city's `route_types` are dropped, not quarantined, and counted per
+  table as `filtered_out_of_scope`. Rows without a `route_id` (stop-only or agency-wide alerts)
+  are kept.
 - **Batches** are the manifest entries of one fetched-at hour. `batch_id` is the first 16 hex
   characters of the SHA-256 of the sorted `capture_id`s, so reprocessing the same captures
   overwrites the same part file.

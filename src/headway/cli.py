@@ -90,6 +90,8 @@ def format_summary(summary: Summary) -> list[str]:
             lines.append(f"quarantine {table} {reason}: {n}")
     if not summary.quarantine:
         lines.append("quarantine: none")
+    for table, n in sorted(summary.filtered_out_of_scope.items()):
+        lines.append(f"filtered_out_of_scope {table}: {n}")
     return lines
 
 

@@ -13,6 +13,7 @@ from headway.curate.normalize import normalize_batch
 from headway.storage import LocalStorage
 
 CONFIG = load_city_config("boston")
+ROUTES = {"Red": 1}
 DT, HOUR = f"{FETCHED_AT:%Y-%m-%d}", f"{FETCHED_AT:%H}"
 BASE = f"curated/boston/table=trip_updates/dt={DT}/hour={HOUR}/"
 
@@ -20,7 +21,7 @@ BASE = f"curated/boston/table=trip_updates/dt={DT}/hour={HOUR}/"
 def two_batches(storage: LocalStorage) -> None:
     for cid in ("c1", "c2"):
         entry = put_capture(storage, cid, fx.trip_updates_feed())
-        normalize_batch(storage, CONFIG, [entry], dim_routes={"Red"})
+        normalize_batch(storage, CONFIG, [entry], dim_routes=ROUTES)
 
 
 def test_compaction_merges_parts_and_is_idempotent(tmp_path: Path) -> None:
@@ -44,7 +45,7 @@ def test_later_parts_merge_into_existing_compacted(tmp_path: Path) -> None:
     two_batches(storage)
     compact_hour(storage, CONFIG, "trip_updates", DT, HOUR)
     entry = put_capture(storage, "c3", fx.trip_updates_feed())
-    normalize_batch(storage, CONFIG, [entry], dim_routes={"Red"})
+    normalize_batch(storage, CONFIG, [entry], dim_routes=ROUTES)
     result = compact_hour(storage, CONFIG, "trip_updates", DT, HOUR)
     assert result.rows == 6
     assert storage.list_keys(BASE) == [BASE + COMPACTED]

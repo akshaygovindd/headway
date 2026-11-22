@@ -38,13 +38,11 @@ def iter_entries(sample: Path, prefix: str) -> list[ManifestEntry]:
     return entries
 
 
-def _dim_routes(sample: Path, config: CityConfig) -> frozenset[str] | None:
+def _dim_routes(sample: Path) -> dict[str, int] | None:
     gtfs = sample / "gtfs"
     if not gtfs.is_dir():
         return None
-    allowed = set(config.route_types)
-    routes = GtfsSource(gtfs).iter_rows(Route)
-    return frozenset(r.route_id for r in routes if r.route_type in allowed)
+    return {r.route_id: r.route_type for r in GtfsSource(gtfs).iter_rows(Route)}
 
 
 def compute_expected(sample: Path, config: CityConfig) -> dict[str, Any]:
@@ -56,8 +54,9 @@ def compute_expected(sample: Path, config: CityConfig) -> dict[str, Any]:
     quarantine: dict[str, Counter[str]] = {f: Counter() for f in PARSERS}
     unparseable: Counter[str] = Counter()
     header_failures = 0
-    dim_routes = _dim_routes(sample, config)
+    dim_routes = _dim_routes(sample)
     curated_rows: Counter[str] = Counter()
+    filtered: Counter[str] = Counter()
     curated_quarantine: dict[str, Counter[str]] = {f: Counter() for f in PARSERS}
 
     for entry in entries:
@@ -85,10 +84,14 @@ def compute_expected(sample: Path, config: CityConfig) -> dict[str, Any]:
             curated_quarantine[entry.feed][q.reason.value] += 1
         for rec in good:
             route_id = getattr(rec, "route_id", None)
-            if dim_routes is not None and route_id is not None and route_id not in dim_routes:
-                curated_quarantine[entry.feed][QuarantineReason.UNKNOWN_ROUTE.value] += 1
-            else:
+            if dim_routes is None or route_id is None:
                 curated_rows[entry.feed] += 1
+            elif route_id not in dim_routes:
+                curated_quarantine[entry.feed][QuarantineReason.UNKNOWN_ROUTE.value] += 1
+            elif dim_routes[route_id] in config.route_types:
+                curated_rows[entry.feed] += 1
+            else:
+                filtered[entry.feed] += 1
 
     expected: dict[str, Any] = {
         "captures_per_feed": dict(sorted(captures.items())),
@@ -100,9 +103,11 @@ def compute_expected(sample: Path, config: CityConfig) -> dict[str, Any]:
         "quarantine_by_reason": {f: dict(sorted(c.items())) for f, c in sorted(quarantine.items())},
     }
     if dim_routes is not None:
-        # What the curated layer must hold: valid rows whose route_id is known (or absent), and
-        # every quarantined row including unknown_route. Duplicate captures are never dropped.
+        # What the curated layer must hold: valid rows in scope (or without route_id); rows of
+        # routes outside route_types are filtered, routes absent from GTFS are quarantined.
+        # Duplicate captures are never dropped.
         expected["curated"] = {
+            "filtered_out_of_scope": dict(sorted(filtered.items())),
             "rows_per_table": dict(sorted(curated_rows.items())),
             "quarantine_by_reason": {
                 f: dict(sorted(c.items())) for f, c in sorted(curated_quarantine.items())

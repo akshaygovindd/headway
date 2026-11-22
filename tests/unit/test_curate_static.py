@@ -25,8 +25,8 @@ def test_load_static_writes_tables_then_skips_existing_version(tmp_path: Path) -
     assert storage.get_bytes(key) == before
 
 
-def test_dim_routes_limited_to_city_route_types(tmp_path: Path) -> None:
+def test_dim_routes_maps_every_route_to_its_type(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path)
     load_static(storage, CONFIG, GtfsSource(GTFS))
     routes = load_dim_routes(storage, CONFIG)
-    assert "Red" in routes
+    assert routes["Red"] == 1

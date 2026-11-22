@@ -13,7 +13,7 @@ from headway.curate.pipeline import curate_new, read_watermark
 from headway.storage import LocalStorage
 
 CONFIG = load_city_config("boston")
-ROUTES = {"Red"}
+ROUTES = {"Red": 1}
 
 
 def write_manifest(storage: LocalStorage, run_id: str, entries: list[ManifestEntry]) -> None:

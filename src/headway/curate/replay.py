@@ -26,6 +26,8 @@ class Summary:
     curated: dict[str, int] = field(default_factory=dict)
     static: dict[str, int] = field(default_factory=dict)
     quarantine: dict[str, dict[str, int]] = field(default_factory=dict)
+    # Counted by the curate run itself (filtered rows leave no trace in storage).
+    filtered_out_of_scope: dict[str, int] = field(default_factory=dict)
 
 
 def summarize(storage: Storage, config: CityConfig) -> Summary:
@@ -70,7 +72,9 @@ def replay(
     gtfs = source_dir / "gtfs"
     if gtfs.is_dir():
         static = load_static(target, config, GtfsSource(gtfs))
-    curate_new(target, config)
+    curated = curate_new(target, config)
     if compact:
         compact_all(target, config)
-    return summarize(target, config), static
+    summary = summarize(target, config)
+    summary.filtered_out_of_scope = curated.filtered_out_of_scope()
+    return summary, static
