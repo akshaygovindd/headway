@@ -35,3 +35,4 @@ build/
 .terraform/
 infra/main/backend.hcl
 infra/main/terraform.tfvars
+tfplan
