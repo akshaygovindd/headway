@@ -1,0 +1,57 @@
+version: 2
+
+sources:
+  - name: curated
+    description: >-
+      Curated Parquet and quarantine JSONL written by `headway replay` (or the
+      curation Lambda). Paths are resolved from the `curated_root` and
+      `city_prefix` vars.
+    tables:
+      - name: trip_updates
+        description: Curated realtime trip updates, one row per trip stop time update per capture.
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/table=trip_updates/*/*/*.parquet', hive_partitioning=true)"
+      - name: vehicle_positions
+        description: Curated realtime vehicle positions, one row per vehicle entity per capture.
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/table=vehicle_positions/*/*/*.parquet', hive_partitioning=true)"
+      - name: alerts
+        description: Curated realtime service alerts, one row per informed entity per capture.
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/table=alerts/*/*/*.parquet', hive_partitioning=true)"
+      - name: gtfs_routes
+        description: Static GTFS routes, one partition per loaded feed_version.
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=routes/feed_version=*/part.parquet', hive_partitioning=true)"
+      - name: gtfs_stops
+        description: Static GTFS stops, one partition per loaded feed_version.
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=stops/feed_version=*/part.parquet', hive_partitioning=true)"
+      - name: gtfs_trips
+        description: Static GTFS trips, one partition per loaded feed_version.
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=trips/feed_version=*/part.parquet', hive_partitioning=true)"
+      - name: gtfs_stop_times
+        description: Static GTFS stop times, one partition per loaded feed_version.
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=stop_times/feed_version=*/part.parquet', hive_partitioning=true)"
+      - name: gtfs_calendar
+        description: Static GTFS calendar, one partition per loaded feed_version.
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=calendar/feed_version=*/part.parquet', hive_partitioning=true)"
+      - name: gtfs_calendar_dates
+        description: Static GTFS calendar_dates, one partition per loaded feed_version.
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=calendar_dates/feed_version=*/part.parquet', hive_partitioning=true)"
+      - name: gtfs_feed_info
+        description: Static GTFS feed_info, one partition per loaded feed_version.
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=feed_info/feed_version=*/part.parquet', hive_partitioning=true)"
+      - name: manifests
+        description: Ingest run manifests, one JSON document per run with an `entries` list of captures.
+        meta:
+          external_location: "read_json_auto('{{ var('curated_root') }}/manifests/{{ var('city_prefix') }}/*/*/*.json', hive_partitioning=true)"
+      - name: quarantine
+        description: Quarantined records (JSON lines), one line per rejected record or capture.
+        meta:
+          external_location: "read_json('{{ var('curated_root') }}/quarantine/{{ var('city_prefix') }}/table=*/dt=*/*.jsonl', format='newline_delimited', hive_partitioning=true, union_by_name=true)"

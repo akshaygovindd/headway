@@ -1,0 +1,570 @@
+version: 2
+
+models:
+  - name: stg_trip_updates
+    description: Realtime trip updates, one row per stop time update per capture, deduplicated within a capture. Adds service_date and trip_instance_key.
+    config:
+      meta:
+        grain: "capture_id x trip_id x stop_id x stop_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [capture_id, trip_id, stop_id, stop_sequence]
+    columns:
+      - name: capture_id
+        description: Identifier of the capture (one fetch of one feed) the row came from.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_manifests')
+                field: capture_id
+      - name: run_id
+        description: Identifier of the ingest run that scheduled the capture.
+        data_tests:
+          - not_null
+      - name: content_hash
+        description: SHA-256 of the raw feed body; equal hashes mean an identical payload.
+        data_tests:
+          - not_null
+      - name: fetched_at
+        description: UTC time the capture was fetched.
+        data_tests:
+          - not_null
+      - name: feed_header_ts
+        description: UTC timestamp from the feed header.
+        data_tests:
+          - not_null
+      - name: trip_id
+        description: Trip identifier from the feed.
+        data_tests:
+          - not_null
+      - name: route_id
+        description: Route identifier from the feed.
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: Direction of travel (0 or 1) from the feed.
+      - name: start_date
+        description: Service date the feed assigns to the trip; null when the feed omits it.
+      - name: start_time
+        description: Scheduled trip start time (HH:MM:SS, may exceed 24h) from the feed.
+      - name: service_date
+        description: start_date when present, otherwise the service date of fetched_at (03:00 cutoff).
+        data_tests:
+          - not_null
+      - name: trip_instance_key
+        description: trip_id, service_date and start_time joined with '|'; identifies one run of a trip on one service day.
+        data_tests:
+          - not_null
+      - name: vehicle_id
+        description: Vehicle assigned to the trip; null when not reported.
+      - name: stop_id
+        description: Stop the update applies to.
+        data_tests:
+          - not_null
+      - name: stop_sequence
+        description: GTFS stop_sequence the update applies to.
+        data_tests:
+          - not_null
+      - name: predicted_arrival_ts
+        description: Predicted UTC arrival time at the stop. A prediction, never an observed arrival; null for skipped stops.
+      - name: predicted_departure_ts
+        description: Predicted UTC departure time from the stop; null when not provided.
+      - name: uncertainty
+        description: Feed-reported uncertainty of the prediction in seconds; null when not provided.
+      - name: schedule_relationship
+        description: Stop-level relationship to the schedule (SCHEDULED, SKIPPED, NO_DATA, ADDED).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [SCHEDULED, SKIPPED, NO_DATA, ADDED, UNSCHEDULED]
+      - name: event_ts
+        description: UTC time of the feed's last observation for the update; null for stops without data.
+  - name: stg_vehicle_positions
+    description: Realtime vehicle positions, one row per vehicle entity per capture.
+    config:
+      meta:
+        grain: "capture_id x vehicle_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [capture_id, vehicle_id]
+    columns:
+      - name: capture_id
+        description: Identifier of the capture (one fetch of one feed) the row came from.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_manifests')
+                field: capture_id
+      - name: run_id
+        description: Identifier of the ingest run that scheduled the capture.
+        data_tests:
+          - not_null
+      - name: content_hash
+        description: SHA-256 of the raw feed body; equal hashes mean an identical payload.
+        data_tests:
+          - not_null
+      - name: fetched_at
+        description: UTC time the capture was fetched.
+        data_tests:
+          - not_null
+      - name: feed_header_ts
+        description: UTC timestamp from the feed header.
+        data_tests:
+          - not_null
+      - name: vehicle_id
+        description: Vehicle identifier.
+        data_tests:
+          - not_null
+      - name: trip_id
+        description: Trip the vehicle is serving; null when unassigned.
+      - name: route_id
+        description: Route of the trip; null when unassigned.
+      - name: direction_id
+        description: Direction of travel (0 or 1); null when unassigned.
+      - name: lat
+        description: Latitude in degrees (WGS84).
+        data_tests:
+          - not_null
+      - name: lon
+        description: Longitude in degrees (WGS84).
+        data_tests:
+          - not_null
+      - name: bearing
+        description: Heading in degrees clockwise from north; null when not provided.
+      - name: speed
+        description: Speed in metres per second; null when not provided.
+      - name: current_status
+        description: Vehicle status relative to current_stop (INCOMING_AT, STOPPED_AT, IN_TRANSIT_TO).
+      - name: stop_id
+        description: Stop the current_status refers to.
+      - name: current_stop_sequence
+        description: stop_sequence the current_status refers to.
+      - name: event_ts
+        description: UTC time the position was observed by the vehicle.
+      - name: is_stale_position
+        description: True when the position was repeated from an earlier observation.
+        data_tests:
+          - not_null
+  - name: stg_service_alerts
+    description: Service alerts in scope for the city, one row per informed entity per capture.
+    config:
+      meta:
+        grain: "capture_id x alert_id x entity_index"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [capture_id, alert_id, entity_index]
+    columns:
+      - name: capture_id
+        description: Identifier of the capture (one fetch of one feed) the row came from.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_manifests')
+                field: capture_id
+      - name: run_id
+        description: Identifier of the ingest run that scheduled the capture.
+        data_tests:
+          - not_null
+      - name: content_hash
+        description: SHA-256 of the raw feed body; equal hashes mean an identical payload.
+        data_tests:
+          - not_null
+      - name: fetched_at
+        description: UTC time the capture was fetched.
+        data_tests:
+          - not_null
+      - name: feed_header_ts
+        description: UTC timestamp from the feed header.
+        data_tests:
+          - not_null
+      - name: alert_id
+        description: Alert identifier from the feed.
+        data_tests:
+          - not_null
+      - name: entity_index
+        description: Position of the informed entity within the alert.
+        data_tests:
+          - not_null
+      - name: effect
+        description: Effect of the alert (for example DELAY, DETOUR).
+      - name: cause
+        description: Cause of the alert.
+      - name: route_id
+        description: Route the alert informs; null when it targets a stop only.
+      - name: stop_id
+        description: Stop the alert informs; null when it targets a route only.
+      - name: active_start
+        description: UTC start of the active period; null when open ended.
+      - name: active_end
+        description: UTC end of the active period; null when open ended.
+      - name: header_text
+        description: Short alert text.
+  - name: stg_gtfs__feed_info
+    description: Static GTFS feed_info, one row per loaded feed version, giving its validity window.
+    config:
+      meta:
+        grain: "feed_version"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [feed_version]
+    columns:
+      - name: feed_version
+        description: GTFS feed version the row belongs to.
+        data_tests:
+          - not_null
+      - name: feed_publisher_name
+        description: Name of the feed publisher.
+      - name: feed_publisher_url
+        description: URL of the feed publisher.
+      - name: feed_lang
+        description: Default language of the feed.
+      - name: feed_start_date
+        description: First service date the feed version covers; selects the current version for a date.
+      - name: feed_end_date
+        description: Last service date the feed version covers.
+      - name: feed_contact_email
+        description: Contact email of the publisher.
+  - name: stg_gtfs__routes
+    description: Static GTFS routes, all loaded feed versions.
+    config:
+      meta:
+        grain: "feed_version x route_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [feed_version, route_id]
+    columns:
+      - name: feed_version
+        description: GTFS feed version the row belongs to.
+        data_tests:
+          - not_null
+      - name: route_id
+        description: Route identifier.
+        data_tests:
+          - not_null
+      - name: agency_id
+        description: Agency operating the route.
+      - name: route_short_name
+        description: Short route name.
+      - name: route_long_name
+        description: Long route name.
+      - name: route_desc
+        description: Route description.
+      - name: route_type
+        description: GTFS route type (0 tram/light rail, 1 subway).
+        data_tests:
+          - not_null
+      - name: route_url
+        description: Route web page.
+      - name: route_color
+        description: Route colour as hex.
+      - name: route_text_color
+        description: Text colour as hex.
+      - name: route_sort_order
+        description: Display sort order.
+      - name: line_id
+        description: Line the route belongs to (for example line-Green).
+  - name: stg_gtfs__stops
+    description: Static GTFS stops, all loaded feed versions.
+    config:
+      meta:
+        grain: "feed_version x stop_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [feed_version, stop_id]
+    columns:
+      - name: feed_version
+        description: GTFS feed version the row belongs to.
+        data_tests:
+          - not_null
+      - name: stop_id
+        description: Stop identifier.
+        data_tests:
+          - not_null
+      - name: stop_code
+        description: Public stop code.
+      - name: stop_name
+        description: Stop name.
+      - name: stop_desc
+        description: Stop description.
+      - name: platform_code
+        description: Platform code.
+      - name: platform_name
+        description: Platform name.
+      - name: stop_lat
+        description: Latitude in degrees.
+      - name: stop_lon
+        description: Longitude in degrees.
+      - name: zone_id
+        description: Fare zone.
+      - name: location_type
+        description: GTFS location type (0 stop, 1 station, 2 entrance).
+      - name: parent_station
+        description: Parent station stop_id.
+      - name: wheelchair_boarding
+        description: Wheelchair boarding code.
+      - name: level_id
+        description: Level identifier.
+  - name: stg_gtfs__trips
+    description: Static GTFS trips, all loaded feed versions.
+    config:
+      meta:
+        grain: "feed_version x trip_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [feed_version, trip_id]
+    columns:
+      - name: feed_version
+        description: GTFS feed version the row belongs to.
+        data_tests:
+          - not_null
+      - name: route_id
+        description: Route the trip belongs to.
+        data_tests:
+          - not_null
+      - name: service_id
+        description: Service calendar the trip runs on.
+        data_tests:
+          - not_null
+      - name: trip_id
+        description: Trip identifier.
+        data_tests:
+          - not_null
+      - name: trip_headsign
+        description: Destination sign text.
+      - name: trip_short_name
+        description: Public trip name.
+      - name: direction_id
+        description: Direction of travel (0 or 1).
+      - name: block_id
+        description: Block the trip belongs to.
+      - name: shape_id
+        description: Shape identifier.
+      - name: wheelchair_accessible
+        description: Wheelchair accessibility code.
+      - name: route_pattern_id
+        description: Route pattern identifier.
+  - name: stg_gtfs__stop_times
+    description: Static GTFS stop times, all loaded feed versions.
+    config:
+      meta:
+        grain: "feed_version x trip_id x stop_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [feed_version, trip_id, stop_sequence]
+    columns:
+      - name: feed_version
+        description: GTFS feed version the row belongs to.
+        data_tests:
+          - not_null
+      - name: trip_id
+        description: Trip identifier.
+        data_tests:
+          - not_null
+      - name: arrival_time
+        description: Scheduled arrival as HH:MM:SS; hours may exceed 24.
+      - name: departure_time
+        description: Scheduled departure as HH:MM:SS; hours may exceed 24.
+      - name: stop_id
+        description: Stop identifier.
+        data_tests:
+          - not_null
+      - name: stop_sequence
+        description: Order of the stop within the trip.
+        data_tests:
+          - not_null
+      - name: stop_headsign
+        description: Headsign override at this stop.
+      - name: pickup_type
+        description: Pickup type code.
+      - name: drop_off_type
+        description: Drop-off type code.
+      - name: timepoint
+        description: Timepoint flag.
+  - name: stg_gtfs__calendar
+    description: Static GTFS calendar, all loaded feed versions.
+    config:
+      meta:
+        grain: "feed_version x service_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [feed_version, service_id]
+    columns:
+      - name: feed_version
+        description: GTFS feed version the row belongs to.
+        data_tests:
+          - not_null
+      - name: service_id
+        description: Service identifier.
+        data_tests:
+          - not_null
+      - name: monday
+        description: True when service runs on monday.
+        data_tests:
+          - not_null
+      - name: tuesday
+        description: True when service runs on tuesday.
+        data_tests:
+          - not_null
+      - name: wednesday
+        description: True when service runs on wednesday.
+        data_tests:
+          - not_null
+      - name: thursday
+        description: True when service runs on thursday.
+        data_tests:
+          - not_null
+      - name: friday
+        description: True when service runs on friday.
+        data_tests:
+          - not_null
+      - name: saturday
+        description: True when service runs on saturday.
+        data_tests:
+          - not_null
+      - name: sunday
+        description: True when service runs on sunday.
+        data_tests:
+          - not_null
+      - name: start_date
+        description: First date of the service period.
+        data_tests:
+          - not_null
+      - name: end_date
+        description: Last date of the service period.
+        data_tests:
+          - not_null
+  - name: stg_gtfs__calendar_dates
+    description: Static GTFS calendar_dates exceptions, all loaded feed versions.
+    config:
+      meta:
+        grain: "feed_version x service_id x date"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [feed_version, service_id, date]
+    columns:
+      - name: feed_version
+        description: GTFS feed version the row belongs to.
+        data_tests:
+          - not_null
+      - name: service_id
+        description: Service identifier.
+        data_tests:
+          - not_null
+      - name: date
+        description: Date of the exception.
+        data_tests:
+          - not_null
+      - name: exception_type
+        description: 1 adds service on the date, 2 removes it.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2]
+                quote: false
+      - name: holiday_name
+        description: Holiday name.
+  - name: stg_manifests
+    description: One row per capture attempt recorded in the ingest run manifests.
+    config:
+      meta:
+        grain: "capture_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [capture_id]
+    columns:
+      - name: capture_id
+        description: Capture identifier.
+        data_tests:
+          - not_null
+      - name: run_id
+        description: Ingest run that scheduled the capture.
+        data_tests:
+          - not_null
+      - name: city_id
+        description: City the capture belongs to.
+      - name: feed
+        description: Feed fetched (trip_updates, vehicle_positions, alerts).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [trip_updates, vehicle_positions, alerts]
+      - name: scheduled_at
+        description: UTC time the run was scheduled for (minute resolution).
+        data_tests:
+          - not_null
+      - name: fetched_at
+        description: UTC time the fetch completed; null when the fetch failed before a response.
+      - name: status
+        description: ok when a payload was stored, error otherwise.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [ok, error]
+      - name: http_status
+        description: HTTP status of the fetch.
+      - name: bytes
+        description: Size of the stored payload in bytes.
+      - name: entity_count
+        description: Number of entities in the payload.
+      - name: content_hash
+        description: SHA-256 of the payload; null on error.
+      - name: feed_header_ts
+        description: Feed header timestamp.
+      - name: header_parse_error
+        description: Error text when the feed header could not be parsed.
+      - name: error
+        description: Fetch error text.
+  - name: stg_quarantine
+    description: One row per quarantined record, or per whole capture for parse errors.
+    config:
+      meta:
+        grain: "capture_id x source_table x quarantine_seq"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [capture_id, source_table, quarantine_seq]
+    columns:
+      - name: capture_id
+        description: Capture the rejected record came from.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_manifests')
+                field: capture_id
+      - name: run_id
+        description: Ingest run of the capture, from the manifest.
+        data_tests:
+          - not_null
+      - name: source_table
+        description: Curated table the record was destined for.
+        data_tests:
+          - not_null
+      - name: reason
+        description: Rejection reason (missing_trip_id, invalid_coordinates, protobuf_parse_error, ...).
+        data_tests:
+          - not_null
+      - name: error
+        description: First line of the validation error.
+      - name: quarantine_dt
+        description: Partition date of the quarantine file.
+      - name: quarantine_seq
+        description: Ordinal of the record within its capture and table.
+        data_tests:
+          - not_null
