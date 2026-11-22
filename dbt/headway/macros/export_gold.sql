@@ -15,6 +15,7 @@
 {% macro gold_allowlist() -%}
 {{ return({
     'agg_line_reliability_hourly': "select * from " ~ ref('agg_line_reliability_hourly'),
+    'agg_line_reliability_window': "select * from " ~ ref('agg_line_reliability_window'),
     'agg_stop_deviation_daily': "select * from " ~ ref('agg_stop_deviation_daily'),
     'agg_pipeline_health': "select * from " ~ ref('agg_pipeline_health') ~ " where scheduled_at >= (select max(scheduled_at) from " ~ ref('agg_pipeline_health') ~ ") - interval 30 day",
     'agg_quality_checks_hourly': "select * from " ~ ref('agg_quality_checks_hourly'),

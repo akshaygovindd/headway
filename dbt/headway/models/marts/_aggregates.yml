@@ -89,6 +89,54 @@ models:
         description: "True when capture_minutes is at least 55."
         data_tests:
           - not_null
+  - name: agg_line_reliability_window
+    description: "Reliability per line over the last 24 hours before metrics_as_of (the latest hour in agg_line_reliability_hourly), all directions combined. Medians and p90 are exact over eligible predictions, not averages of hourly values."
+    config:
+      meta:
+        grain: "line x window_label"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, window_label]
+    columns:
+      - name: line
+        description: "Reporting line (route_id)."
+        data_tests:
+          - not_null
+      - name: window_label
+        description: "Window name; only last_24h."
+        data_tests:
+          - not_null
+      - name: median_predicted_deviation_s
+        description: "Exact median predicted minus scheduled arrival in seconds over the window's eligible predictions."
+      - name: p90_predicted_deviation_s
+        description: "Exact 90th percentile of predicted deviation in seconds."
+      - name: median_abs_revision_s
+        description: "Exact median absolute revision in seconds over eligible predictions with a prior snapshot."
+      - name: n_eligible
+        description: "Eligible predictions in the window."
+        data_tests:
+          - not_null
+      - name: coverage_numerator
+        description: "Sum of hourly coverage_numerator over the window."
+      - name: coverage_denominator
+        description: "Sum of hourly observable_trip_stops over the window."
+      - name: coverage_pct
+        description: "100 * coverage_numerator / coverage_denominator."
+        data_tests:
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: skipped_stop_count
+        description: "Covered trip stops in the window whose latest usable snapshot is SKIPPED."
+      - name: skipped_share
+        description: "skipped_stop_count / coverage_denominator, a fraction between 0 and 1."
+        data_tests:
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
   - name: agg_stop_deviation_daily
     description: "Predicted deviation per line, direction, stop and service date, counting only observed hours and observable trip stops."
     config:

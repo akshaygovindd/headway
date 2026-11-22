@@ -12,6 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 ALLOWLIST = {
     "agg_line_reliability_hourly",
+    "agg_line_reliability_window",
     "agg_stop_deviation_daily",
     "agg_pipeline_health",
     "agg_quality_checks_hourly",

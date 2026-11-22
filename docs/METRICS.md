@@ -32,7 +32,9 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
   predictions.
 - **Grain:** `agg_line_reliability_hourly`: line x direction_id x service_date x hour_local
   (hour of the scheduled arrival). `agg_stop_deviation_daily`: line x direction_id x
-  stop_id x service_date (median only).
+  stop_id x service_date (median only). `agg_line_reliability_window`: line x window_label
+  (`last_24h`, the 24 hours up to `metrics_as_of`, all directions): exact median and p90 over
+  the window's eligible predictions, which the Overview reads instead of averaging hourly medians.
 - **Numerator / denominator:** not a ratio. `n_eligible` is the number of eligible
   predictions behind the statistic.
 - **Inclusion:** the eligible prediction of a trip stop is its last snapshot collected
@@ -51,7 +53,8 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
 - **Formula:** `revision_s = predicted_arrival_ts - prior_predicted_arrival_ts`, where the
   prior value is the previous non-duplicate snapshot of the same trip stop. Reported as
   the median of `abs(revision_s)`.
-- **Grain:** line x direction_id x service_date x hour_local (`agg_line_reliability_hourly`).
+- **Grain:** line x direction_id x service_date x hour_local (`agg_line_reliability_hourly`);
+  line x window_label in `agg_line_reliability_window` (exact median over the window).
 - **Numerator / denominator:** not a ratio. The first snapshot of a trip stop has no prior
   and is left out of the median.
 - **Inclusion / exclusion:** the same eligible predictions as metric 1.
@@ -64,7 +67,8 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
   not service delivery and not pipeline uptime.
 - **Formula:** `coverage_pct = 100 * coverage_numerator / coverage_denominator`.
 - **Grain:** line x direction_id x service_date x hour_local; also per stop and service
-  date in `agg_stop_deviation_daily`.
+  date in `agg_stop_deviation_daily`; line x window_label in `agg_line_reliability_window`
+  (sums of the hourly numerators and denominators).
 - **Numerator:** scheduled trip stops with at least one usable observation: a
   schedule-matched, non-duplicate snapshot whose relationship is not NO_DATA, collected
   0 to 30 minutes before the scheduled arrival (`int_covered_trip_stops`). For SKIPPED
