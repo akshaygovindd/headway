@@ -10,6 +10,7 @@ import httpx
 
 from headway.config import CityConfig, load_city_config
 from headway.contracts.manifest import ManifestEntry
+from headway.curate.replay import Summary, replay
 from headway.ingest.capture import Clock, Fetcher, capture_run
 from headway.ingest.fetch import fetch_feed
 from headway.samples.build import build_sample
@@ -73,7 +74,23 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument("--gtfs", type=Path, required=True, help="GTFS zip or folder")
     build.add_argument("--out", type=Path, required=True, help="output directory")
     build.add_argument("--city", required=True, help="city id, e.g. boston")
+    rep = sub.add_parser("replay", help="curate a raw/manifests tree into a local target")
+    rep.add_argument("--source", type=Path, required=True, help="dir with raw/ manifests/ [gtfs/]")
+    rep.add_argument("--target", type=Path, required=True, help="output directory")
+    rep.add_argument("--city", required=True, help="city id, e.g. boston")
+    rep.add_argument("--compact", action="store_true", help="compact every hour partition")
     return parser
+
+
+def format_summary(summary: Summary) -> list[str]:
+    lines = [f"curated {t}: {n} rows" for t, n in sorted(summary.curated.items())]
+    lines += [f"static {t}: {n} rows" for t, n in sorted(summary.static.items())]
+    for table, by_reason in sorted(summary.quarantine.items()):
+        for reason, n in sorted(by_reason.items()):
+            lines.append(f"quarantine {table} {reason}: {n}")
+    if not summary.quarantine:
+        lines.append("quarantine: none")
+    return lines
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -82,6 +99,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "samples":
         counts = build_sample(config, args.source, args.gtfs, args.out)
         print(" ".join(f"{k}={v}" for k, v in counts.items()))
+        return 0
+    if args.command == "replay":
+        summary, static = replay(args.source, args.target, config, args.compact)
+        if static is not None:
+            state = "skipped (already loaded)" if static.skipped else "loaded"
+            print(f"static feed_version {static.feed_version!r}: {state}")
+        for line in format_summary(summary):
+            print(line)
         return 0
     with httpx.Client(follow_redirects=True) as client:
         run_captures(
