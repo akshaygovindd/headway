@@ -19,3 +19,19 @@ variable "budget_limit_usd" {
   type        = string
   default     = "10"
 }
+
+variable "curate_image_uri" {
+  description = "ECR image URI for the curate and static Lambdas (printed by `make images-push`)."
+  type        = string
+}
+
+variable "transform_image_uri" {
+  description = "ECR image URI for the transform Lambda (printed by `make images-push`)."
+  type        = string
+}
+
+variable "lookback_days" {
+  description = "Days of realtime history the transform Lambda reads."
+  type        = number
+  default     = 7
+}
