@@ -1,0 +1,17 @@
+# Analytics tooling lives in its own environment: dbt-core pins protobuf<7 while
+# the ingest runtime needs protobuf>=7. Never part of the Lambda zip.
+[project]
+name = "headway-dbt"
+version = "0.1.0"
+description = "dbt project environment for Headway"
+requires-python = ">=3.12,<3.13"
+
+[dependency-groups]
+dbt = [
+    "dbt-core~=1.11.2",
+    "dbt-duckdb~=1.10.0",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dbt"]
