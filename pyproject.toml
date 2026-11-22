@@ -52,6 +52,10 @@ src = ["src", "tests", "app"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+# Page scripts hold long UI strings and Plotly hover templates.
+"app/pages/*" = ["E501"]
+
 [tool.mypy]
 strict = true
 plugins = ["pydantic.mypy"]
