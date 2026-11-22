@@ -13,7 +13,8 @@ PAGES = {
     "Line explorer": "pages/2_Line_explorer.py",
     "Pipeline health": "pages/3_Pipeline_health.py",
 }
-HEADER = "Headway: Near-Real-Time Transit Reliability & AI Analytics"
+HEADER = "Headway"
+SUBTITLE = "Near-Real-Time Transit Reliability & AI Analytics"
 TAGLINE = "Know the gap. Measure the reliability."
 NOTE = "Headway approximations, not official MBTA metrics."
 
@@ -36,6 +37,7 @@ def test_page_renders_with_chrome(name: str, script: str, data_url: str) -> None
     assert not at.exception, [e.value for e in at.exception]
     text = _text(at)
     assert HEADER in [t.value for t in at.title]
+    assert SUBTITLE in [t.value for t in at.subheader]
     assert TAGLINE in text and NOTE in text
     assert "Metrics as of" in text and "Feed freshness" in text
     assert name in [h.value for h in at.header]

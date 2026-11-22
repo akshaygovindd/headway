@@ -13,7 +13,8 @@ from lib.coverage import CoverageBadge, coverage_badge
 from lib.freshness import format_age, gold_age, snapshot_age
 from lib.timefmt import format_local
 
-TITLE = "Headway: Near-Real-Time Transit Reliability & AI Analytics"
+TITLE = "Headway"
+SUBTITLE = "Near-Real-Time Transit Reliability & AI Analytics"
 TAGLINE = "Know the gap. Measure the reliability."
 DISCLAIMER = "Headway approximations, not official MBTA metrics."
 
@@ -47,6 +48,7 @@ def data_base() -> str:
 def page_header(page_title: str) -> None:
     st.set_page_config(page_title=f"{page_title} · Headway", layout="wide")
     st.title(TITLE)
+    st.subheader(SUBTITLE)
     st.caption(f"**{TAGLINE}** · {DISCLAIMER}")
     st.header(page_title)
 
