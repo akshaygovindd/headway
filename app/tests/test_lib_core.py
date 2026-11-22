@@ -49,7 +49,7 @@ def test_ranking_states_the_gap_instead_of_ranking_across_it() -> None:
     by_line = {x.line: x for x in r.lines}
     assert by_line["Red"].group == by_line["Orange"].group == 0
     assert by_line["Blue"].group == 1 and by_line["Blue"].rank == 1
-    assert len(r.notes) == 1 and "Blue" in r.notes[0] and "20 points" in r.notes[0]
+    assert len(r.notes) == 1 and "Blue" in r.notes[0] and "25 points" in r.notes[0]
 
 
 def test_ranking_boundary_is_inclusive_at_15() -> None:

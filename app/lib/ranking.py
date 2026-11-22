@@ -48,10 +48,11 @@ def rank_lines(rows: list[tuple[str, float | None, float | None]]) -> Ranking:
         out += [RankedLine(r[0], r[1], r[2], g, i + 1) for i, r in enumerate(ordered)]
         if g > 0:
             prev = groups[g - 1]
-            gap = (prev[-1][2] or 0.0) - (members[0][2] or 0.0)
+            top, below = prev[0][2] or 0.0, members[0][2] or 0.0
             notes.append(
-                f"Coverage gap of {gap:.0f} points: {', '.join(m[0] for m in members)} "
-                f"is not ranked against {', '.join(m[0] for m in prev)}."
+                f"Coverage gap of {top - below:.0f} points ({top:.0f}% vs {below:.0f}%): "
+                f"{', '.join(m[0] for m in members)} is not ranked against "
+                f"{', '.join(m[0] for m in prev)}."
             )
     out += [RankedLine(r[0], r[1], r[2], None, None) for r in sorted(excluded)]
     if excluded:
