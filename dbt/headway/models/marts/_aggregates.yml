@@ -42,7 +42,7 @@ models:
         data_tests:
           - not_null
       - name: coverage_numerator
-        description: "Scheduled trip stops with at least one eligible prediction."
+        description: "Scheduled trip stops with at least one usable observation: non-duplicate, schedule-matched, not NO_DATA, collected 0-30 minutes before the scheduled arrival. SKIPPED stops count as covered."
         data_tests:
           - not_null
       - name: coverage_denominator
@@ -50,13 +50,25 @@ models:
         data_tests:
           - not_null
       - name: coverage_pct
-        description: "100 * coverage_numerator / coverage_denominator."
+        description: "100 * coverage_numerator / coverage_denominator. Measures data availability, not service delivery."
         data_tests:
           - not_null
           - accepted_range:
               arguments:
                 min_value: 0
                 max_value: 100
+      - name: skipped_stop_count
+        description: "Covered trip stops whose latest usable snapshot is SKIPPED (a service change observed in the feed)."
+        data_tests:
+          - not_null
+      - name: skipped_share
+        description: "skipped_stop_count / coverage_denominator, a fraction between 0 and 1."
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
       - name: capture_minutes
         description: "Minutes of the hour with a successful non-duplicate trip_updates capture."
         data_tests:
@@ -105,12 +117,16 @@ models:
         description: "Eligible predictions (one per trip stop)."
         data_tests:
           - not_null
+      - name: coverage_numerator
+        description: "Scheduled trip stops at the stop in observed hours with a usable observation (SKIPPED counts as covered)."
+        data_tests:
+          - not_null
       - name: coverage_denominator
         description: "Scheduled trip stops at the stop in observed hours."
         data_tests:
           - not_null
       - name: coverage_pct
-        description: "100 * n_eligible / coverage_denominator."
+        description: "100 * coverage_numerator / coverage_denominator."
         data_tests:
           - not_null
           - accepted_range:
