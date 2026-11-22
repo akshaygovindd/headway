@@ -18,6 +18,9 @@ A small, committed slice of real MBTA data, used for tests and local replay.
 
 - Source: {runs} one-minute capture runs of the MBTA realtime feeds, taken on {day}
   (a Sunday morning, {first} to {last} UTC), plus the MBTA GTFS static feed.
+- The sample hour (Sunday 22 Nov 2026) ran diversion service (service_id `DIV...`), so the
+  schedule baseline differs from the usual Sunday timetable; see Known limitations in
+  `docs/METRICS.md`.
 - Subway only: routes {routes}. Trip updates and vehicle positions are kept when their
   route is one of these; alerts are kept when any informed entity is one of these.
   Production raw storage is unfiltered; this filtering exists only to keep the sample small.

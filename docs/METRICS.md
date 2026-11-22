@@ -41,6 +41,11 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
   before the scheduled arrival that is schedule matched, from a non-duplicate capture,
   has a predicted arrival, and has `horizon_s` (`predicted_arrival_ts - collected_at`)
   between 0 and 1800 seconds.
+- **Implausible matches:** a pick with `abs(predicted_deviation_s) > 3600`
+  (`is_implausible_deviation`, `int_prediction_picks`) is left out of deviation and revision
+  (`int_eligible_predictions`) but still counts toward coverage. The excluded trip stops are
+  reported as `implausible_deviation_count` in `agg_line_reliability_hourly` and
+  `agg_line_reliability_window`.
 - **Exclusion:** SKIPPED and NO_DATA relationships, ADDED trips (not schedule matched),
   duplicate captures, and hours outside the observation window.
 - **Source models:** `fct_stop_predictions`, `int_eligible_predictions`,
@@ -117,7 +122,8 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
 - **Thresholds:** seed `quality_thresholds` (warn / fail): missed_runs 3/10 per hour,
   duplicate_share 20/50 %, invalid_coordinate_share 0.5/5 %, missing_trip_id_share
   5/20 %, prediction_coverage 80/50 % (below), schedule_join_coverage 90/70 % (below),
-  late_event_share 5/20 %. `vehicle_count_drop` (25/50 %) is computed only when the same
+  late_event_share 5/20 %, implausible_deviation_share 1/5 % (implausible picks over
+  eligible plus implausible picks, per hour). `vehicle_count_drop` (25/50 %) is computed only when the same
   hour one week earlier was observed; otherwise its status is `no_baseline`.
 
 ## Known limitations
@@ -128,6 +134,11 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
 - Predictions are not arrivals. Deviation compares a forecast with the timetable; it is
   not observed lateness.
 - Only the 0 to 30 minute horizon is evaluated.
+- MBTA heavy rail (Red, Orange, Blue) is operated largely by headway, not to a timetable,
+  so deviation from the schedule is a weaker signal there than on light rail.
+- Diversion service (service_id `DIV...`) changes the schedule baseline, so deviation
+  during a diversion measures lateness against the diversion timetable.
+- Release 2 adds headway adherence, which fits heavy rail better than schedule deviation.
 - Subway routes only; added trips are excluded from schedule-based metrics.
 - These are Headway approximations from public feeds, not official MBTA performance
   measures.

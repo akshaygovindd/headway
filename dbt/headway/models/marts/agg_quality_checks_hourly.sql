@@ -109,6 +109,18 @@ prediction_coverage as (
     group by service_date, hour_local
 ),
 
+-- share of last-snapshot picks more than an hour from the schedule
+implausible_deviation_share as (
+    select
+        service_date,
+        hour_local,
+        'implausible_deviation_share' as check_name,
+        100.0 * sum(implausible_deviation_count) / (sum(n_eligible) + sum(implausible_deviation_count)) as value
+    from {{ ref('agg_line_reliability_hourly') }}
+    group by service_date, hour_local
+    having sum(n_eligible) + sum(implausible_deviation_count) > 0
+),
+
 -- share of non-added snapshots that match the schedule, among snapshots taken
 -- within 30 minutes before the stop's arrival (scheduled time when matched,
 -- predicted time otherwise); snapshots without any arrival time are not evaluable
@@ -176,6 +188,7 @@ all_checks as (
     union all select * from missing_trip_id_share
     union all select * from prediction_coverage
     union all select * from schedule_join_coverage
+    union all select * from implausible_deviation_share
     union all select * from late_event_share
     union all select * from vehicle_count_drop
 )

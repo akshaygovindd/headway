@@ -41,6 +41,10 @@ models:
         description: "Eligible predictions (one per trip stop)."
         data_tests:
           - not_null
+      - name: implausible_deviation_count
+        description: "Trip stops whose last-snapshot pick deviates more than 3600 s from the schedule; excluded from deviation and revision, still covered."
+        data_tests:
+          - not_null
       - name: coverage_numerator
         description: "Scheduled trip stops with at least one usable observation: non-duplicate, schedule-matched, not NO_DATA, collected 0-30 minutes before the scheduled arrival. SKIPPED stops count as covered."
         data_tests:
@@ -115,6 +119,10 @@ models:
         description: "Exact median absolute revision in seconds over eligible predictions with a prior snapshot."
       - name: n_eligible
         description: "Eligible predictions in the window."
+        data_tests:
+          - not_null
+      - name: implausible_deviation_count
+        description: "Sum of hourly implausible_deviation_count over the window."
         data_tests:
           - not_null
       - name: coverage_numerator
@@ -274,7 +282,7 @@ models:
         data_tests:
           - not_null
   - name: agg_quality_checks_hourly
-    description: "Hourly data-quality checks (prediction_coverage and schedule_join_coverage consider observable trip stops only) with warn/fail status from the quality_thresholds seed. Values are percentages except missed_runs (count). late_event_share counts records fetched more than 300 seconds after their event_ts. vehicle_count_drop compares with the same hour one week earlier and is no_baseline when that hour was not observed."
+    description: "Hourly data-quality checks (prediction_coverage and schedule_join_coverage consider observable trip stops only) with warn/fail status from the quality_thresholds seed. Values are percentages except missed_runs (count). implausible_deviation_share is the percentage of last-snapshot picks more than 3600 s from the schedule. late_event_share counts records fetched more than 300 seconds after their event_ts. vehicle_count_drop compares with the same hour one week earlier and is no_baseline when that hour was not observed."
     config:
       meta:
         grain: "service_date x hour_local x check_name"
@@ -301,7 +309,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: [missed_runs, duplicate_share, invalid_coordinate_share, missing_trip_id_share, prediction_coverage, schedule_join_coverage, late_event_share, vehicle_count_drop]
+                values: [missed_runs, duplicate_share, invalid_coordinate_share, missing_trip_id_share, prediction_coverage, schedule_join_coverage, implausible_deviation_share, late_event_share, vehicle_count_drop]
       - name: value
         description: "Measured value; null when it cannot be computed."
       - name: direction

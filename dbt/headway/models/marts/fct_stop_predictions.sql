@@ -49,6 +49,7 @@ select
     s.hour_local as scheduled_hour_local,
     p.predicted_arrival_ts,
     epoch(p.predicted_arrival_ts) - epoch(s.scheduled_arrival_ts) as predicted_deviation_s,
+    abs(epoch(p.predicted_arrival_ts) - epoch(s.scheduled_arrival_ts)) > 3600 as is_implausible_deviation,
     epoch(p.predicted_arrival_ts) - epoch(p.collected_at) as horizon_s,
     pr.prior_predicted_arrival_ts,
     epoch(p.predicted_arrival_ts) - epoch(pr.prior_predicted_arrival_ts) as revision_s,

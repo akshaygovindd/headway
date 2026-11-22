@@ -1,5 +1,7 @@
 -- Prediction reliability per line, direction, service date and scheduled hour.
 -- Rows exist only for hours inside the trip_updates observation window.
+-- Predictions more than an hour from the schedule are excluded from deviation and
+-- revision (implausible_deviation_count) but still count toward coverage.
 -- Coverage counts only observable trip stops (a capture within 30 minutes before the
 -- scheduled arrival), so pipeline outages appear in missed_runs, not in coverage.
 -- Coverage (data availability) and deviation/revision (prediction accuracy) use
@@ -32,6 +34,18 @@ eligible as (
     group by line, direction_id, service_date, hour_local
 ),
 
+implausible as (
+    select
+        line,
+        direction_id,
+        service_date,
+        hour_local,
+        count(*) as implausible_deviation_count
+    from {{ ref('int_prediction_picks') }}
+    where is_implausible_deviation
+    group by line, direction_id, service_date, hour_local
+),
+
 covered as (
     select
         line,
@@ -53,6 +67,7 @@ select
     e.p90_predicted_deviation_s,
     e.median_abs_revision_s,
     coalesce(e.n_eligible, 0) as n_eligible,
+    coalesce(i.implausible_deviation_count, 0) as implausible_deviation_count,
     coalesce(c.coverage_numerator, 0) as coverage_numerator,
     s.observable_trip_stops as coverage_denominator,
     s.observable_trip_stops,
@@ -70,6 +85,11 @@ left join eligible e
     and e.direction_id is not distinct from s.direction_id
     and e.service_date = s.service_date
     and e.hour_local = s.hour_local
+left join implausible i
+    on i.line = s.line
+    and i.direction_id is not distinct from s.direction_id
+    and i.service_date = s.service_date
+    and i.hour_local = s.hour_local
 left join covered c
     on c.line = s.line
     and c.direction_id is not distinct from s.direction_id

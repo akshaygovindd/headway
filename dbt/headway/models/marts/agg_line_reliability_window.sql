@@ -26,7 +26,8 @@ hourly as (
         h.line,
         sum(h.coverage_numerator) as coverage_numerator,
         sum(h.observable_trip_stops) as observable_trip_stops,
-        sum(h.skipped_stop_count) as skipped_stop_count
+        sum(h.skipped_stop_count) as skipped_stop_count,
+        sum(h.implausible_deviation_count) as implausible_deviation_count
     from {{ ref('agg_line_reliability_hourly') }} h
     join window_hours w on w.service_date = h.service_date and w.hour_local = h.hour_local
     group by h.line
@@ -51,6 +52,7 @@ select
     e.p90_predicted_deviation_s,
     e.median_abs_revision_s,
     coalesce(e.n_eligible, 0) as n_eligible,
+    h.implausible_deviation_count,
     h.coverage_numerator,
     h.observable_trip_stops as coverage_denominator,
     100.0 * h.coverage_numerator / h.observable_trip_stops as coverage_pct,

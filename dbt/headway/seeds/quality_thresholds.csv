@@ -7,3 +7,4 @@ prediction_coverage,below,80,50
 schedule_join_coverage,below,90,70
 late_event_share,above,5,20
 vehicle_count_drop,above,25,50
+implausible_deviation_share,above,1,5

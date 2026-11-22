@@ -4,6 +4,9 @@ A small, committed slice of real MBTA data, used for tests and local replay.
 
 - Source: 59 one-minute capture runs of the MBTA realtime feeds, taken on Sun 22 Nov 2026
   (a Sunday morning, 14:36 to 15:35 UTC), plus the MBTA GTFS static feed.
+- The sample hour (Sunday 22 Nov 2026) ran diversion service (service_id `DIV...`), so the
+  schedule baseline differs from the usual Sunday timetable; see Known limitations in
+  `docs/METRICS.md`.
 - Subway only: routes Red, Orange, Blue, Green-B, Green-C, Green-D, Green-E, Mattapan. Trip updates and vehicle positions are kept when their
   route is one of these; alerts are kept when any informed entity is one of these.
   Production raw storage is unfiltered; this filtering exists only to keep the sample small.
