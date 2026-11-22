@@ -37,11 +37,15 @@ def _now() -> datetime:
 
 
 def _scheduled_at(event: dict[str, Any], now: datetime) -> datetime:
+    """Parse the scheduler timestamp; fall back to now floored to the minute."""
+    fallback = now.replace(second=0, microsecond=0)
     raw = event.get("scheduled_at")
-    if raw:
+    try:
         parsed = datetime.fromisoformat(str(raw))
         return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
-    return now.replace(second=0, microsecond=0)
+    except (ValueError, TypeError):
+        logger.warning("invalid or missing scheduled_at %r; using current minute", raw)
+        return fallback
 
 
 def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:

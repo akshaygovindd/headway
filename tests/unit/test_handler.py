@@ -91,6 +91,28 @@ def test_scheduled_at_defaults_to_now_floored_to_minute(
     assert result["scheduled_at"] == "2026-06-01T12:00:00+00:00"
 
 
+def test_scheduled_at_parses_iso_with_z() -> None:
+    parsed = handler._scheduled_at({"scheduled_at": "2026-06-01T12:03:00Z"}, NOW)
+    assert parsed == datetime(2026, 6, 1, 12, 3, tzinfo=UTC)
+
+
+def test_scheduled_at_literal_placeholder_falls_back(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    event = {"scheduled_at": "<aws.scheduler.scheduled-time>"}
+    with caplog.at_level("WARNING"):
+        parsed = handler._scheduled_at(event, NOW)
+    assert parsed == datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
+    assert "scheduled_at" in caplog.text
+
+
+def test_scheduled_at_missing_key_falls_back(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level("WARNING"):
+        parsed = handler._scheduled_at({}, NOW)
+    assert parsed == datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
+    assert "scheduled_at" in caplog.text
+
+
 def test_feed_failure_does_not_raise_and_skips_snapshot(
     aws: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
