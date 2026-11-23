@@ -47,5 +47,20 @@ def export_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    public: Path = module.build(tmp_path_factory.mktemp("export"), "samples/boston", "boston")
+    public: Path = module.build(
+        tmp_path_factory.mktemp("export"), "samples/boston", "boston", enable_r2=True
+    )
+    return public
+
+
+@pytest.fixture(scope="session")
+def export_root_no_r2(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Same export built with HEADWAY_ENABLE_R2=false: no Release 2 tables."""
+    spec = importlib.util.spec_from_file_location("build_demo", ROOT / "scripts" / "build_demo.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    public: Path = module.build(
+        tmp_path_factory.mktemp("export_no_r2"), "samples/boston", "boston", enable_r2=False
+    )
     return public

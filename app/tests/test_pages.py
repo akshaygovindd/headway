@@ -113,3 +113,70 @@ def test_invalid_data_url_stops_cleanly(monkeypatch: pytest.MonkeyPatch) -> None
     at = AppTest.from_file(str(APP / "overview_page.py"), default_timeout=60).run()
     assert not at.exception
     assert any("not configured" in e.value for e in at.error)
+
+
+R2_FILES = (
+    "agg_prediction_accuracy_daily",
+    "agg_actual_deviation_hourly",
+    "agg_headway_adherence_hourly",
+    "agg_ett_daily",
+    "agg_arrival_reconstruction_daily",
+)
+
+
+@pytest.fixture
+def data_url_no_r2(export_root_no_r2: Path, monkeypatch: pytest.MonkeyPatch) -> str:
+    url = f"file://{export_root_no_r2}"
+    monkeypatch.setenv("HEADWAY_DATA_URL", url)
+    return url
+
+
+def test_export_has_release_2_files_only_when_enabled(
+    export_root: Path, export_root_no_r2: Path
+) -> None:
+    for name in R2_FILES:
+        assert (export_root / "gold" / f"{name}.parquet").exists()
+        assert not (export_root_no_r2 / "gold" / f"{name}.parquet").exists()
+    assert (export_root_no_r2 / "gold" / "agg_line_reliability_hourly.parquet").exists()
+
+
+def test_accuracy_page_renders_with_release_2(data_url: str) -> None:
+    at = AppTest.from_file(str(APP / "pages/5_Accuracy.py"), default_timeout=60).run()
+    assert not at.exception, [e.value for e in at.exception]
+    assert "Accuracy" in [h.value for h in at.header]
+    text = _text(at)
+    assert (
+        "Prediction accuracy by horizon" in text and "Actual deviation from the timetable" in text
+    )
+    assert "Arrival coverage" in text
+    assert not at.info or not any("not enabled" in i.value for i in at.info)
+    assert any(c.value.startswith("coverage") or "coverage" in c.value for c in at.caption)
+
+
+def test_accuracy_page_without_release_2_says_so(data_url_no_r2: str) -> None:
+    at = AppTest.from_file(str(APP / "pages/5_Accuracy.py"), default_timeout=60).run()
+    assert not at.exception, [e.value for e in at.exception]
+    assert any("not enabled" in i.value for i in at.info)
+    assert "Prediction accuracy by horizon" not in _text(at)
+
+
+def test_line_explorer_headway_section_follows_the_flag(
+    data_url: str, monkeypatch: pytest.MonkeyPatch, export_root_no_r2: Path
+) -> None:
+    on = AppTest.from_file(str(APP / "pages/2_Line_explorer.py"), default_timeout=60).run()
+    assert not on.exception, [e.value for e in on.exception]
+    assert "Headway adherence" in _text(on) and "Slowest stretches" in _text(on)
+    monkeypatch.setenv("HEADWAY_DATA_URL", f"file://{export_root_no_r2}")
+    off = AppTest.from_file(str(APP / "pages/2_Line_explorer.py"), default_timeout=60).run()
+    assert not off.exception, [e.value for e in off.exception]
+    assert "Headway adherence" not in _text(off) and "Slowest stretches" in _text(off)
+
+
+def test_heavy_rail_shows_headway_before_deviation(data_url: str) -> None:
+    at = AppTest.from_file(str(APP / "pages/2_Line_explorer.py"), default_timeout=60).run()
+    at.selectbox[0].select("Red").run()
+    heads = [s.value for s in at.subheader]
+    assert heads.index("Headway adherence") < heads.index("Median deviation by hour and weekday")
+    at.selectbox[0].select("Green-B").run()
+    heads = [s.value for s in at.subheader]
+    assert heads.index("Median deviation by hour and weekday") < heads.index("Headway adherence")

@@ -30,6 +30,15 @@ GOLD_TABLES = (
     "route_shapes",
     "cost_daily",
 )
+# Release 2 aggregates; present in the export only when the deployment has enabled them.
+R2_TABLES = (
+    "agg_arrival_reconstruction_daily",
+    "agg_prediction_accuracy_daily",
+    "agg_actual_deviation_hourly",
+    "agg_headway_adherence_hourly",
+    "agg_ett_daily",
+    "agg_active_alerts",
+)
 
 
 class DataUnavailableError(RuntimeError):
@@ -75,9 +84,17 @@ def read_json(url: str) -> dict[str, Any]:
 
 
 def load_table(base: str, name: str) -> pd.DataFrame:
-    if name not in GOLD_TABLES:
+    if name not in GOLD_TABLES and name not in R2_TABLES:
         raise ValueError(f"not a gold table: {name}")
     return pd.read_parquet(io.BytesIO(read_bytes(f"{base}/gold/{name}.parquet")))
+
+
+def load_optional_table(base: str, name: str) -> pd.DataFrame | None:
+    """A Release 2 table, or None when the export does not have it (R2 not enabled)."""
+    try:
+        return load_table(base, name)
+    except DataUnavailableError:
+        return None
 
 
 def load_manifest(base: str) -> dict[str, Any]:

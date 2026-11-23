@@ -25,6 +25,10 @@ st.markdown(
     "- **Freshness** is shown separately from the data period: *metrics as of* is the hour the "
     "metrics describe, *feed freshness* is how recently the gold tables and live snapshot were "
     "produced.\n"
+    "- **Accuracy and headway views** (Release 2, shown only when the deployment has enabled them) "
+    "compare predictions and the timetable with arrivals reconstructed from vehicle positions. "
+    "Only high and medium confidence arrivals are used, hours with data outages are left out, "
+    "and hours with an active detour, suspension or shuttle alert are labelled service disruption.\n"
     "- **Pipeline health** reports missed runs, duplicate deliveries and quarantined rows, so a "
     "gap in the data is not mistaken for a transit disruption."
 )
@@ -39,8 +43,9 @@ st.markdown(
 
 st.subheader("Documentation")
 st.markdown(
-    f"- [METRICS.md]({DOCS}/METRICS.md): definitions, grain and inclusion rules of the four "
-    "Release 1 metrics\n"
+    f"- [METRICS.md]({DOCS}/METRICS.md): definitions, grain and inclusion rules of the Release 1 "
+    "metrics and, when enabled, the Release 2 metrics (prediction accuracy, actual deviation, "
+    "headway adherence, ETT approximation)\n"
     f"- [INCIDENTS.md]({DOCS}/INCIDENTS.md): production incidents and what now prevents them\n"
     f"- [MEASUREMENTS.md]({DOCS}/MEASUREMENTS.md): measured runtimes, volumes, reliability and cost\n"
     f"- [Source repository]({REPO})"

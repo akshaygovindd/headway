@@ -27,6 +27,12 @@ def gold_table(base: str, name: str) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=300, show_spinner=False)
+def gold_table_optional(base: str, name: str) -> pd.DataFrame | None:
+    """A Release 2 table; None (page hides the section) when the export has no such file."""
+    return data.load_optional_table(base, name)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
 def gold_manifest(base: str) -> dict[str, Any]:
     return data.load_manifest(base)
 
@@ -120,3 +126,22 @@ def render_metric_card(
             "n/a" if coverage_pct is None or pd.isna(coverage_pct) else f"{coverage_pct:.0f}%"
         )
         st.caption(f"Coverage {cov_text}" + (f" · {freshness}" if freshness else ""))
+
+
+def fmt_seconds(value: float | None, *, signed: bool = True) -> str:
+    return _fmt_seconds(value, signed=signed)
+
+
+def fmt_pct(value: float | None) -> str:
+    """Whole percent, or n/a."""
+    return "n/a" if value is None or pd.isna(value) else f"{value:.0f}%"
+
+
+def fmt_ratio(value: float | None) -> str:
+    return "n/a" if value is None or pd.isna(value) else f"{value:.2f}×"
+
+
+def coverage_text(coverage_pct: float | None, n: float | None = None) -> str:
+    """Coverage (and the count behind a value) shown beside every Release 2 number."""
+    cov = fmt_pct(coverage_pct)
+    return f"coverage {cov}" + ("" if n is None or pd.isna(n) else f", n={int(n):,}")
