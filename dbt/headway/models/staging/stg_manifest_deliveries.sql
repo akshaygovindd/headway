@@ -1,6 +1,6 @@
 {#- Parts written before 15 s sampling have no poll_index column; when every part is that old the
     column does not exist at all, so look before selecting it. -#}
-{% set manifest_columns = adapter.get_columns_in_relation(source('curated', 'manifests')) | map(attribute='name') | list if execute else [] %}
+{% set manifest_columns = run_query('select * from ' ~ source('curated', 'manifests') ~ ' limit 0').column_names if execute else [] %}
 -- Every delivery row in the curated manifests table: one per capture attempt per delivery of a
 -- scheduled minute. EventBridge Scheduler is at-least-once, so a minute can be delivered twice.
 --
