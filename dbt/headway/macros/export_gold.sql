@@ -21,6 +21,10 @@
     'agg_headway_adherence_hourly': "select * from " ~ ref('agg_headway_adherence_hourly'),
     'agg_ett_daily': "select * from " ~ ref('agg_ett_daily'),
     'agg_active_alerts': "select * from " ~ ref('agg_active_alerts'),
+    'agg_accuracy_window': "select * from " ~ ref('agg_accuracy_window'),
+    'agg_actual_deviation_window': "select * from " ~ ref('agg_actual_deviation_window'),
+    'agg_headway_window': "select * from " ~ ref('agg_headway_window'),
+    'agg_ett_window': "select * from " ~ ref('agg_ett_window'),
 }) }}
 {%- endmacro %}
 

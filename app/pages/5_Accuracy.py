@@ -17,6 +17,8 @@ ui.show_as_of_and_freshness(manifest, ui.live_snapshot(base))
 acc = ui.gold_table_optional(base, "agg_prediction_accuracy_daily")
 dev = ui.gold_table_optional(base, "agg_actual_deviation_hourly")
 recon = ui.gold_table_optional(base, "agg_arrival_reconstruction_daily")
+acc_win = ui.gold_table_optional(base, "agg_accuracy_window")
+dev_win = ui.gold_table_optional(base, "agg_actual_deviation_window")
 if acc is None or dev is None:
     st.info(
         "Accuracy metrics are not enabled in this deployment yet. They need the Release 2 "
@@ -31,11 +33,19 @@ st.caption(
     "alert are kept and counted as service disruption."
 )
 
+options = accuracy.window_options(acc_win, dev_win)
+window = st.radio("Window", list(options), format_func=options.get, horizontal=True)
+exact = window != accuracy.ALL_DAYS
+
 st.subheader("Prediction accuracy by horizon")
 st.caption(
     "Last prediction in each bucket of lead time before the arrival; error = predicted minus reconstructed."
 )
-table = accuracy.accuracy_by_horizon(acc)
+table = (
+    accuracy.accuracy_window_by_horizon(acc_win, window)
+    if exact
+    else accuracy.accuracy_by_horizon(acc)
+)
 if table.empty:
     st.info("No accuracy data in the exported window yet.")
 else:
@@ -96,14 +106,20 @@ else:
         width="stretch",
     )  # fmt: skip
     st.caption(
-        "The median is the n-weighted mean of daily medians. Values below 50% coverage are withheld."
+        "Medians are computed over every error in the window. Values below 50% coverage are withheld."
+        if exact
+        else "The median is the n-weighted mean of daily medians, an approximation. Values below 50% coverage are withheld."
     )
 
 st.subheader("Actual deviation from the timetable")
 st.caption(
     "Reconstructed arrival minus scheduled arrival; positive is late. Share on time = from 1 minute early to 5 minutes late."
 )
-summary = accuracy.actual_deviation_summary(dev)
+summary = (
+    accuracy.deviation_window_summary(dev_win, window)
+    if exact
+    else accuracy.actual_deviation_summary(dev)
+)
 if summary.empty:
     st.info("No actual-deviation data in the exported window yet.")
 else:
@@ -126,10 +142,8 @@ else:
                 if row["n_excluded_outage"]
                 else ""
             )
-            disruption = (
-                f", {int(row['n_disruption_hours'])} service-disruption hours included"
-                if row["n_disruption_hours"]
-                else ""
-            )
+            n_disrupted = row["n_disruption"] if exact else row["n_disruption_hours"]
+            unit = "arrivals in service-disruption hours" if exact else "service-disruption hours"
+            disruption = f", {int(n_disrupted):,} {unit} included" if n_disrupted else ""
             st.caption(f"{ui.coverage_text(cov, row['n'])}{extra}{disruption}")
 st.caption(ui.DISCLAIMER)

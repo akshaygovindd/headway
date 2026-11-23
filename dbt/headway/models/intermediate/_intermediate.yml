@@ -428,3 +428,58 @@ models:
         description: "True when the line had an active service-disruption alert in the arrival hour."
         data_tests:
           - not_null
+
+  - name: int_window_hours
+    description: "Service hours inside each rolling window of the exact window marts: last_24h (24 hours) and last_7d (168 hours) ending at the latest hour of agg_line_reliability_hourly."
+    config:
+      meta:
+        grain: "window_label x service_date x hour_local"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [window_label, service_date, hour_local]
+    columns:
+      - name: window_label
+        description: "last_24h or last_7d."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour (0-23)."
+        data_tests:
+          - not_null
+      - name: hour_start
+        description: "Start of the hour."
+        data_tests:
+          - not_null
+  - name: int_scheduled_headways
+    description: "Scheduled headways per line, direction, service date and hour of the later train: scheduled stop times with a predecessor at their stop."
+    config:
+      meta:
+        grain: "line x direction_id x service_date x hour_local"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, service_date, hour_local]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel (0 or 1)."
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local hour of the later train's scheduled arrival."
+        data_tests:
+          - not_null
+      - name: scheduled_headways
+        description: "Scheduled headways in the hour."
+        data_tests:
+          - not_null

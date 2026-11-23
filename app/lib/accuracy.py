@@ -9,6 +9,8 @@ import pandas as pd
 
 from lib.coverage import LOW_MIN
 
+WINDOWS = {"last_24h": "Last 24 hours", "last_7d": "Last 7 days"}
+ALL_DAYS = "all_days"
 BUCKETS = ["0-5", "5-10", "10-20", "20-30"]
 HEAVY_RAIL = ("Red", "Orange", "Blue")
 TIME_BANDS = ["am_peak", "midday", "pm_peak", "evening"]
@@ -61,6 +63,93 @@ def accuracy_by_horizon(acc: pd.DataFrame, line: str | None = None) -> pd.DataFr
         return out
     out["horizon_bucket"] = pd.Categorical(out["horizon_bucket"], BUCKETS, ordered=True)
     return out.sort_values(["line", "horizon_bucket"]).reset_index(drop=True)
+
+
+def window_options(*tables: pd.DataFrame | None) -> dict[str, str]:
+    """Window choices for the pages: the exact windows when every window table was exported, and
+    always all exported days (combined from daily or hourly rows, so approximate)."""
+    exact = all(t is not None and not t.empty for t in tables)
+    return {**(WINDOWS if exact else {}), ALL_DAYS: "All exported days (approximate)"}
+
+
+def accuracy_window_by_horizon(win: pd.DataFrame, window_label: str) -> pd.DataFrame:
+    """One row per line and horizon bucket from agg_accuracy_window: exact, nothing combined."""
+    cols = ["line", "horizon_bucket", "n", "median_abs_error_s", "mae_s", "pct_within_60s",
+            "pct_within_120s", "n_disruption", "coverage_pct"]  # fmt: skip
+    out = win[win["window_label"] == window_label][cols].copy()
+    if out.empty:
+        return out
+    out["horizon_bucket"] = pd.Categorical(out["horizon_bucket"], BUCKETS, ordered=True)
+    return out.sort_values(["line", "horizon_bucket"]).reset_index(drop=True)
+
+
+def deviation_window_summary(win: pd.DataFrame, window_label: str) -> pd.DataFrame:
+    """One row per line from agg_actual_deviation_window: exact median, p90 and on-time share."""
+    sel = win[win["window_label"] == window_label]
+    return pd.DataFrame(
+        {
+            "line": sel["line"],
+            "n": sel["n_arrivals"].astype(int),
+            "median_deviation_s": sel["median_deviation_s"],
+            "p90_deviation_s": sel["p90_deviation_s"],
+            "pct_on_time_window": sel["pct_on_time_window"],
+            "n_excluded_outage": sel["n_excluded_outage"].astype(int),
+            "n_disruption": sel["n_disruption"].astype(int),
+            "coverage_pct": sel["coverage_pct"],
+        }
+    ).reset_index(drop=True)
+
+
+def headway_window_summary(
+    win: pd.DataFrame, line: str, window_label: str
+) -> dict[str, float | None]:
+    """Same keys as headway_summary, from agg_headway_window (all directions of the line)."""
+    sel = win[(win["line"] == line) & (win["window_label"] == window_label)]
+    empty = {
+        k: None
+        for k in ("pct_within_band", "pct_bunched", "pct_gap", "median_ratio", "coverage_pct")
+    }
+    if sel.empty:
+        return {"n": 0.0, **empty, "n_dropped": 0.0, "n_excluded_outage": 0.0, "n_disruption": 0.0}
+    r = sel.iloc[0]
+    dropped = sum(
+        int(r[c])
+        for c in (
+            "n_dropped_train_between",
+            "n_dropped_unproven_order",
+            "n_dropped_no_scheduled_headway",
+            "n_dropped_implausible",
+        )
+    )
+    return {
+        "n": float(r["n_headways"]),
+        "pct_within_band": _num(r["pct_within_band"]),
+        "pct_bunched": _num(r["pct_bunched"]),
+        "pct_gap": _num(r["pct_gap"]),
+        "median_ratio": _num(r["median_ratio"]),
+        "n_dropped": float(dropped),
+        "n_excluded_outage": float(r["n_excluded_outage"]),
+        "n_disruption": float(r["n_disruption"]),
+        "coverage_pct": _num(r["coverage_pct"]),
+    }
+
+
+def _num(value: object) -> float | None:
+    return None if value is None or pd.isna(value) else float(value)  # type: ignore[arg-type]
+
+
+def ett_window_row(win: pd.DataFrame, line: str, window_label: str) -> dict[str, float | None]:
+    """Exact ETT of the line over the window (all directions, bands and day types)."""
+    sel = win[(win["line"] == line) & (win["window_label"] == window_label)]
+    if sel.empty:
+        return {"n": 0.0, "median_ett_s": None, "p90_ett_s": None, "coverage_pct": None}
+    r = sel.iloc[0]
+    return {
+        "n": float(r["n_trips"]),
+        "median_ett_s": _num(r["median_ett_s"]),
+        "p90_ett_s": _num(r["p90_ett_s"]),
+        "coverage_pct": _num(r["coverage_pct"]),
+    }
 
 
 def _select(df: pd.DataFrame, line: str, direction: int | None) -> pd.DataFrame:

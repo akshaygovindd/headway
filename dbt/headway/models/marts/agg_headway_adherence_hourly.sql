@@ -4,22 +4,7 @@
 -- headways are counted by reason. Coverage: valid headways over scheduled headways of the hour
 -- (scheduled stop times with a predecessor at their stop). Outage hours keep a row with empty
 -- statistics; percentages are 0-100.
-with scheduled as (
-    select line, direction_id, service_date, hour_local, count(*) as scheduled_headways
-    from (
-        select
-            line, direction_id, service_date, hour_local,
-            lag(scheduled_arrival_ts) over (
-                partition by line, direction_id, service_date, stop_id
-                order by scheduled_arrival_ts, trip_instance_key
-            ) as previous_ts
-        from {{ ref('int_scheduled_stop_times') }}
-    )
-    where previous_ts is not null
-    group by 1, 2, 3, 4
-),
-
-headways as (
+with headways as (
     select
         line,
         direction_id,
@@ -64,7 +49,7 @@ select
     s.scheduled_headways as coverage_denominator,
     case when not coalesce(f.data_outage, false) then 100.0 * coalesce(h.n_headways, 0) / s.scheduled_headways end
         as coverage_pct
-from scheduled s
+from {{ ref('int_scheduled_headways') }} s
 join {{ ref('int_hour_flags') }} f on f.service_date = s.service_date and f.hour_local = s.hour_local
 left join headways h
     on h.line = s.line

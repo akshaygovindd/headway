@@ -375,3 +375,81 @@ unit_tests:
     expect:
       rows:
         - {line: "Red", direction_id: 0, service_date: "2026-11-23", time_band: "am_peak", day_type: "weekday", service_disruption: false, n_scheduled_trips: 3, n_trips: 2, n_excluded_outage: 0, median_ett_s: 90.0, coverage_numerator: 2, coverage_denominator: 3}
+
+  - name: accuracy_window_is_exact_not_an_average_of_daily_medians
+    config:
+      tags: [r2]
+    description: >-
+      Red, bucket 0-5, last_7d. Day 1 has three absolute errors of 10 s, day 2 has 100 s and 200 s
+      (one of them in a disrupted hour), and one more error sits in an outage hour. Over all five
+      errors the median is 10 s, the p90 160 s, the mean 66 s; an n-weighted mean of the daily
+      medians (10 and 150) would give 66 s for the median. Coverage: 5 of 7 reconstructed trip
+      stops (the outage hour's arrival is not in the denominator).
+    model: agg_accuracy_window
+    given:
+      - input: ref('int_window_hours')
+        rows:
+          - {window_label: last_7d, service_date: "2026-11-22", hour_local: 8}
+          - {window_label: last_7d, service_date: "2026-11-23", hour_local: 8}
+          - {window_label: last_7d, service_date: "2026-11-23", hour_local: 9}
+      - input: ref('fct_prediction_errors')
+        rows:
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-22", hour_local: 8, abs_error_s: 10.0, data_outage: false, service_disruption: false}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-22", hour_local: 8, abs_error_s: 10.0, data_outage: false, service_disruption: false}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-22", hour_local: 8, abs_error_s: 10.0, data_outage: false, service_disruption: false}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-23", hour_local: 8, abs_error_s: 100.0, data_outage: false, service_disruption: false}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-23", hour_local: 8, abs_error_s: 200.0, data_outage: false, service_disruption: true}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-23", hour_local: 9, abs_error_s: 500.0, data_outage: true, service_disruption: false}
+          # outside the window
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-01", hour_local: 8, abs_error_s: 900.0, data_outage: false, service_disruption: false}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {line: Red, arrival_service_date: "2026-11-22", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
+          - {line: Red, arrival_service_date: "2026-11-22", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
+          - {line: Red, arrival_service_date: "2026-11-22", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
+          - {line: Red, arrival_service_date: "2026-11-22", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
+          - {line: Red, arrival_service_date: "2026-11-23", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
+          - {line: Red, arrival_service_date: "2026-11-23", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
+          - {line: Red, arrival_service_date: "2026-11-23", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
+          - {line: Red, arrival_service_date: "2026-11-23", arrival_hour_local: 9, is_nearest_segment: true, data_outage: true}
+    expect:
+      rows:
+        - {line: Red, window_label: last_7d, horizon_bucket: "0-5", n: 5, n_excluded_outage: 1, n_disruption: 1, median_abs_error_s: 10.0, p90_abs_error_s: 160.0, mae_s: 66.0, pct_within_60s: 60.0, pct_within_120s: 80.0, coverage_numerator: 5, coverage_denominator: 7}
+
+  - name: headway_window_counts_valid_headways_and_leaves_out_outage_hours
+    config:
+      tags: [r2]
+    description: >-
+      Red, last_24h, hour 8 with six scheduled headways: four valid headways (ratios 0.4, 1.0, 1.0
+      and 2.0: 50 % within, 25 % bunched, 25 % gap, median 1.0), one dropped for a train in
+      between. A valid headway in the outage hour 9 is counted only in n_excluded_outage and its
+      three scheduled headways are not in the coverage denominator.
+    model: agg_headway_window
+    given:
+      - input: ref('int_window_hours')
+        rows:
+          - {window_label: last_24h, service_date: "2026-11-22", hour_local: 8}
+          - {window_label: last_24h, service_date: "2026-11-22", hour_local: 9}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 8, data_outage: false}
+          - {service_date: "2026-11-22", hour_local: 9, data_outage: true}
+      - input: ref('int_scheduled_headways')
+        rows:
+          - {line: Red, direction_id: 0, service_date: "2026-11-22", hour_local: 8, scheduled_headways: 4}
+          - {line: Red, direction_id: 1, service_date: "2026-11-22", hour_local: 8, scheduled_headways: 2}
+          - {line: Red, direction_id: 0, service_date: "2026-11-22", hour_local: 9, scheduled_headways: 3}
+      - input: ref('int_disrupted_line_hours')
+        rows:
+          - {line: Blue, service_date: "2026-11-22", hour_local: 8}
+      - input: ref('fct_headways')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, status: valid, band: bunched, ratio: 0.4}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, status: valid, band: within, ratio: 1.0}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, status: valid, band: within, ratio: 1.0}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, status: valid, band: gap, ratio: 2.0}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, status: train_between, band: null, ratio: null}
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, status: valid, band: within, ratio: 1.0}
+    expect:
+      rows:
+        - {line: Red, window_label: last_24h, n_headways: 4, pct_within_band: 50.0, pct_bunched: 25.0, pct_gap: 25.0, median_ratio: 1.0, n_dropped_train_between: 1, n_excluded_outage: 1, scheduled_headways: 6, coverage_numerator: 4, coverage_denominator: 6}

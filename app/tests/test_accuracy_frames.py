@@ -97,3 +97,42 @@ def test_rounding_helpers() -> None:
 
 def test_r2_tables_are_known_to_the_loader() -> None:
     assert set(data.R2_TABLES).isdisjoint(data.GOLD_TABLES)
+
+
+def test_window_frames_pass_the_exact_values_through() -> None:
+    win = pd.DataFrame([
+        {"line": "Red", "window_label": "last_24h", "horizon_bucket": "10-20", "n": 4,
+         "median_abs_error_s": 11.0, "mae_s": 12.0, "pct_within_60s": 90.0, "pct_within_120s": 99.0,
+         "n_disruption": 1, "coverage_pct": 80.0},
+        {"line": "Red", "window_label": "last_24h", "horizon_bucket": "0-5", "n": 6,
+         "median_abs_error_s": 5.0, "mae_s": 6.0, "pct_within_60s": 95.0, "pct_within_120s": 100.0,
+         "n_disruption": 0, "coverage_pct": 70.0},
+        {"line": "Red", "window_label": "last_7d", "horizon_bucket": "0-5", "n": 60,
+         "median_abs_error_s": 9.0, "mae_s": 9.0, "pct_within_60s": 9.0, "pct_within_120s": 9.0,
+         "n_disruption": 0, "coverage_pct": 60.0},
+    ])  # fmt: skip
+    out = accuracy.accuracy_window_by_horizon(win, "last_24h")
+    assert list(out["horizon_bucket"]) == ["0-5", "10-20"]  # bucket order
+    assert list(out["median_abs_error_s"]) == [5.0, 11.0]  # taken as is, not weighted
+
+
+def test_headway_window_summary_matches_the_summary_keys() -> None:
+    win = pd.DataFrame([{
+        "line": "Red", "window_label": "last_7d", "n_headways": 40, "n_disruption": 2,
+        "pct_within_band": 50.0, "pct_bunched": 25.0, "pct_gap": 25.0, "median_ratio": 1.0,
+        "n_dropped_train_between": 3, "n_dropped_unproven_order": 1,
+        "n_dropped_no_scheduled_headway": 0, "n_dropped_implausible": 1,
+        "n_excluded_outage": 7, "coverage_pct": 66.0,
+    }])  # fmt: skip
+    s = accuracy.headway_window_summary(win, "Red", "last_7d")
+    assert s["n"] == 40.0 and s["n_dropped"] == 5.0 and s["n_excluded_outage"] == 7.0
+    assert s["pct_within_band"] == 50.0 and s["coverage_pct"] == 66.0 and s["n_disruption"] == 2.0
+    missing = accuracy.headway_window_summary(win, "Blue", "last_7d")
+    assert missing["n"] == 0.0 and missing["pct_within_band"] is None
+
+
+def test_window_options_offer_exact_windows_only_when_all_tables_exist() -> None:
+    table = pd.DataFrame({"x": [1]})
+    assert list(accuracy.window_options(table, table)) == ["last_24h", "last_7d", "all_days"]
+    assert list(accuracy.window_options(table, None)) == ["all_days"]
+    assert list(accuracy.window_options(table, pd.DataFrame())) == ["all_days"]

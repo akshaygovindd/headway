@@ -1,6 +1,7 @@
 """Line explorer: headway adherence (Release 2, when exported), deviation by hour and weekday, and
 the slowest stretches. Heavy rail runs to headways, so it shows headway adherence first."""
 
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -34,6 +35,8 @@ direction = None if choice == "Both" else int(choice)
 headways = ui.gold_table_optional(base, "agg_headway_adherence_hourly")
 ett = ui.gold_table_optional(base, "agg_ett_daily")
 recon = ui.gold_table_optional(base, "agg_arrival_reconstruction_daily")
+hw_win = ui.gold_table_optional(base, "agg_headway_window")
+ett_win = ui.gold_table_optional(base, "agg_ett_window")
 
 
 def headway_adherence() -> None:
@@ -46,7 +49,17 @@ def headway_adherence() -> None:
         "headway is on target, below 0.5 is bunching, above 1.5 is a gap."
     )
     st.caption(accuracy.arrival_coverage_note(recon, line))
-    s = accuracy.headway_summary(headways, line, direction)
+    # The window tables combine both directions; one direction falls back to the hourly rows.
+    options = accuracy.window_options(hw_win if direction is None else None, ett_win)
+    window = st.radio(
+        "Window", list(options), format_func=options.get, horizontal=True, key="hw_window"
+    )
+    exact = window != accuracy.ALL_DAYS
+    s = (
+        accuracy.headway_window_summary(hw_win, line, window)
+        if exact
+        else accuracy.headway_summary(headways, line, direction)
+    )
     badge = coverage_badge(s["coverage_pct"])
     cols = st.columns([2, 1, 1, 1])
     cols[0].markdown(ui.badge_markdown(badge))
@@ -66,11 +79,9 @@ def headway_adherence() -> None:
         if s["n_excluded_outage"]
         else ""
     )
-    disruption = (
-        f", {int(s['n_disruption_hours'])} service-disruption hours included"
-        if s["n_disruption_hours"]
-        else ""
-    )
+    n_disrupted = s["n_disruption"] if exact else s["n_disruption_hours"]
+    unit = "headways in service-disruption hours" if exact else "service-disruption hours"
+    disruption = f", {int(n_disrupted):,} {unit} included" if n_disrupted else ""
     st.caption(f"{ui.coverage_text(s['coverage_pct'], s['n'])}{dropped}{outage}{disruption}")
     by_hour = accuracy.headway_by_hour(headways, line, direction)
     if not by_hour.empty and ui.has_values(by_hour["pct_within_band"]) and badge.rankable:
@@ -85,8 +96,16 @@ def headway_adherence() -> None:
                           margin={"l": 10, "r": 10, "t": 10, "b": 10})  # fmt: skip
         st.plotly_chart(fig, width="stretch")
     if ett is not None:
-        bands = accuracy.ett_by_band(ett, line, direction)
-        st.markdown("**ETT approximation (weekdays)**")
+        if exact and ett_win is not None:
+            w = accuracy.ett_window_row(ett_win, line, window)
+            bands = pd.DataFrame(
+                [{"time_band": accuracy.WINDOWS[window], "n": int(w["n"] or 0),
+                  "median_ett_s": w["median_ett_s"], "p90_ett_s": w["p90_ett_s"],
+                  "coverage_pct": w["coverage_pct"]}]
+            )  # fmt: skip
+        else:
+            bands = accuracy.ett_by_band(ett, line, direction)
+        st.markdown(f"**ETT approximation ({'all trips in the window' if exact else 'weekdays'})**")
         st.caption(
             "Second stop to second-to-last stop, minus the scheduled running time. Adapted approximation, not an official MBTA measure."
         )

@@ -48,6 +48,8 @@ models:
       int_hour_flags: *r2
       int_disrupted_line_hours: *r2
       int_usable_arrivals: *r2
+      int_window_hours: *r2
+      int_scheduled_headways: *r2
     marts:
       +materialized: table
       fct_reconstructed_arrivals: *r2
@@ -59,6 +61,10 @@ models:
       fct_headways: *r2
       agg_headway_adherence_hourly: *r2
       agg_ett_daily: *r2
+      agg_accuracy_window: *r2
+      agg_actual_deviation_window: *r2
+      agg_headway_window: *r2
+      agg_ett_window: *r2
 
 seeds:
   headway:

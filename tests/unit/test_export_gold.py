@@ -29,6 +29,10 @@ R2_ALLOWLIST = {
     "agg_headway_adherence_hourly",
     "agg_ett_daily",
     "agg_active_alerts",
+    "agg_accuracy_window",
+    "agg_actual_deviation_window",
+    "agg_headway_window",
+    "agg_ett_window",
 }
 
 
