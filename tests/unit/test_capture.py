@@ -118,12 +118,22 @@ def _run(storage: LocalStorage, at: datetime, scheduled: datetime = SCHEDULED): 
     return capture_run(CONFIG, storage, fetch, lambda: at, scheduled, offsets=(0,))
 
 
-def test_second_delivery_of_a_minute_writes_a_duplicate_record_not_a_manifest(
+def test_second_delivery_of_a_minute_fetches_nothing_and_writes_a_duplicate_record(
     tmp_path: Path,
 ) -> None:
     storage = LocalStorage(tmp_path)
     first = _run(storage, NOW)
-    second = _run(storage, NOW.replace(microsecond=400_000))
+    raw_before = storage.list_keys("raw/")
+    calls: list[str] = []
+
+    def must_not_fetch(url: str) -> FetchResult:
+        calls.append(url)
+        return ok(b"")
+
+    second = capture_run(
+        CONFIG, storage, must_not_fetch, lambda: NOW.replace(microsecond=400_000), SCHEDULED
+    )
+    assert calls == [] and storage.list_keys("raw/") == raw_before
 
     prefix = CONFIG.storage_prefix
     manifests = [k for k in storage.list_keys(f"manifests/{prefix}/") if "/duplicates/" not in k]
@@ -133,10 +143,26 @@ def test_second_delivery_of_a_minute_writes_a_duplicate_record_not_a_manifest(
     assert second.duplicate_key == records[0]
     original = json.loads(storage.get_bytes(manifests[0]))
     assert original["run_id"] == first.captures[0].entry.run_id
+    assert len(original["entries"]) == 3  # the winner's manifest is untouched
     record = json.loads(storage.get_bytes(records[0]))
     assert record["run_id"] == second.captures[0].entry.run_id != original["run_id"]
     assert record["duplicate_of"] == manifests[0]
-    assert len(record["entries"]) == 3
+    assert [e["status"] for e in record["entries"]] == ["error"]  # one placeholder, not data
+
+
+def test_the_minute_is_claimed_before_any_feed_is_fetched(tmp_path: Path) -> None:
+    storage = LocalStorage(tmp_path)
+    seen: list[dict[str, object]] = []
+
+    def fetch(url: str) -> FetchResult:
+        keys = storage.list_keys("manifests/")
+        seen.append(json.loads(storage.get_bytes(keys[0])))
+        return ok(fx.vehicles_feed())
+
+    capture_run(CONFIG, storage, fetch, lambda: NOW, SCHEDULED, offsets=(0,))
+    assert seen and all(m["entries"] == [] for m in seen)  # claimed, not yet completed
+    final = json.loads(storage.get_bytes(storage.list_keys("manifests/")[0]))
+    assert len(final["entries"]) == 3
 
 
 def test_a_different_minute_is_not_a_duplicate(tmp_path: Path) -> None:
@@ -146,7 +172,7 @@ def test_a_different_minute_is_not_a_duplicate(tmp_path: Path) -> None:
     assert not _run(storage, NOW.replace(minute=1), later).duplicate
 
 
-def test_concurrent_deliveries_of_one_minute_give_one_manifest_and_one_record(
+def test_concurrent_deliveries_of_one_minute_fetch_once_and_leave_one_record(
     tmp_path: Path,
 ) -> None:
     from concurrent.futures import ThreadPoolExecutor
@@ -154,6 +180,7 @@ def test_concurrent_deliveries_of_one_minute_give_one_manifest_and_one_record(
 
     storage = LocalStorage(tmp_path)
     gate = Barrier(2)
+    fetches: list[str] = []
 
     def deliver(i: int):  # type: ignore[no-untyped-def]
         bodies = {
@@ -163,10 +190,10 @@ def test_concurrent_deliveries_of_one_minute_give_one_manifest_and_one_record(
         }
 
         def fetch(url: str) -> FetchResult:
-            if url == str(CONFIG.feeds.alerts):
-                gate.wait(timeout=10)  # both deliveries finish fetching, then race for the claim
+            fetches.append(url)
             return bodies[url]
 
+        gate.wait(timeout=10)  # both deliveries race for the claim
         return capture_run(
             CONFIG, storage, fetch, lambda: NOW.replace(microsecond=i), SCHEDULED, offsets=(0,)
         )
@@ -179,6 +206,7 @@ def test_concurrent_deliveries_of_one_minute_give_one_manifest_and_one_record(
     records = storage.list_keys(f"manifests/{prefix}/duplicates/")
     assert len(manifests) == 1 and len(records) == 1
     assert sorted(r.duplicate for r in runs) == [False, True]
+    assert len(fetches) == 3  # only the winner fetched, once per feed
 
 
 class FakeTime:

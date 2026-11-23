@@ -10,7 +10,7 @@ from typing import Any
 import httpx
 
 from headway.config import CityConfig, load_city_config
-from headway.ingest.capture import Clock, FeedCapture, Fetcher, Sleeper, capture_run
+from headway.ingest.capture import POLL_OFFSETS_S, Clock, FeedCapture, Fetcher, Sleeper, capture_run
 from headway.ingest.fetch import FetchResult, fetch_feed
 from headway.ingest.live import (
     LIVE_CACHE_CONTROL,
@@ -70,8 +70,9 @@ def run_minute(
     poll_fetcher: Fetcher,
     clock: Clock,
     sleep: Sleeper,
+    polls: int = 1,
 ) -> dict[str, Any]:
-    """One scheduled minute: four timed polls, the live snapshot after each vehicle poll."""
+    """One scheduled minute: ``polls`` timed polls, live snapshot after each vehicle poll."""
     started = time.monotonic()
     vehicle_count: int | None = None
     snapshot_errors: list[Exception] = []
@@ -107,6 +108,7 @@ def run_minute(
         scheduled_at,
         sleep=sleep,
         poll_fetcher=poll_fetcher,
+        offsets=POLL_OFFSETS_S[:polls],
         on_vehicle_capture=update_snapshot,
     )
     if snapshot_errors:
@@ -144,6 +146,16 @@ def run_minute(
     return summary
 
 
+def _polls() -> int:
+    """VEHICLE_POLLS: 1 is the single poll per minute, 4 is 15 s sampling; anything else is 1."""
+    raw = os.environ.get("VEHICLE_POLLS", "1")
+    try:
+        return max(1, min(len(POLL_OFFSETS_S), int(raw)))
+    except ValueError:
+        logger.warning("invalid VEHICLE_POLLS %r; using 1", raw)
+        return 1
+
+
 def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     config = load_city_config(os.environ["CITY_ID"])
     raw_storage = S3Storage(os.environ["RAW_BUCKET"])
@@ -158,4 +170,5 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         poll_fetcher=_poll_fetch,
         clock=_now,
         sleep=_sleep,
+        polls=_polls(),
     )

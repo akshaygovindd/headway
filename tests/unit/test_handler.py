@@ -49,6 +49,7 @@ def aws(monkeypatch: pytest.MonkeyPatch) -> Any:
     monkeypatch.setenv("RAW_BUCKET", "raw-bucket")
     monkeypatch.setenv("PUBLIC_BUCKET", "public-bucket")
     monkeypatch.setenv("CITY_ID", "boston")
+    monkeypatch.setenv("VEHICLE_POLLS", "4")
     clock = {"now": NOW}
     monkeypatch.setattr(handler, "_now", lambda: clock["now"])
     # a sleep advances the fake clock, so the 60 s minute runs instantly
@@ -150,18 +151,26 @@ def test_s3_write_failure_raises(aws: Any, monkeypatch: pytest.MonkeyPatch) -> N
         handler.lambda_handler({}, None)
 
 
-def test_second_delivery_of_a_minute_is_recorded_and_exits_cleanly(
+def test_second_delivery_of_a_minute_is_recorded_without_fetching(
     aws: Any, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     monkeypatch.setattr(handler, "_fetch", _fake_fetch())
     event = {"scheduled_at": "2026-06-01T12:00:00Z"}
     first = handler.lambda_handler(event, None)
+    raw_before = _keys(aws, "raw-bucket", "raw/boston/")
+
+    def must_not_fetch(url: str) -> FetchResult:
+        raise AssertionError("a losing delivery must not fetch")
+
+    monkeypatch.setattr(handler, "_fetch", must_not_fetch)
+    monkeypatch.setattr(handler, "_poll_fetch", must_not_fetch)
     with caplog.at_level("WARNING"):
         second = handler.lambda_handler(event, None)
 
     assert "duplicate_delivery" not in first
     assert second["duplicate_delivery"] is True
     assert "duplicate delivery" in caplog.text
+    assert _keys(aws, "raw-bucket", "raw/boston/") == raw_before
     manifests = [
         k for k in _keys(aws, "raw-bucket", "manifests/boston/") if "/duplicates/" not in k
     ]
@@ -171,32 +180,26 @@ def test_second_delivery_of_a_minute_is_recorded_and_exits_cleanly(
     assert second["duplicate_of"] == manifests[0]
 
 
-def test_concurrent_deliveries_give_one_manifest_and_one_duplicate_record(
+def test_vehicle_polls_env_selects_one_or_four_polls(
     aws: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from concurrent.futures import ThreadPoolExecutor
-    from threading import Barrier
+    monkeypatch.setattr(handler, "_fetch", _fake_fetch())
+    monkeypatch.delenv("VEHICLE_POLLS", raising=False)
+    one = handler.lambda_handler({"scheduled_at": "2026-06-01T12:00:00Z"}, None)
+    assert one["vehicle_polls"] == ["ok"] and len(_keys(aws, "raw-bucket", "raw/boston/")) == 3
 
-    gate = Barrier(2)
-    fetch = _fake_fetch()
-
-    def synchronized(url: str) -> FetchResult:
-        if url == str(CONFIG.feeds.alerts):
-            gate.wait(timeout=10)  # both deliveries reach the manifest write together
-        result: FetchResult = fetch(url)
-        return result
-
-    monkeypatch.setattr(handler, "_fetch", synchronized)
-    event = {"scheduled_at": "2026-06-01T12:00:00Z"}
-    with ThreadPoolExecutor(2) as pool:
-        results = list(pool.map(lambda _: handler.lambda_handler(event, None), range(2)))
-
-    manifests = [
-        k for k in _keys(aws, "raw-bucket", "manifests/boston/") if "/duplicates/" not in k
+    monkeypatch.setenv("VEHICLE_POLLS", "4")
+    four = handler.lambda_handler({"scheduled_at": "2026-06-01T12:01:00Z"}, None)
+    assert four["vehicle_polls"] == ["ok"] * 4
+    manifest = [k for k in _keys(aws, "raw-bucket", "manifests/boston/") if "T1201Z" in k][0]
+    entries = json.loads(aws.get_object(Bucket="raw-bucket", Key=manifest)["Body"].read())[
+        "entries"
     ]
-    records = _keys(aws, "raw-bucket", "manifests/boston/duplicates/")
-    assert len(manifests) == 1 and len(records) == 1
-    assert sorted(bool(r.get("duplicate_delivery")) for r in results) == [False, True]
+    assert [e["poll_index"] for e in entries] == [0, 0, 0, 1, 2, 3]
+
+    monkeypatch.setenv("VEHICLE_POLLS", "nonsense")
+    bad = handler.lambda_handler({"scheduled_at": "2026-06-01T12:02:00Z"}, None)
+    assert bad["vehicle_polls"] == ["ok"]
 
 
 def test_live_snapshot_is_refreshed_after_every_vehicle_poll(

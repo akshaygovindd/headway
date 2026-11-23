@@ -149,13 +149,20 @@ def capture_run(
     coverage still counts one capture minute. ``on_vehicle_capture`` runs after each vehicle
     capture (the live snapshot).
 
-    The manifest is written once, at the end, with a conditional create. EventBridge Scheduler
-    delivers at least once, so the same minute can arrive twice; the delivery that loses the
-    create writes a duplicate-delivery record instead (same shape, under
+    The minute is claimed first (see below) and the manifest completed at the end. EventBridge
+    Scheduler delivers at least once, so the same minute can arrive twice; the delivery that
+    loses the claim fetches nothing and writes a duplicate-delivery record instead (under
     ``manifests/<city>/duplicates/``). The record is flagged downstream, never silently dropped,
     and curation does not treat its captures as data.
     """
     run_id = str(ULID.from_datetime(clock()))
+    key = manifest_key(config, scheduled_at)
+    # Claim the minute before fetching anything: the manifest key is created empty with a
+    # conditional create, and rewritten with the entries once the polls are done. A delivery that
+    # loses the claim fetches nothing; it only records that it happened.
+    claim = {"run_id": run_id, "entries": [], "claimed_at": clock().isoformat()}
+    if not storage.put_if_absent(key, json.dumps(claim, indent=2, sort_keys=True).encode()):
+        return _lost_claim(config, storage, clock, scheduled_at, run_id, key)
     urls: dict[FeedName, str] = {
         "trip_updates": str(config.feeds.trip_updates),
         "vehicle_positions": str(config.feeds.vehicle_positions),
@@ -196,11 +203,35 @@ def capture_run(
         "run_id": run_id,
         "entries": [e.model_dump(mode="json") for e in entries],
     }
-    key = manifest_key(config, scheduled_at)
-    body = json.dumps(manifest, indent=2, sort_keys=True).encode()
-    if storage.put_if_absent(key, body):
-        return CaptureRun(captures, key, skipped_polls=tuple(skipped))
+    storage.put_bytes(key, json.dumps(manifest, indent=2, sort_keys=True).encode())
+    return CaptureRun(captures, key, skipped_polls=tuple(skipped))
+
+
+def _lost_claim(
+    config: CityConfig,
+    storage: Storage,
+    clock: Clock,
+    scheduled_at: datetime,
+    run_id: str,
+    key: str,
+) -> CaptureRun:
+    """Record a second delivery of a claimed minute without fetching.
+
+    The record holds one placeholder entry (an error capture, never fetched) so curation still
+    flags the delivery and the dbt delivery count sees a second run for the minute.
+    """
+    now = clock().astimezone(UTC)
+    entry = ManifestEntry(
+        run_id=run_id,
+        capture_id=f"duplicate_delivery-{now:%Y%m%dT%H%M%S}-{run_id[-8:]}",
+        feed="vehicle_positions",
+        city_id=config.city_id,
+        status="error",
+        scheduled_at=scheduled_at,
+        fetched_at=now,
+        error="duplicate delivery: minute already claimed, nothing fetched",
+    )
     dup_key = duplicate_key(config, scheduled_at, run_id)
-    record = {**manifest, "duplicate_of": key}
+    record = {"run_id": run_id, "entries": [entry.model_dump(mode="json")], "duplicate_of": key}
     storage.put_bytes(dup_key, json.dumps(record, indent=2, sort_keys=True).encode())
-    return CaptureRun(captures, key, dup_key, tuple(skipped))
+    return CaptureRun([FeedCapture(entry, None)], key, dup_key)
