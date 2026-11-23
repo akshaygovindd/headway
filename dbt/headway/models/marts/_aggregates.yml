@@ -403,14 +403,14 @@ models:
       - name: no_shape_trips_excluded
         description: "Scheduled trip instances without a shape, not reconstructed."
   - name: agg_active_alerts
-    description: "Service alerts active per line and hour (an alert counts in the hour when a capture carried it inside its active period). is_service_disruption marks effects DETOUR, NO_SERVICE, REDUCED_SERVICE, SIGNIFICANT_DELAYS, MODIFIED_SERVICE or header text matching shuttle or suspen."
+    description: "Service alerts active per line and hour (an alert counts in the hour when a capture carried it inside its active period). is_service_disruption marks effects DETOUR, NO_SERVICE, REDUCED_SERVICE, SIGNIFICANT_DELAYS, MODIFIED_SERVICE or header text matching shuttle or suspen. scope says what the alert covers: line (the route, or two or more stations of it) or stop (one station); only a line-scope disruption disrupts the line."
     config:
       meta:
-        grain: "service_date x hour_local x line x effect x is_service_disruption"
+        grain: "service_date x hour_local x line x effect x is_service_disruption x scope"
     data_tests:
       - unique_grain:
           arguments:
-            columns: [service_date, hour_local, line, effect, is_service_disruption]
+            columns: [service_date, hour_local, line, effect, is_service_disruption, scope]
     columns:
       - name: service_date
         description: "Service date."
@@ -432,10 +432,21 @@ models:
         description: "True when the alert makes the hour a service disruption for the line."
         data_tests:
           - not_null
+      - name: scope
+        description: "line when an informed entity names the route without a stop or the alert covers two or more stations of the line; stop when it covers one station."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [line, stop]
       - name: n_active_alerts
         description: "Distinct active alerts."
       - name: n_captures
         description: "Distinct captures that carried them."
+      - name: n_stops
+        description: "Most stations (parent stations) covered by one of these alerts."
+      - name: stop_names
+        description: "Names of the stations covered, for stop-scope alerts; null for line scope."
   - name: fct_prediction_errors
     description: "Prediction error against the reconstructed arrival: per trip stop and horizon bucket, the last snapshot in the bucket collected at or before the arrival. High and medium arrivals only; outage-hour rows are flagged and left out of the aggregate."
     config:
@@ -588,6 +599,8 @@ models:
         description: "Arrivals left out because the hour is an outage."
       - name: n_implausible
         description: "Arrivals more than 3600 seconds from the schedule, left out of the statistics."
+      - name: n_stop_excluded
+        description: "Scheduled trip stops left out of the coverage because their station is under a stop-level service-disruption alert in the hour."
       - name: median_deviation_s
         description: "Median of arrival minus scheduled arrival, seconds."
       - name: p90_deviation_s

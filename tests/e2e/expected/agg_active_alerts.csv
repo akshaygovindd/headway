@@ -1,33 +1,47 @@
-service_date,hour_local,line,effect,is_service_disruption,n_active_alerts,n_captures
-2026-11-22,9,Blue,ACCESSIBILITY_ISSUE,false,8,24
-2026-11-22,9,Green-B,ACCESSIBILITY_ISSUE,false,2,24
-2026-11-22,9,Green-C,ACCESSIBILITY_ISSUE,false,2,24
-2026-11-22,9,Green-C,NO_SERVICE,true,3,24
-2026-11-22,9,Green-D,ACCESSIBILITY_ISSUE,false,3,24
-2026-11-22,9,Green-D,OTHER_EFFECT,false,1,24
-2026-11-22,9,Green-E,ACCESSIBILITY_ISSUE,false,1,24
-2026-11-22,9,Green-E,NO_SERVICE,true,1,24
-2026-11-22,9,Mattapan,ACCESSIBILITY_ISSUE,false,2,24
-2026-11-22,9,Orange,ACCESSIBILITY_ISSUE,false,9,24
-2026-11-22,9,Orange,OTHER_EFFECT,false,1,24
-2026-11-22,9,Orange,UNKNOWN_EFFECT,false,2,24
-2026-11-22,9,Red,ACCESSIBILITY_ISSUE,false,12,24
-2026-11-22,9,Red,DETOUR,true,1,24
-2026-11-22,9,Red,OTHER_EFFECT,false,3,24
-2026-11-22,9,Red,UNKNOWN_EFFECT,false,1,24
-2026-11-22,10,Blue,ACCESSIBILITY_ISSUE,false,8,35
-2026-11-22,10,Green-B,ACCESSIBILITY_ISSUE,false,2,35
-2026-11-22,10,Green-C,ACCESSIBILITY_ISSUE,false,2,35
-2026-11-22,10,Green-C,NO_SERVICE,true,3,35
-2026-11-22,10,Green-D,ACCESSIBILITY_ISSUE,false,3,35
-2026-11-22,10,Green-D,OTHER_EFFECT,false,1,35
-2026-11-22,10,Green-E,ACCESSIBILITY_ISSUE,false,1,35
-2026-11-22,10,Green-E,NO_SERVICE,true,1,35
-2026-11-22,10,Mattapan,ACCESSIBILITY_ISSUE,false,2,35
-2026-11-22,10,Orange,ACCESSIBILITY_ISSUE,false,9,35
-2026-11-22,10,Orange,OTHER_EFFECT,false,1,35
-2026-11-22,10,Orange,UNKNOWN_EFFECT,false,2,35
-2026-11-22,10,Red,ACCESSIBILITY_ISSUE,false,12,35
-2026-11-22,10,Red,DETOUR,true,1,35
-2026-11-22,10,Red,OTHER_EFFECT,false,3,35
-2026-11-22,10,Red,UNKNOWN_EFFECT,false,1,35
+service_date,hour_local,line,effect,is_service_disruption,scope,n_active_alerts,n_captures,n_stops,stop_names
+2026-11-22,9,Blue,ACCESSIBILITY_ISSUE,false,line,7,24,2,
+2026-11-22,9,Blue,ACCESSIBILITY_ISSUE,false,stop,1,24,1,State
+2026-11-22,9,Green-B,ACCESSIBILITY_ISSUE,false,line,1,24,3,
+2026-11-22,9,Green-B,ACCESSIBILITY_ISSUE,false,stop,1,24,1,Hynes Convention Center
+2026-11-22,9,Green-C,ACCESSIBILITY_ISSUE,false,line,1,24,3,
+2026-11-22,9,Green-C,ACCESSIBILITY_ISSUE,false,stop,1,24,1,Hynes Convention Center
+2026-11-22,9,Green-C,NO_SERVICE,true,stop,3,24,1,"Fairbanks Street, Hawes Street, Summit Avenue"
+2026-11-22,9,Green-D,ACCESSIBILITY_ISSUE,false,line,1,24,3,
+2026-11-22,9,Green-D,ACCESSIBILITY_ISSUE,false,stop,2,24,1,"Haymarket, Hynes Convention Center"
+2026-11-22,9,Green-D,OTHER_EFFECT,false,stop,1,24,1,Riverside
+2026-11-22,9,Green-E,ACCESSIBILITY_ISSUE,false,stop,1,24,1,Haymarket
+2026-11-22,9,Green-E,NO_SERVICE,true,stop,1,24,1,Symphony
+2026-11-22,9,Mattapan,ACCESSIBILITY_ISSUE,false,line,1,24,3,
+2026-11-22,9,Mattapan,ACCESSIBILITY_ISSUE,false,stop,1,24,1,Ashmont
+2026-11-22,9,Orange,ACCESSIBILITY_ISSUE,false,line,3,24,3,
+2026-11-22,9,Orange,ACCESSIBILITY_ISSUE,false,stop,6,24,1,"Back Bay, Downtown Crossing, Haymarket, Malden Center, Oak Grove, Ruggles"
+2026-11-22,9,Orange,OTHER_EFFECT,false,stop,1,24,1,Oak Grove
+2026-11-22,9,Orange,UNKNOWN_EFFECT,false,stop,2,24,1,Jackson Square
+2026-11-22,9,Red,ACCESSIBILITY_ISSUE,false,line,12,24,6,
+2026-11-22,9,Red,DETOUR,true,line,1,24,8,
+2026-11-22,9,Red,OTHER_EFFECT,false,line,2,24,99,
+2026-11-22,9,Red,OTHER_EFFECT,false,stop,1,24,1,Braintree
+2026-11-22,9,Red,UNKNOWN_EFFECT,false,stop,1,24,1,Savin Hill
+2026-11-22,10,Blue,ACCESSIBILITY_ISSUE,false,line,7,35,2,
+2026-11-22,10,Blue,ACCESSIBILITY_ISSUE,false,stop,1,35,1,State
+2026-11-22,10,Green-B,ACCESSIBILITY_ISSUE,false,line,1,35,3,
+2026-11-22,10,Green-B,ACCESSIBILITY_ISSUE,false,stop,1,35,1,Hynes Convention Center
+2026-11-22,10,Green-C,ACCESSIBILITY_ISSUE,false,line,1,35,3,
+2026-11-22,10,Green-C,ACCESSIBILITY_ISSUE,false,stop,1,35,1,Hynes Convention Center
+2026-11-22,10,Green-C,NO_SERVICE,true,stop,3,35,1,"Fairbanks Street, Hawes Street, Summit Avenue"
+2026-11-22,10,Green-D,ACCESSIBILITY_ISSUE,false,line,1,35,3,
+2026-11-22,10,Green-D,ACCESSIBILITY_ISSUE,false,stop,2,35,1,"Haymarket, Hynes Convention Center"
+2026-11-22,10,Green-D,OTHER_EFFECT,false,stop,1,35,1,Riverside
+2026-11-22,10,Green-E,ACCESSIBILITY_ISSUE,false,stop,1,35,1,Haymarket
+2026-11-22,10,Green-E,NO_SERVICE,true,stop,1,35,1,Symphony
+2026-11-22,10,Mattapan,ACCESSIBILITY_ISSUE,false,line,1,35,3,
+2026-11-22,10,Mattapan,ACCESSIBILITY_ISSUE,false,stop,1,35,1,Ashmont
+2026-11-22,10,Orange,ACCESSIBILITY_ISSUE,false,line,3,35,3,
+2026-11-22,10,Orange,ACCESSIBILITY_ISSUE,false,stop,6,35,1,"Back Bay, Downtown Crossing, Haymarket, Malden Center, Oak Grove, Ruggles"
+2026-11-22,10,Orange,OTHER_EFFECT,false,stop,1,35,1,Oak Grove
+2026-11-22,10,Orange,UNKNOWN_EFFECT,false,stop,2,35,1,Jackson Square
+2026-11-22,10,Red,ACCESSIBILITY_ISSUE,false,line,12,35,6,
+2026-11-22,10,Red,DETOUR,true,line,1,35,8,
+2026-11-22,10,Red,OTHER_EFFECT,false,line,2,35,99,
+2026-11-22,10,Red,OTHER_EFFECT,false,stop,1,35,1,Braintree
+2026-11-22,10,Red,UNKNOWN_EFFECT,false,stop,1,35,1,Savin Hill

@@ -592,8 +592,8 @@ def test_r2_run_passes_history_vars_and_writes_closed_days(
         ]
     ]
     assert keys == [
-        "public/boston/history/table=agg_ett_daily/metric_version=1/service_date=2026-11-20/part.parquet",
-        "public/boston/history/table=agg_ett_daily/metric_version=1/service_date=2026-11-22/part.parquet",
+        "public/boston/history/table=agg_ett_daily/metric_version=2/service_date=2026-11-20/part.parquet",
+        "public/boston/history/table=agg_ett_daily/metric_version=2/service_date=2026-11-22/part.parquet",
     ]  # fmt: skip
     assert summary["history_written"] == 2
     assert fakes["history_publish"] == {
@@ -618,7 +618,7 @@ def test_rebuild_history_is_refused_without_the_flag_or_with_a_bad_payload(
         "task": "rebuild_history",
         "from": "2026-11-10",
         "to": "2026-11-12",
-        "metric_version": 1,
+        "metric_version": 2,
     }
     with pytest.raises(handler.TransformError, match="HEADWAY_ENABLE_R2"):
         handler.lambda_handler(event, None)
@@ -637,7 +637,7 @@ def test_rebuild_history_backfills_only_missing_days_and_leaves_gold_alone(
     _r2_database(pipeline_db)
     monkeypatch.setattr(handler, "_now", lambda: datetime(2026, 11, 23, 12, 0, tzinfo=UTC))
     existing = (
-        "public/boston/history/table=agg_ett_daily/metric_version=1/"
+        "public/boston/history/table=agg_ett_daily/metric_version=2/"
         "service_date=2026-11-20/part.parquet"
     )
     aws.put_object(Bucket="public-bucket", Key=existing, Body=b"original")
@@ -645,7 +645,7 @@ def test_rebuild_history_backfills_only_missing_days_and_leaves_gold_alone(
         "task": "rebuild_history",
         "from": "2026-11-20",
         "to": "2026-11-22",
-        "metric_version": 1,
+        "metric_version": 2,
     }
     summary = handler.lambda_handler(event, None)
     assert summary["written"] == {"agg_ett_daily": ["2026-11-22"]}

@@ -38,10 +38,10 @@ The targets and the 90 minutes live in the `slo_targets` seed.
 - **Arrival coverage** is the coverage of `agg_actual_deviation_hourly`: reconstructed high or
   medium arrivals over scheduled trip stops of the hour, summed over lines. It leaves out hours
   with a data outage (those are counted against capture completeness, and counting them twice
-  would hide which problem it was). Hours in which a line has an active detour, suspension or
-  shuttle alert are **not hidden**: they are reported as their own row,
+  would hide which problem it was). Hours in which a line has an active line-scope detour, suspension or
+  shuttle alert (the route, or two or more stations of it) are **not hidden**: they are reported as their own row,
   `arrival_coverage_disrupted`, with the same 80 % target, but they do not count toward the
-  objective, because a train that is not running cannot be observed arriving.
+  objective, because a train that is not running cannot be observed arriving. An alert on a single station (a closure) does not remove the line: only that station's trip stops are left out of the hours it is active (METRICS.md, stop-level flags).
 
 ## Error budget
 

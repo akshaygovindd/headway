@@ -171,3 +171,60 @@ unit_tests:
       rows:
         - {trip_instance_key: "R1|2026-11-22|08:00:00", segment: 0, stop_sequence: 1, is_nearest_segment: true, deviation_s: 30, data_outage: true, service_disruption: true}
         - {trip_instance_key: "R1|2026-11-22|08:00:00", segment: 1, stop_sequence: 1, is_nearest_segment: false, deviation_s: 2400, data_outage: true, service_disruption: true}
+
+  - name: alert_scopes_line_versus_stop
+    config:
+      tags: [r2]
+    description: >-
+      One capture. A Red DETOUR (shuttle) names stops of two stations (Davis, and Porter by its
+      platform) and is line scope. A Green-E NO_SERVICE (Symphony closed) names the station and
+      its two platforms: three stop ids, one station, so stop scope. An Orange DETOUR names the
+      route without a stop: line scope. A Blue ACCESSIBILITY_ISSUE on one stop is stop scope and
+      not a service disruption. A Red DETOUR whose period ended before the capture is not active.
+    model: int_alert_scopes
+    given:
+      - input: ref('int_captures')
+        rows:
+          - {capture_id: "c1", service_date: "2026-11-22", hour_local: 8}
+      - input: ref('dim_stop')
+        rows:
+          - {stop_id: "place-davis", stop_name: "Davis", parent_station: null}
+          - {stop_id: "place-portr", stop_name: "Porter", parent_station: null}
+          - {stop_id: "70064", stop_name: "Porter", parent_station: "place-portr"}
+          - {stop_id: "place-symph", stop_name: "Symphony", parent_station: null}
+          - {stop_id: "70242", stop_name: "Symphony", parent_station: "place-symph"}
+          - {stop_id: "70243", stop_name: "Symphony", parent_station: "place-symph"}
+          - {stop_id: "70001", stop_name: "Hynes", parent_station: null}
+      - input: ref('stg_service_alerts')
+        rows:
+          - {capture_id: "c1", alert_id: "a1", route_id: "Red", stop_id: "place-davis", effect: "DETOUR", header_text: "Shuttle buses", fetched_at: "2026-11-22 13:00:00+00", active_start: null, active_end: null}
+          - {capture_id: "c1", alert_id: "a1", route_id: "Red", stop_id: "70064", effect: "DETOUR", header_text: "Shuttle buses", fetched_at: "2026-11-22 13:00:00+00", active_start: null, active_end: null}
+          - {capture_id: "c1", alert_id: "a2", route_id: "Green-E", stop_id: "place-symph", effect: "NO_SERVICE", header_text: "Symphony closed", fetched_at: "2026-11-22 13:00:00+00", active_start: null, active_end: null}
+          - {capture_id: "c1", alert_id: "a2", route_id: "Green-E", stop_id: "70242", effect: "NO_SERVICE", header_text: "Symphony closed", fetched_at: "2026-11-22 13:00:00+00", active_start: null, active_end: null}
+          - {capture_id: "c1", alert_id: "a2", route_id: "Green-E", stop_id: "70243", effect: "NO_SERVICE", header_text: "Symphony closed", fetched_at: "2026-11-22 13:00:00+00", active_start: null, active_end: null}
+          - {capture_id: "c1", alert_id: "a3", route_id: "Orange", stop_id: null, effect: "DETOUR", header_text: "Detour", fetched_at: "2026-11-22 13:00:00+00", active_start: null, active_end: null}
+          - {capture_id: "c1", alert_id: "a4", route_id: "Blue", stop_id: "70001", effect: "ACCESSIBILITY_ISSUE", header_text: "Elevator out", fetched_at: "2026-11-22 13:00:00+00", active_start: null, active_end: null}
+          - {capture_id: "c1", alert_id: "a5", route_id: "Red", stop_id: "place-davis", effect: "DETOUR", header_text: "Old", fetched_at: "2026-11-22 13:00:00+00", active_start: null, active_end: "2026-11-22 12:00:00+00"}
+    expect:
+      rows:
+        - {service_date: "2026-11-22", hour_local: 8, line: "Red", alert_id: "a1", is_service_disruption: true, route_level: false, n_stops: 2, stop_names: "Davis, Porter", scope: "line"}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Green-E", alert_id: "a2", is_service_disruption: true, route_level: false, n_stops: 1, stop_names: "Symphony", scope: "stop"}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Orange", alert_id: "a3", is_service_disruption: true, route_level: true, n_stops: 0, stop_names: null, scope: "line"}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Blue", alert_id: "a4", is_service_disruption: false, route_level: false, n_stops: 1, stop_names: "Hynes", scope: "stop"}
+
+  - name: stop_alert_flags_only_stop_scope_disruptions
+    config:
+      tags: [r2]
+    description: >-
+      Only stop-scope service disruptions flag a station: the closed Symphony station is flagged
+      for Green-E; a line-scope alert and a stop-scope alert that is not a disruption are not.
+    model: int_stop_alert_flags
+    given:
+      - input: ref('int_alert_scopes')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 8, line: "Green-E", alert_id: "a2", is_service_disruption: true, scope: "stop", station_ids: ["place-symph"]}
+          - {service_date: "2026-11-22", hour_local: 8, line: "Red", alert_id: "a1", is_service_disruption: true, scope: "line", station_ids: ["place-davis", "place-portr"]}
+          - {service_date: "2026-11-22", hour_local: 8, line: "Blue", alert_id: "a4", is_service_disruption: false, scope: "stop", station_ids: ["70001"]}
+    expect:
+      rows:
+        - {line: "Green-E", service_date: "2026-11-22", hour_local: 8, station_id: "place-symph"}

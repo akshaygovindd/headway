@@ -342,8 +342,78 @@ models:
         description: "True when missed_runs reaches the seed threshold or the vehicle window is incomplete."
         data_tests:
           - not_null
+  - name: int_alert_scopes
+    description: "Active service alerts per line, hour and alert with their scope: line (route-level entity, or two or more stations) or stop (one station). A station is the parent station of a stop."
+    config:
+      meta:
+        grain: "service_date x hour_local x line x alert_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [service_date, hour_local, line, alert_id]
+    columns:
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour (0-23) of the capture."
+        data_tests:
+          - not_null
+      - name: line
+        description: "Reporting line (route_id) of the informed entity."
+        data_tests:
+          - not_null
+      - name: alert_id
+        description: "Alert identifier."
+        data_tests:
+          - not_null
+      - name: effect
+        description: "GTFS-realtime alert effect."
+      - name: is_service_disruption
+        description: "True when the effect or header text makes the hour a service disruption."
+      - name: route_level
+        description: "True when an informed entity names the route without a stop."
+      - name: n_stops
+        description: "Distinct stations covered."
+      - name: station_ids
+        description: "The stations covered."
+      - name: stop_names
+        description: "Names of the stations covered."
+      - name: capture_ids
+        description: "Captures of the hour that carried the alert while active."
+      - name: scope
+        description: "line or stop."
+        data_tests:
+          - not_null
+  - name: int_stop_alert_flags
+    description: "Stations under a stop-level service-disruption alert, per line and hour. Their trip stops are left out of arrival coverage; the line is not disrupted."
+    config:
+      meta:
+        grain: "line x service_date x hour_local x station_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, service_date, hour_local, station_id]
+    columns:
+      - name: line
+        description: "Reporting line (route_id)."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour (0-23)."
+        data_tests:
+          - not_null
+      - name: station_id
+        description: "Parent station of the flagged stop, else the stop."
+        data_tests:
+          - not_null
   - name: int_disrupted_line_hours
-    description: "Line hours with at least one active service-disruption alert."
+    description: "Line hours with at least one active line-scope service-disruption alert."
     config:
       meta:
         grain: "line x service_date x hour_local"

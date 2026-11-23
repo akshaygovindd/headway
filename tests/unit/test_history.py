@@ -181,9 +181,9 @@ def test_rebuild_payload_validation() -> None:
 def test_a_backfill_writes_only_tables_at_the_requested_version(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setitem(history.METRIC_VERSIONS, "ett", 2)
-    assert history.versions_for(2) == {"agg_ett_daily": 2}
-    assert "agg_ett_daily" not in history.versions_for(1)
+    monkeypatch.setitem(history.METRIC_VERSIONS, "ett", 3)
+    assert history.versions_for(3) == {"agg_ett_daily": 3}
+    assert "agg_ett_daily" not in history.versions_for(2)
 
 
 # ---------------------------------------------------------------- dbt union

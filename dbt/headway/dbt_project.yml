@@ -55,6 +55,8 @@ models:
       int_vehicle_stop_events: *r2
       int_hour_flags: *r2
       int_disrupted_line_hours: *r2
+      int_alert_scopes: *r2
+      int_stop_alert_flags: *r2
       int_usable_arrivals: *r2
       int_window_hours: *r2
       int_scheduled_headways: *r2

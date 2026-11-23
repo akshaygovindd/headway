@@ -31,14 +31,16 @@ _CONFLICT = {"PreconditionFailed", "ConditionalRequestConflict"}
 
 # Metric families and their version. Bump a version when the definition of any aggregate of the
 # family changes; never edit history in place.
+# Version 2 of the families that carry the service-disruption label (and the SLOs): an alert
+# disrupts a line only when it covers the route or two or more stations (docs/METRICS.md).
 METRIC_VERSIONS: dict[str, int] = {
     "arrival_reconstruction": 1,
-    "prediction_accuracy": 1,
-    "actual_deviation": 1,
-    "headway_adherence": 1,
-    "ett": 1,
+    "prediction_accuracy": 2,
+    "actual_deviation": 2,
+    "headway_adherence": 2,
+    "ett": 2,
     "stop_deviation": 1,
-    "slo": 1,
+    "slo": 2,
 }
 # Daily aggregate -> metric family.
 HISTORY_TABLES: dict[str, str] = {

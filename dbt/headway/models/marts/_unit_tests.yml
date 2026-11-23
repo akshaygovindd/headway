@@ -160,34 +160,82 @@ unit_tests:
     config:
       tags: [r2]
     description: >-
-      One capture at 13:00 UTC. Alerts active at that time: DETOUR (disruption), ACCESSIBILITY_ISSUE
-      and STOP_MOVED (never), OTHER_EFFECT whose header mentions a shuttle and UNKNOWN_EFFECT whose
-      header says suspension (text match, case-insensitive). A DETOUR whose period ended before the
-      capture and one not started yet are not active. An alert with no active period at all (an
-      Orange DETOUR) is always active, as in GTFS-realtime.
+      Alert scopes of one hour. Red DETOUR and Orange DETOUR cover the line; a Green-E NO_SERVICE
+      (a closed station) is stop scope, so it is reported but does not disrupt the line.
+      ACCESSIBILITY_ISSUE never counts as a disruption whatever its scope. The two Red alerts with
+      the same effect merge into one row with two alerts.
     model: agg_active_alerts
     given:
-      - input: ref('int_captures')
+      - input: ref('int_alert_scopes')
         rows:
-          - {capture_id: "c1", service_date: "2026-11-22", hour_local: 8}
-      - input: ref('stg_service_alerts')
-        rows:
-          - {capture_id: "c1", alert_id: "a1", route_id: "Red", effect: "DETOUR", header_text: "Detour at Park", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
-          - {capture_id: "c1", alert_id: "a2", route_id: "Red", effect: "ACCESSIBILITY_ISSUE", header_text: "Elevator out", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
-          - {capture_id: "c1", alert_id: "a3", route_id: "Red", effect: "OTHER_EFFECT", header_text: "SHUTTLE buses replace trains", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
-          - {capture_id: "c1", alert_id: "a4", route_id: "Red", effect: "DETOUR", header_text: "Old detour", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: "2026-11-22 12:00:00+00"}
-          - {capture_id: "c1", alert_id: "a5", route_id: "Red", effect: "STOP_MOVED", header_text: "Stop moved", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
-          - {capture_id: "c1", alert_id: "a6", route_id: "Red", effect: "UNKNOWN_EFFECT", header_text: "Red Line Suspension", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
-          - {capture_id: "c1", alert_id: "a7", route_id: "Red", effect: "DETOUR", header_text: "Future detour", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 14:00:00+00", active_end: null}
-          - {capture_id: "c1", alert_id: "a8", route_id: "Orange", effect: "DETOUR", header_text: "Detour without period", fetched_at: "2026-11-22 13:00:00+00", active_start: null, active_end: null}
+          - {service_date: "2026-11-22", hour_local: 8, line: "Red", alert_id: "a1", effect: "DETOUR", is_service_disruption: true, route_level: false, n_stops: 3, stop_names: "Davis, Porter", capture_ids: ["c1", "c2"], scope: "line"}
+          - {service_date: "2026-11-22", hour_local: 8, line: "Red", alert_id: "a2", effect: "DETOUR", is_service_disruption: true, route_level: true, n_stops: 0, stop_names: null, capture_ids: ["c1"], scope: "line"}
+          - {service_date: "2026-11-22", hour_local: 8, line: "Red", alert_id: "a3", effect: "ACCESSIBILITY_ISSUE", is_service_disruption: false, route_level: false, n_stops: 1, stop_names: "Davis", capture_ids: ["c1"], scope: "stop"}
+          - {service_date: "2026-11-22", hour_local: 8, line: "Green-E", alert_id: "a4", effect: "NO_SERVICE", is_service_disruption: true, route_level: false, n_stops: 1, stop_names: "Symphony", capture_ids: ["c1"], scope: "stop"}
+          - {service_date: "2026-11-22", hour_local: 8, line: "Orange", alert_id: "a5", effect: "DETOUR", is_service_disruption: true, route_level: true, n_stops: 0, stop_names: null, capture_ids: ["c1"], scope: "line"}
     expect:
       rows:
-        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "DETOUR", is_service_disruption: true, n_active_alerts: 1}
-        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "ACCESSIBILITY_ISSUE", is_service_disruption: false, n_active_alerts: 1}
-        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "OTHER_EFFECT", is_service_disruption: true, n_active_alerts: 1}
-        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "STOP_MOVED", is_service_disruption: false, n_active_alerts: 1}
-        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "UNKNOWN_EFFECT", is_service_disruption: true, n_active_alerts: 1}
-        - {service_date: "2026-11-22", hour_local: 8, line: "Orange", effect: "DETOUR", is_service_disruption: true, n_active_alerts: 1}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "DETOUR", is_service_disruption: true, scope: "line", n_active_alerts: 2, n_captures: 2, n_stops: 3, stop_names: null}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "ACCESSIBILITY_ISSUE", is_service_disruption: false, scope: "stop", n_active_alerts: 1, n_captures: 1, n_stops: 1, stop_names: "Davis"}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Green-E", effect: "NO_SERVICE", is_service_disruption: true, scope: "stop", n_active_alerts: 1, n_captures: 1, n_stops: 1, stop_names: "Symphony"}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Orange", effect: "DETOUR", is_service_disruption: true, scope: "line", n_active_alerts: 1, n_captures: 1, n_stops: 0, stop_names: null}
+
+  - name: disrupted_line_hours_count_line_scope_only
+    config:
+      tags: [r2]
+    description: >-
+      Red has a line-scope disruption and is disrupted. Green-E has only a stop-scope disruption
+      (a closed station) and Blue only a line-scope alert that is not a disruption: neither is a
+      disrupted line hour.
+    model: int_disrupted_line_hours
+    given:
+      - input: ref('agg_active_alerts')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "DETOUR", is_service_disruption: true, scope: "line"}
+          - {service_date: "2026-11-22", hour_local: 8, line: "Green-E", effect: "NO_SERVICE", is_service_disruption: true, scope: "stop"}
+          - {service_date: "2026-11-22", hour_local: 8, line: "Blue", effect: "ACCESSIBILITY_ISSUE", is_service_disruption: false, scope: "line"}
+    expect:
+      rows:
+        - {line: "Red", service_date: "2026-11-22", hour_local: 8}
+
+  - name: actual_deviation_leaves_out_flagged_station_trip_stops
+    config:
+      tags: [r2]
+    description: >-
+      Green-E, hour 9: four scheduled trip stops, two of them at Symphony (platform 70242, parent
+      place-symph) which is closed in that hour. The line is not disrupted. Those two trip stops
+      and the arrival recorded at Symphony are left out and counted in n_stop_excluded; coverage is
+      the one arrival at the other stations over their two scheduled trip stops.
+    model: agg_actual_deviation_hourly
+    given:
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {line: "Green-E", direction_id: 0, service_date: "2026-11-22", hour_local: 9, stop_id: "70242"}
+          - {line: "Green-E", direction_id: 0, service_date: "2026-11-22", hour_local: 9, stop_id: "place-symph"}
+          - {line: "Green-E", direction_id: 0, service_date: "2026-11-22", hour_local: 9, stop_id: "70240"}
+          - {line: "Green-E", direction_id: 0, service_date: "2026-11-22", hour_local: 9, stop_id: "70244"}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {line: "Green-E", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, stop_id: "70242", deviation_s: 10, is_nearest_segment: true}
+          - {line: "Green-E", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, stop_id: "70240", deviation_s: 20, is_nearest_segment: true}
+      - input: ref('dim_stop')
+        rows:
+          - {stop_id: "place-symph", parent_station: null}
+          - {stop_id: "70242", parent_station: "place-symph"}
+          - {stop_id: "70240", parent_station: "place-prmnl"}
+          - {stop_id: "70244", parent_station: "place-nuniv"}
+      - input: ref('int_stop_alert_flags')
+        rows:
+          - {line: "Green-E", service_date: "2026-11-22", hour_local: 9, station_id: "place-symph"}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 9, data_outage: false}
+      - input: ref('int_disrupted_line_hours')
+        rows:
+          - {line: "Blue", service_date: "2026-11-22", hour_local: 9}
+    expect:
+      rows:
+        - {line: "Green-E", direction_id: 0, service_date: "2026-11-22", hour_local: 9, data_outage: false, service_disruption: false, n_arrivals: 1, n_stop_excluded: 2, scheduled_trip_stops: 2, coverage_numerator: 1, coverage_denominator: 2, coverage_pct: 50.0}
 
   - name: prediction_errors_last_snapshot_per_bucket
     config:
@@ -329,12 +377,18 @@ unit_tests:
           - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 10, stop_id: "s1"}
       - input: ref('int_usable_arrivals')
         rows:
-          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, deviation_s: -120, is_nearest_segment: true}
-          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, deviation_s: 0, is_nearest_segment: true}
-          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, deviation_s: 100, is_nearest_segment: true}
-          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, deviation_s: 100, is_nearest_segment: true}
-          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, deviation_s: 4000, is_nearest_segment: true}
-          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 10, deviation_s: 30, is_nearest_segment: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, stop_id: "s0", deviation_s: -120, is_nearest_segment: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, stop_id: "s0", deviation_s: 0, is_nearest_segment: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, stop_id: "s0", deviation_s: 100, is_nearest_segment: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, stop_id: "s0", deviation_s: 100, is_nearest_segment: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, stop_id: "s0", deviation_s: 4000, is_nearest_segment: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 10, stop_id: "s0", deviation_s: 30, is_nearest_segment: true}
+      - input: ref('dim_stop')
+        rows:
+          - {stop_id: "s0", parent_station: null}
+      - input: ref('int_stop_alert_flags')
+        rows:
+          - {line: "Orange", service_date: "2026-11-22", hour_local: 9, station_id: "s0"}
       - input: ref('int_hour_flags')
         rows:
           - {service_date: "2026-11-22", hour_local: 9, data_outage: false}
