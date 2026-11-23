@@ -41,6 +41,7 @@ models:
       stg_gtfs__shape_points_dist: &r2
         +tags: ["r2"]
       stg_gtfs__stop_shape_positions: *r2
+      stg_transform_runs: *r2
     intermediate:
       +materialized: table
       int_trip_stop_distances: *r2

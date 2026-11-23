@@ -194,3 +194,38 @@ flowchart LR
 - **Gold.** The `gold_r2_allowlist` macro adds the six daily/hourly aggregates and the four window
   marts to the export when the flag is on; `publish.R2_GOLD_TABLES` publishes the same set to
   MotherDuck.
+
+## Release 2: run state and history
+
+Two kinds of object let the transform remember across runs, each in its own bucket and prefix.
+Both are written by the transform Lambda; neither is touched by MotherDuck compute.
+
+| Object | Key | Written | Read by |
+| --- | --- | --- | --- |
+| Run state | `s3://<raw>/state/transform_runs/dt=YYYY-MM-DD/rows.parquet` | end of every invocation: one row appended to the object of the UTC day | startup of the next run, which loads the last 35 days into `main.agg_transform_runs`; dbt reads it through `stg_transform_runs` |
+| History | `s3://<public>/public/<city>/history/table=<agg>/metric_version=<N>/service_date=YYYY-MM-DD/part.parquet` | once, after the service day closes (06:00 local the next day), with a conditional put | dbt (`history_union`) for closed days; MotherDuck as `history_<agg>`; anyone, over HTTPS |
+
+```mermaid
+flowchart LR
+    S[(state/transform_runs/<br/>raw bucket)] -- "load at startup" --> DB[(local DuckDB<br/>agg_transform_runs)]
+    DB --> STG[stg_transform_runs]
+    STG --> SLO[agg_slo_daily]
+    CUR[(curated, last 7 days)] --> D[dbt build]
+    H[(history/<br/>public bucket)] -- "closed days" --> D
+    D -- "open days" --> G[(gold)]
+    D --> W["write_closed_days<br/>(conditional put, never rewrites)"]
+    W --> H
+    H --> MD[(MotherDuck<br/>history_*)]
+    RUN[run record] -- "append at the end" --> S
+```
+
+- **Run state is generic.** A `StateTable` (name, folder, columns, timestamp column, retention) is
+  all a table needs to persist; the Elementary result tables will declare theirs.
+  `agg_transform_runs` has one row per invocation: run id, task (`scheduled` or `rebuild_history`),
+  the scheduled hour it belongs to (`slot`: start minus 20 minutes, floored to the hour), start and
+  end, status (`success`, `tests_failed`, `failed`), test counts, rows exported, when gold was
+  exported, whether MotherDuck was published, duration and steps. A run records itself last, so it
+  appears in the table one run later. A run skipped by the lock records nothing.
+- **History is append-only.** Days are never rewritten; a change of definition bumps the metric
+  version of its family and backfills with `{"task":"rebuild_history",...}` (ADR-015).
+  `metric_version` is the single constant per family in `headway_transform/history.py`.

@@ -13,7 +13,7 @@ from typing import Any
 
 import boto3
 
-from headway_transform import cost, history, publish
+from headway_transform import cost, history, publish, state
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -37,6 +37,33 @@ class TransformError(Exception):
 
 class ExportError(TransformError):
     """export_gold ran but the expected gold objects are not in the bucket."""
+
+
+@dataclass
+class RunRecord:
+    """What one invocation writes to agg_transform_runs. `status` stays 'failed' until the run
+    reaches its end, so an exception anywhere is recorded as a failure."""
+
+    run_id: str
+    task: str
+    started_at: datetime
+    status: str = "failed"
+    tests_passed: int | None = None
+    tests_failed: int | None = None
+    rows_exported: int | None = None
+    gold_exported_at: datetime | None = None
+    gold_published: bool = False
+    steps: dict[str, int] = field(default_factory=dict)
+    error: str | None = None
+
+    def row(self, finished_at: datetime) -> tuple[Any, ...]:
+        return (
+            self.run_id, self.task, state.slot_of(self.started_at), self.started_at, finished_at,
+            self.status, self.tests_passed, self.tests_failed, self.rows_exported,
+            self.gold_exported_at, self.gold_published, publish.r2_enabled(),
+            round((finished_at - self.started_at).total_seconds() * 1000),
+            json.dumps(self.steps, sort_keys=True), self.error,
+        )  # fmt: skip
 
 
 @dataclass
@@ -384,6 +411,17 @@ def _smoke(started: float) -> dict[str, Any]:
     return summary
 
 
+def _record_run(s3: Any, run: RunRecord) -> None:
+    """Append this run to the persisted agg_transform_runs; a failure here never fails the run."""
+    try:
+        finished = _now()
+        state.append(
+            s3, os.environ["RAW_BUCKET"], state.TRANSFORM_RUNS, [run.row(finished)], run.started_at
+        )
+    except Exception:
+        logger.exception("could not write the run record")
+
+
 def _variables(lookback: int, now: datetime) -> str:
     """The dbt vars of a run. Release 2 adds the history root and metric versions (ADR-015)."""
     variables: dict[str, Any] = {
@@ -424,22 +462,30 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         summary: dict[str, Any] = {"skipped": "locked"}
         logger.info(json.dumps(summary, sort_keys=True))
         return summary
+    run = RunRecord(lock.run_id, "rebuild_history" if rebuild else "scheduled", _now())
+    db_path = os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
     try:
+        release_dbt_connections()  # a warm container may still hold the file
+        state.load(s3, os.environ["RAW_BUCKET"], db_path, state.TRANSFORM_RUNS, run.started_at)
         if rebuild is not None:
-            return _rebuild_history(started, s3, *rebuild)
-        return _transform(started, s3)
+            return _rebuild_history(started, s3, run, *rebuild)
+        return _transform(started, s3, run)
+    except Exception as exc:
+        run.error = f"{type(exc).__name__}: {exc}"[:1000]
+        raise
     finally:
+        _record_run(s3, run)
         lock.release()
 
 
-def _transform(started: float, s3: Any) -> dict[str, Any]:
+def _transform(started: float, s3: Any, run: RunRecord) -> dict[str, Any]:
     public_bucket = os.environ["PUBLIC_BUCKET"]
     city = os.environ["CITY_ID"]
     lookback = int(os.environ.get("LOOKBACK_DAYS", DEFAULT_LOOKBACK_DAYS))
     gold_prefix = f"public/{city}/gold"
     gold_url = f"s3://{public_bucket}/{gold_prefix}"
     db_path = os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
-    steps: dict[str, int] = {}
+    steps: dict[str, int] = run.steps
     summary: dict[str, Any] = {}
 
     def timed(name: str, t0: float) -> None:
@@ -448,6 +494,7 @@ def _transform(started: float, s3: Any) -> dict[str, Any]:
 
     variables = _variables(lookback, _now())
     build = _build_and_test(variables, steps)
+    run.tests_passed, run.tests_failed = build.tests_passed, build.tests_failed
     if build.tests_failed:
         logger.warning("dbt tests failed: %d (export continues)", build.tests_failed)
 
@@ -456,11 +503,13 @@ def _transform(started: float, s3: Any) -> dict[str, Any]:
              "--args", json.dumps({"target_dir": gold_url})])  # fmt: skip
     verify_export(s3, public_bucket, gold_prefix)
     set_gold_cache_control(s3, public_bucket, gold_prefix)
+    run.gold_exported_at = _now()
     timed("export_gold", t0)
     manifest = json.loads(
         s3.get_object(Bucket=public_bucket, Key=f"{gold_prefix}/manifest.json")["Body"].read()
     )
     rows_exported = manifest["row_counts"]
+    run.rows_exported = sum(rows_exported.values())
 
     cost_rows: int | None = None
     t0 = time.monotonic()
@@ -503,6 +552,7 @@ def _transform(started: float, s3: Any) -> dict[str, Any]:
             **_history_publish_args(public_bucket, city),
         )  # fmt: skip
         summary["published_tables"] = len(published)
+        run.gold_published = True
     except Exception as exc:
         logger.exception("MotherDuck publish failed")
         publish_error = exc
@@ -527,6 +577,7 @@ def _transform(started: float, s3: Any) -> dict[str, Any]:
         raise publish_error
     if history_error is not None:
         raise history_error
+    run.status = "success" if build.success else "tests_failed"
     return summary
 
 
@@ -540,7 +591,7 @@ def _history_publish_args(public_bucket: str, city: str) -> dict[str, Any]:
 
 
 def _rebuild_history(
-    started: float, s3: Any, first: date, last: date, version: int
+    started: float, s3: Any, run: RunRecord, first: date, last: date, version: int
 ) -> dict[str, Any]:
     """Backfill history for explicit days at the current metric version; never touches gold.
 
@@ -554,8 +605,7 @@ def _rebuild_history(
     db_path = os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
     now = _now()
     lookback = max((now.date() - first).days, DEFAULT_LOOKBACK_DAYS)
-    steps: dict[str, int] = {}
-    _build_and_test(_variables(lookback, now), steps)
+    _build_and_test(_variables(lookback, now), run.steps)
     release_dbt_connections()
     days = [first + timedelta(days=i) for i in range((last - first).days + 1)]
     result = history.write_closed_days(
@@ -578,4 +628,5 @@ def _rebuild_history(
             token, "", [], **_history_publish_args(public_bucket, city)
         )  # fmt: skip
     logger.info(json.dumps(summary, sort_keys=True, default=str))
+    run.status = "success"
     return summary

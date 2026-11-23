@@ -723,3 +723,46 @@ models:
         description: Metres along the shape of the stop's projection.
         data_tests:
           - not_null
+
+  - name: stg_transform_runs
+    description: "Persisted transform runs (agg_transform_runs), one row per invocation of the transform Lambda, loaded from the raw bucket before dbt runs. Empty when the build has no persisted state (local, replay)."
+    config:
+      meta:
+        grain: "run_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [run_id]
+    columns:
+      - name: run_id
+        description: "Invocation identifier (the run lock's run id)."
+        data_tests:
+          - not_null
+      - name: task
+        description: "scheduled or rebuild_history."
+      - name: slot
+        description: "The scheduled hour (UTC) the run belongs to: the hour of its start minus 20 minutes."
+      - name: started_at
+        description: "Start of the invocation (UTC)."
+      - name: finished_at
+        description: "End of the invocation (UTC)."
+      - name: status
+        description: "success, tests_failed (gold exported, some dbt tests failed) or failed."
+      - name: tests_passed
+        description: "dbt tests that passed."
+      - name: tests_failed
+        description: "dbt tests that failed."
+      - name: rows_exported
+        description: "Rows in the exported gold tables."
+      - name: gold_exported_at
+        description: "When the gold export finished; null when the run failed before it."
+      - name: gold_published
+        description: "True when the MotherDuck publish succeeded."
+      - name: r2_enabled
+        description: "True when HEADWAY_ENABLE_R2 was on."
+      - name: duration_ms
+        description: "Duration of the invocation in milliseconds."
+      - name: step_ms
+        description: "JSON object of milliseconds per step."
+      - name: error
+        description: "Exception text of a failed run."

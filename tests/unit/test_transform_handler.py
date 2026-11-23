@@ -184,7 +184,7 @@ def test_cost_report_is_written_after_dbt_connections_are_released(
 
     monkeypatch.setattr(handler.cost, "write_cost_daily", spy)
     handler.lambda_handler({}, None)
-    assert order == ["release", "cost"]
+    assert order[-2:] == ["release", "cost"]  # also released once at startup, before state loads
 
 
 def test_cost_per_1000_is_null_without_captures() -> None:
@@ -362,14 +362,14 @@ def _lock_body(started: datetime, run_id: str = "other") -> bytes:
 
 def test_run_lock_is_released_after_a_run(fakes: dict[str, Any], aws: Any) -> None:
     handler.lambda_handler({}, None)
-    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/")
+    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/boston/")
 
 
 def test_run_lock_is_released_when_the_run_fails(fakes: dict[str, Any], aws: Any) -> None:
     fakes["by_command"] = {"build": handler.DbtOutcome(False, node_errors=["agg_pipeline_health"])}
     with pytest.raises(handler.TransformError):
         handler.lambda_handler({}, None)
-    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/")
+    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/boston/")
 
 
 def test_a_concurrent_run_exits_cleanly_without_touching_the_lock(
@@ -389,7 +389,7 @@ def test_a_stale_lock_is_replaced_and_the_run_proceeds(fakes: dict[str, Any], aw
     aws.put_object(Bucket="raw-bucket", Key=LOCK_KEY, Body=_lock_body(NOW - timedelta(minutes=16)))
     summary = handler.lambda_handler({}, None)
     assert summary["dbt_status"] == "success"
-    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/")
+    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/boston/")
 
 
 def test_lock_exactly_at_the_stale_limit_is_still_held(aws: Any) -> None:
@@ -406,7 +406,7 @@ def test_only_one_of_two_runs_replaces_a_stale_lock(aws: Any) -> None:
     second.release()  # not the owner: leaves the lock alone
     assert aws.head_object(Bucket="raw-bucket", Key=LOCK_KEY)
     first.release()
-    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/")
+    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/boston/")
 
 
 def test_unreadable_lock_ages_by_its_last_modified_time(aws: Any) -> None:
@@ -654,3 +654,92 @@ def test_rebuild_history_backfills_only_missing_days_and_leaves_gold_alone(
     variables = json.loads(fakes["dbt"][1][fakes["dbt"][1].index("--vars") + 1])
     assert variables["lookback_days"] == 7  # at least the default, reaching the 20th
     assert fakes["history_publish"]["history_tables"] == list(history.HISTORY_TABLES)
+
+
+# ---------------------------------------------------------------- persisted run state
+
+
+def _runs(aws: Any) -> list[dict[str, Any]]:
+    keys = [
+        o["Key"]
+        for o in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/transform_runs/").get(
+            "Contents", []
+        )
+    ]
+    if not keys:
+        return []
+    con = duckdb.connect()
+    con.execute("set TimeZone = 'UTC'")
+    rows: list[dict[str, Any]] = []
+    for key in keys:
+        path = f"/tmp/{key.replace('/', '_')}"  # noqa: S108
+        Path(path).write_bytes(aws.get_object(Bucket="raw-bucket", Key=key)["Body"].read())
+        cur = con.execute(
+            "select run_id, task, status, tests_passed, tests_failed, rows_exported, "
+            "gold_exported_at is not null as exported, gold_published, error, "
+            f"strftime(slot, '%Y-%m-%dT%H:%M') as slot from read_parquet('{path}')"
+        )
+        names = [d[0] for d in cur.description]
+        rows += [dict(zip(names, r, strict=True)) for r in cur.fetchall()]
+    return rows
+
+
+def test_a_successful_run_is_recorded_for_the_next_run(fakes: dict[str, Any], aws: Any) -> None:
+    handler.lambda_handler({}, None)
+    (row,) = _runs(aws)
+    assert row["task"] == "scheduled" and row["status"] == "success"
+    assert row["tests_passed"] == 9 and row["tests_failed"] == 0 and row["rows_exported"] == 12
+    assert row["exported"] and row["gold_published"] and row["error"] is None
+    assert row["slot"] == "2026-11-22T07:00"  # the 07:20 run belongs to the 07:00 slot
+
+
+def test_a_run_with_failed_tests_is_recorded_as_such(fakes: dict[str, Any], aws: Any) -> None:
+    fakes["outcome"] = handler.DbtOutcome(False, tests_passed=8, tests_failed=2)
+    handler.lambda_handler({}, None)
+    (row,) = _runs(aws)
+    assert row["status"] == "tests_failed" and row["tests_failed"] == 2 and row["gold_published"]
+
+
+def test_a_failed_run_is_recorded_with_its_error(fakes: dict[str, Any], aws: Any) -> None:
+    fakes["skip_parquet"] = True
+    with pytest.raises(handler.ExportError):
+        handler.lambda_handler({}, None)
+    (row,) = _runs(aws)
+    assert row["status"] == "failed" and not row["exported"] and not row["gold_published"]
+    assert "ExportError" in row["error"]
+
+
+def test_a_publish_failure_is_recorded_as_a_failed_run_with_gold_exported(
+    fakes: dict[str, Any], aws: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom(*a: Any, **k: Any) -> list[str]:
+        raise RuntimeError("md down")
+
+    monkeypatch.setattr(handler.publish, "publish_motherduck", boom)
+    with pytest.raises(RuntimeError):
+        handler.lambda_handler({}, None)
+    (row,) = _runs(aws)
+    assert row["status"] == "failed" and row["exported"] and not row["gold_published"]
+
+
+def test_a_skipped_locked_run_writes_no_record(fakes: dict[str, Any], aws: Any) -> None:
+    aws.put_object(
+        Bucket="raw-bucket", Key="state/boston/transform.lock",
+        Body=json.dumps({"run_id": "x", "started_at": NOW.isoformat()}),
+    )  # fmt: skip
+    assert handler.lambda_handler({}, None) == {"skipped": "locked"}
+    assert _runs(aws) == []
+
+
+def test_state_is_loaded_before_dbt_runs(
+    fakes: dict[str, Any], aws: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    order: list[str] = []
+    real = handler.state.load
+    monkeypatch.setattr(
+        handler.state, "load", lambda *a, **k: (order.append("load"), real(*a, **k))[1]
+    )
+    real_dbt = handler.run_dbt
+    monkeypatch.setattr(handler, "run_dbt", lambda args: (order.append(args[0]), real_dbt(args))[1])
+    handler.lambda_handler({}, None)
+    assert order[:2] == ["load", "run"]

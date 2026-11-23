@@ -9,7 +9,8 @@ locals {
   motherduck_ssm  = "/headway/motherduck_token"
   motherduck_arn  = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.motherduck_ssm}"
   lock_key        = "state/${var.city_id}/transform.lock"
-  raw_data_prefix = ["curated/*", "manifests/*", "quarantine/*", local.lock_key]
+  state_prefix    = "state/transform_runs"
+  raw_data_prefix = ["curated/*", "manifests/*", "quarantine/*", local.lock_key, "${local.state_prefix}/*"]
 }
 
 data "aws_region" "current" {}
@@ -158,6 +159,14 @@ data "aws_iam_policy_document" "transform" {
     sid       = "WriteRunLock"
     actions   = ["s3:PutObject", "s3:DeleteObject"]
     resources = ["${aws_s3_bucket.raw.arn}/${local.lock_key}"]
+  }
+
+  # Run state persisted between runs (agg_transform_runs and other state tables): read at startup,
+  # appended at the end of a run. Listing and reading are in the raw-input statements above.
+  statement {
+    sid       = "WriteRunState"
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.raw.arn}/${local.state_prefix}/*"]
   }
 
   statement {
