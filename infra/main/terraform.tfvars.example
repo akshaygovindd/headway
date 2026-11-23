@@ -1,6 +1,6 @@
 alert_email  = "you@example.com"
 budget_email = "you@example.com"
 
-# Printed by `make images-push` (see docs/DEPLOY.md section 8).
+# Printed by `make images-push` (see docs/DEPLOY.md).
 curate_image_uri    = "123456789012.dkr.ecr.us-east-1.amazonaws.com/headway-curate:abc1234"
 transform_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/headway-transform:abc1234"

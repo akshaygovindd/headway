@@ -1,16 +1,23 @@
 # Deploying the stack
 
-This creates the buckets, the `headway-ingest-rt` Lambda, a one-minute schedule, alarms and a
-cost budget (section 8 adds the curate, static and transform Lambdas) in AWS account region `us-east-1`. Run every command from the repository root unless
-a `cd` is shown.
+A walkthrough from a fresh clone to a running pipeline in AWS account region `us-east-1`. It
+creates the buckets, the ingest, curate, static and transform Lambdas (the last three as container
+images), their schedules, alarms and a cost budget. Run every command from the repository root
+unless a `cd` is shown. Fill in the [walkthrough record](#walkthrough-record) as you go.
 
 ## Prerequisites
 
 - AWS credentials for the target account in your shell (`aws sts get-caller-identity` works).
-- `terraform` >= 1.10, `uv`, `make`.
+- `terraform` >= 1.10, `uv`, `make`, `docker` (running) with buildx.
+- A MotherDuck account and token.
 - Account note: the ingest Lambda sets no reserved concurrency, because an account with the
   default limit of 10 cannot reserve any. Runs take seconds once a minute and the scheduler
   never retries, so overlapping runs are unlikely.
+
+```sh
+git clone https://github.com/akshaygovindd/headway.git && cd headway
+uv sync
+```
 
 ## 1. Bootstrap the state bucket (once, local state)
 
@@ -24,138 +31,143 @@ cd ../..
 
 The bootstrap state file stays local in `infra/bootstrap/` (gitignored). Keep it.
 
-## 2. Configure the main stack backend
+## 2. Configure the backend and variables
 
 ```sh
 cp infra/main/backend.hcl.example infra/main/backend.hcl
-```
-
-Edit `infra/main/backend.hcl` and replace `<account_id>` so `bucket` equals the bootstrap output.
-`backend.hcl` is gitignored.
-
-## 3. Set variables
-
-```sh
 cp infra/main/terraform.tfvars.example infra/main/terraform.tfvars
 ```
 
-Edit `infra/main/terraform.tfvars`: set `alert_email` and `budget_email`. `terraform.tfvars` is
-gitignored.
+- `infra/main/backend.hcl`: replace `<account_id>` so `bucket` equals the bootstrap output.
+- `infra/main/terraform.tfvars`: set `alert_email` and `budget_email`. Leave the two image URI
+  lines as they are; `make deploy` rewrites their tag.
 
-## 4. Build the Lambda zip
+Both files are gitignored.
+
+## 3. Store the MotherDuck token
 
 ```sh
-make lambda-zip          # writes build/ingest.zip (arm64, Python 3.12)
+aws ssm put-parameter --name /headway/motherduck_token --type SecureString \
+  --value '<YOUR_MOTHERDUCK_TOKEN>'
 ```
 
-## 5. Init, plan, apply
+Terraform only grants the transform Lambda read access to this parameter.
+
+## 4. Build the ingest zip and create the ECR repositories
+
+The ECR repositories belong to the same stack as the Lambdas that need their images, so create
+them first with placeholder image URIs:
 
 ```sh
+make lambda-zip                          # writes build/ingest.zip (arm64, Python 3.12)
 cd infra/main
 terraform init -backend-config=backend.hcl
-terraform plan -out=tfplan
-terraform apply tfplan
+terraform apply -target=aws_ecr_repository.pipeline -target=aws_ecr_lifecycle_policy.pipeline \
+  -var curate_image_uri=placeholder -var transform_image_uri=placeholder
 cd ../..
 ```
 
-After applying, rebuild and re-apply whenever the code changes (`make lambda-zip`, then
-`terraform plan` and `apply`); the function updates when the zip hash changes.
+## 5. Deploy: `make deploy`
 
-## 6. One-time manual steps
+```sh
+make deploy
+```
+
+Builds both images, logs in to ECR, pushes them tagged with the git short sha, sets
+`curate_image_uri` and `transform_image_uri` in `terraform.tfvars` to that sha, runs
+`terraform plan -out=tfplan` and applies it only if the plan shows `0 to destroy` (otherwise it
+stops before the apply). To redeploy new code later, run `make lambda-zip` (if ingest changed)
+and `make deploy` again.
+
+## 6. Seed the pipeline: `make seed`
+
+```sh
+make seed
+```
+
+Invokes, in order, `headway-static` (curate fails until a static GTFS version is loaded),
+`headway-curate` with `{"task":"backfill_manifests"}`, `headway-curate` and `headway-transform`,
+prints each result and stops at the first function error. After that the schedules take over:
+ingest every minute, curate every 15 minutes, compaction at :05, transform at :20, static daily
+at 09:00 UTC (04:00 EST, 05:00 EDT).
+
+## 7. One-time manual steps
 
 - Confirm the SNS email subscription: click the link in the "AWS Notification - Subscription
   Confirmation" email sent to `alert_email`. Alarm mails do not arrive until you do.
 - Activate the `project` cost allocation tag (Billing and Cost Management, Cost allocation tags,
   user-defined tags). The budget filters on `user:project$headway` and sees no spend until the
-  tag is active (activation can take up to 24 hours).
+  tag is active (activation can take up to 24 hours). Cost Explorer must be enabled for
+  `cost_daily` to be written.
 
-## 7. Verify
+## 8. Verify
 
-Wait two or three minutes after `apply`, then:
+Wait two or three minutes after `make deploy`, then:
 
 ```sh
 RAW=$(terraform -chdir=infra/main output -raw raw_bucket)
+PUBLIC=$(terraform -chdir=infra/main output -raw public_bucket)
 aws s3 ls "s3://$RAW/manifests/boston/" --recursive | tail -5
 aws s3 ls "s3://$RAW/raw/boston/" --recursive | tail -6
+aws s3 ls "s3://$RAW/curated/boston/" --recursive | tail -5
+aws s3 ls "s3://$PUBLIC/public/boston/gold/"
 
 URL=$(terraform -chdir=infra/main output -raw public_snapshot_url)
 curl -s -D - "$URL" -o /dev/null | grep -i -E "^(HTTP|content-type|cache-control)"
 curl -s "$URL" | head -c 600
-```
 
-Expected: a new manifest roughly every minute, three raw objects per run, and a JSON snapshot with
-`vehicle_count` greater than zero, `Content-Type: application/json` and `Cache-Control: max-age=30`.
-
-Lambda logs, one JSON summary line per run:
-
-```sh
 aws logs tail /aws/lambda/headway-ingest-rt --since 10m
+aws logs tail /aws/lambda/headway-curate --since 30m
+aws logs tail /aws/lambda/headway-transform --since 2h
 ```
 
-## 8. Curate, static and transform Lambdas (Phase 5b)
+Expected:
 
-These three Lambdas run from container images (linux/arm64). `terraform.tfvars` must hold the two
-image URIs, but the ECR repositories that receive the images are created by the same stack, so the
-first apply is split. Docker must be running. Run in this order:
+- a new manifest roughly every minute and three raw objects per run;
+- a live snapshot with `vehicle_count` greater than zero, `Content-Type: application/json` and
+  `Cache-Control: max-age=30`;
+- a gold folder with eight parquet files plus `manifest.json`, and `cost_daily.parquet` after the
+  first transform run at or after 06:00 UTC;
+- one JSON summary line per run in the logs. The transform line reports `dbt_status`,
+  `tests_failed`, `rows_exported`, `cost_rows` and `step_ms` (`s3_load`, `dbt_build`, `dbt_test`,
+  `export_gold`, `cost`, `publish`). dbt test failures do not stop the export; they are counted.
+
+Transform runs are serialized with a lock object (`state/boston/transform.lock` in the raw bucket).
+A run that finds a fresh lock, for example a manual invoke during the scheduled `:20` run, logs
+`{"skipped": "locked"}` and exits successfully without touching anything. A lock older than 15
+minutes is left by a crashed or timed-out run and is replaced by the next run.
+
+MotherDuck: in the MotherDuck UI or CLI, `SHOW TABLES FROM headway;` lists the gold tables (the
+`headway` database is created by the first publish).
+
+Point the app at the published data (it also defaults to the public bucket of the reference
+deployment):
 
 ```sh
-# 1. MotherDuck token (SecureString; Terraform only grants read access to it).
-aws ssm put-parameter --name /headway/motherduck_token --type SecureString \
-  --value '<YOUR_MOTHERDUCK_TOKEN>'
-
-# 2. Create only the ECR repositories (placeholder URIs satisfy the required variables).
-cd infra/main
-terraform apply -target=aws_ecr_repository.pipeline -target=aws_ecr_lifecycle_policy.pipeline \
-  -var curate_image_uri=placeholder -var transform_image_uri=placeholder
-cd ../..
-
-# 3. Build both images, log in to ECR, tag with the git short sha and push. Prints the URIs.
-make images-build
-make images-push
+echo "HEADWAY_DATA_URL=$(terraform -chdir=infra/main output -raw gold_url | sed 's#/gold$##')"
 ```
 
-4. Copy the two printed lines into `infra/main/terraform.tfvars`:
+`make acceptance` reports the Release 1 acceptance tests against the repository, the public gold
+and read-only AWS.
 
-```hcl
-curate_image_uri    = "<account>.dkr.ecr.us-east-1.amazonaws.com/headway-curate:<sha>"
-transform_image_uri = "<account>.dkr.ecr.us-east-1.amazonaws.com/headway-transform:<sha>"
-```
+## Walkthrough record
 
-5. Plan and apply:
+Fill this in on a fresh clone (acceptance test A8). Times are wall clock, including waiting.
 
-```sh
-cd infra/main
-terraform plan -out=tfplan
-terraform apply tfplan
-cd ../..
-```
+| Step | Time taken | Notes |
+| --- | --- | --- |
+| Prerequisites and clone | | |
+| 1. Bootstrap state bucket | | |
+| 2. Backend and tfvars | | |
+| 3. MotherDuck token (SSM) | | |
+| 4. Ingest zip and ECR repositories | | |
+| 5. `make deploy` | | |
+| 6. `make seed` | | |
+| 7. Manual steps (SNS, cost tag) | | |
+| 8. Verify | | |
+| **Total** | | |
 
-This also moves the ingest schedule to `cron(* * * * ? *)`, so runs align to the minute.
-
-6. Seed the pipeline once, in this order. Curate fails until a static GTFS version is loaded, and
-transform needs curated data:
-
-```sh
-aws lambda invoke --function-name headway-static --cli-read-timeout 330 /dev/stdout
-aws lambda invoke --function-name headway-curate --cli-read-timeout 330 /dev/stdout
-aws lambda invoke --function-name headway-transform --cli-read-timeout 930 /dev/stdout
-```
-
-After that the schedules take over: curate every 15 minutes, compaction at :05, transform at :20,
-static daily at 09:00 UTC (04:00 EST, 05:00 EDT). To redeploy new code, run `make images-push`,
-update the URIs in `terraform.tfvars`, then plan and apply.
-
-### Shortcuts: `make deploy` and `make seed`
-
-`make deploy` pushes both images (`images-push`), sets `curate_image_uri` and
-`transform_image_uri` in `infra/main/terraform.tfvars` to the new git short sha, runs
-`terraform plan -out=tfplan` and applies it only if the plan shows `0 to destroy` (otherwise it
-stops before the apply). It needs AWS credentials and the ECR repositories from step 2.
-
-`make seed` invokes `headway-static`, then `headway-curate` with `{"task":"backfill_manifests"}`,
-then `headway-curate`, then `headway-transform`, prints each result and stops at the first
-function error. Use it for step 6 and, after `make deploy` on an existing deployment, to run the
-backfill below followed by a transform.
+## Operations
 
 `scripts/bench_transform.py` (`uv run python scripts/bench_transform.py --days 1 --backfill`)
 times the transform's dbt build and test against replicated manifests; it is a development tool,
@@ -179,41 +191,6 @@ The raw JSON stays the source of truth and the task is idempotent: re-running it
 while curation is writing, never duplicates rows (a fresh deployment does not need it). The
 summary line reports `manifest_rows`, `quarantine_rows` and `hours_rewritten`; a second run
 reports `hours_rewritten: 0`.
-
-### Verify Phase 5b
-
-```sh
-aws logs tail /aws/lambda/headway-curate --since 30m
-aws logs tail /aws/lambda/headway-transform --since 2h
-
-RAW=$(terraform -chdir=infra/main output -raw raw_bucket)
-PUBLIC=$(terraform -chdir=infra/main output -raw public_bucket)
-aws s3 ls "s3://$RAW/curated/boston/" --recursive | tail -5
-aws s3 ls "s3://$PUBLIC/public/boston/gold/"
-aws s3 cp "s3://$PUBLIC/public/boston/gold/manifest.json" - | head -c 600
-```
-
-Expected: curate logs one JSON line per run; the gold folder holds eight parquet files plus
-`manifest.json`, and `cost_daily.parquet` after the first transform run at or after 06:00 UTC
-(Cost Explorer must be enabled for the account; the `project` tag must be active, see section 6).
-The transform summary line reports `dbt_status`, `tests_failed`, `rows_exported`, step durations
-and `cost_rows`; `step_ms` has `s3_load`, `dbt_build`, `dbt_test`, `export_gold`, `cost` and
-`publish`. dbt test failures do not stop the export; they are counted in that line.
-
-Transform runs are serialized with a lock object (`state/boston/transform.lock` in the raw bucket).
-A run that finds a fresh lock, for example a manual invoke during the scheduled `:20` run, logs
-`{"skipped": "locked"}` and exits successfully without touching anything. A lock older than 15
-minutes is left by a crashed or timed-out run and is replaced by the next run, so there is nothing
-to clean up by hand.
-
-MotherDuck: in the MotherDuck UI or CLI, `SHOW TABLES FROM headway;` lists the gold tables (the
-`headway` database is created by the first publish).
-
-Point the app at the published data:
-
-```sh
-echo "HEADWAY_DATA_URL=$(terraform -chdir=infra/main output -raw gold_url | sed 's#/gold$##')"
-```
 
 ## Tear down
 
