@@ -1,18 +1,188 @@
-# Architecture Decisions
+# Architecture decisions
 
-Written during Release 1.
+One numbered set for Release 1 and the decisions already taken for later releases. Numbers are
+stable: other documents and code comments cite them as `ADR-NNN`.
 
-## Entry template
+| # | Decision | Status |
+| --- | --- | --- |
+| 001 | Lambda + EventBridge instead of Kafka | Accepted |
+| 002 | Parquet on S3 instead of Iceberg | Accepted |
+| 003 | MotherDuck instead of Snowflake | Accepted |
+| 004 | Event time, feed time and ingestion time kept separate | Accepted |
+| 005 | Duplicates and out-of-order events | Accepted |
+| 006 | Data outage versus transit disruption | Accepted |
+| 007 | Snapshot predictions are not arrivals | Accepted |
+| 008 | Preventing unsupported AI claims | Proposed (R3) |
+| 009 | Cached live map | Accepted |
+| 010 | Streamlit first, then Next.js + FastAPI | Accepted (Streamlit); Proposed (Next.js + FastAPI) |
+| 011 | FastAPI and MCP as separate interfaces | Proposed (R3/R4) |
+| 012 | dbt in Lambda DuckDB, MotherDuck gold-only, DuckDB 1.5.6 pin | Accepted |
+| 013 | Duplicate deliveries flagged, never dropped | Accepted |
 
-### ADR-NNN: Title
+Template: Status, Context, Decision, Consequences, Revisit when.
 
-- **Status:** Proposed | Accepted | Superseded
-- **Context:** What forces are at play?
-- **Decision:** What was decided?
-- **Consequences:** What follows from it?
-- **Revisit when:** What would make us reconsider?
+### ADR-001: Lambda + EventBridge instead of Kafka
 
-### ADR-012: dbt compute in Lambda DuckDB, MotherDuck as published warehouse
+- **Status:** Accepted
+- **Context:** The MBTA publishes three realtime feeds as whole-file snapshots (protobuf over
+  HTTPS) that change every few seconds. Reliability metrics need a capture about once a minute,
+  not a record-by-record stream, and the project is run by one person on a small budget.
+- **Decision:** An EventBridge Scheduler rule invokes the `headway-ingest-rt` Lambda every minute
+  (`cron(* * * * ? *)`, aligned to the minute). Each run fetches the three feeds, writes the raw
+  bytes to S3 and one manifest, and refreshes the live snapshot. Curation (every 15 minutes),
+  compaction (hourly), the static GTFS load (daily) and transform (hourly) are further scheduled
+  Lambdas. Retries are 0 everywhere; the next scheduled run replaces a missed one.
+- **Consequences:** There is no broker to run and idle cost is close to zero. Delivery is
+  at-least-once and at the scheduler's mercy, which is why duplicates and gaps are first-class
+  data (ADR-005, ADR-013). The finest resolution is one capture per minute, and a capture is in
+  gold roughly 20 to 80 minutes after it is fetched.
+- **Revisit when:** a source offers a push or streaming API, sub-minute capture is needed, or
+  several cities make per-minute invocations the dominant cost.
+
+### ADR-002: Parquet on S3 instead of Iceberg
+
+- **Status:** Accepted
+- **Context:** The data is append-mostly, partitioned by hour, and rebuilt from raw when logic
+  changes. Writers are a few Lambdas that never overlap on the same partition.
+- **Decision:** Curated tables are plain Parquet files in hive-style `dt=/hour=` partitions
+  written by deterministic batches (the part file name is a hash of its `capture_id`s, so a
+  retry overwrites itself). Compaction merges an hour only after a row-count check. Readers glob
+  the prefix through DuckDB `read_parquet`. Raw objects and manifests are the source of truth and
+  are never modified.
+- **Consequences:** No catalog, no table-format service, trivially replayable and inspectable.
+  There are no transactional multi-file commits, schema evolution is by convention and listing
+  cost grows with object count (mitigated by curating manifests and quarantine as Parquet).
+- **Revisit when:** concurrent writers or row-level updates are needed, schema evolution becomes
+  frequent, or listing dominates run time.
+
+### ADR-003: MotherDuck instead of Snowflake
+
+- **Status:** Accepted
+- **Context:** The warehouse only has to hold small finished gold tables for ad hoc SQL; the
+  analytical engine already runs in DuckDB. A conventional warehouse would add idle cost and a
+  second SQL dialect.
+- **Decision:** Gold is published to MotherDuck (DuckDB in the cloud) as one table per gold
+  table. The public app reads Parquet over HTTPS and does not depend on MotherDuck at all.
+- **Consequences:** One SQL dialect from laptop to cloud, a free tier that fits the data size, and
+  a warehouse that can be lost without losing anything (gold is rebuilt from S3). The engine
+  version is dictated by MotherDuck support (ADR-012).
+- **Revisit when:** the free tier no longer covers publishing, multi-user concurrency or access
+  control is needed, or data outgrows a single-node engine.
+
+### ADR-004: Event time, feed time and ingestion time kept separate
+
+- **Status:** Accepted
+- **Context:** A value has three clocks: when it happened or is predicted (event time), when the
+  feed says it was produced (`feed_header_ts`), and when Headway fetched it (`fetched_at`, plus
+  `scheduled_at` for the minute that triggered the run). Mixing them turns pipeline delay into
+  apparent transit delay.
+- **Decision:** All three are stored side by side from raw through gold, in UTC. Partitions use
+  `fetched_at`. Metrics use event times (predicted and scheduled arrival) and the snapshot's
+  `collected_at`; freshness and the observation window use fetch times. The app shows "metrics as
+  of" (the data period) separately from "feed freshness" (age of the exports).
+- **Consequences:** Every table carries extra timestamp columns and the metric definitions state
+  which clock they use (see METRICS.md). Local hours and service dates (America/New_York, 03:00
+  service-day cutoff) are derived at the edge, never stored.
+- **Revisit when:** a source provides authoritative event timestamps that make one of the clocks
+  redundant.
+
+### ADR-005: Duplicates and out-of-order events
+
+- **Status:** Accepted
+- **Context:** Feeds repeat unchanged payloads, a minute can be delivered twice (ADR-013), and
+  feed timestamps do not always increase between captures.
+- **Decision:** Raw captures are never deduplicated. Each carries a `content_hash`; a capture
+  whose hash equals the previous successful capture of the same feed is flagged
+  `is_duplicate_capture` and excluded from prior snapshots, eligible predictions, coverage and
+  capture minutes, but stays visible in pipeline health. Revisions are computed against the
+  previous non-duplicate snapshot ordered by collection time, not by arrival order.
+- **Consequences:** Replays are exact and no evidence is lost; models pay for a window function
+  and a flag. A feed that republishes stale content is visible as duplicates instead of as
+  stability.
+- **Revisit when:** a feed offers a reliable sequence number or ETag that makes content hashing
+  unnecessary.
+
+### ADR-006: Data outage versus transit disruption
+
+- **Status:** Accepted
+- **Context:** A gap in a metric can mean the trains stopped or that Headway stopped looking.
+  Reporting both as "bad service" would be wrong in the first case and unfair in the second.
+- **Decision:** Aggregates only cover hours inside the observation window (at least one
+  successful non-duplicate `trip_updates` capture; `window_complete` at 55 or more capture
+  minutes). Coverage is the share of observable trip stops with an eligible prediction, shown on
+  every card; below 50% values are withheld and lines are ranked only across comparable coverage.
+  Missed runs, failed fetches and quarantine are reported on the Pipeline health page and in
+  hourly quality checks. Alerts are carried as data, not interpreted as outages.
+- **Consequences:** Some hours show no value instead of a misleading one. Users must read
+  coverage next to every number.
+- **Revisit when:** an authoritative disruption signal is joined in, which would allow labelling
+  the cause of a gap rather than only its existence.
+
+### ADR-007: Snapshot predictions are not arrivals
+
+- **Status:** Accepted
+- **Context:** The realtime feed publishes predicted arrival times, not observed ones. Treating
+  the final prediction as the arrival would present a forecast as a measurement.
+- **Decision:** Scheduled and predicted values live in separate columns. The Release 1 metrics
+  use the last snapshot collected before the scheduled arrival, within a 30-minute horizon,
+  schedule matched and from a non-duplicate capture; implausible matches (over an hour off) are
+  left out and counted. Every metric is named "predicted ..." and the app states that these are
+  Headway approximations, not official MBTA metrics.
+- **Consequences:** The metrics measure what riders are told, not what trains did. Observed
+  arrivals from vehicle positions are a possible later addition.
+- **Revisit when:** vehicle positions are reliable enough to derive observed arrivals.
+
+### ADR-008: Preventing unsupported AI claims
+
+- **Status:** Proposed (Release 3)
+- **Context:** A natural-language layer over the metrics can state things the data does not
+  support: a number without coverage, a cause for a delay, or a comparison across unlike lines.
+- **Decision (proposed):** The assistant may only answer from tool results that carry coverage
+  and freshness, must quote them, must refuse causal claims, and every answer is checked against
+  the tool output before it is shown. The rules are tested with a fixed question set.
+- **Consequences:** Answers are narrower and sometimes decline to answer, in return for being
+  traceable to a gold row.
+- **Revisit when:** the design is implemented in R3, or evaluation shows the checks block
+  legitimate answers.
+
+### ADR-009: Cached live map
+
+- **Status:** Accepted
+- **Context:** The live map needs current vehicle positions, but visitors must not trigger
+  fetches against the MBTA and the public bucket must stay cheap.
+- **Decision:** The ingest Lambda writes `public/<city>/live/vehicles_latest.json` once per run
+  (subway vehicles only, invalid rows dropped and counted, stale positions flagged) with
+  `Cache-Control: max-age=30`. The app reads that object through the public HTTPS URL, caches it
+  for 60 seconds, and warns when the snapshot is old.
+- **Consequences:** The map is at most about a minute and a half behind the feed, load on the
+  source is independent of traffic, and the app holds no feed URLs or credentials.
+- **Revisit when:** a sub-30-second map is required, which would need a streaming path.
+
+### ADR-010: Streamlit first, then Next.js + FastAPI
+
+- **Status:** Accepted for Streamlit (R1); Next.js + FastAPI Proposed (R4)
+- **Context:** Release 1 needs a public, read-only app quickly; a custom front end and API are
+  only worth their cost once the metrics are stable.
+- **Decision:** The Release 1 app is Streamlit on Community Cloud, reading public Parquet and JSON
+  over HTTPS with no credentials. Metric logic lives in the dbt models, so the UI holds none. A
+  Next.js front end on a FastAPI service replaces it when the product needs it.
+- **Consequences:** Fast to build and host for free; limited layout control and per-session
+  reruns. Replacing the UI later does not touch the pipeline because gold is the contract.
+- **Revisit when:** page latency, layout or authentication needs exceed what Streamlit offers.
+
+### ADR-011: FastAPI and MCP as separate interfaces
+
+- **Status:** Proposed (R3/R4)
+- **Context:** Humans and AI clients need different contracts: an HTTP API for the web front end
+  and tools for assistants.
+- **Decision (proposed):** A FastAPI service serves the web front end; an MCP server exposes
+  read-only metric tools to assistants. Both are thin layers over the same gold tables, share a
+  metrics access module, and are deployed and versioned separately.
+- **Consequences:** Two surfaces to maintain, but neither is shaped by the other's constraints
+  and the assistant's tools can enforce ADR-008 without affecting the web API.
+- **Revisit when:** one surface proves redundant.
+
+### ADR-012: dbt compute in Lambda DuckDB, MotherDuck gold-only, DuckDB 1.5.6 pin
 
 - **Status:** Accepted
 - **Context:** The gold tables must refresh without anyone running dbt by hand, and the data stays
@@ -52,7 +222,7 @@ Written during Release 1.
   the Parquet from it. Overlapping transform runs are prevented with an S3 lock object
   (`state/<city>/transform.lock`, conditional put; a lock older than 15 minutes is stale).
 
-### ADR-013: At-least-once scheduling, one manifest per scheduled minute
+### ADR-013: Duplicate deliveries are flagged, never dropped
 
 - **Status:** Accepted
 - **Context:** EventBridge Scheduler delivers at least once, so a minute can reach the ingest
