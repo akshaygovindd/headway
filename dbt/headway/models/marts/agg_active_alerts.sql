@@ -1,6 +1,7 @@
 -- Service alerts active per line and hour, from the alerts feed. An alert counts in an hour when a
 -- capture of that hour carried it inside its active period (active_start <= fetched_at <=
--- active_end, an open end meaning no end). Duplicate captures count: an unchanged alert is still
+-- active_end, an open start or end meaning none; an alert without any active period is always
+-- active, as in GTFS-realtime). Duplicate captures count: an unchanged alert is still
 -- active. is_service_disruption marks the alerts that make an hour a "service disruption" for the
 -- Release 2 metrics: effect DETOUR, NO_SERVICE, REDUCED_SERVICE, SIGNIFICANT_DELAYS or
 -- MODIFIED_SERVICE, or a header text mentioning a shuttle or a suspension. ACCESSIBILITY_ISSUE,
@@ -19,6 +20,6 @@ select
 from {{ ref('stg_service_alerts') }} a
 join {{ ref('int_captures') }} c on c.capture_id = a.capture_id
 where a.route_id is not null
-    and a.active_start <= a.fetched_at
+    and (a.active_start is null or a.active_start <= a.fetched_at)
     and (a.active_end is null or a.fetched_at <= a.active_end)
 group by 1, 2, 3, 4, 5

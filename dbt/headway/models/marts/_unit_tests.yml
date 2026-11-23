@@ -163,7 +163,8 @@ unit_tests:
       One capture at 13:00 UTC. Alerts active at that time: DETOUR (disruption), ACCESSIBILITY_ISSUE
       and STOP_MOVED (never), OTHER_EFFECT whose header mentions a shuttle and UNKNOWN_EFFECT whose
       header says suspension (text match, case-insensitive). A DETOUR whose period ended before the
-      capture and one not started yet are not active.
+      capture and one not started yet are not active. An alert with no active period at all (an
+      Orange DETOUR) is always active, as in GTFS-realtime.
     model: agg_active_alerts
     given:
       - input: ref('int_captures')
@@ -178,6 +179,7 @@ unit_tests:
           - {capture_id: "c1", alert_id: "a5", route_id: "Red", effect: "STOP_MOVED", header_text: "Stop moved", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
           - {capture_id: "c1", alert_id: "a6", route_id: "Red", effect: "UNKNOWN_EFFECT", header_text: "Red Line Suspension", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
           - {capture_id: "c1", alert_id: "a7", route_id: "Red", effect: "DETOUR", header_text: "Future detour", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 14:00:00+00", active_end: null}
+          - {capture_id: "c1", alert_id: "a8", route_id: "Orange", effect: "DETOUR", header_text: "Detour without period", fetched_at: "2026-11-22 13:00:00+00", active_start: null, active_end: null}
     expect:
       rows:
         - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "DETOUR", is_service_disruption: true, n_active_alerts: 1}
@@ -185,6 +187,7 @@ unit_tests:
         - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "OTHER_EFFECT", is_service_disruption: true, n_active_alerts: 1}
         - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "STOP_MOVED", is_service_disruption: false, n_active_alerts: 1}
         - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "UNKNOWN_EFFECT", is_service_disruption: true, n_active_alerts: 1}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Orange", effect: "DETOUR", is_service_disruption: true, n_active_alerts: 1}
 
   - name: prediction_errors_last_snapshot_per_bucket
     config:
