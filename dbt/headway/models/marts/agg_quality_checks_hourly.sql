@@ -1,7 +1,9 @@
 -- Hourly data-quality checks against warn/fail thresholds from quality_thresholds.
 -- Share and coverage values are percentages (0-100); missed_runs is a count per
 -- hour; vehicle_count_drop is the percentage fall against the same hour one week
--- earlier and is reported as 'no_baseline' when that hour was not observed.
+-- earlier and is reported as 'no_baseline' when that hour was not observed. feed_gap_min is the
+-- longest run of minutes in the hour without a successful poll 0 of both trip_updates and
+-- vehicle_positions (a feed that is down, or a run that never happened): the freshness of the data.
 with hours as (
     select distinct service_date, hour_local from {{ ref('int_captures') }}
 ),
@@ -40,6 +42,55 @@ missed_runs as (
         cast(greatest(m.expected_runs - coalesce(r.observed_runs, 0), 0) as double) as value
     from minutes m
     left join runs r on r.service_date = m.service_date and r.hour_local = m.hour_local
+),
+
+-- minutes with fresh data (poll 0 of trip_updates and vehicle_positions both ok) against the grid of
+-- minutes between the first and last run; consecutive stale minutes of an hour form one gap
+fresh_minutes as (
+    select capture_minute
+    from {{ ref('int_captures') }}
+    where status = 'ok' and poll_index = 0 and feed in ('trip_updates', 'vehicle_positions')
+    group by capture_minute
+    having count(distinct feed) = 2
+),
+
+grid as (
+    select
+        g.minute,
+        {{ service_date_from_ts('g.minute') }} as service_date,
+        cast(extract(hour from g.minute at time zone '{{ var("timezone") }}') as integer) as hour_local,
+        f.capture_minute is null as stale
+    from (
+        select unnest(generate_series(first_minute, last_minute, interval 1 minute)) as minute from bounds
+    ) g
+    left join fresh_minutes f on f.capture_minute = g.minute
+),
+
+stale_runs as (
+    select
+        service_date,
+        hour_local,
+        count(*) as gap_min
+    from (
+        select
+            *,
+            row_number() over (partition by service_date, hour_local order by minute)
+                - row_number() over (partition by service_date, hour_local, stale order by minute) as island
+        from grid
+    )
+    where stale
+    group by service_date, hour_local, island
+),
+
+feed_gap_min as (
+    select
+        m.service_date,
+        m.hour_local,
+        'feed_gap_min' as check_name,
+        cast(coalesce(max(g.gap_min), 0) as double) as value
+    from minutes m
+    left join stale_runs g on g.service_date = m.service_date and g.hour_local = m.hour_local
+    group by m.service_date, m.hour_local
 ),
 
 -- extra scheduler deliveries of a minute (EventBridge Scheduler is at-least-once)
@@ -194,6 +245,7 @@ vehicle_count_drop as (
 
 all_checks as (
     select * from missed_runs
+    union all select * from feed_gap_min
     union all select * from duplicate_deliveries
     union all select * from duplicate_share
     union all select * from invalid_coordinate_share

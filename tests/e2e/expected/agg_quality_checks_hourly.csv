@@ -1,6 +1,7 @@
 service_date,hour_local,check_name,value,direction,warn_threshold,fail_threshold,status
 2026-11-22,9,duplicate_deliveries,1.000,above,1.000,5.000,warn
 2026-11-22,9,duplicate_share,2.083,above,20.000,50.000,ok
+2026-11-22,9,feed_gap_min,0.000,above,5.000,10.000,ok
 2026-11-22,9,implausible_deviation_share,0.000,above,1.000,5.000,ok
 2026-11-22,9,invalid_coordinate_share,0.000,above,0.500,5.000,ok
 2026-11-22,9,late_event_share,2.595,above,5.000,20.000,ok
@@ -11,6 +12,7 @@ service_date,hour_local,check_name,value,direction,warn_threshold,fail_threshold
 2026-11-22,9,vehicle_count_drop,,above,25.000,50.000,no_baseline
 2026-11-22,10,duplicate_deliveries,1.000,above,1.000,5.000,warn
 2026-11-22,10,duplicate_share,11.000,above,20.000,50.000,ok
+2026-11-22,10,feed_gap_min,1.000,above,5.000,10.000,ok
 2026-11-22,10,implausible_deviation_share,0.387,above,1.000,5.000,ok
 2026-11-22,10,invalid_coordinate_share,0.188,above,0.500,5.000,ok
 2026-11-22,10,late_event_share,3.211,above,5.000,20.000,ok

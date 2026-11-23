@@ -321,7 +321,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: [missed_runs, duplicate_deliveries, duplicate_share, invalid_coordinate_share, missing_trip_id_share, prediction_coverage, schedule_join_coverage, implausible_deviation_share, late_event_share, vehicle_count_drop]
+                values: [missed_runs, feed_gap_min, duplicate_deliveries, duplicate_share, invalid_coordinate_share, missing_trip_id_share, prediction_coverage, schedule_join_coverage, implausible_deviation_share, late_event_share, vehicle_count_drop]
       - name: value
         description: "Measured value; null when it cannot be computed."
       - name: direction
