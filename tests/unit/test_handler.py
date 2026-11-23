@@ -130,3 +130,52 @@ def test_s3_write_failure_raises(aws: Any, monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv("PUBLIC_BUCKET", "no-such-bucket")
     with pytest.raises(ClientError):
         handler.lambda_handler({}, None)
+
+
+def test_second_delivery_of_a_minute_is_recorded_and_exits_cleanly(
+    aws: Any, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr(handler, "_fetch", _fake_fetch())
+    event = {"scheduled_at": "2026-06-01T12:00:00Z"}
+    first = handler.lambda_handler(event, None)
+    with caplog.at_level("WARNING"):
+        second = handler.lambda_handler(event, None)
+
+    assert "duplicate_delivery" not in first
+    assert second["duplicate_delivery"] is True
+    assert "duplicate delivery" in caplog.text
+    manifests = [
+        k for k in _keys(aws, "raw-bucket", "manifests/boston/") if "/duplicates/" not in k
+    ]
+    records = _keys(aws, "raw-bucket", "manifests/boston/duplicates/")
+    assert len(manifests) == 1 and len(records) == 1
+    assert second["duplicate_record"] == records[0]
+    assert second["duplicate_of"] == manifests[0]
+
+
+def test_concurrent_deliveries_give_one_manifest_and_one_duplicate_record(
+    aws: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    gate = Barrier(2)
+    fetch = _fake_fetch()
+
+    def synchronized(url: str) -> FetchResult:
+        if url == str(CONFIG.feeds.alerts):
+            gate.wait(timeout=10)  # both deliveries reach the manifest write together
+        result: FetchResult = fetch(url)
+        return result
+
+    monkeypatch.setattr(handler, "_fetch", synchronized)
+    event = {"scheduled_at": "2026-06-01T12:00:00Z"}
+    with ThreadPoolExecutor(2) as pool:
+        results = list(pool.map(lambda _: handler.lambda_handler(event, None), range(2)))
+
+    manifests = [
+        k for k in _keys(aws, "raw-bucket", "manifests/boston/") if "/duplicates/" not in k
+    ]
+    records = _keys(aws, "raw-bucket", "manifests/boston/duplicates/")
+    assert len(manifests) == 1 and len(records) == 1
+    assert sorted(bool(r.get("duplicate_delivery")) for r in results) == [False, True]

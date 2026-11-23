@@ -55,7 +55,22 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     public_storage = S3Storage(os.environ["PUBLIC_BUCKET"])
 
     scheduled_at = _scheduled_at(event or {}, _now())
-    captures = capture_run(config, raw_storage, _fetch, _now, scheduled_at)
+    run = capture_run(config, raw_storage, _fetch, _now, scheduled_at)
+    captures = run.captures
+    run_id = captures[0].entry.run_id
+    if run.duplicate:
+        # Second delivery of the same scheduled minute: the first delivery owns the manifest and
+        # the live snapshot. Record it (done by capture_run), log it, and finish cleanly.
+        summary: dict[str, Any] = {
+            "run_id": run_id,
+            "scheduled_at": scheduled_at.isoformat(),
+            "duplicate_delivery": True,
+            "duplicate_record": run.duplicate_key,
+            "duplicate_of": run.manifest_key,
+            "duration_ms": round((time.monotonic() - started) * 1000),
+        }
+        logger.warning("duplicate delivery: %s", json.dumps(summary, sort_keys=True))
+        return summary
 
     vehicle_count: int | None = None
     vehicles = next(c for c in captures if c.entry.feed == "vehicle_positions")
@@ -75,7 +90,7 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
             vehicle_count = snapshot["vehicle_count"]
 
     summary = {
-        "run_id": captures[0].entry.run_id,
+        "run_id": run_id,
         "scheduled_at": scheduled_at.isoformat(),
         "statuses": {c.entry.feed: c.entry.status for c in captures},
         "bytes": {c.entry.feed: c.entry.bytes for c in captures},

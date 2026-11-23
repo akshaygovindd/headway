@@ -30,6 +30,19 @@ class FeedCapture:
     body: bytes | None
 
 
+@dataclass(frozen=True)
+class CaptureRun:
+    """Outcome of one run: per-feed captures, and whether another delivery got there first."""
+
+    captures: list[FeedCapture]
+    manifest_key: str
+    duplicate_key: str | None = None  # set when this run's manifest lost the claim on its minute
+
+    @property
+    def duplicate(self) -> bool:
+        return self.duplicate_key is not None
+
+
 def _partition(ts: datetime) -> str:
     ts = ts.astimezone(UTC)
     return f"dt={ts:%Y-%m-%d}/hour={ts:%H}"
@@ -88,14 +101,35 @@ def _capture_entry(
     )
 
 
+def manifest_key(config: CityConfig, scheduled_at: datetime) -> str:
+    """Manifest key for a scheduled minute: one object per minute, whatever delivers it."""
+    minute = scheduled_at.astimezone(UTC).replace(second=0, microsecond=0)
+    return f"manifests/{config.storage_prefix}/{_partition(minute)}/{minute:%Y%m%dT%H%MZ}.json"
+
+
+def duplicate_key(config: CityConfig, scheduled_at: datetime, run_id: str) -> str:
+    minute = scheduled_at.astimezone(UTC).replace(second=0, microsecond=0)
+    return (
+        f"manifests/{config.storage_prefix}/duplicates/{_partition(minute)}/"
+        f"{minute:%Y%m%dT%H%MZ}-{run_id}.json"
+    )
+
+
 def capture_run(
     config: CityConfig,
     storage: Storage,
     fetcher: Fetcher,
     clock: Clock,
     scheduled_at: datetime,
-) -> list[FeedCapture]:
-    """Fetch all realtime feeds once; persist the manifest and return per-feed results."""
+) -> CaptureRun:
+    """Fetch all realtime feeds once and claim the minute's manifest.
+
+    The manifest is written with a conditional create. EventBridge Scheduler delivers at least
+    once, so the same minute can arrive twice; the delivery that loses the create writes a
+    duplicate-delivery record instead (same shape, under ``manifests/<city>/duplicates/``). The
+    record is flagged downstream, never silently dropped, and curation does not treat its
+    captures as data.
+    """
     run_id = str(ULID.from_datetime(clock()))
     urls: dict[FeedName, str] = {
         "trip_updates": str(config.feeds.trip_updates),
@@ -112,6 +146,11 @@ def capture_run(
         "run_id": run_id,
         "entries": [e.model_dump(mode="json") for e in entries],
     }
-    key = f"manifests/{config.storage_prefix}/{_partition(scheduled_at)}/{run_id}.json"
-    storage.put_bytes(key, json.dumps(manifest, indent=2, sort_keys=True).encode())
-    return captures
+    key = manifest_key(config, scheduled_at)
+    body = json.dumps(manifest, indent=2, sort_keys=True).encode()
+    if storage.put_if_absent(key, body):
+        return CaptureRun(captures, key)
+    dup_key = duplicate_key(config, scheduled_at, run_id)
+    record = {**manifest, "duplicate_of": key}
+    storage.put_bytes(dup_key, json.dumps(record, indent=2, sort_keys=True).encode())
+    return CaptureRun(captures, key, dup_key)

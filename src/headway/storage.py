@@ -16,6 +16,10 @@ class Storage(Protocol):
         cache_control: str | None = None,
     ) -> None: ...
 
+    def put_if_absent(self, key: str, data: bytes) -> bool:
+        """Write ``data`` only if ``key`` does not exist; False when it already does."""
+        ...
+
     def get_bytes(self, key: str) -> bytes: ...
 
     def list_keys(self, prefix: str) -> list[str]: ...
@@ -23,6 +27,10 @@ class Storage(Protocol):
     def exists(self, key: str) -> bool: ...
 
     def delete(self, key: str) -> None: ...
+
+
+# 412 when the object exists; 409 when a concurrent conditional write to the key is in flight.
+_CONDITION_CONFLICT = {"PreconditionFailed", "ConditionalRequestConflict"}
 
 
 class LocalStorage:
@@ -46,6 +54,16 @@ class LocalStorage:
         path = self._path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
+
+    def put_if_absent(self, key: str, data: bytes) -> bool:
+        path = self._path(key)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with path.open("xb") as handle:  # exclusive create: atomic across processes
+                handle.write(data)
+        except FileExistsError:
+            return False
+        return True
 
     def get_bytes(self, key: str) -> bytes:
         return self._path(key).read_bytes()
@@ -87,6 +105,16 @@ class S3Storage:
         if cache_control is not None:
             extra["CacheControl"] = cache_control
         self.client.put_object(Bucket=self.bucket, Key=key, Body=data, **extra)
+
+    def put_if_absent(self, key: str, data: bytes) -> bool:
+        """Conditional create (``IfNoneMatch='*'``); False when the object already exists."""
+        try:
+            self.client.put_object(Bucket=self.bucket, Key=key, Body=data, IfNoneMatch="*")
+        except self.client.exceptions.ClientError as exc:
+            if exc.response["Error"]["Code"] in _CONDITION_CONFLICT:
+                return False
+            raise
+        return True
 
     def get_bytes(self, key: str) -> bytes:
         response = self.client.get_object(Bucket=self.bucket, Key=key)

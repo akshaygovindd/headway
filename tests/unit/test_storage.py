@@ -74,3 +74,39 @@ def test_s3_delete() -> None:
         s.put_bytes("a/b.bin", b"xyz")
         s.delete("a/b.bin")
         assert not s.exists("a/b.bin")
+
+
+def test_local_put_if_absent_creates_once(tmp_path: Path) -> None:
+    s = LocalStorage(tmp_path)
+    assert s.put_if_absent("m/a.json", b"first")
+    assert not s.put_if_absent("m/a.json", b"second")
+    assert s.get_bytes("m/a.json") == b"first"
+
+
+def test_s3_put_if_absent_creates_once() -> None:
+    with mock_aws():
+        s = _s3()
+        assert s.put_if_absent("m/a.json", b"first")
+        assert not s.put_if_absent("m/a.json", b"second")
+        assert s.get_bytes("m/a.json") == b"first"
+
+
+def test_s3_put_if_absent_reports_a_concurrent_conditional_write_as_taken() -> None:
+    import types
+
+    from botocore.exceptions import ClientError
+
+    class Conflicting:
+        exceptions = types.SimpleNamespace(ClientError=ClientError)
+
+        def put_object(self, **kwargs: object) -> None:
+            raise ClientError({"Error": {"Code": "ConditionalRequestConflict"}}, "PutObject")
+
+    assert not S3Storage("b", Conflicting()).put_if_absent("k", b"x")  # type: ignore[arg-type]
+
+
+def test_s3_put_if_absent_raises_other_errors() -> None:
+    with mock_aws():
+        s = S3Storage("no-such-bucket", boto3.client("s3", region_name="us-east-1"))
+        with pytest.raises(Exception, match="NoSuchBucket"):
+            s.put_if_absent("k", b"x")
