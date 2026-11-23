@@ -29,6 +29,11 @@ from headway.storage import Storage
 READ_WORKERS = 16
 _QUARANTINE_KEY = re.compile(r"^quarantine/[^/]+/table=([^/]+)/dt=([^/]+)/([^/]+)\.jsonl$")
 
+# Status of manifest rows that come from a duplicate-delivery record (a second scheduler
+# delivery of an already-claimed minute). dbt flags and counts them; they are never data.
+DUPLICATE_STATUS = "duplicate_delivery"
+DUPLICATES_SEGMENT = "/duplicates/"
+
 Row = dict[str, Any]
 HourKey = tuple[str, str]  # (dt, hour), UTC
 
@@ -36,6 +41,10 @@ HourKey = tuple[str, str]  # (dt, hour), UTC
 def _hour_of(ts: datetime) -> HourKey:
     ts = ts.astimezone(UTC)
     return f"{ts:%Y-%m-%d}", f"{ts:%H}"
+
+
+def is_duplicate_record(key: str) -> bool:
+    return DUPLICATES_SEGMENT in key
 
 
 def manifest_row(entry: ManifestEntry) -> Row:
@@ -87,8 +96,12 @@ def read_raw_manifest_entries(storage: Storage, prefix: str) -> list[ManifestEnt
     """Every entry of every raw manifest object, read concurrently."""
     keys = [k for k in storage.list_keys(f"manifests/{prefix}/") if k.endswith(".json")]
     entries: list[ManifestEntry] = []
-    for body in _read_all(storage, keys):
-        entries.extend(ManifestEntry.model_validate(e) for e in json.loads(body)["entries"])
+    for key, body in zip(keys, _read_all(storage, keys), strict=True):
+        for e in json.loads(body)["entries"]:
+            entry = ManifestEntry.model_validate(e)
+            if is_duplicate_record(key):
+                entry = entry.model_copy(update={"status": DUPLICATE_STATUS})
+            entries.append(entry)
     return entries
 
 

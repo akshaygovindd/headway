@@ -104,3 +104,45 @@ def test_backfill_merges_with_live_parts_without_duplicates(tmp_path: Path) -> N
     assert result.manifest_rows == 2
     assert sorted(str(r["capture_id"]) for r in _rows(storage, MANIFESTS)) == ["c1", "c2"]
     assert storage.list_keys(MANIFESTS) == [MANIFESTS + COMPACTED]
+
+
+def _duplicate_record(storage: LocalStorage, run_id: str, entries: list[object]) -> None:
+    doc = {
+        "run_id": run_id,
+        "duplicate_of": "manifests/boston/x.json",
+        "entries": [e.model_dump(mode="json") for e in entries],  # type: ignore[attr-defined]
+    }
+    storage.put_bytes(
+        f"manifests/boston/duplicates/dt={DT}/hour={HOUR}/{run_id}.json", json.dumps(doc).encode()
+    )
+
+
+def test_duplicate_delivery_records_are_flagged_in_manifests_but_never_curated_as_data(
+    tmp_path: Path,
+) -> None:
+    from headway.curate.pipeline import curate_new
+
+    storage = LocalStorage(tmp_path)
+    entry = put_capture(storage, "c1", fx.trip_updates_feed())
+    twin = put_capture(storage, "c1-twin", fx.trip_updates_feed())
+    _raw_manifest(storage, "r1", [entry])
+    _duplicate_record(storage, "r2", [twin])
+
+    result = curate_new(storage, CONFIG, dim_routes=ROUTES)
+
+    assert result.rows() == {"trip_updates": 2}  # the original capture only
+    rows = {r["capture_id"]: r["status"] for r in _rows(storage, MANIFESTS)}
+    assert rows == {"c1": "ok", "c1-twin": "duplicate_delivery"}
+    curate_new(storage, CONFIG, dim_routes=ROUTES)  # idempotent
+    assert len(_rows(storage, MANIFESTS)) == 2
+
+
+def test_backfill_includes_duplicate_delivery_records_with_their_flag(tmp_path: Path) -> None:
+    storage = LocalStorage(tmp_path)
+    entry = put_capture(storage, "c1", fx.trip_updates_feed())
+    twin = entry.model_copy(update={"run_id": "run2"})  # a delivery has its own run id
+    _raw_manifest(storage, "r1", [entry])
+    _duplicate_record(storage, "r2", [twin])
+    backfill_manifests(storage, CONFIG)
+    statuses = sorted(str(r["status"]) for r in _rows(storage, MANIFESTS))
+    assert statuses == ["duplicate_delivery", "ok"]

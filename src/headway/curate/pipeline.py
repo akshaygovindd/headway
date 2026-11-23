@@ -10,7 +10,12 @@ from datetime import UTC, datetime, timedelta
 
 from headway.config import CityConfig
 from headway.contracts.manifest import ManifestEntry
-from headway.curate.meta import READ_WORKERS, write_manifest_parts
+from headway.curate.meta import (
+    DUPLICATE_STATUS,
+    READ_WORKERS,
+    is_duplicate_record,
+    write_manifest_parts,
+)
 from headway.curate.normalize import BatchResult, normalize_batch
 from headway.curate.static import load_dim_routes
 from headway.storage import Storage
@@ -100,14 +105,35 @@ def _advance(mark: Watermark | None, entries: list[ManifestEntry]) -> Watermark:
 def list_manifest_entries(
     storage: Storage, prefix: str, since: datetime | None = None
 ) -> list[ManifestEntry]:
+    return _read_entries(storage, _manifest_keys(storage, prefix, since, duplicates=False))
+
+
+def list_duplicate_entries(
+    storage: Storage, prefix: str, since: datetime | None = None
+) -> list[ManifestEntry]:
+    """Entries of duplicate-delivery records. They are flagged in the manifests table but their
+    captures are never curated as data: the delivery that claimed the minute owns it."""
+    keys = _manifest_keys(storage, prefix, since, duplicates=True)
+    return [e.model_copy(update={"status": DUPLICATE_STATUS}) for e in _read_entries(storage, keys)]
+
+
+def _manifest_keys(
+    storage: Storage, prefix: str, since: datetime | None, *, duplicates: bool
+) -> list[str]:
     keys = []
     for key in storage.list_keys(f"manifests/{prefix}/"):
+        if is_duplicate_record(key) != duplicates:
+            continue
         m = _PARTITION.search(key)
         if since is not None and m is not None:
             start = datetime.fromisoformat(f"{m.group(1)}T{m.group(2)}:00:00+00:00")
             if start + _PARTITION_MARGIN <= since:
                 continue
         keys.append(key)
+    return keys
+
+
+def _read_entries(storage: Storage, keys: list[str]) -> list[ManifestEntry]:
     with ThreadPoolExecutor(READ_WORKERS) as pool:
         docs = list(pool.map(lambda k: json.loads(storage.get_bytes(k)), keys))
     return [ManifestEntry.model_validate(e) for doc in docs for e in doc["entries"]]
@@ -140,4 +166,9 @@ def curate_new(
         write_manifest_parts(storage, config, group)
         mark = _advance(mark, group)
         write_watermark(storage, prefix, mark)
+    # Rewriting is idempotent (part names derive from the entries), so the records are re-listed
+    # over the same partition window on every run rather than tracked by the watermark.
+    duplicates = list_duplicate_entries(storage, prefix, mark.fetched_at if mark else None)
+    if duplicates:
+        write_manifest_parts(storage, config, duplicates)
     return result
