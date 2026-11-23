@@ -16,9 +16,27 @@ GOLD_TABLES = (
     "dim_stop",
     "route_shapes",
 )
+# Release 2 aggregates: exported and published only when HEADWAY_ENABLE_R2=true, like the models.
+R2_GOLD_TABLES = (
+    "agg_arrival_reconstruction_daily",
+    "agg_prediction_accuracy_daily",
+    "agg_actual_deviation_hourly",
+    "agg_headway_adherence_hourly",
+    "agg_ett_daily",
+    "agg_active_alerts",
+)
 # cost_daily is written by cost.py, not dbt, so it is published only when it exists.
 OPTIONAL_TABLES = ("cost_daily",)
 DATABASE = "headway"
+
+
+def r2_enabled() -> bool:
+    return os.environ.get("HEADWAY_ENABLE_R2", "").lower() == "true"
+
+
+def gold_tables() -> tuple[str, ...]:
+    """The gold tables this deployment exports: the base set, plus Release 2 when enabled."""
+    return GOLD_TABLES + R2_GOLD_TABLES if r2_enabled() else GOLD_TABLES
 
 
 def _connect(token: str) -> Any:

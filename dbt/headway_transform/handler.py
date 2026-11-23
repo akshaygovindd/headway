@@ -249,7 +249,7 @@ def _dbt_log_tail(lines: int = 25) -> str:
 def verify_export(s3: Any, bucket: str, gold_prefix: str) -> None:
     """Raise ExportError naming every expected gold object that is not in the bucket."""
     missing = []
-    for key in [f"{gold_prefix}/{t}.parquet" for t in publish.GOLD_TABLES] + [
+    for key in [f"{gold_prefix}/{t}.parquet" for t in publish.gold_tables()] + [
         f"{gold_prefix}/manifest.json"
     ]:
         try:
@@ -273,7 +273,7 @@ def set_gold_cache_control(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
     DuckDB's COPY to S3 cannot set object headers, so each exported object is copied onto itself
     with replaced metadata. The live snapshot is written by ingest with its own, shorter header.
     """
-    keys = [f"{gold_prefix}/{t}.parquet" for t in publish.GOLD_TABLES] + [
+    keys = [f"{gold_prefix}/{t}.parquet" for t in publish.gold_tables()] + [
         f"{gold_prefix}/manifest.json"
     ]
     for key in keys:
@@ -290,7 +290,7 @@ def set_gold_cache_control(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
 
 def r2_exclusions() -> list[str]:
     """Selectors keeping Release 2 models (tag r2) out unless HEADWAY_ENABLE_R2=true."""
-    return [] if os.environ.get("HEADWAY_ENABLE_R2", "").lower() == "true" else ["tag:r2"]
+    return [] if publish.r2_enabled() else ["tag:r2"]
 
 
 def _build_and_test(variables: str, steps: dict[str, int] | None = None) -> DbtOutcome:
@@ -328,7 +328,7 @@ def _build_and_test(variables: str, steps: dict[str, int] | None = None) -> DbtO
 
 
 def _tables_to_publish(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
-    tables = list(publish.GOLD_TABLES)
+    tables = list(publish.gold_tables())
     for name in publish.OPTIONAL_TABLES:
         try:
             s3.head_object(Bucket=bucket, Key=f"{gold_prefix}/{name}.parquet")

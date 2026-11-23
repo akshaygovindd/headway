@@ -160,7 +160,7 @@ def test_release_dbt_connections_is_a_no_op_without_a_connection(
 
 def test_gold_objects_are_cacheable_for_five_minutes(fakes: dict[str, Any], aws: Any) -> None:
     handler.lambda_handler({}, None)
-    keys = [f"{GOLD}/{t}.parquet" for t in publish.GOLD_TABLES]
+    keys = [f"{GOLD}/{t}.parquet" for t in publish.gold_tables()]
     keys += [f"{GOLD}/manifest.json", f"{GOLD}/cost_daily.parquet"]
     for key in keys:
         head = aws.head_object(Bucket="public-bucket", Key=key)
@@ -248,7 +248,7 @@ def fakes(aws: Any, monkeypatch: pytest.MonkeyPatch, pipeline_db: str) -> dict[s
                 Bucket="public-bucket", Key=f"{GOLD}/manifest.json", Body=json.dumps(manifest)
             )
             if not state.get("skip_parquet"):
-                for table in publish.GOLD_TABLES:
+                for table in publish.GOLD_TABLES + publish.R2_GOLD_TABLES:
                     aws.put_object(Bucket="public-bucket", Key=f"{GOLD}/{table}.parquet", Body=b"x")
             return handler.DbtOutcome(True)
         return state.get("by_command", {}).get(args[0], state["outcome"])  # type: ignore[no-any-return]
@@ -542,3 +542,13 @@ def test_r2_exclusion_helper() -> None:
 
     os.environ.pop("HEADWAY_ENABLE_R2", None)
     assert handler.r2_exclusions() == ["tag:r2"]
+
+
+def test_gold_tables_include_release_2_only_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("HEADWAY_ENABLE_R2", raising=False)
+    assert publish.gold_tables() == publish.GOLD_TABLES
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
+    assert publish.gold_tables() == publish.GOLD_TABLES + publish.R2_GOLD_TABLES
+    assert "agg_ett_daily" in publish.gold_tables()
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "false")
+    assert not set(publish.R2_GOLD_TABLES) & set(publish.gold_tables())

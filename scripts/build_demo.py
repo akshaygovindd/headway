@@ -24,8 +24,11 @@ def _env(**extra: str) -> dict[str, str]:
     return env
 
 
-def build(out: Path, source: str, city: str) -> Path:
-    """Return <out>/public/<city>, the HEADWAY_DATA_URL root."""
+def build(out: Path, source: str, city: str, enable_r2: bool = True) -> Path:
+    """Return <out>/public/<city>, the HEADWAY_DATA_URL root.
+
+    enable_r2 sets HEADWAY_ENABLE_R2 for the export: the Release 2 aggregates are exported only then.
+    """
     out = out.resolve()
     replay_dir = out / "replay"
     public = out / "public" / city
@@ -41,7 +44,10 @@ def build(out: Path, source: str, city: str) -> Path:
 
     run(["uv", "run", "headway", "replay", "--source", source, "--target", str(replay_dir),
          "--city", city])  # fmt: skip
-    env = {"HEADWAY_DUCKDB_PATH": str(out / "headway.duckdb")}
+    env = {
+        "HEADWAY_DUCKDB_PATH": str(out / "headway.duckdb"),
+        "HEADWAY_ENABLE_R2": "true" if enable_r2 else "false",
+    }
     run_vars = f'{{"curated_root": "{replay_dir}"}}'
     run([*DBT, "build", *DBT_ARGS, "--vars", run_vars], **env)
     run([*DBT, "run-operation", "export_gold", *DBT_ARGS, "--vars", run_vars,

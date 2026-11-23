@@ -5,15 +5,27 @@
 
   target_dir must already exist when it is a local path; an s3:// prefix works once
   the httpfs extension and credentials are available. Only the tables in the
-  allowlist below are written; nothing else leaves the warehouse.
+  allowlist below are written; nothing else leaves the warehouse. The Release 2 aggregates
+  (gold_r2_allowlist) are added only when HEADWAY_ENABLE_R2=true.
 
   agg_pipeline_health is limited to the 30 days before its latest run.
   dbt_run_at is the start time of this dbt invocation (run the export right after
   `dbt build`). metrics_as_of is the start of the latest service hour in
   agg_line_reliability_hourly, in UTC.
 #}
-{% macro gold_allowlist() -%}
+{% macro gold_r2_allowlist() -%}
 {{ return({
+    'agg_arrival_reconstruction_daily': "select * from " ~ ref('agg_arrival_reconstruction_daily'),
+    'agg_prediction_accuracy_daily': "select * from " ~ ref('agg_prediction_accuracy_daily'),
+    'agg_actual_deviation_hourly': "select * from " ~ ref('agg_actual_deviation_hourly'),
+    'agg_headway_adherence_hourly': "select * from " ~ ref('agg_headway_adherence_hourly'),
+    'agg_ett_daily': "select * from " ~ ref('agg_ett_daily'),
+    'agg_active_alerts': "select * from " ~ ref('agg_active_alerts'),
+}) }}
+{%- endmacro %}
+
+{% macro gold_allowlist() -%}
+{% set tables = {
     'agg_line_reliability_hourly': "select * from " ~ ref('agg_line_reliability_hourly'),
     'agg_line_reliability_window': "select * from " ~ ref('agg_line_reliability_window'),
     'agg_stop_deviation_daily': "select * from " ~ ref('agg_stop_deviation_daily'),
@@ -22,7 +34,12 @@
     'dim_route': "select * from " ~ ref('dim_route'),
     'dim_stop': "select * from " ~ ref('dim_stop'),
     'route_shapes': "select * from " ~ ref('route_shapes'),
-}) }}
+} %}
+{# Release 2 aggregates only exist when their models were built (HEADWAY_ENABLE_R2=true) #}
+{% if env_var('HEADWAY_ENABLE_R2', 'false') | lower == 'true' %}
+{% do tables.update(gold_r2_allowlist()) %}
+{% endif %}
+{{ return(tables) }}
 {%- endmacro %}
 
 {% macro export_gold(target_dir) %}
