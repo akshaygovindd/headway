@@ -145,7 +145,7 @@ SLO_LABELS = {
 
 def _slo_cell(pct: float | None, met: bool | None, budget: float | None = None) -> str:
     if pct is None or pd.isna(pct):
-        return "n/a"
+        return "no data yet (no runs recorded)"
     mark = "✅" if met else "❌"
     text = f"{mark} {pct:.2f}%"
     if budget is not None and not pd.isna(budget):
@@ -153,34 +153,64 @@ def _slo_cell(pct: float | None, met: bool | None, budget: float | None = None) 
     return text
 
 
+def slo_hours(rollup: pd.DataFrame, window: str) -> float | None:
+    """Hours of capture the window rests on: the minutes of the capture-completeness objective."""
+    sel = rollup[
+        (rollup["slo_name"] == "capture_completeness") & (rollup["window_label"] == window)
+    ]
+    if sel.empty or pd.isna(sel.iloc[0]["total_events"]):
+        return None
+    return float(sel.iloc[0]["total_events"]) / 60.0
+
+
+def _hours_label(name: str, hours: float | None) -> str:
+    return name if hours is None else f"{name} (based on {hours:.0f} h)"
+
+
 def slo_table(daily: pd.DataFrame, rollup: pd.DataFrame) -> pd.DataFrame:
-    """One row per objective: the latest service date, the last 7 and the last 30 dates, with
-    the error budget used over the window. Objectives that do not count toward the SLO (the
-    disrupted-lines arrival coverage) come last."""
+    """One row per objective, always all of them: the latest service date, the last 7 and the
+    last 30 dates with the error budget used over the window, the columns labelled with the hours
+    the windows cover. Objectives that do not count toward the SLO (the disrupted-lines arrival
+    coverage) come last. Objectives without events say "no data yet (no runs recorded)"."""
     cols = ["Objective", "Target", "Latest date", "Last 7 days", "Last 30 days", "Counts"]
-    if daily.empty:
-        return pd.DataFrame(columns=cols)
-    last = daily["service_date"].max()
+    if "slo_name" not in rollup:
+        rollup = pd.DataFrame(columns=["slo_name", "window_label", "target_pct", "total_events"])
+    if "slo_name" not in daily:
+        daily = pd.DataFrame(columns=["slo_name", "service_date", "target_pct"])
+    if "total_events" in rollup:
+        h7, h30 = slo_hours(rollup, "last_7d"), slo_hours(rollup, "last_30d")
+    else:
+        h7 = h30 = None
+    seven, thirty = _hours_label("Last 7 days", h7), _hours_label("Last 30 days", h30)
+    targets = {}
+    if not daily.empty:
+        targets = dict(zip(daily["slo_name"], daily["target_pct"], strict=False))
+    last = daily["service_date"].max() if not daily.empty else None
     rows = []
     for name, label in SLO_LABELS.items():
         d = daily[(daily["slo_name"] == name) & (daily["service_date"] == last)]
         r = rollup[rollup["slo_name"] == name].set_index("window_label")
-        if d.empty and r.empty:
-            continue
 
         def cell(window: str, r: pd.DataFrame = r) -> str:
             if window not in r.index:
-                return "n/a"
+                return _slo_cell(None, None)
             w = r.loc[window]
             return _slo_cell(w["actual_pct"], w["met"], w["error_budget_used"])
 
-        latest = "n/a" if d.empty else _slo_cell(d.iloc[0]["actual_pct"], d.iloc[0]["met"])
-        target = d.iloc[0]["target_pct"] if not d.empty else r["target_pct"].iloc[0]
-        counts = bool((d.iloc[0] if not d.empty else r.iloc[0])["counts_toward_slo"])
+        latest = (
+            _slo_cell(None, None)
+            if d.empty
+            else _slo_cell(d.iloc[0]["actual_pct"], d.iloc[0]["met"])
+        )
+        target = targets.get(name, r["target_pct"].iloc[0] if not r.empty else None)
+        counts = name != "arrival_coverage_disrupted"
         rows.append(
-            {"Objective": label, "Target": f"{target:.0f}%", "Latest date": latest,
-             "Last 7 days": cell("last_7d"), "Last 30 days": cell("last_30d"),
+            {"Objective": label, "Target": "n/a" if target is None else f"{target:.0f}%",
+             "Latest date": latest, "Last 7 days": cell("last_7d"),
+             "Last 30 days": cell("last_30d"),
              "Counts": "yes" if counts else "reported separately"}
         )  # fmt: skip
-    out = pd.DataFrame(rows, columns=cols)
+    out = pd.DataFrame(rows, columns=cols).rename(
+        columns={"Last 7 days": seven, "Last 30 days": thirty}
+    )
     return out.sort_values("Counts", key=lambda s: s != "yes", kind="stable").reset_index(drop=True)

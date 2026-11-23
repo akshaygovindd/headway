@@ -89,13 +89,14 @@ else:
 
 slo_daily = ui.gold_table_optional(base, "agg_slo_daily")
 slo_rollup = ui.gold_table_optional(base, "agg_slo_rollup")
-if slo_daily is not None and slo_rollup is not None and not slo_daily.empty:
+if slo_daily is not None and slo_rollup is not None:
     st.subheader("Service level objectives")
     st.caption(
         "Share of good events against the target; budget is the part of the error budget the window "
-        "has used (above 100% is overspent). The latest date may be partial. Lines under an active "
-        "service disruption are reported on their own row and do not count toward arrival coverage. "
-        "Definitions in docs/SLO.md."
+        "has used (above 100% is overspent). The latest date may be partial and the 7 and 30 day "
+        "columns say how many hours they cover. Lines under an active service disruption are "
+        "reported on their own row and do not count toward arrival coverage. Definitions in "
+        "docs/SLO.md."
     )
     st.dataframe(health.slo_table(slo_daily, slo_rollup), hide_index=True, width="stretch")
 

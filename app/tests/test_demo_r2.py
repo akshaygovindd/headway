@@ -65,3 +65,11 @@ def test_demo_has_a_red_service_disruption_and_three_windows_in_the_explorer() -
     assert window.options == ["Last 24 hours", "Last 7 days", "All exported days (approximate)"]
     at.selectbox[0].set_value("Red").run()
     assert any("Service disruption" in str(m.value) for m in at.markdown)
+
+
+def test_slo_section_lists_every_objective_with_hours_covered() -> None:
+    at = AppTest.from_file(str(APP / "pages/3_Pipeline_health.py"), default_timeout=120).run()
+    assert not at.exception, [e.value for e in at.exception]
+    slo = next(df.value for df in at.dataframe if "Objective" in df.value)
+    assert len(slo) == 5
+    assert any("based on" in c for c in slo.columns)
