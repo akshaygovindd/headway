@@ -115,12 +115,51 @@ Sunday-to-Monday stretch; they are first values, not a benchmark.
 | Green-E | 23 s | 68 s | 77 % | -71 s | 77 % |
 | Mattapan | 13 s | 85 s | 77 % | -76 s | 79 % |
 
-Red's arrival coverage is low (32 % of scheduled trip stops, 29 % of scheduled headways, 47 % of
-scheduled trips for ETT), so the app withholds its Release 2 values; the Red numbers above are
-shown only so they are not hidden here. Accuracy is limited by the reconstruction (about 18 s
-median error on observed stops), so differences under about 20 s are not resolved. Headway pairs
+Coverage uses one definition (see METRICS, shared rules): scheduled trip stops, headways or trips
+in non-outage hours. Last 7 days, per line (accuracy is the mean over the four horizon buckets):
+
+| Line | Accuracy | Actual deviation | ETT | Headways |
+| --- | --- | --- | --- | --- |
+| Red | 29 % | 32 % | 34 % | 29 % |
+| Orange | 76 % | 76 % | 85 % | 75 % |
+| Blue | 78 % | 85 % | 62 % | 82 % |
+| Green-B | 63 % | 74 % | 64 % | 70 % |
+| Green-C | 56 % | 76 % | 62 % | 72 % |
+| Green-D | 69 % | 76 % | 76 % | 72 % |
+| Green-E | 70 % | 77 % | 64 % | 72 % |
+| Mattapan | 59 % | 79 % | 85 % | 76 % |
+
+Red is below 50 % on every Release 2 metric, so the app withholds its values on every page; the
+Red numbers in the table before this one are shown only so they are not hidden here. Accuracy is
+limited by the reconstruction (about 18 s median error on observed stops), so differences under
+about 20 s are not resolved. Headway pairs
 dropped for a train in between or unproven order: 1,580 of 34,000 candidates (about 5 %).
 
 The e2e sample is 59 minutes, so both of its hours are outages by the rule and the Release 2
 aggregates in `tests/e2e/expected` show the exclusion path, not values; the unit fixtures cover the
 statistics.
+
+## Blue and Green-E deviation: late and early departures, not a matching offset
+
+Blue shows a median actual deviation of +264 s (last 24 hours; +201 s over 7 days) while its ETT
+is only about +60 s; Green-E shows -101 s with 35 % of arrivals on time. The check, on the same 27
+hours:
+
+- **The feed says the same.** The feed's own predictions, which do not depend on vehicle matching,
+  give a median predicted deviation of +262 s for Blue and -86 s for Green-E over the last 24
+  hours; the reconstruction gives +264 s and -101 s. At 5 minutes before arrival the prediction and
+  the reconstruction of a trip agree within about 30 s (trip 78878754, 06:15: both put it 14
+  minutes after the schedule at every stop).
+- **No one-departure offset.** Trips are matched by `trip_id` and service date, not by order. Of
+  the scheduled Blue trips inside the observed envelope 388 of 419 have a vehicle (266 of 286 for
+  Green-E). In five hand-checked Blue trips the neighbours scheduled 4 to 9 minutes before and
+  after all have vehicles, and their deviations differ per trip (Blue per-trip median: p10 -39 s,
+  p90 +682 s), where a shift by one departure would move every trip by about one headway.
+- **Late at departure, normal in running time.** Blue's deviation is the same 193 to 252 s at
+  every stop of a trip and its ETT (second to second-to-last stop, minus the scheduled running
+  time) is small, so the lateness is at the start of the trip.
+
+Conclusion: real late Blue departures and early Green-E running against the timetable in this
+stretch, not a defect of trip matching, so there is no code change or regression test. The
+timetable is the Fall 2026 version D static feed; a pattern that persists over more days is worth
+re-checking against the published schedule.

@@ -20,6 +20,12 @@ positions) timed by feed `event_ts`. Trips whose `trip_id` is not in the static 
 version D. Stop and vehicle positions are projected onto the trip's shape; a STOPPED_AT capture is
 pinned to its stop.
 
+Alerts for the demo (`make demo-r2`) come from the same curated bucket, read-only:
+`aws s3 sync s3://<raw bucket>/curated/boston/table=alerts .local/spike/alerts`. When that folder
+exists `scripts/demo_r2.py` links it as the alerts table of `.local/spike_root`; without it the
+demo has no service-disruption labels. The vehicle snapshot of the demo is the newest vehicle
+capture of the data.
+
 ## Method
 
 - **Observed interval:** last capture before the first STOPPED_AT at a stop, up to that STOPPED_AT.

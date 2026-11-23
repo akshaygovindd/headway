@@ -163,9 +163,17 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
 
 - **High and medium arrivals only.** Low-confidence and missing arrivals never enter a value.
   They are used for one purpose: proving that no train sits between two others (metric 8).
-- **Coverage beside every number.** Each aggregate carries the numerator and denominator of its
-  coverage and the app shows it next to the value. The arrival coverage note is the high/medium
-  share of reconstructed trip stops from `agg_arrival_reconstruction_daily`.
+- **Coverage beside every number, one definition.** Each aggregate carries the numerator and
+  denominator of its coverage and the app shows it next to the value. Coverage is always measured
+  against the timetable: scheduled trip stops of the line in hours without a data outage (scheduled
+  trips for ETT, scheduled headways for headway adherence). Prediction accuracy, actual deviation
+  and ETT therefore share one basis and can be compared line by line.
+- **One withholding rule.** A value whose coverage is below 50 % is not shown anywhere in the app
+  (cards, tables, charts); coverage from 50 to 80 % is labelled low. A policy test fails if a
+  value with coverage under 50 % is rendered.
+- **Reconstruction confidence is not coverage.** The app note "Reconstruction confidence: X %
+  high/medium of reconstructed trip stops" (from `agg_arrival_reconstruction_daily`) says how
+  good the reconstructed arrivals are, not how many scheduled stops have a value.
 - **Data outage hours (`data_outage`).** An hour is an outage when `missed_runs` is 3 or more in
   that hour (the warn threshold of the `quality_thresholds` seed, read from the seed, not
   hard-coded) or when the `vehicle_positions` window of the hour is incomplete
@@ -210,9 +218,10 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
 - **Grain:** `fct_prediction_errors`: trip_instance_key x segment x stop_sequence x
   horizon_bucket. `agg_prediction_accuracy_daily`: line x service_date x horizon_bucket x
   service_disruption.
-- **Numerator / denominator (coverage):** trip stops with an error in the bucket over high or
-  medium reconstructed trip stops of the line and day (`coverage_numerator`,
-  `coverage_denominator`, `coverage_pct`).
+- **Numerator / denominator (coverage):** trip stops with an error in the bucket over the
+  scheduled trip stops of the line and day in non-outage hours (`coverage_numerator`,
+  `coverage_denominator`, `coverage_pct`), the same basis as actual deviation (metric 7). The
+  window table uses the scheduled trip stops of the line in the window.
 - **Inclusion:** reconstructed arrivals of high or medium confidence. When a trip id was reused
   (several segments for one trip stop), the segment whose arrival is closest to the scheduled
   arrival is used.
@@ -299,7 +308,9 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
   the peaks are weekday periods, and weekend rows use the same clock bands.
 - **Grain:** `agg_ett_daily`: line x direction_id x service_date x time_band x day_type.
 - **Numerator / denominator (coverage):** trips with both end stops at high or medium over
-  scheduled trips of the band (`n_trips`, `n_scheduled_trips`, `coverage_pct`).
+  scheduled trips of the band in non-outage hours (`n_trips`, `n_scheduled_trips`,
+  `coverage_pct`). The trip is the ETT unit (two stops each), so the denominator counts trips, on
+  the same scheduled-timetable basis as accuracy and actual deviation.
 - **Inclusion:** trips whose two stops are both reconstructed in the same run with high or
   medium confidence.
 - **Exclusion:** trips observed on part of the line only, ADDED trips, data outage hours (hour
