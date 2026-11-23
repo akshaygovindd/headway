@@ -95,3 +95,37 @@ def test_lookback_filter_bounds_the_dt_partition(tmp_path: Path) -> None:
     sql = 'select \'{{ lookback_filter() | replace("\'", "") }}\' as got'
     got = _dbt_show(sql, tmp_path, '{"lookback_days": 7}')[0]["got"]
     assert got == "where cast(dt as date) >= cast(now() at time zone UTC as date) - 7"
+
+
+def test_manifest_timestamps_are_tz_aware_on_every_duckdb(tmp_path: Path) -> None:
+    """The manifests source must read `...Z` strings as TIMESTAMPTZ (UTC instants).
+
+    DuckDB 1.5 auto-detects them as naive TIMESTAMP while 2.0 detects TIMESTAMPTZ, which shifted
+    the capture/schedule comparison by the session offset. The source declares its columns.
+    """
+    stamps = [t for t in TS_CASES]  # includes both DST transition days
+    entries = [
+        {
+            "capture_id": f"c{i}", "city_id": "boston", "feed": "trip_updates",
+            "scheduled_at": f"{t:%Y-%m-%dT%H:%M:%S}Z",
+            "fetched_at": f"{t:%Y-%m-%dT%H:%M:%S}.250000Z",
+            "status": "ok", "http_status": 200, "bytes": 1, "entity_count": 1,
+            "content_hash": "h", "feed_header_ts": f"{t:%Y-%m-%dT%H:%M:%S}Z",
+            "header_parse_error": None, "error": None,
+        }
+        for i, t in enumerate(stamps)
+    ]  # fmt: skip
+    manifest_dir = tmp_path / "manifests" / "boston" / "dt=2026-11-22" / "hour=14"
+    manifest_dir.mkdir(parents=True)
+    (manifest_dir / "run.json").write_text(json.dumps({"run_id": "r1", "entries": entries}))
+    sql = (
+        "select any_value(typeof(e.fetched_at)) as typ, "
+        "string_agg(strftime(e.fetched_at at time zone 'UTC', '%Y-%m-%dT%H:%M:%S.%g'), ',' "
+        "order by e.capture_id) as fetched "
+        "from (select unnest(entries) as e from {{ source('curated', 'manifests') }})"
+    )
+    (row,) = _dbt_show(sql, tmp_path, json.dumps({"curated_root": str(tmp_path)}))
+    assert row["typ"] == "TIMESTAMP WITH TIME ZONE"
+    expected = ",".join(f"{t:%Y-%m-%dT%H:%M:%S}.250" for t in sorted(stamps, key=lambda _: 0))
+    got = sorted(row["fetched"].split(","))
+    assert got == sorted(expected.split(","))

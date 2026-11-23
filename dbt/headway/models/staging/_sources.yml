@@ -52,9 +52,12 @@ sources:
         meta:
           external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=feed_info/feed_version=*/part.parquet', hive_partitioning=true)"
       - name: manifests
-        description: Ingest run manifests, one JSON document per run with an `entries` list of captures.
+        description: Ingest run manifests, one JSON document per run with an `entries` list of captures. Columns are
+          declared explicitly because DuckDB 1.5 infers the ISO `...Z` timestamps as naive TIMESTAMP
+          where 2.0 infers TIMESTAMPTZ; the explicit TIMESTAMPTZ keeps every version identical. (The doubled braces are dbt-duckdb's
+          str.format escaping of the external_location.)
         meta:
-          external_location: "read_json_auto('{{ var('curated_root') }}/manifests/{{ var('city_prefix') }}/*/*/*.json', hive_partitioning=true)"
+          external_location: "read_json('{{ var('curated_root') }}/manifests/{{ var('city_prefix') }}/*/*/*.json', hive_partitioning=true, columns={{ '{{' }}'run_id': 'VARCHAR', 'entries': 'STRUCT(capture_id VARCHAR, city_id VARCHAR, feed VARCHAR, scheduled_at TIMESTAMPTZ, fetched_at TIMESTAMPTZ, status VARCHAR, http_status BIGINT, bytes BIGINT, entity_count BIGINT, content_hash VARCHAR, feed_header_ts TIMESTAMPTZ, header_parse_error VARCHAR, error VARCHAR)[]'{{ '}}' }})"
       - name: quarantine
         description: Quarantined records (JSON lines), one line per rejected record or capture.
         meta:

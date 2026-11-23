@@ -169,7 +169,7 @@ models:
         description: "Scheduled arrival (UTC); null when the stop is not matched to the schedule."
         data_tests:
           - not_null_where:
-              arguments:
+              config:
                 where: schedule_matched
       - name: scheduled_hour_local
         description: "Local clock hour (0-23) of the scheduled arrival."
