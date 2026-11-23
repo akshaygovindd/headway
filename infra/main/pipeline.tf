@@ -7,7 +7,8 @@ locals {
   gold_prefix     = "public/${var.city_id}/gold"
   motherduck_ssm  = "/headway/motherduck_token"
   motherduck_arn  = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.motherduck_ssm}"
-  raw_data_prefix = ["curated/*", "manifests/*", "quarantine/*"]
+  lock_key        = "state/${var.city_id}/transform.lock"
+  raw_data_prefix = ["curated/*", "manifests/*", "quarantine/*", local.lock_key]
 }
 
 data "aws_region" "current" {}
@@ -151,6 +152,13 @@ data "aws_iam_policy_document" "transform" {
     resources = [for p in local.raw_data_prefix : "${aws_s3_bucket.raw.arn}/${p}"]
   }
 
+  # Overlapping runs are prevented with a conditional-write lock object (see the transform handler).
+  statement {
+    sid       = "WriteRunLock"
+    actions   = ["s3:PutObject", "s3:DeleteObject"]
+    resources = ["${aws_s3_bucket.raw.arn}/${local.lock_key}"]
+  }
+
   statement {
     sid       = "ListGold"
     actions   = ["s3:ListBucket"]
@@ -255,7 +263,7 @@ resource "aws_lambda_function" "transform" {
   image_uri     = var.transform_image_uri
   architectures = ["arm64"]
   memory_size   = 3008
-  timeout       = 600
+  timeout       = 900
 
   ephemeral_storage {
     size = 4096
