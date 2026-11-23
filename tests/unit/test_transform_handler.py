@@ -109,6 +109,84 @@ def test_write_cost_daily_builds_rows_with_capture_counts(aws: Any, pipeline_db:
     assert [r["service"] for r in rows] == ["Lambda", "S3", "Lambda"]
 
 
+def _fake_dbt_duckdb(monkeypatch: pytest.MonkeyPatch, env: Any) -> Any:
+    """Stand-in for dbt-duckdb's process-wide connection manager (dbt is not in this env)."""
+    import sys
+    import threading
+    import types
+
+    class Manager:
+        _LOCK = threading.RLock()
+        _ENV = env
+
+        @classmethod
+        def close_all_connections(cls) -> None:
+            cls._ENV = None
+
+    module = types.ModuleType("dbt.adapters.duckdb.connections")
+    module.DuckDBConnectionManager = Manager  # type: ignore[attr-defined]
+    for name in ("dbt", "dbt.adapters", "dbt.adapters.duckdb"):
+        monkeypatch.setitem(sys.modules, name, types.ModuleType(name))
+    monkeypatch.setitem(sys.modules, "dbt.adapters.duckdb.connections", module)
+    return Manager
+
+
+def test_cost_reads_the_database_dbt_still_holds_open_after_release(
+    pipeline_db: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class Env:  # what dbt-duckdb keeps: one read-write connection with its own configuration
+        conn = duckdb.connect(pipeline_db, config={"threads": "2"})
+
+        def close(self) -> None:
+            self.conn.close()
+
+    env = Env()
+    manager = _fake_dbt_duckdb(monkeypatch, env)
+    with pytest.raises(duckdb.ConnectionException, match="different configuration"):
+        cost.captures_by_day(pipeline_db)
+
+    handler.release_dbt_connections()
+
+    assert manager._ENV is None
+    assert cost.captures_by_day(pipeline_db) == {date(2026, 11, 20): 4000, date(2026, 11, 21): 4000}
+
+
+def test_release_dbt_connections_is_a_no_op_without_a_connection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _fake_dbt_duckdb(monkeypatch, None)
+    handler.release_dbt_connections()
+
+
+def test_gold_objects_are_cacheable_for_five_minutes(fakes: dict[str, Any], aws: Any) -> None:
+    handler.lambda_handler({}, None)
+    keys = [f"{GOLD}/{t}.parquet" for t in publish.GOLD_TABLES]
+    keys += [f"{GOLD}/manifest.json", f"{GOLD}/cost_daily.parquet"]
+    for key in keys:
+        head = aws.head_object(Bucket="public-bucket", Key=key)
+        assert head["CacheControl"] == "max-age=300", key
+    assert (
+        aws.head_object(Bucket="public-bucket", Key=f"{GOLD}/manifest.json")["ContentType"]
+        == "application/json"
+    )
+
+
+def test_cost_report_is_written_after_dbt_connections_are_released(
+    fakes: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    order: list[str] = []
+    monkeypatch.setattr(handler, "release_dbt_connections", lambda: order.append("release"))
+    real = handler.cost.write_cost_daily
+
+    def spy(*args: Any, **kwargs: Any) -> Any:
+        order.append("cost")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(handler.cost, "write_cost_daily", spy)
+    handler.lambda_handler({}, None)
+    assert order == ["release", "cost"]
+
+
 def test_cost_per_1000_is_null_without_captures() -> None:
     rows = cost.build_rows({date(2026, 11, 19): {"S3": 0.1}}, {})
     assert rows == [(date(2026, 11, 19), "S3", 0.1, 0.1, None, None)]

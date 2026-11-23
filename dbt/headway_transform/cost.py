@@ -114,5 +114,6 @@ def write_cost_daily(
         Key=key,
         Body=write_parquet(rows),
         ContentType="application/vnd.apache.parquet",
+        CacheControl="max-age=300",
     )
     return len(rows)

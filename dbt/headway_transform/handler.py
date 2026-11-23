@@ -218,6 +218,25 @@ def run_dbt(args: list[str]) -> DbtOutcome:
     return outcome
 
 
+def release_dbt_connections() -> None:
+    """Close the DuckDB connection dbt-duckdb keeps open on the database file.
+
+    dbt's connection outlives ``dbtRunner.invoke`` (the adapter caches it process-wide), and
+    DuckDB refuses a second connection to the same file with a different configuration, so
+    anything else that reads the file in this process must call this first. The next dbt
+    invocation opens a fresh connection. A no-op when dbt is not installed (unit tests).
+    """
+    try:
+        from dbt.adapters.duckdb.connections import DuckDBConnectionManager
+    except ImportError:
+        return
+    with DuckDBConnectionManager._LOCK:  # noqa: SLF001
+        env = DuckDBConnectionManager._ENV  # noqa: SLF001
+        if env is not None:
+            env.close()
+        DuckDBConnectionManager.close_all_connections()
+
+
 def _dbt_log_tail(lines: int = 25) -> str:
     """Last lines of the dbt log: where a failed run-operation reports its error."""
     try:
@@ -242,6 +261,31 @@ def verify_export(s3: Any, bucket: str, gold_prefix: str) -> None:
             f"export_gold left {len(missing)} object(s) missing from s3://{bucket}: "
             f"{', '.join(missing)}\nexport log:\n{_dbt_log_tail()}"
         )
+
+
+GOLD_CACHE_CONTROL = "max-age=300"
+_GOLD_CONTENT_TYPES = {".parquet": "application/vnd.apache.parquet", ".json": "application/json"}
+
+
+def set_gold_cache_control(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
+    """Stamp ``Cache-Control: max-age=300`` on the exported gold Parquet files and manifest.
+
+    DuckDB's COPY to S3 cannot set object headers, so each exported object is copied onto itself
+    with replaced metadata. The live snapshot is written by ingest with its own, shorter header.
+    """
+    keys = [f"{gold_prefix}/{t}.parquet" for t in publish.GOLD_TABLES] + [
+        f"{gold_prefix}/manifest.json"
+    ]
+    for key in keys:
+        s3.copy_object(
+            Bucket=bucket,
+            Key=key,
+            CopySource={"Bucket": bucket, "Key": key},
+            MetadataDirective="REPLACE",
+            CacheControl=GOLD_CACHE_CONTROL,
+            ContentType=_GOLD_CONTENT_TYPES[key[key.rindex(".") :]],
+        )
+    return keys
 
 
 def _build_and_test(variables: str, steps: dict[str, int] | None = None) -> DbtOutcome:
@@ -375,6 +419,7 @@ def _transform(started: float, s3: Any) -> dict[str, Any]:
     run_dbt(["run-operation", "export_gold", "--vars", variables,
              "--args", json.dumps({"target_dir": gold_url})])  # fmt: skip
     verify_export(s3, public_bucket, gold_prefix)
+    set_gold_cache_control(s3, public_bucket, gold_prefix)
     timed("export_gold", t0)
     manifest = json.loads(
         s3.get_object(Bucket=public_bucket, Key=f"{gold_prefix}/manifest.json")["Body"].read()
@@ -384,6 +429,7 @@ def _transform(started: float, s3: Any) -> dict[str, Any]:
     cost_rows: int | None = None
     t0 = time.monotonic()
     try:
+        release_dbt_connections()  # cost reads dbt's database file; dbt's connection must go first
         cost_rows = cost.write_cost_daily(
             s3, public_bucket, gold_prefix, boto3.client("ce", region_name="us-east-1"),
             db_path, _now(),
