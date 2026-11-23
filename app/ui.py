@@ -74,8 +74,15 @@ def badge_markdown(badge: CoverageBadge) -> str:
     return f":{_BADGE_COLORS[badge.level]}[{badge.label}]"
 
 
-def _fmt_seconds(value: float | None) -> str:
-    return "n/a" if value is None or pd.isna(value) else f"{value:+.0f} s"
+def _fmt_seconds(value: float | None, *, signed: bool = True) -> str:
+    if value is None or pd.isna(value):
+        return "n/a"
+    return f"{value:+.0f} s" if signed else f"{abs(value):.0f} s"
+
+
+def has_values(*series: Any) -> bool:
+    """True when at least one finite number is present (guards charts against empty/all-NaN)."""
+    return any(pd.to_numeric(pd.Series(s), errors="coerce").notna().any() for s in series)
 
 
 def render_metric_card(
@@ -83,12 +90,14 @@ def render_metric_card(
     values: dict[str, float | None],
     *,
     coverage_pct: float | None,
-    freshness: str,
+    freshness: str | None,
 ) -> None:
     """Render one metric card. Coverage and freshness are required: no number without them.
 
     `values` maps a caption to a value in seconds (or a share between 0 and 1 for captions
-    containing "share"). Below 50% coverage the numbers are withheld.
+    containing "share"). Captions containing "revision" are absolute and shown unsigned.
+    Below 50% coverage the numbers are withheld. `freshness` must be passed explicitly; pass
+    None when the page already shows it once at the top.
     """
     badge = coverage_badge(coverage_pct)
     with st.container(border=True):
@@ -104,10 +113,10 @@ def render_metric_card(
                     if value is None or pd.isna(value)
                     else f"{value:.1%}"
                     if "share" in caption
-                    else _fmt_seconds(value)
+                    else _fmt_seconds(value, signed="revision" not in caption)
                 )
                 st.metric(caption, shown)
         cov_text = (
             "n/a" if coverage_pct is None or pd.isna(coverage_pct) else f"{coverage_pct:.0f}%"
         )
-        st.caption(f"Coverage {cov_text} · {freshness}")
+        st.caption(f"Coverage {cov_text}" + (f" · {freshness}" if freshness else ""))

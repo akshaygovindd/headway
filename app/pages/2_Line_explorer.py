@@ -22,14 +22,18 @@ if hourly.empty:
 left, right = st.columns(2)
 line = left.selectbox("Line", sorted(hourly["line"].unique()))
 dirs = explorer.directions(hourly, line)
+labels = explorer.direction_labels(stops, ui.gold_table(base, "dim_stop"), line, dirs)
 choice = right.selectbox(
-    "Direction", ["Both", *dirs], format_func=lambda d: d if d == "Both" else f"Direction {d}"
+    "Direction",
+    [*dirs, "Both"],  # the first real direction is the default
+    format_func=lambda d: d if d == "Both" else labels[int(d)],
 )
 direction = None if choice == "Both" else int(choice)
 
 st.subheader("Median deviation by hour and weekday")
+st.caption("Hours are bucketed by service day (the day runs 03:00 to 03:00).")
 cells = explorer.heatmap(hourly, line, direction)
-if cells.empty:
+if cells.empty or not ui.has_values(cells["median_deviation_s"]):
     st.info("No data for this selection.")
 else:
     dev = explorer.heatmap_matrix(cells, "median_deviation_s")
@@ -46,25 +50,29 @@ else:
             hovertemplate="%{x} %{y}<br>Median deviation %{z:+.0f} s<br>Coverage %{customdata:.0f}%<extra></extra>",
         )
     )
-    fig.update_layout(yaxis={"type": "category", "autorange": "reversed"}, xaxis={"type": "category"},
+    fig.update_layout(yaxis={"type": "category", "autorange": "reversed"},
+                      xaxis={"type": "category", "categoryorder": "array", "categoryarray": list(dev.columns)},
                       margin={"l": 10, "r": 10, "t": 10, "b": 10})  # fmt: skip
     st.plotly_chart(fig, width="stretch")
 
 st.subheader("Deviation by hour")
 series = explorer.deviation_by_hour(hourly, line, direction)
-if not series.empty:
+if not series.empty and ui.has_values(series["median_deviation_s"], series["p90_deviation_s"]):
     fig = go.Figure()
     fig.add_scatter(x=series["label"], y=series["median_deviation_s"], name="Median",
                     mode="lines+markers", line={"color": line_color(line)})  # fmt: skip
     fig.add_scatter(x=series["label"], y=series["p90_deviation_s"], name="p90",
                     mode="lines+markers", line={"color": line_color(line), "dash": "dot"})  # fmt: skip
-    fig.update_layout(xaxis={"type": "category"}, yaxis_title="Predicted deviation (s)",
+    step = max(1, len(series) // 12)
+    fig.update_layout(xaxis={"type": "category", "tickangle": -45, "tickmode": "array",
+                             "tickvals": list(series["label"][::step])},
+                      yaxis_title="Predicted deviation (s)",
                       margin={"l": 10, "r": 10, "t": 10, "b": 10})  # fmt: skip
     st.plotly_chart(fig, width="stretch")
 
 st.subheader("Slowest stretches")
 st.caption(
-    f"Consecutive stop pairs with the largest rise in median deviation; both stops need at least {NORMAL_MIN:.0f}% coverage."
+    f"Top 5 consecutive stop pairs with the largest positive rise in median deviation; both stops need at least {NORMAL_MIN:.0f}% coverage."
 )
 if direction is None:
     st.info("Choose a direction to see stretches.")

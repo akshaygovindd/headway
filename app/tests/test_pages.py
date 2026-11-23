@@ -9,7 +9,7 @@ from streamlit.testing.v1 import AppTest
 
 APP = Path(__file__).resolve().parents[1]
 PAGES = {
-    "Overview": "Home.py",
+    "Overview": "overview_page.py",
     "Live map": "pages/1_Live_map.py",
     "Line explorer": "pages/2_Line_explorer.py",
     "Pipeline health": "pages/3_Pipeline_health.py",
@@ -54,10 +54,10 @@ def test_about_page_links_the_docs(data_url: str) -> None:
 
 
 def test_overview_has_a_card_with_coverage_per_line(data_url: str) -> None:
-    at = AppTest.from_file(str(APP / "Home.py"), default_timeout=60).run()
+    at = AppTest.from_file(str(APP / "overview_page.py"), default_timeout=60).run()
     captions = [c.value for c in at.caption]
     cards = [c for c in captions if re.match(r"Coverage (\d|n/a)", c)]
-    assert cards and all("exported" in c for c in cards)
+    assert cards and not any("exported" in c for c in cards)  # freshness is shown once at the top
 
 
 def test_live_map_renders_banner_for_an_old_snapshot(data_url: str) -> None:
@@ -110,6 +110,6 @@ def test_pipeline_health_cost_panel_with_data(
 
 def test_invalid_data_url_stops_cleanly(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("HEADWAY_DATA_URL", "ftp://example.org/boston")
-    at = AppTest.from_file(str(APP / "Home.py"), default_timeout=60).run()
+    at = AppTest.from_file(str(APP / "overview_page.py"), default_timeout=60).run()
     assert not at.exception
     assert any("not configured" in e.value for e in at.error)
