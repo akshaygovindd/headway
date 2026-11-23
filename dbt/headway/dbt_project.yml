@@ -45,10 +45,20 @@ models:
       +materialized: table
       int_trip_stop_distances: *r2
       int_vehicle_stop_events: *r2
+      int_hour_flags: *r2
+      int_disrupted_line_hours: *r2
+      int_usable_arrivals: *r2
     marts:
       +materialized: table
       fct_reconstructed_arrivals: *r2
       agg_arrival_reconstruction_daily: *r2
+      agg_active_alerts: *r2
+      fct_prediction_errors: *r2
+      agg_prediction_accuracy_daily: *r2
+      agg_actual_deviation_hourly: *r2
+      fct_headways: *r2
+      agg_headway_adherence_hourly: *r2
+      agg_ett_daily: *r2
 
 seeds:
   headway:

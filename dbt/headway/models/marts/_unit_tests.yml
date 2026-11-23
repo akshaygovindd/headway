@@ -155,3 +155,223 @@ unit_tests:
         - {trip_instance_key: "T5|2026-11-22|08:00:00", segment: 0, stop_sequence: 3, method: bracketed, arrival_ts: "2026-11-22 13:08:00+00", monotonic_ok: true}
         - {trip_instance_key: "T5|2026-11-22|08:00:00", segment: 1, stop_sequence: 1, method: observed, arrival_ts: "2026-11-22 13:30:20+00", monotonic_ok: true}
         - {trip_instance_key: "T5|2026-11-22|08:00:00", segment: 1, stop_sequence: 2, method: bracketed, arrival_ts: "2026-11-22 13:34:00+00", monotonic_ok: true}
+
+  - name: active_alerts_disruption_rules
+    config:
+      tags: [r2]
+    description: >-
+      One capture at 13:00 UTC. Alerts active at that time: DETOUR (disruption), ACCESSIBILITY_ISSUE
+      and STOP_MOVED (never), OTHER_EFFECT whose header mentions a shuttle and UNKNOWN_EFFECT whose
+      header says suspension (text match, case-insensitive). A DETOUR whose period ended before the
+      capture and one not started yet are not active.
+    model: agg_active_alerts
+    given:
+      - input: ref('int_captures')
+        rows:
+          - {capture_id: "c1", service_date: "2026-11-22", hour_local: 8}
+      - input: ref('stg_service_alerts')
+        rows:
+          - {capture_id: "c1", alert_id: "a1", route_id: "Red", effect: "DETOUR", header_text: "Detour at Park", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
+          - {capture_id: "c1", alert_id: "a2", route_id: "Red", effect: "ACCESSIBILITY_ISSUE", header_text: "Elevator out", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
+          - {capture_id: "c1", alert_id: "a3", route_id: "Red", effect: "OTHER_EFFECT", header_text: "SHUTTLE buses replace trains", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
+          - {capture_id: "c1", alert_id: "a4", route_id: "Red", effect: "DETOUR", header_text: "Old detour", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: "2026-11-22 12:00:00+00"}
+          - {capture_id: "c1", alert_id: "a5", route_id: "Red", effect: "STOP_MOVED", header_text: "Stop moved", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
+          - {capture_id: "c1", alert_id: "a6", route_id: "Red", effect: "UNKNOWN_EFFECT", header_text: "Red Line Suspension", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 10:00:00+00", active_end: null}
+          - {capture_id: "c1", alert_id: "a7", route_id: "Red", effect: "DETOUR", header_text: "Future detour", fetched_at: "2026-11-22 13:00:00+00", active_start: "2026-11-22 14:00:00+00", active_end: null}
+    expect:
+      rows:
+        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "DETOUR", is_service_disruption: true, n_active_alerts: 1}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "ACCESSIBILITY_ISSUE", is_service_disruption: false, n_active_alerts: 1}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "OTHER_EFFECT", is_service_disruption: true, n_active_alerts: 1}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "STOP_MOVED", is_service_disruption: false, n_active_alerts: 1}
+        - {service_date: "2026-11-22", hour_local: 8, line: "Red", effect: "UNKNOWN_EFFECT", is_service_disruption: true, n_active_alerts: 1}
+
+  - name: prediction_errors_last_snapshot_per_bucket
+    config:
+      tags: [r2]
+    description: >-
+      The trip stop arrives at 14:10:00. The last snapshot of each horizon bucket is kept: 0-5 min
+      from 14:07 (predicted 14:10:20, error +20), 5-10 from 14:00 (predicted 14:09:00, -60), 20-30
+      from the later of two (13:46, predicted 14:10:30, +30). Not used: a duplicate
+      capture, a SKIPPED snapshot, one collected after the arrival, and one with a horizon over
+      30 minutes.
+    model: fct_prediction_errors
+    given:
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {trip_instance_key: "T|2026-11-22|08:00:00", segment: 0, stop_sequence: 1, service_date: "2026-11-22", line: "Red", direction_id: 0, stop_id: "s1", arrival_service_date: "2026-11-22", arrival_hour_local: 9, data_outage: false, service_disruption: false, confidence: "high", arrival_ts: "2026-11-22 14:10:00+00", is_nearest_segment: true}
+      - input: ref('fct_stop_predictions')
+        rows:
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "p1", collected_at: "2026-11-22 13:45:00+00", predicted_arrival_ts: "2026-11-22 14:11:00+00", horizon_s: 1560, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "p2", collected_at: "2026-11-22 13:46:00+00", predicted_arrival_ts: "2026-11-22 14:10:30+00", horizon_s: 1470, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "p3", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:09:00+00", horizon_s: 540, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "p4", collected_at: "2026-11-22 14:07:00+00", predicted_arrival_ts: "2026-11-22 14:10:20+00", horizon_s: 200, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "p5", collected_at: "2026-11-22 14:08:00+00", predicted_arrival_ts: "2026-11-22 14:10:05+00", horizon_s: 125, schedule_matched: true, is_duplicate_capture: true, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "p6", collected_at: "2026-11-22 14:09:00+00", predicted_arrival_ts: "2026-11-22 14:10:10+00", horizon_s: 70, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SKIPPED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "p7", collected_at: "2026-11-22 14:10:30+00", predicted_arrival_ts: "2026-11-22 14:11:00+00", horizon_s: 30, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "p8", collected_at: "2026-11-22 13:30:00+00", predicted_arrival_ts: "2026-11-22 14:10:00+00", horizon_s: 2400, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+    expect:
+      rows:
+        - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, horizon_bucket: "0-5", capture_id: "p4", error_s: 20, abs_error_s: 20}
+        - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, horizon_bucket: "5-10", capture_id: "p3", error_s: -60, abs_error_s: 60}
+        - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, horizon_bucket: "20-30", capture_id: "p2", error_s: 30, abs_error_s: 30}
+
+  - name: prediction_accuracy_statistics_and_outage_exclusion
+    config:
+      tags: [r2]
+    description: >-
+      Red, 0-5 minutes: absolute errors 10, 50, 100, 200 and one outage-hour error of 5000. Median
+      75, MAE 90, 50% within 60 s, 75% within 120 s, n 4, one excluded for the outage. Coverage is 4
+      of 8 usable trip stops (the outage one is not counted).
+    model: agg_prediction_accuracy_daily
+    given:
+      - input: ref('fct_prediction_errors')
+        rows:
+          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, abs_error_s: 10, error_s: 10}
+          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, abs_error_s: 50, error_s: -50}
+          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, abs_error_s: 100, error_s: 100}
+          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, abs_error_s: 200, error_s: -200}
+          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: true, abs_error_s: 5000, error_s: 5000}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
+          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
+          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
+          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
+          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
+          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
+          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
+          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
+          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: true}
+    expect:
+      rows:
+        - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, n: 4, n_excluded_outage: 1, median_abs_error_s: 75.0, mae_s: 90.0, pct_within_60s: 50.0, pct_within_120s: 75.0, coverage_numerator: 4, coverage_denominator: 8, coverage_pct: 50.0}
+
+  - name: headways_bands_between_and_unproven
+    config:
+      tags: [r2]
+    description: >-
+      Red, direction 0, stop s2, scheduled every 5 minutes. High-confidence trains B-F arrive at
+      minutes 0, 5, 7, 20, 25 and 40 (A to F), a low-confidence train X at 22. A to B: ratio 1,
+      within. B to C: 2 minutes, ratio 0.4, bunched. C to D: 13 minutes, ratio 2.6, a gap. E follows
+      D with X in between at the stop: train_between. F follows E at minute 40 but has no
+      neighbouring stop, so its order cannot be proven: unproven_order. Trains A-E and X also have
+      low-confidence arrivals at s1 and s3 one minute either side; they prove the order and make no
+      headways of their own.
+    model: fct_headways
+    given:
+      - input: ref('fct_reconstructed_arrivals')
+        rows:
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "A|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", arrival_ts: "2026-11-22 14:00:00+00", confidence: "high"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "A|2026-11-22|08:00:00", stop_sequence: 1, stop_id: "s1", arrival_ts: "2026-11-22 13:59:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "A|2026-11-22|08:00:00", stop_sequence: 3, stop_id: "s3", arrival_ts: "2026-11-22 14:01:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "B|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", arrival_ts: "2026-11-22 14:05:00+00", confidence: "high"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "B|2026-11-22|08:00:00", stop_sequence: 1, stop_id: "s1", arrival_ts: "2026-11-22 14:04:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "B|2026-11-22|08:00:00", stop_sequence: 3, stop_id: "s3", arrival_ts: "2026-11-22 14:06:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "C|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", arrival_ts: "2026-11-22 14:07:00+00", confidence: "medium"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "C|2026-11-22|08:00:00", stop_sequence: 1, stop_id: "s1", arrival_ts: "2026-11-22 14:06:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "C|2026-11-22|08:00:00", stop_sequence: 3, stop_id: "s3", arrival_ts: "2026-11-22 14:08:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "D|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", arrival_ts: "2026-11-22 14:20:00+00", confidence: "high"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "D|2026-11-22|08:00:00", stop_sequence: 1, stop_id: "s1", arrival_ts: "2026-11-22 14:19:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "D|2026-11-22|08:00:00", stop_sequence: 3, stop_id: "s3", arrival_ts: "2026-11-22 14:21:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "X|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", arrival_ts: "2026-11-22 14:22:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "X|2026-11-22|08:00:00", stop_sequence: 1, stop_id: "s1", arrival_ts: "2026-11-22 14:21:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "X|2026-11-22|08:00:00", stop_sequence: 3, stop_id: "s3", arrival_ts: "2026-11-22 14:23:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "E|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", arrival_ts: "2026-11-22 14:25:00+00", confidence: "high"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "E|2026-11-22|08:00:00", stop_sequence: 1, stop_id: "s1", arrival_ts: "2026-11-22 14:24:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "E|2026-11-22|08:00:00", stop_sequence: 3, stop_id: "s3", arrival_ts: "2026-11-22 14:26:00+00", confidence: "low"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "F|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", arrival_ts: "2026-11-22 14:40:00+00", confidence: "high"}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {trip_instance_key: "A|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", line: "Red", direction_id: 0, service_date: "2026-11-22", scheduled_arrival_ts: "2026-11-22 14:00:00+00"}
+          - {trip_instance_key: "B|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", line: "Red", direction_id: 0, service_date: "2026-11-22", scheduled_arrival_ts: "2026-11-22 14:05:00+00"}
+          - {trip_instance_key: "C|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", line: "Red", direction_id: 0, service_date: "2026-11-22", scheduled_arrival_ts: "2026-11-22 14:10:00+00"}
+          - {trip_instance_key: "D|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", line: "Red", direction_id: 0, service_date: "2026-11-22", scheduled_arrival_ts: "2026-11-22 14:15:00+00"}
+          - {trip_instance_key: "E|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", line: "Red", direction_id: 0, service_date: "2026-11-22", scheduled_arrival_ts: "2026-11-22 14:20:00+00"}
+          - {trip_instance_key: "F|2026-11-22|08:00:00", stop_sequence: 2, stop_id: "s2", line: "Red", direction_id: 0, service_date: "2026-11-22", scheduled_arrival_ts: "2026-11-22 14:25:00+00"}
+    expect:
+      rows:
+        - {to_trip_instance_key: "B|2026-11-22|08:00:00", to_segment: 0, stop_id: "s2", status: "valid", band: "within", actual_headway_s: 300, scheduled_headway_s: 300, ratio: 1.0}
+        - {to_trip_instance_key: "C|2026-11-22|08:00:00", to_segment: 0, stop_id: "s2", status: "valid", band: "bunched", actual_headway_s: 120, scheduled_headway_s: 300, ratio: 0.4}
+        - {to_trip_instance_key: "D|2026-11-22|08:00:00", to_segment: 0, stop_id: "s2", status: "valid", band: "gap", actual_headway_s: 780, scheduled_headway_s: 300, ratio: 2.6}
+        - {to_trip_instance_key: "E|2026-11-22|08:00:00", to_segment: 0, stop_id: "s2", status: "train_between", band: null, actual_headway_s: 300, scheduled_headway_s: 300, ratio: 1.0}
+        - {to_trip_instance_key: "F|2026-11-22|08:00:00", to_segment: 0, stop_id: "s2", status: "unproven_order", band: null, actual_headway_s: 900, scheduled_headway_s: 300, ratio: 3.0}
+
+  - name: actual_deviation_statistics_and_outage_hour
+    config:
+      tags: [r2]
+    description: >-
+      Red, direction 0, hour 9: five scheduled stops; arrivals -120, 0, 100 and 100 seconds from
+      schedule plus one at 4000 s (implausible, counted and left out). Median 50, p90 100, 3 of 4 in
+      the -60 to +300 window (75%), coverage 4 of 5. Hour 10 is a data outage: one arrival is
+      excluded and the statistics are empty.
+    model: agg_actual_deviation_hourly
+    given:
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 9, stop_id: "s0"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 9, stop_id: "s1"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 9, stop_id: "s2"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 9, stop_id: "s3"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 9, stop_id: "s4"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 10, stop_id: "s0"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 10, stop_id: "s1"}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, deviation_s: -120, is_nearest_segment: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, deviation_s: 0, is_nearest_segment: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, deviation_s: 100, is_nearest_segment: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, deviation_s: 100, is_nearest_segment: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 9, deviation_s: 4000, is_nearest_segment: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", sched_hour_local: 10, deviation_s: 30, is_nearest_segment: true}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 9, data_outage: false}
+          - {service_date: "2026-11-22", hour_local: 10, data_outage: true}
+      - input: ref('int_disrupted_line_hours')
+        rows:
+          - {line: "Blue", service_date: "2026-11-22", hour_local: 9}
+    expect:
+      rows:
+        - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 9, data_outage: false, service_disruption: false, n_arrivals: 4, n_implausible: 1, n_excluded_outage: 0, median_deviation_s: 50.0, p90_deviation_s: 100.0, pct_on_time_window: 75.0, scheduled_trip_stops: 5, coverage_numerator: 4, coverage_denominator: 5, coverage_pct: 80.0}
+        - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 10, data_outage: true, service_disruption: false, n_arrivals: 0, n_implausible: 0, n_excluded_outage: 1, median_deviation_s: null, p90_deviation_s: null, pct_on_time_window: null, scheduled_trip_stops: 2, coverage_numerator: 0, coverage_denominator: 2, coverage_pct: null}
+
+  - name: ett_second_to_second_last_stop_by_band
+    config:
+      tags: [r2]
+    description: >-
+      Monday 2026-11-23, Red direction 0, three four-stop trips whose second and third (second to
+      last) stops are scheduled 10 minutes apart, second stop at 08:00 local (am_peak). Trip U runs
+      them in 12 minutes (ETT +120), trip W in 11 (+60); trip V has no usable arrivals. Median 90,
+      2 of 3 trips covered.
+    model: agg_ett_daily
+    given:
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {trip_instance_key: "U|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "U|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "U|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 3, scheduled_arrival_ts: "2026-11-23 13:10:00+00", hour_local: 8}
+          - {trip_instance_key: "U|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 4, scheduled_arrival_ts: "2026-11-23 13:20:00+00", hour_local: 8}
+          - {trip_instance_key: "V|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "V|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "V|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 3, scheduled_arrival_ts: "2026-11-23 13:10:00+00", hour_local: 8}
+          - {trip_instance_key: "V|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 4, scheduled_arrival_ts: "2026-11-23 13:20:00+00", hour_local: 8}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 3, scheduled_arrival_ts: "2026-11-23 13:10:00+00", hour_local: 8}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 4, scheduled_arrival_ts: "2026-11-23 13:20:00+00", hour_local: 8}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {trip_instance_key: "U|2026-11-23|07:50:00", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 13:01:00+00", is_nearest_segment: true}
+          - {trip_instance_key: "U|2026-11-23|07:50:00", segment: 0, stop_sequence: 3, arrival_ts: "2026-11-23 13:13:00+00", is_nearest_segment: true}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 13:00:00+00", is_nearest_segment: true}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", segment: 0, stop_sequence: 3, arrival_ts: "2026-11-23 13:11:00+00", is_nearest_segment: true}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-23", hour_local: 8, data_outage: false}
+      - input: ref('int_disrupted_line_hours')
+        rows:
+          - {line: "Blue", service_date: "2026-11-23", hour_local: 8}
+    expect:
+      rows:
+        - {line: "Red", direction_id: 0, service_date: "2026-11-23", time_band: "am_peak", day_type: "weekday", service_disruption: false, n_scheduled_trips: 3, n_trips: 2, n_excluded_outage: 0, median_ett_s: 90.0, coverage_numerator: 2, coverage_denominator: 3}

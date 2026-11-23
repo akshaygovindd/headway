@@ -316,3 +316,115 @@ models:
           - accepted_values:
               arguments:
                 values: [added_trip, unscheduled_trip, no_shape, off_shape]
+  - name: int_hour_flags
+    description: "Hours the vehicle positions were observed with the Release 2 data-outage flag: missed runs at or above the warn threshold of the quality_thresholds seed, or an incomplete vehicle_positions window."
+    config:
+      meta:
+        grain: "service_date x hour_local"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [service_date, hour_local]
+    columns:
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour (0-23)."
+        data_tests:
+          - not_null
+      - name: missed_runs
+        description: "Missed scheduler runs in the hour."
+      - name: vehicle_window_complete
+        description: "True when the vehicle_positions window has at least 55 capture minutes."
+      - name: data_outage
+        description: "True when missed_runs reaches the seed threshold or the vehicle window is incomplete."
+        data_tests:
+          - not_null
+  - name: int_disrupted_line_hours
+    description: "Line hours with at least one active service-disruption alert."
+    config:
+      meta:
+        grain: "line x service_date x hour_local"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, service_date, hour_local]
+    columns:
+      - name: line
+        description: "Reporting line (route_id)."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour (0-23)."
+        data_tests:
+          - not_null
+  - name: int_usable_arrivals
+    description: "High and medium confidence reconstructed arrivals that match a scheduled stop, with the outage and disruption flags of the arrival hour; the only arrivals the Release 2 metrics use."
+    config:
+      meta:
+        grain: "trip_instance_key x segment x stop_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [trip_instance_key, segment, stop_sequence]
+    columns:
+      - name: trip_instance_key
+        description: "Trip instance identifier."
+        data_tests:
+          - not_null
+      - name: segment
+        description: "Run of the trip id."
+        data_tests:
+          - not_null
+      - name: stop_sequence
+        description: "Position of the stop in the trip."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date of the trip instance."
+      - name: trip_id
+        description: "Scheduled trip identifier."
+      - name: line
+        description: "Reporting line."
+      - name: direction_id
+        description: "Direction of travel (0 or 1)."
+      - name: stop_id
+        description: "Stop identifier."
+      - name: vehicle_id
+        description: "Vehicle the arrival was reconstructed from."
+      - name: arrival_ts
+        description: "Reconstructed arrival (UTC)."
+      - name: method
+        description: "observed or bracketed."
+      - name: confidence
+        description: "high or medium."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [high, medium]
+      - name: scheduled_arrival_ts
+        description: "Scheduled arrival (UTC)."
+      - name: arrival_service_date
+        description: "Service date of the arrival time."
+      - name: arrival_hour_local
+        description: "Local hour of the arrival."
+      - name: sched_hour_local
+        description: "Local hour of the scheduled arrival."
+      - name: deviation_s
+        description: "Reconstructed minus scheduled arrival in seconds."
+      - name: is_nearest_segment
+        description: "True for the run whose arrival is closest to the schedule when a reused trip id reached the stop more than once."
+      - name: data_outage
+        description: "Data-outage flag of the arrival hour."
+        data_tests:
+          - not_null
+      - name: service_disruption
+        description: "True when the line had an active service-disruption alert in the arrival hour."
+        data_tests:
+          - not_null

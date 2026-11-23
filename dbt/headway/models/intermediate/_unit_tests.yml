@@ -114,3 +114,60 @@ unit_tests:
         - {capture_id: p0, poll_index: 0, capture_minute: "2026-11-22 13:00:00+00", is_duplicate_capture: false}
         - {capture_id: p1, poll_index: 1, capture_minute: "2026-11-22 13:00:00+00", is_duplicate_capture: true}
         - {capture_id: p2, poll_index: 2, capture_minute: "2026-11-22 13:00:00+00", is_duplicate_capture: false}
+
+  - name: hour_flags_outage_rules
+    config:
+      tags: [r2]
+    description: >-
+      The warn threshold of missed_runs in the seed is 3. Hour 8 has 2 missed runs and a complete
+      window (no outage); hour 9 has 3 missed runs (outage); hour 10 has none but an incomplete
+      vehicle window (outage). A trip_updates window row is ignored.
+    model: int_hour_flags
+    given:
+      - input: ref('quality_thresholds')
+        rows:
+          - {check_name: missed_runs, warn: 3}
+      - input: ref('agg_quality_checks_hourly')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 8, check_name: "missed_runs", value: 2.0}
+          - {service_date: "2026-11-22", hour_local: 9, check_name: "missed_runs", value: 3.0}
+          - {service_date: "2026-11-22", hour_local: 10, check_name: "missed_runs", value: 0.0}
+          - {service_date: "2026-11-22", hour_local: 8, check_name: late_event_share, value: 90.0}
+      - input: ref('int_observation_window')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 8, feed: "vehicle_positions", window_complete: true}
+          - {service_date: "2026-11-22", hour_local: 9, feed: "vehicle_positions", window_complete: true}
+          - {service_date: "2026-11-22", hour_local: 10, feed: "vehicle_positions", window_complete: false}
+          - {service_date: "2026-11-22", hour_local: 11, feed: "trip_updates", window_complete: true}
+    expect:
+      rows:
+        - {service_date: "2026-11-22", hour_local: 8, missed_runs: 2.0, vehicle_window_complete: true, data_outage: false}
+        - {service_date: "2026-11-22", hour_local: 9, missed_runs: 3.0, vehicle_window_complete: true, data_outage: true}
+        - {service_date: "2026-11-22", hour_local: 10, missed_runs: 0.0, vehicle_window_complete: false, data_outage: true}
+
+  - name: usable_arrivals_keep_high_medium_and_nearest_segment
+    config:
+      tags: [r2]
+    description: >-
+      Only high and medium arrivals with a time and a schedule are kept. A trip stop reached by two
+      runs of a reused trip id marks the run nearest the schedule. The outage and disruption flags
+      are those of the arrival's local hour (09:00 EST here): hour 9 is an outage for the Red line
+      stop and a disrupted hour for line Red.
+    model: int_usable_arrivals
+    given:
+      - input: ref('fct_reconstructed_arrivals')
+        rows:
+          - {trip_instance_key: "R1|2026-11-22|08:00:00", service_date: "2026-11-22", trip_id: "R1", line: "Red", direction_id: 0, stop_id: "s1", vehicle_id: "v1", method: "observed", segment: 0, stop_sequence: 1, arrival_ts: "2026-11-22 14:00:30+00", confidence: "high", scheduled_arrival_ts: "2026-11-22 14:00:00+00"}
+          - {trip_instance_key: "R1|2026-11-22|08:00:00", service_date: "2026-11-22", trip_id: "R1", line: "Red", direction_id: 0, stop_id: "s1", vehicle_id: "v1", method: "observed", segment: 1, stop_sequence: 1, arrival_ts: "2026-11-22 14:40:00+00", confidence: "medium", scheduled_arrival_ts: "2026-11-22 14:00:00+00"}
+          - {trip_instance_key: "R1|2026-11-22|08:00:00", service_date: "2026-11-22", trip_id: "R1", line: "Red", direction_id: 0, stop_id: "s1", vehicle_id: "v1", method: "observed", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-22 14:05:00+00", confidence: "low", scheduled_arrival_ts: "2026-11-22 14:05:00+00"}
+          - {trip_instance_key: "R1|2026-11-22|08:00:00", service_date: "2026-11-22", trip_id: "R1", line: "Red", direction_id: 0, stop_id: "s1", vehicle_id: "v1", method: "observed", segment: 0, stop_sequence: 3, arrival_ts: null, confidence: null, scheduled_arrival_ts: "2026-11-22 14:10:00+00"}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 9, data_outage: true}
+      - input: ref('int_disrupted_line_hours')
+        rows:
+          - {line: "Red", service_date: "2026-11-22", hour_local: 9}
+    expect:
+      rows:
+        - {trip_instance_key: "R1|2026-11-22|08:00:00", segment: 0, stop_sequence: 1, is_nearest_segment: true, deviation_s: 30, data_outage: true, service_disruption: true}
+        - {trip_instance_key: "R1|2026-11-22|08:00:00", segment: 1, stop_sequence: 1, is_nearest_segment: false, deviation_s: 2400, data_outage: true, service_disruption: true}

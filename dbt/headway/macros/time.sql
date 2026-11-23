@@ -32,3 +32,21 @@ cast(({{ ts }} at time zone '{{ var("timezone") }}') - interval {{ var("service_
 where cast(dt as date) >= cast(now() at time zone 'UTC' as date) - {{ var('lookback_days') | int }}
 {%- endif -%}
 {%- endmacro %}
+
+{#
+  Time band of a UTC timestamp by its local clock time: am_peak 06:30-09:00, midday 09:00-15:30,
+  pm_peak 15:30-18:30, evening 18:30-24:00, otherwise 'other' (night and early morning).
+#}
+{% macro time_band(ts) -%}
+case
+    when (extract(hour from {{ ts }} at time zone '{{ var("timezone") }}') * 60
+        + extract(minute from {{ ts }} at time zone '{{ var("timezone") }}')) >= 1110 then 'evening'
+    when (extract(hour from {{ ts }} at time zone '{{ var("timezone") }}') * 60
+        + extract(minute from {{ ts }} at time zone '{{ var("timezone") }}')) >= 930 then 'pm_peak'
+    when (extract(hour from {{ ts }} at time zone '{{ var("timezone") }}') * 60
+        + extract(minute from {{ ts }} at time zone '{{ var("timezone") }}')) >= 540 then 'midday'
+    when (extract(hour from {{ ts }} at time zone '{{ var("timezone") }}') * 60
+        + extract(minute from {{ ts }} at time zone '{{ var("timezone") }}')) >= 390 then 'am_peak'
+    else 'other'
+end
+{%- endmacro %}
