@@ -147,8 +147,27 @@ deployment):
 echo "HEADWAY_DATA_URL=$(terraform -chdir=infra/main output -raw gold_url | sed 's#/gold$##')"
 ```
 
-`make acceptance` reports the Release 1 acceptance tests against the repository, the public gold
-and read-only AWS.
+`make acceptance` reports the Release 1 acceptance tests (below).
+
+## Release 1 acceptance
+
+`make acceptance` (`scripts/acceptance.py`) reports PASS, FAIL or MANUAL for each test, using the
+repository, the public gold and read-only AWS.
+
+| # | Test | Checked by |
+| --- | --- | --- |
+| A1 | Captures stored with UTC timestamps and run IDs | newest raw manifest |
+| A2 | Pipeline ran unattended 72 h with missed runs < 1% of expected | public `agg_pipeline_health` |
+| A3 | Scheduled and predicted values in separate columns; prediction snapshots per collection time | `fct_stop_predictions` schema and grain test |
+| A4 | Duplicate, missing and invalid records measured | seeded faults in replay; pipeline health |
+| A5 | dbt models documented and tested | `scripts/check_dbt_docs.py` |
+| A6 | Coverage and freshness beside every metric | metric card policy test |
+| A7 | Live map reads the cached snapshot only | no MBTA URL in `app/` |
+| A8 | Reproducible deployment | fresh-clone walkthrough below (MANUAL) |
+| A9 | End-to-end test runs locally from samples without AWS | `make e2e` |
+| A10 | `ARCHITECTURE_DECISIONS.md` and `METRICS.md` written | docs checks |
+| A11 | Lineage diagram in `docs/LINEAGE.md` | docs check |
+| A12 | Cost measured from real billing | `cost_daily` rows |
 
 ## Walkthrough record
 

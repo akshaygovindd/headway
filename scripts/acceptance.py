@@ -5,18 +5,20 @@ read-only AWS (S3 list/get, STS). It never changes AWS. Run with `make acceptanc
 
 The tests, as checked here:
 
-  A1  newest ingest manifest has UTC timestamps and a run_id (raw bucket, else the sample)
-  A2  missed-run % and hours covered over the last 72 h (public agg_pipeline_health)
-  A3  replay of the sample curates deterministically with the expected counts
-  A4  contracts reject bad rows into quarantine with a reason
-  A5  dbt metrics on the sample match the reviewed expected tables (make e2e)
-  A6  metric cards cannot be rendered without coverage and freshness
-  A7  the app holds no MBTA feed URLs
-  A8  fresh-clone deploy walkthrough timed (manual)
-  A9  the four metrics and every dbt model are documented
-  A10 architecture decisions and incidents are documented
-  A11  lineage diagram marks validation, quarantine, monitoring/alarms and replay
-  A12  cost_daily has rows in the public gold
+  A1  captures stored with UTC timestamps and run IDs (raw bucket manifest, else the sample)
+  A2  pipeline ran unattended 72 h with missed runs < 1 % of expected (public pipeline health)
+  A3  scheduled and predicted values in separate columns; snapshots per collection time
+      (fct_stop_predictions schema and grain test)
+  A4  duplicate, missing and invalid records measured (seeded faults match exactly in replay;
+      pipeline health expectations in the e2e tables)
+  A5  dbt models documented and tested (scripts/check_dbt_docs.py)
+  A6  coverage and freshness beside every metric (metric card policy test)
+  A7  live map reads the cached snapshot only (no MBTA URL in app/)
+  A8  reproducible deployment: fresh-clone DEPLOY.md walkthrough recorded (manual)
+  A9  end-to-end test runs locally from samples without AWS (make e2e)
+  A10 ARCHITECTURE_DECISIONS.md and METRICS.md written
+  A11 lineage diagram in docs/LINEAGE.md
+  A12 cost measured from real billing (cost_daily rows)
 
 Also writes capture-to-gold latency and cost per 1,000 captures into docs/MEASUREMENTS.md when
 they can be measured. Pass --no-write to leave the file alone.
@@ -183,7 +185,43 @@ def a8() -> Result:
     )
 
 
-def a9() -> Result:
+def a3() -> Result:
+    import yaml
+
+    doc = yaml.safe_load((ROOT / "dbt/headway/models/marts/_dims_facts.yml").read_text())
+    model = next(m for m in doc["models"] if m["name"] == "fct_stop_predictions")
+    cols = {c["name"] for c in model["columns"]}
+    grain: list[str] = []
+    for t in model.get("data_tests", []):
+        if isinstance(t, dict) and "unique_grain" in t:
+            grain = t["unique_grain"]["arguments"]["columns"]
+    missing = {"scheduled_arrival_ts", "predicted_arrival_ts", "collected_at"} - cols
+    if missing or "capture_id" not in grain or not grain:
+        return "FAIL", f"missing columns {sorted(missing)}, grain {grain}"
+    return "PASS", f"scheduled_arrival_ts and predicted_arrival_ts separate; grain {grain}"
+
+
+def a4() -> Result:
+    status, last = pytest_result(
+        "tests/replay/test_samples.py::test_seeded_fault_counts_match_faults_md",
+        "tests/unit/test_curate_normalize.py",
+    )
+    health = ROOT / "tests/e2e/expected/agg_pipeline_health.csv"
+    header = health.read_text().splitlines()[0] if health.exists() else ""
+    if not all(c in header for c in ("quarantine_total", "duplicate_delivery_count")):
+        return "FAIL", "pipeline health expectations lack quarantine/duplicate columns"
+    return status, f"seeded faults match FAULTS.md exactly; health columns expected ({last})"
+
+
+def a5() -> Result:
+    manifest = ROOT / "dbt/headway/target/manifest.json"
+    if not manifest.exists():
+        return "FAIL", "no dbt manifest; run make e2e first"
+    ok, last = run(["uv", "run", "python", "scripts/check_dbt_docs.py", str(manifest)])
+    return ("PASS" if ok else "FAIL"), last
+
+
+def metrics_doc() -> Result:
     text = (ROOT / "docs/METRICS.md").read_text()
     sections = re.split(r"^## ", text, flags=re.M)
     metrics = [s for s in sections if re.match(r"\d\. ", s)]
@@ -191,8 +229,7 @@ def a9() -> Result:
     bad = [s.splitlines()[0] for s in metrics if not all(k in s for k in needed)]
     if len(metrics) != 4 or bad:
         return "FAIL", f"{len(metrics)} metrics documented; incomplete: {bad}"
-    status, last = pytest_result("tests/unit/test_check_dbt_docs.py")
-    return status, f"4 metrics with {len(needed)} fields each; dbt docs check: {last}"
+    return "PASS", f"METRICS.md: 4 metrics with {len(needed)} fields each"
 
 
 def a10() -> Result:
@@ -214,7 +251,10 @@ def a10() -> Result:
     incidents = (ROOT / "docs/INCIDENTS.md").read_text().count("- **Root cause:**")
     if numbers != list(range(1, 14)) or bad or cited - set(numbers) or incidents < 1:
         return "FAIL", f"ADRs {numbers}, incomplete {bad}, dangling {sorted(cited - set(numbers))}"
-    return "PASS", f"ADR-001..013 complete, {incidents} incidents with root causes"
+    m_status, m_detail = metrics_doc()
+    if m_status != "PASS":
+        return m_status, m_detail
+    return "PASS", f"ADR-001..013 complete; {m_detail}"
 
 
 def a11() -> Result:
@@ -321,10 +361,11 @@ def main() -> int:
     results: dict[str, Result] = {}
     results["A1"] = a1()
     results["A2"], _ = a2()
-    results["A3"] = pytest_result("tests/replay")
-    results["A4"] = pytest_result("tests/contract", "tests/unit/test_curate_normalize.py")
     ok, last = run(["uv", "run", "--project", "dbt", "python", "scripts/e2e.py"])
-    results["A5"] = ("PASS" if ok else "FAIL", last)
+    results["A9"] = ("PASS" if ok else "FAIL", last)
+    results["A3"] = a3()
+    results["A4"] = a4()
+    results["A5"] = a5()
     results["A6"] = pytest_result(
         "app/tests/test_policies.py::test_metric_card_requires_coverage_and_freshness", group="app"
     )
@@ -332,11 +373,11 @@ def main() -> int:
         "app/tests/test_policies.py::test_no_mbta_feed_url_in_app", group="app"
     )
     results["A8"] = a8()
-    results["A9"] = a9()
     results["A10"] = a10()
     results["A11"] = a11()
     results["A12"], cost_rows = a12()
 
+    results = dict(sorted(results.items(), key=lambda kv: int(kv[0][1:])))
     print(f"{'Test':<5} {'Result':<7} Detail")
     for name, (status, detail) in results.items():
         print(f"{name:<5} {status:<7} {detail}")
