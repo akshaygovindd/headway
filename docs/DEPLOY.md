@@ -220,3 +220,26 @@ cd infra/main && terraform destroy
 
 Both data buckets must be emptied first (`aws s3 rm s3://<bucket> --recursive`). The bootstrap
 bucket is versioned; remove it manually if you really want to delete state history.
+
+## Release 2 switches (both off by default)
+
+Deploying Phase 2.1 before Release 1 sign-off must not change behaviour, so two Terraform variables
+gate it. With the defaults (`vehicle_polls = 1`, `enable_r2 = false`) the ingest Lambda takes one
+poll per minute as before and the transform Lambda skips every dbt model and test tagged `r2`.
+Still different after a deploy: manifests gain `poll_index` (always 0), `agg_pipeline_health` gains
+two columns, the static Lambda also writes the two geometry tables, and the ingest Lambda claims
+a minute before fetching (a second delivery fetches nothing). The ingest function is 128 MB with
+a 58 s timeout, which fits both settings.
+
+Switch-on, Phase 2.6, in this order:
+
+1. Static geometry: invoke `headway-static` once. The latest feed version is already loaded, so it
+   only writes `shape_points_dist` and `stop_shape_positions` for it (check both exist under
+   `curated/boston/static/`).
+2. Set `enable_r2 = true` in `terraform.tfvars`, `make deploy`, and wait for one transform run:
+   `fct_reconstructed_arrivals` and `agg_arrival_reconstruction_daily` exist and its logged step
+   times are in line with the earlier runs. Run this on 1-minute data first.
+3. Set `vehicle_polls = 4`, `make deploy`. Check the next manifests: six entries, `poll_index`
+   0-3, a run of 45-58 s, memory under about 100 MB in the Lambda report line, the live snapshot
+   updating every 15 s. If memory is close to the limit, set `memory_size` to 256 and deploy again.
+4. Turning either back off is the same variable change; data already written stays valid.

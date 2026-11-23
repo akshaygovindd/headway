@@ -35,3 +35,20 @@ variable "lookback_days" {
   type        = number
   default     = 7
 }
+
+variable "vehicle_polls" {
+  description = "Vehicle position polls per minute: 1 is one poll per minute, 4 is 15 s sampling (ADR-014)."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = contains([1, 4], var.vehicle_polls)
+    error_message = "vehicle_polls must be 1 or 4."
+  }
+}
+
+variable "enable_r2" {
+  description = "Build the Release 2 dbt models (tag r2) in the transform Lambda."
+  type        = bool
+  default     = false
+}

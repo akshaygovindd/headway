@@ -75,6 +75,7 @@ resource "aws_lambda_function" "ingest" {
       RAW_BUCKET         = aws_s3_bucket.raw.bucket
       PUBLIC_BUCKET      = aws_s3_bucket.public.bucket
       CITY_ID            = var.city_id
+      VEHICLE_POLLS      = tostring(var.vehicle_polls)
       HEADWAY_CONFIG_DIR = "/var/task/config/cities"
     }
   }

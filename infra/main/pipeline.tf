@@ -275,6 +275,8 @@ resource "aws_lambda_function" "transform" {
       PUBLIC_BUCKET = aws_s3_bucket.public.bucket
       CITY_ID       = var.city_id
       LOOKBACK_DAYS = tostring(var.lookback_days)
+      # Release 2 dbt models (tag r2) are skipped unless this is "true"; see docs/DEPLOY.md
+      HEADWAY_ENABLE_R2 = tostring(var.enable_r2)
     }
   }
 

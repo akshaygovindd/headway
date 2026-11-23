@@ -47,9 +47,16 @@ transform)
     (cd "$root" && uv run headway replay --source samples/boston --target "$smoke/curated" \
         --city boston >/dev/null)
     invoke headway-transform:local headway_transform.handler.lambda_handler \
-        "r['smoke'] and r['extension_dir_writable'] and r['tables_exported'] >= 8 and r['rows_exported'] > 0" \
+        "r['smoke'] and r['extension_dir_writable'] and r['tables_exported'] >= 8 and r['rows_exported'] > 0 and not r['r2_enabled'] and r['tests_failed'] == 0" \
         -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 \
+        -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated -e HEADWAY_SMOKE_GOLD_DIR=/tmp/gold
+
+    # Release 2 switched on: same gold, plus the r2 models and their tests.
+    invoke headway-transform:local headway_transform.handler.lambda_handler \
+        "r['smoke'] and r['r2_enabled'] and r['tables_exported'] >= 8 and r['tests_failed'] == 0" \
+        -v "$smoke/curated:/fixture/curated:ro" \
+        -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated -e HEADWAY_SMOKE_GOLD_DIR=/tmp/gold
 
     # Same image, but export_gold writes to s3:// on a moto server (host process, reached via
@@ -93,14 +100,16 @@ ingest)
     # package built by `make lambda-zip` mounted at /var/task, under the function's 128 MB limit.
     # A time-compressed 4-poll cycle with fake feeds; fails when peak RSS exceeds 110 MB.
     rm -rf "$smoke/ingest" && mkdir -p "$smoke/ingest" && chmod a+rwx "$smoke/ingest"
-    docker run --rm --name "$name" --platform linux/arm64 --memory=128m --memory-swap=128m \
-        --read-only --ipc=none --tmpfs /tmp:exec --user 993:990 \
-        -v "$root/build/lambda:/var/task:ro" -v "$root/scripts/smoke_ingest.py:/smoke/smoke_ingest.py:ro" \
-        -v "$smoke/ingest:/out" \
-        -e PYTHONPATH=/var/task -e HEADWAY_CONFIG_DIR=/var/task/config/cities -e HOME=/tmp \
-        -e AWS_DEFAULT_REGION=us-east-1 -e AWS_ACCESS_KEY_ID=smoke -e AWS_SECRET_ACCESS_KEY=smoke \
-        --entrypoint /var/lang/bin/python3.12 public.ecr.aws/lambda/python:3.12 \
-        /smoke/smoke_ingest.py --out /out | tee "$smoke/ingest/result.json"
+    for polls in 1 4; do
+        docker run --rm --name "$name" --platform linux/arm64 --memory=128m --memory-swap=128m \
+            --read-only --ipc=none --tmpfs /tmp:exec --user 993:990 \
+            -v "$root/build/lambda:/var/task:ro" -v "$root/scripts/smoke_ingest.py:/smoke/smoke_ingest.py:ro" \
+            -v "$smoke/ingest:/out" \
+            -e PYTHONPATH=/var/task -e HEADWAY_CONFIG_DIR=/var/task/config/cities -e HOME=/tmp \
+            -e AWS_DEFAULT_REGION=us-east-1 -e AWS_ACCESS_KEY_ID=smoke -e AWS_SECRET_ACCESS_KEY=smoke \
+            --entrypoint /var/lang/bin/python3.12 public.ecr.aws/lambda/python:3.12 \
+            /smoke/smoke_ingest.py --out "/out/polls$polls" --polls "$polls" | tee "$smoke/ingest/result-$polls.json"
+    done
     ;;
 *) echo "unknown image: $kind" >&2; exit 2 ;;
 esac

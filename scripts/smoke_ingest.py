@@ -131,6 +131,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", type=Path, required=True, help="directory standing in for S3")
     ap.add_argument("--minutes", type=int, default=3)
+    ap.add_argument("--polls", type=int, default=4, choices=[1, 4], help="VEHICLE_POLLS")
     ap.add_argument("--limit-mb", type=float, default=110.0)
     args = ap.parse_args()
 
@@ -172,6 +173,7 @@ def main() -> int:
             poll_fetcher=fetch,
             clock=lambda ft=ft: ft.now,
             sleep=ft.sleep,
+            polls=args.polls,
         )
         per_minute.append(
             {
@@ -186,6 +188,7 @@ def main() -> int:
         "peak_rss_mb": round(peak_mb(), 1),
         "baseline_after_imports_mb": round(baseline, 1),
         "cgroup_peak_mb": None if (c := cgroup_peak_mb()) is None else round(c, 1),
+        "polls": args.polls,
         "limit_mb": args.limit_mb,
         "body_bytes": sizes,
         "raw_objects": len(raw.list_keys("raw/")),
@@ -194,7 +197,7 @@ def main() -> int:
     }
     print(json.dumps(result))
     ok = result["peak_rss_mb"] <= args.limit_mb and all(
-        m["vehicle_polls"] == ["ok"] * 4 for m in per_minute
+        m["vehicle_polls"] == ["ok"] * args.polls for m in per_minute
     )
     return 0 if ok else 1
 
