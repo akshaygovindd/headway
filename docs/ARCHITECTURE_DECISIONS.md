@@ -18,6 +18,7 @@ stable: other documents and code comments cite them as `ADR-NNN`.
 | 011 | FastAPI and MCP as separate interfaces | Proposed (R3/R4) |
 | 012 | dbt in Lambda DuckDB, MotherDuck gold-only, DuckDB 1.5.6 pin | Accepted |
 | 013 | Duplicate deliveries flagged, never dropped | Accepted |
+| 014 | Vehicle sampling interval for arrival reconstruction | Proposed (R2) |
 
 Template: Status, Context, Decision, Consequences, Revisit when.
 
@@ -241,3 +242,33 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   `Cache-Control: max-age=300` and the live snapshot with `max-age=30`.
 - **Revisit when:** a duplicate-heavy period makes the wasted fetch matter (claim the minute before
   fetching), or the scheduler offers exactly-once delivery.
+
+### ADR-014: Vehicle sampling interval for arrival reconstruction
+
+- **Status:** Proposed
+- **Context:** Release 2 reconstructs arrivals from vehicle positions captured once a minute. The
+  spike in `docs/spikes/2026-11-sampling.md` (about 27 hours, scheduled subway trips) found: median
+  observed interval 51-59 s; 13 % of trip-stops high confidence; hold-out median error 41-57 s on
+  seven of eight lines (Mattapan 33 s), p90 70-100 s, only 16-30 % within 30 s. The vehicle feed
+  header changes every 5 s and the median vehicle updates every 9 s, so most updates are never
+  captured.
+- **Decision:** Keep one capture per minute for `trip_updates` and `alerts`, and sample
+  `vehicle_positions` every 15 s. EventBridge Scheduler cannot schedule below one minute, so the
+  existing minute invocation fetches the vehicle feed four times (at 0, 15, 30 and 45 s) and the
+  manifest stays one per minute. If the Lambda duration cost or a measured quarter-minute error
+  says otherwise, 30 s is the fallback (about 26 s median interval, so a median error near the
+  30 s target, with half the extra requests).
+- **Cost of extra S3 requests:** each vehicle capture is one gzip PUT. Per month (30 days):
+  1-minute 43,200 PUTs, 30 s 86,400, 15 s 172,800, at USD 0.005 per 1,000 PUTs (S3 Standard list
+  price, us-east-1; confirm in the bill). Extra PUTs: 30 s +43,200 = about USD 0.22; 15 s +129,600 =
+  about USD 0.65 a month. Extra GETs when curating are about USD 0.0004 per 1,000, below a cent.
+  Raw storage grows by the same factor on that feed (vehicle bodies are small; `trip_updates`
+  dominates curated size). Not yet measured: ingest Lambda duration and memory at about 60 s a run
+  (the schedule-to-fetch delay is already median 17.6 s), curated vehicle rows from about 98,000
+  to about 392,000 a day, and the transform runtime change.
+- **Consequences:** Needs a change to the ingest handler, capture ids that stay unique at 15 s,
+  manifest entries for several vehicle captures per run, and a curate/dbt review of
+  `vehicle_positions` grain tests. None of that is done in the spike. Arrival confidence
+  thresholds (30 s high, 120 s medium) stay as in the amended method.
+- **Revisit when:** two full service days are available to repeat the spike, the 15 s estimate is
+  measured in a short trial, or ingest duration or cost makes the extra fetches unacceptable.
