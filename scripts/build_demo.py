@@ -27,7 +27,7 @@ def _env(**extra: str) -> dict[str, str]:
 def build(out: Path, source: str, city: str, enable_r2: bool = True) -> Path:
     """Return <out>/public/<city>, the HEADWAY_DATA_URL root.
 
-    enable_r2 sets HEADWAY_ENABLE_R2 for the export: the Release 2 aggregates are exported only then.
+    enable_r2 sets HEADWAY_ENABLE_R2: the Release 2 aggregates are exported only then.
     """
     out = out.resolve()
     replay_dir = out / "replay"

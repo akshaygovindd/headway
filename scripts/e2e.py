@@ -20,7 +20,17 @@ import duckdb
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = ROOT / "tests" / "e2e" / "expected"
-TABLES = ["agg_line_reliability_hourly", "agg_pipeline_health", "agg_quality_checks_hourly"]
+TABLES = [
+    "agg_line_reliability_hourly",
+    "agg_pipeline_health",
+    "agg_quality_checks_hourly",
+    "agg_arrival_reconstruction_daily",
+    "agg_prediction_accuracy_daily",
+    "agg_actual_deviation_hourly",
+    "agg_headway_adherence_hourly",
+    "agg_ett_daily",
+    "agg_active_alerts",
+]
 DBT = ["uv", "run", "--project", "dbt", "dbt"]
 DBT_ARGS = ["--project-dir", "dbt/headway", "--profiles-dir", "dbt/headway", "--target", "local"]
 

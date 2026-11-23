@@ -45,7 +45,8 @@ def test_actual_deviation_skips_outage_hours_and_reports_them() -> None:
         base: dict[str, object] = {
             "line": "Red", "data_outage": outage, "service_disruption": False,
             "n_arrivals": 0 if outage else 10, "n_excluded_outage": 5 if outage else 0,
-            "median_deviation_s": None if outage else 60.0, "p90_deviation_s": None if outage else 200.0,
+            "median_deviation_s": None if outage else 60.0,
+            "p90_deviation_s": None if outage else 200.0,
             "pct_on_time_window": None if outage else 80.0,
             "coverage_numerator": 0 if outage else 10, "coverage_denominator": 12,
         }  # fmt: skip

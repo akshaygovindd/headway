@@ -69,7 +69,7 @@ def _select(df: pd.DataFrame, line: str, direction: int | None) -> pd.DataFrame:
 
 
 def actual_deviation_summary(dev: pd.DataFrame) -> pd.DataFrame:
-    """One row per line: median and p90 (n-weighted over usable hours), share in the -1/+5 window."""
+    """One row per line: median, p90 (n-weighted over usable hours), share in the -1/+5 window."""
     cols = ["line", "n", "median_deviation_s", "p90_deviation_s", "pct_on_time_window",
             "n_excluded_outage", "n_disruption_hours", "coverage_pct"]  # fmt: skip
     rows = []
@@ -110,14 +110,14 @@ def arrival_coverage_note(recon: pd.DataFrame | None, line: str | None = None) -
         return "Arrival coverage: n/a."
     usable = 100.0 * (sel["n_high"].sum() + sel["n_medium"].sum()) / sel["trip_stops"].sum()
     return (
-        f"Arrival coverage: {usable:.0f}% of {int(sel['trip_stops'].sum()):,} reconstructed trip stops "
-        "have high or medium confidence; only those are used. Arrivals are reconstructed from vehicle "
-        "positions, not official times."
+        f"Arrival coverage: {usable:.0f}% of {int(sel['trip_stops'].sum()):,} reconstructed trip "
+        "stops have high or medium confidence; only those are used. Arrivals are reconstructed "
+        "from vehicle positions, not official times."
     )
 
 
 def headway_summary(hw: pd.DataFrame, line: str, direction: int | None) -> dict[str, float | None]:
-    """Shares over valid headways of the selection (n-weighted), plus dropped counts and coverage."""
+    """Shares over valid headways of the selection (n-weighted), dropped counts and coverage."""
     sel = _select(hw, line, direction)
     usable = sel[~sel["data_outage"]]
     w = usable["n_headways"].astype(float)
