@@ -34,6 +34,12 @@ Written during Release 1.
   number of curated and manifest objects, because the globs are listed before the `dt` filter
   prunes files. The dbt environment needs its own container image (dbt pins protobuf<7), with
   the DuckDB extensions installed at build time.
+- **DuckDB version constraint:** The DuckDB version is constrained by MotherDuck support, not by
+  what is newest. The motherduck extension refuses unsupported engines (DuckDB 2.0.1 failed with
+  "not yet supported ... We recommend DuckDB v1.5.6"), so `duckdb==1.5.6` is pinned in `dbt/` (the
+  transform image) and in the root dev environment. The image build asserts the pinned version and
+  bakes the httpfs, aws and motherduck extensions for it (`v1.5.6/linux_arm64`). Bump the pin only
+  after MotherDuck lists the new version as supported.
 - **Revisit when:** history beyond the lookback is needed (R2 adds incremental history, keeping
   older partitions rather than rebuilding them), the build approaches the 600 s timeout, or
   MotherDuck limits change.

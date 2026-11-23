@@ -8,8 +8,11 @@ RUN uv export --frozen --only-group dbt --no-hashes --no-emit-project > requirem
         --no-cache -r requirements.txt
 # Extensions are installed at build time and copied to /tmp at cold start (the motherduck
 # extension downloads its implementation into the extension dir at load time).
+# The duckdb version is constrained by MotherDuck support (see ADR-012); the build fails if it drifts
+# from the pin in dbt/pyproject.toml, so extensions are always baked for v1.5.6/linux_arm64.
 RUN PYTHONPATH=/deps /var/lang/bin/python3.12 -c "\
 import duckdb; \
+assert duckdb.__version__ == '1.5.6', duckdb.__version__; \
 con = duckdb.connect(config={'extension_directory': '/duckdb_extensions', 'home_directory': '/tmp'}); \
 con.execute('install httpfs'); con.execute('install aws'); con.execute('install motherduck')"
 

@@ -10,6 +10,9 @@ requires-python = ">=3.12,<3.13"
 dbt = [
     "dbt-core~=1.11.2",
     "dbt-duckdb~=1.10.0",
+    # MotherDuck only supports specific DuckDB releases (2.0.1 was rejected, 1.5.6 recommended).
+    # Keep in sync with docker/transform.Dockerfile, the root dev pin and ADR-012.
+    "duckdb==1.5.6",
 ]
 
 [tool.uv]

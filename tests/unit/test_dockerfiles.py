@@ -47,3 +47,18 @@ def test_dockerfile_passes_build_checks(name: str) -> None:
         cwd=ROOT, capture_output=True, text=True, check=False,
     )  # fmt: skip
     assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+PINNED_DUCKDB = "1.5.6"  # MotherDuck support constraint, see ADR-012
+
+
+def test_duckdb_is_pinned_to_the_motherduck_supported_version() -> None:
+    import duckdb
+
+    assert duckdb.__version__ == PINNED_DUCKDB
+    for rel in ("pyproject.toml", "dbt/pyproject.toml"):
+        assert f'"duckdb=={PINNED_DUCKDB}"' in (ROOT / rel).read_text(), rel
+    assert (
+        f"duckdb.__version__ == '{PINNED_DUCKDB}'"
+        in (ROOT / "docker" / "transform.Dockerfile").read_text()
+    )
