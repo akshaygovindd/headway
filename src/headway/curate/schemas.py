@@ -193,6 +193,27 @@ STATIC_SCHEMAS: dict[str, pa.Schema] = {
             pa.field("shape_dist_traveled", pa.float64()),
         ]
     ),
+    # Precomputed at static load (headway.curate.geometry): distance along each shape, and each
+    # stop's projection onto its shape. Metres from the shape's first point.
+    "shape_points_dist": pa.schema(
+        [
+            _FV,
+            pa.field("shape_id", pa.string(), nullable=False),
+            pa.field("shape_pt_sequence", pa.int32(), nullable=False),
+            pa.field("lat", pa.float64(), nullable=False),
+            pa.field("lon", pa.float64(), nullable=False),
+            pa.field("dist_m", pa.float64(), nullable=False),
+        ]
+    ),
+    "stop_shape_positions": pa.schema(
+        [
+            _FV,
+            pa.field("shape_id", pa.string(), nullable=False),
+            pa.field("stop_id", pa.string(), nullable=False),
+            pa.field("stop_sequence", pa.int32(), nullable=False),
+            pa.field("dist_m", pa.float64(), nullable=False),
+        ]
+    ),
     "calendar": pa.schema(
         [
             _FV,

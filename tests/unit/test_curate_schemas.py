@@ -15,6 +15,8 @@ def test_all_expected_tables_present() -> None:
         "trips",
         "stop_times",
         "shapes",
+        "shape_points_dist",
+        "stop_shape_positions",
         "calendar",
         "calendar_dates",
         "feed_info",

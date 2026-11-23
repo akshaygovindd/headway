@@ -15,6 +15,7 @@ import pyarrow.csv as pacsv
 import pyarrow.parquet as pq
 
 from headway.config import CityConfig
+from headway.curate.geometry import GEOMETRY_TABLES, geometry_tables
 from headway.curate.schemas import STATIC_SCHEMAS
 from headway.parse.gtfs_scope import route_ids_of_types, with_parent_stations
 from headway.parse.gtfs_static import (
@@ -122,6 +123,31 @@ def _in(column: str, values: pa.Array) -> Callable[[pa.RecordBatch], pa.Array]:
     return lambda batch: pc.is_in(batch.column(column), value_set=values)
 
 
+def _read_static(storage: Storage, prefix: str, table: str, version: str) -> pa.Table:
+    raw = storage.get_bytes(static_key(prefix, table, version))
+    return pq.read_table(io.BytesIO(raw), schema=STATIC_SCHEMAS[table])
+
+
+def _backfill_geometry(storage: Storage, prefix: str, version: str) -> dict[str, int]:
+    """Write the geometry tables for an already loaded feed_version that lacks them."""
+    if all(storage.exists(static_key(prefix, name, version)) for name in GEOMETRY_TABLES):
+        return {}
+
+    def read(table: str) -> pa.Table:
+        return _read_static(storage, prefix, table, version)
+
+    tables = geometry_tables(
+        read("shapes"), read("stops"), read("trips"), read("stop_times"), version
+    )
+    rows: dict[str, int] = {}
+    for name, table in tables.items():
+        buf = io.BytesIO()
+        pq.write_table(table, buf, compression="zstd")
+        storage.put_bytes(static_key(prefix, name, version), buf.getvalue())
+        rows[name] = table.num_rows
+    return rows
+
+
 def load_static(storage: Storage, config: CityConfig, gtfs_source: GtfsSource) -> StaticResult:
     """Write static tables for the source's feed_version; no-op if it was already loaded.
 
@@ -132,7 +158,11 @@ def load_static(storage: Storage, config: CityConfig, gtfs_source: GtfsSource) -
     version = _feed_version(gtfs_source)
     prefix = config.storage_prefix
     if storage.exists(static_key(prefix, "feed_info", version)):
-        return StaticResult(feed_version=version, skipped=True)
+        # Already loaded. A version loaded before the geometry tables existed gets them now,
+        # computed from the curated tables it already has.
+        return StaticResult(
+            feed_version=version, skipped=True, rows=_backfill_geometry(storage, prefix, version)
+        )
     result = StaticResult(feed_version=version, skipped=False)
 
     def emit(name: str, table: pa.Table, rows_read: int, started: float) -> None:
@@ -202,6 +232,10 @@ def load_static(storage: Storage, config: CityConfig, gtfs_source: GtfsSource) -
         pc.is_in(all_stops.column("stop_id"), pa.array(sorted(needed), pa.string()))
     )
     emit("stops", stops, read, started)
+
+    started = time.monotonic()
+    for name, table in geometry_tables(shapes, stops, trips, stop_times, version).items():
+        emit(name, table.drop_columns(["feed_version"]), table.num_rows, started)
 
     for name, model in _SMALL_TABLES[1:]:  # feed_info last: it marks the version as loaded
         table, read, started = small(name, model)
