@@ -29,6 +29,14 @@ st.markdown(
     "gap in the data is not mistaken for a transit disruption."
 )
 
+st.subheader("Measured numbers")
+st.markdown(
+    "- Transform run: 600 s timeout before, about 46-54 s after the fix\n"
+    "- Cost: $0.0086 per 1,000 captures\n"
+    "- Reliability: 1 missed run in about 1,580 minutes\n"
+    f"- Details and method: [MEASUREMENTS.md]({DOCS}/MEASUREMENTS.md)"
+)
+
 st.subheader("Documentation")
 st.markdown(
     f"- [METRICS.md]({DOCS}/METRICS.md): definitions, grain and inclusion rules of the four "

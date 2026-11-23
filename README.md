@@ -9,10 +9,19 @@ published with its coverage and freshness, and the pipeline reports its own heal
 data is never mistaken for a disruption on the line. Cities are configured through YAML, so
 nothing is tied to a single agency. The Streamlit app reads only public files over HTTPS.
 
-**Live app:** _link to be added after the Streamlit Community Cloud deploy_
+**Live app:** https://headway-mbta.streamlit.app
 
-<!-- screenshot: Overview page -->
-*Screenshot placeholders: Overview · Live map · Line explorer · Pipeline health.*
+**Measured:** transform 600 s timeout → about 46–54 s per run · $0.0086 per 1,000 captures ·
+1 missed run in about 1,580 minutes. Method and dates in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md).
+
+| Overview | Live map |
+| --- | --- |
+| ![Overview](docs/img/overview.png) | ![Live map](docs/img/live-map.png) |
+| **Line explorer** | **Pipeline health** |
+| ![Line explorer](docs/img/line-explorer.png) | ![Pipeline health](docs/img/pipeline-health.png) |
+
+<!-- TODO: docs/img is empty; add overview.png, live-map.png, line-explorer.png and
+pipeline-health.png (captures of https://headway-mbta.streamlit.app). -->
 
 ## Architecture
 
@@ -108,7 +117,7 @@ to the public gold bucket. Deploying your own copy is described in [docs/DEPLOY.
 | `src/headway/` | ingest, parse, contracts, curate, export, CLI |
 | `dbt/headway/` | dbt project: staging, intermediate, marts, tests |
 | `dbt/headway_transform/` | transform Lambda: dbt run, gold export, publish, cost |
-| `app/` | Streamlit app (`Home.py`, `pages/`, `lib/`, tests) |
+| `app/` | Streamlit app (`Home.py` navigation, `overview_page.py`, `pages/`, `lib/`, tests) |
 | `infra/` | Terraform: `bootstrap/` (state bucket) and `main/` (stack) |
 | `docker/` | container images for curate and transform |
 | `config/cities/` | city configuration (feeds, lines, timezone) |
