@@ -1,6 +1,7 @@
 import io
 import json
 import logging
+import os
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
@@ -281,7 +282,27 @@ def test_publish_failure_is_logged_then_raised(
     monkeypatch.setattr(handler.publish, "publish_motherduck", boom)
     with pytest.raises(RuntimeError, match="md down"):
         handler.lambda_handler({}, None)
-    assert "md down" in _summary(caplog)["publish_error"]
+    logged = _summary(caplog)
+    assert "md down" in logged["publish_error"]
+    assert logged["gold_exported"] is True
+
+
+def test_prepare_extension_dir_copies_baked_extensions_once(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    baked = tmp_path / "baked"
+    (baked / "v1" / "arm").mkdir(parents=True)
+    (baked / "v1" / "arm" / "x.duckdb_extension").write_text("x")
+    runtime = tmp_path / "runtime"
+    monkeypatch.setenv("HEADWAY_DUCKDB_EXTENSIONS_SRC", str(baked))
+    monkeypatch.setenv("HEADWAY_DUCKDB_EXTENSIONS_RUNTIME", str(runtime))
+    assert handler.prepare_extension_dir() == str(runtime)
+    assert (runtime / "v1" / "arm" / "x.duckdb_extension").read_text() == "x"
+    assert os.environ["HEADWAY_DUCKDB_EXTENSIONS"] == str(runtime)
+    (runtime / "marker").write_text("kept")
+    handler.prepare_extension_dir()  # second cold-start call is a no-op
+    assert (runtime / "marker").read_text() == "kept"
+    assert handler.assert_extension_dir_writable(str(runtime)) is True
 
 
 # ---------------------------------------------------------------- dbt runner

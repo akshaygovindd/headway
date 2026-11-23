@@ -47,7 +47,7 @@ transform)
     (cd "$root" && uv run headway replay --source samples/boston --target "$smoke/curated" \
         --city boston >/dev/null)
     invoke headway-transform:local headway_transform.handler.lambda_handler \
-        "r['smoke'] and r['tables_exported'] >= 8 and r['rows_exported'] > 0" \
+        "r['smoke'] and r['extension_dir_writable'] and r['tables_exported'] >= 8 and r['rows_exported'] > 0" \
         -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated -e HEADWAY_SMOKE_GOLD_DIR=/tmp/gold
@@ -65,7 +65,7 @@ transform)
         -H "Authorization: AWS4-HMAC-SHA256 Credential=smoke/20260101/us-east-1/s3/aws4_request"
     endpoint="host.docker.internal:$moto_port"
     invoke headway-transform:local headway_transform.handler.lambda_handler \
-        "r['smoke'] and r['tables_exported'] >= 8 and r['rows_exported'] > 0" \
+        "r['smoke'] and r['extension_dir_writable'] and r['tables_exported'] >= 8 and r['rows_exported'] > 0" \
         --add-host=host.docker.internal:host-gateway \
         -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 \

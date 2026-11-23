@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import shutil
 import time
 import traceback
 from dataclasses import dataclass, field
@@ -20,6 +21,9 @@ DEFAULT_LOOKBACK_DAYS = 7
 TOKEN_PARAMETER = "/headway/motherduck_token"
 DBT_TARGET_PATH = "/tmp/dbt_target"  # noqa: S108
 DBT_LOG_PATH = "/tmp/dbt_logs"  # noqa: S108
+
+
+RUNTIME_EXTENSION_DIR = "/tmp/duckdb_extensions"  # noqa: S108
 
 
 class TransformError(Exception):
@@ -40,6 +44,44 @@ class DbtOutcome:
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def prepare_extension_dir() -> str:
+    """Copy the image's baked DuckDB extensions into writable /tmp once per container.
+
+    The motherduck extension downloads its implementation at load time into the extension
+    directory, which cannot be the read-only image. Every DuckDB connection (dbt profile, publish)
+    reads HEADWAY_DUCKDB_EXTENSIONS, so it is pointed at the writable copy.
+    """
+    runtime = os.environ.get("HEADWAY_DUCKDB_EXTENSIONS_RUNTIME", RUNTIME_EXTENSION_DIR)
+    baked = os.environ.get("HEADWAY_DUCKDB_EXTENSIONS_SRC")
+    if baked and not os.path.isdir(runtime) and os.path.isdir(baked):
+        tmp = f"{runtime}.{os.getpid()}.tmp"
+        shutil.copytree(baked, tmp)
+        os.rename(tmp, runtime)
+    os.environ["HEADWAY_DUCKDB_EXTENSIONS"] = runtime
+    return runtime
+
+
+def assert_extension_dir_writable(runtime: str) -> bool:
+    """Smoke check: a DuckDB connection configured with ``runtime`` can have extensions written
+    into it (simulated by creating and renaming a file the way an extension install does)."""
+    import duckdb
+
+    con = duckdb.connect(config={"extension_directory": runtime, "home_directory": "/tmp"})  # noqa: S108
+    try:
+        configured = con.execute("select current_setting('extension_directory')").fetchone()
+    finally:
+        con.close()
+    assert configured is not None and os.path.realpath(configured[0]) == os.path.realpath(runtime)
+    target = os.path.join(runtime, "smoke_probe", "linux_arm64")
+    os.makedirs(target, exist_ok=True)
+    tmp = os.path.join(target, "probe.duckdb_extension.tmp")
+    with open(tmp, "wb") as handle:
+        handle.write(b"probe")
+    os.rename(tmp, os.path.join(target, "probe.duckdb_extension"))
+    shutil.rmtree(os.path.join(runtime, "smoke_probe"))
+    return True
 
 
 def _dbt_flags() -> list[str]:
@@ -189,6 +231,9 @@ def _smoke(started: float) -> dict[str, Any]:
             counts = json.load(handle)["row_counts"]
     summary = {
         "smoke": True,
+        "extension_dir_writable": assert_extension_dir_writable(
+            os.environ["HEADWAY_DUCKDB_EXTENSIONS"]
+        ),
         "dbt_status": "success" if build.success else "tests_failed",
         "tests_failed": build.tests_failed,
         "tests_passed": build.tests_passed,
@@ -203,6 +248,7 @@ def _smoke(started: float) -> dict[str, Any]:
 def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     started = time.monotonic()
     os.environ.setdefault("HOME", "/tmp")  # noqa: S108  Lambda leaves HOME unset
+    prepare_extension_dir()
     if os.environ.get("HEADWAY_SMOKE_GOLD_DIR"):
         return _smoke(started)
     raw_bucket = os.environ["RAW_BUCKET"]
@@ -268,6 +314,7 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
 
     summary.update(
         {
+            "gold_exported": True,
             "dbt_status": "success" if build.success else "tests_failed",
             "tests_failed": build.tests_failed,
             "tests_passed": build.tests_passed,
