@@ -97,7 +97,8 @@ def _gold(tmp_path: Path, cov: dict[str, float] | None = None) -> Path:
         ],
         "agg_active_alerts": [
             {"line": "Red", "service_date": date(2026, 11, 23), "hour_local": 14,
-             "effect": "DETOUR", "is_service_disruption": True, "scope": "line", "stop_names": None},
+             "effect": "DETOUR", "is_service_disruption": True, "scope": "line",
+             "stop_names": None},
             {"line": "Blue", "service_date": date(2026, 11, 23), "hour_local": 14,
              "effect": "NO_SERVICE", "is_service_disruption": True, "scope": "stop",
              "stop_names": "Bowdoin"},
