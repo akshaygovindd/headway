@@ -57,4 +57,4 @@ deliveries are counted by `agg_pipeline_health.duplicate_delivery_count` and the
 | Measure | Value | Method |
 | --- | --- | --- |
 | Capture to gold | pending | Needs several scheduled runs. By schedule alone (curate at :00/:15/:30/:45, transform at :20 plus about one minute) a capture is in gold between about 20 and 80 minutes after it is fetched; this is derived from the schedules, not measured. |
-| Cost per 1,000 captures | pending | `cost_daily.parquet` is written by the first transform run at or after 06:00 UTC once Cost Explorer returns a complete day. The first run failed on the connection conflict (fixed), so no file exists yet. |
+| Cost per 1,000 captures | $0.0086 on 2026-11-22 (day total $0.0116, 1,341 captures) | `gold/cost_daily.parquet`: Cost Explorer spend for resources tagged `project=headway` divided by captures. The first day is partial (deployment started mid-day) and Lambda usage is inside the free tier, so S3 dominates. |

@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke images-smoke deploy seed
+.PHONY: acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke images-smoke deploy seed
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -39,6 +39,11 @@ dbt:
 # Replay samples/boston into a temp dir, build dbt against it and compare key tables.
 e2e:
 	uv run --project dbt python scripts/e2e.py
+
+# Release 1 acceptance report (PASS/FAIL/MANUAL per A1-A12) from the repo, the public gold and
+# read-only AWS; also refreshes the latency and cost rows of docs/MEASUREMENTS.md.
+acceptance:
+	uv run python scripts/acceptance.py
 
 # Streamlit app tests (own dependency group; not part of `make check`).
 app-test:
