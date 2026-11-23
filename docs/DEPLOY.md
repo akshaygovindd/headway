@@ -145,6 +145,22 @@ After that the schedules take over: curate every 15 minutes, compaction at :05, 
 static daily at 09:00 UTC (04:00 EST, 05:00 EDT). To redeploy new code, run `make images-push`,
 update the URIs in `terraform.tfvars`, then plan and apply.
 
+### Shortcuts: `make deploy` and `make seed`
+
+`make deploy` pushes both images (`images-push`), sets `curate_image_uri` and
+`transform_image_uri` in `infra/main/terraform.tfvars` to the new git short sha, runs
+`terraform plan -out=tfplan` and applies it only if the plan shows `0 to destroy` (otherwise it
+stops before the apply). It needs AWS credentials and the ECR repositories from step 2.
+
+`make seed` invokes `headway-static`, then `headway-curate` with `{"task":"backfill_manifests"}`,
+then `headway-curate`, then `headway-transform`, prints each result and stops at the first
+function error. Use it for step 6 and, after `make deploy` on an existing deployment, to run the
+backfill below followed by a transform.
+
+`scripts/bench_transform.py` (`uv run python scripts/bench_transform.py --days 1 --backfill`)
+times the transform's dbt build and test against replicated manifests; it is a development tool,
+not part of the deployment.
+
 ### Backfill the curated manifests tables (once, when upgrading an existing deployment)
 
 The transform reads run manifests and quarantine records from curated Parquet

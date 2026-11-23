@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke images-smoke
+.PHONY: check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke images-smoke deploy seed
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -92,3 +92,42 @@ images-push: images-build
 	echo; \
 	echo "curate_image_uri    = \"$$registry/headway-curate:$(IMAGE_TAG)\""; \
 	echo "transform_image_uri = \"$$registry/headway-transform:$(IMAGE_TAG)\""
+
+# Push the images, point terraform.tfvars at the new git short sha, plan and apply. Aborts before
+# the apply unless the plan destroys nothing. Needs AWS credentials and the ECR repositories.
+TFVARS := infra/main/terraform.tfvars
+
+deploy: images-push
+	@set -eo pipefail; \
+	test -f $(TFVARS) || { echo "$(TFVARS) not found" >&2; exit 1; }; \
+	sed -i.bak -E \
+		-e 's|^(curate_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-curate:)[^"]*"|\1$(IMAGE_TAG)"|' \
+		-e 's|^(transform_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-transform:)[^"]*"|\1$(IMAGE_TAG)"|' \
+		$(TFVARS); \
+	rm -f $(TFVARS).bak; \
+	grep -q 'headway-curate:$(IMAGE_TAG)"' $(TFVARS) && grep -q 'headway-transform:$(IMAGE_TAG)"' $(TFVARS) \
+		|| { echo "could not set both image tags to $(IMAGE_TAG) in $(TFVARS)" >&2; exit 1; }; \
+	cd infra/main; \
+	terraform plan -no-color -input=false -out=tfplan | tee tfplan.txt; \
+	if grep -q '^No changes' tfplan.txt; then echo "nothing to apply"; exit 0; fi; \
+	grep -Eq '[0-9]+ to destroy' tfplan.txt && grep -Eq ' 0 to destroy' tfplan.txt \
+		|| { echo "aborting: the plan destroys resources (expected 0 to destroy)" >&2; exit 1; }; \
+	terraform apply -input=false tfplan
+
+# Seed the pipeline in order: static GTFS, manifests backfill, curate, transform. Prints each result
+# and stops at the first function error.
+seed:
+	@set -eo pipefail; \
+	invoke() { \
+		name=$$1; payload=$$2; timeout=$$3; out=$$(mktemp); \
+		echo "== $$name $$payload"; \
+		err=$$(aws lambda invoke --region $(AWS_REGION) --function-name $$name --cli-read-timeout $$timeout \
+			--cli-binary-format raw-in-base64-out --payload "$$payload" \
+			--query FunctionError --output text $$out); \
+		cat $$out; echo; rm -f $$out; \
+		[ "$$err" = "None" ] || { echo "$$name failed: $$err" >&2; exit 1; }; \
+	}; \
+	invoke headway-static '{}' 330; \
+	invoke headway-curate '{"task":"backfill_manifests"}' 330; \
+	invoke headway-curate '{}' 330; \
+	invoke headway-transform '{}' 930
