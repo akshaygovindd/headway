@@ -1,13 +1,17 @@
 # Curate, static GTFS and transform Lambdas (container images, arm64).
 
 locals {
-  curate_name     = "headway-curate"
-  static_name     = "headway-static"
-  transform_name  = "headway-transform"
-  gold_prefix     = "public/${var.city_id}/gold"
-  history_prefix  = "public/${var.city_id}/history"
-  motherduck_ssm  = "/headway/motherduck_token"
-  motherduck_arn  = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.motherduck_ssm}"
+  curate_name    = "headway-curate"
+  static_name    = "headway-static"
+  transform_name = "headway-transform"
+  gold_prefix    = "public/${var.city_id}/gold"
+  history_prefix = "public/${var.city_id}/history"
+  motherduck_ssm = "/headway/motherduck_token"
+  motherduck_arn = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.motherduck_ssm}"
+  # The chaos switch (ADR-017) is created by hand when a drill needs it, never by Terraform; the
+  # ingest and transform roles may read it, nothing may write it.
+  chaos_ssm       = "/headway/chaos"
+  chaos_arn       = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.chaos_ssm}"
   lock_key        = "state/${var.city_id}/transform.lock"
   state_prefix    = "state/transform_runs"
   raw_data_prefix = ["curated/*", "manifests/*", "quarantine/*", local.lock_key, "${local.state_prefix}/*"]
@@ -216,6 +220,12 @@ data "aws_iam_policy_document" "transform" {
     sid       = "ReadMotherDuckToken"
     actions   = ["ssm:GetParameter"]
     resources = [local.motherduck_arn]
+  }
+
+  statement {
+    sid       = "ReadChaosSwitch"
+    actions   = ["ssm:GetParameter"]
+    resources = [local.chaos_arn]
   }
 
   # Cost Explorer has no resource-level permissions.

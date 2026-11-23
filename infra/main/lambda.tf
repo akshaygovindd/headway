@@ -45,6 +45,12 @@ data "aws_iam_policy_document" "ingest" {
     actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.public.arn}/${local.live_prefix}/*"]
   }
+
+  statement {
+    sid       = "ReadChaosSwitch"
+    actions   = ["ssm:GetParameter"]
+    resources = [local.chaos_arn]
+  }
 }
 
 resource "aws_iam_role_policy" "ingest" {

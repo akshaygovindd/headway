@@ -1,5 +1,6 @@
 import gzip
 import json
+import logging
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -229,3 +230,42 @@ def test_failed_snapshot_write_still_leaves_manifest_and_all_captures(
         handler.lambda_handler({"scheduled_at": "2026-06-01T12:00:00Z"}, None)
     assert len(_keys(aws, "raw-bucket", "manifests/boston/")) == 1
     assert len(_keys(aws, "raw-bucket", "raw/boston/")) == 6
+
+
+def test_chaos_feed_down_records_every_feed_as_an_error_without_fetching(
+    aws: Any, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    until = (NOW + timedelta(minutes=15)).isoformat()
+    boto3.client("ssm").put_parameter(
+        Name="/headway/chaos",
+        Type="String",
+        Value=json.dumps({"mode": "feed_down", "until": until}),
+    )
+
+    def never(url: str) -> FetchResult:
+        raise AssertionError(f"fetched {url} during feed_down")
+
+    monkeypatch.setattr(handler, "_fetch", never)
+    monkeypatch.setattr(handler, "_poll_fetch", never)
+    caplog.set_level(logging.WARNING)
+    result = handler.lambda_handler({"scheduled_at": "2026-06-01T12:00:00Z"}, None)
+
+    assert result["statuses"] == dict.fromkeys(
+        ("trip_updates", "vehicle_positions", "alerts"), "error"
+    )
+    assert _keys(aws, "raw-bucket", "raw/") == []
+    (key,) = _keys(aws, "raw-bucket", "manifests/boston/")
+    manifest = json.loads(aws.get_object(Bucket="raw-bucket", Key=key)["Body"].read())
+    assert {e["status"] for e in manifest["entries"]} == {"error"}
+    assert all("chaos: feed_down" in e["error"] for e in manifest["entries"])
+    assert any("CHAOS ACTIVE mode=feed_down" in r.message for r in caplog.records)
+
+
+def test_chaos_after_until_is_ignored(aws: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    gone = (NOW - timedelta(seconds=1)).isoformat()
+    boto3.client("ssm").put_parameter(
+        Name="/headway/chaos", Type="String", Value=json.dumps({"mode": "feed_down", "until": gone})
+    )
+    monkeypatch.setattr(handler, "_fetch", _fake_fetch())
+    result = handler.lambda_handler({"scheduled_at": "2026-06-01T12:00:00Z"}, None)
+    assert set(result["statuses"].values()) == {"ok"}

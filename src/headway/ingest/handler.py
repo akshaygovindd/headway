@@ -9,6 +9,7 @@ from typing import Any
 
 import httpx
 
+from headway import chaos
 from headway.config import CityConfig, load_city_config
 from headway.ingest.capture import POLL_OFFSETS_S, Clock, FeedCapture, Fetcher, Sleeper, capture_run
 from headway.ingest.fetch import FetchResult, fetch_feed
@@ -38,6 +39,11 @@ def _fetch(url: str) -> FetchResult:
 
 def _poll_fetch(url: str) -> FetchResult:
     return fetch_feed(url, _client, backoffs=(), timeout=POLL_TIMEOUT_S)
+
+
+def _chaos_fetch(url: str) -> FetchResult:
+    """The feed_down drill (ADR-017): nothing is fetched and every feed is recorded as an error."""
+    return FetchResult("error", None, None, _now(), "chaos: feed_down")
 
 
 def _sleep(seconds: float) -> None:
@@ -161,13 +167,14 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     raw_storage = S3Storage(os.environ["RAW_BUCKET"])
     public_storage = S3Storage(os.environ["PUBLIC_BUCKET"])
     scheduled_at = _scheduled_at(event or {}, _now())
+    drill = chaos.read(_now()).active("feed_down")
     return run_minute(
         config,
         raw_storage,
         public_storage,
         scheduled_at,
-        fetcher=_fetch,
-        poll_fetcher=_poll_fetch,
+        fetcher=_chaos_fetch if drill else _fetch,
+        poll_fetcher=_chaos_fetch if drill else _poll_fetch,
         clock=_now,
         sleep=_sleep,
         polls=_polls(),

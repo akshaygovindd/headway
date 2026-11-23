@@ -450,6 +450,42 @@ def test_publish_failure_is_logged_then_raised(
     assert logged["gold_exported"] is True
 
 
+def _set_chaos(mode: str, minutes: int) -> None:
+    until = (NOW + timedelta(minutes=minutes)).isoformat()
+    boto3.client("ssm").put_parameter(
+        Name="/headway/chaos",
+        Type="String",
+        Overwrite=True,
+        Value=json.dumps({"mode": mode, "until": until}),
+    )
+
+
+def test_chaos_md_down_fails_the_publish_after_gold_is_exported(
+    fakes: dict[str, Any], aws: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.INFO)
+    _set_chaos("md_down", 15)
+    with pytest.raises(handler.ChaosError, match="md_down"):
+        handler.lambda_handler({}, None)
+    logged = _summary(caplog)
+    assert "ChaosError" in logged["publish_error"] and logged["gold_exported"] is True
+    assert fakes["published"] == []
+    assert any("CHAOS ACTIVE mode=md_down" in r.message for r in caplog.records)
+    (row,) = _runs(aws)
+    assert row["status"] == "failed" and row["exported"] and not row["gold_published"]
+
+
+def test_chaos_after_until_or_for_another_mode_leaves_the_publish_alone(
+    fakes: dict[str, Any], aws: Any
+) -> None:
+    _set_chaos("md_down", -1)
+    handler.lambda_handler({}, None)
+    assert len(fakes["published"]) == 1
+    _set_chaos("feed_down", 15)
+    handler.lambda_handler({}, None)
+    assert len(fakes["published"]) == 2
+
+
 def test_prepare_extension_dir_copies_baked_extensions_once(
     tmp_path: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:

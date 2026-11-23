@@ -13,7 +13,7 @@ from typing import Any
 
 import boto3
 
-from headway_transform import cost, history, publish, state
+from headway_transform import chaos, cost, history, publish, state
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -34,6 +34,10 @@ RUNTIME_EXTENSION_DIR = "/tmp/duckdb_extensions"  # noqa: S108
 
 class TransformError(Exception):
     """dbt could not build the models, so there is nothing to export."""
+
+
+class ChaosError(Exception):
+    """The md_down drill (ADR-017): the MotherDuck publish is made to fail on purpose."""
 
 
 class ExportError(TransformError):
@@ -459,6 +463,7 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         raise TransformError(f"unknown task {event['task']!r}")
     city = os.environ["CITY_ID"]
     s3 = boto3.client("s3")
+    drill = chaos.read(_now())
     lock = RunLock(s3, os.environ["RAW_BUCKET"], f"state/{city}/transform.lock")
     if not lock.acquire():
         # Another run (a scheduled run overlapping a manual one) holds the lock: not an error.
@@ -471,8 +476,8 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         release_dbt_connections()  # a warm container may still hold the file
         state.load(s3, os.environ["RAW_BUCKET"], db_path, state.TRANSFORM_RUNS, run.started_at)
         if rebuild is not None:
-            return _rebuild_history(started, s3, run, *rebuild)
-        return _transform(started, s3, run)
+            return _rebuild_history(started, s3, run, *rebuild, drill=drill)
+        return _transform(started, s3, run, drill)
     except Exception as exc:
         run.error = f"{type(exc).__name__}: {exc}"[:1000]
         raise
@@ -481,7 +486,9 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         lock.release()
 
 
-def _transform(started: float, s3: Any, run: RunRecord) -> dict[str, Any]:
+def _transform(
+    started: float, s3: Any, run: RunRecord, drill: chaos.Chaos = chaos.OFF
+) -> dict[str, Any]:
     public_bucket = os.environ["PUBLIC_BUCKET"]
     city = os.environ["CITY_ID"]
     lookback = int(os.environ.get("LOOKBACK_DAYS", DEFAULT_LOOKBACK_DAYS))
@@ -547,6 +554,7 @@ def _transform(started: float, s3: Any, run: RunRecord) -> dict[str, Any]:
     publish_error: Exception | None = None
     t0 = time.monotonic()
     try:
+        _fail_publish_in_drill(drill)
         token = boto3.client("ssm").get_parameter(Name=TOKEN_PARAMETER, WithDecryption=True)[
             "Parameter"
         ]["Value"]
@@ -584,6 +592,11 @@ def _transform(started: float, s3: Any, run: RunRecord) -> dict[str, Any]:
     return summary
 
 
+def _fail_publish_in_drill(drill: chaos.Chaos) -> None:
+    if drill.active("md_down"):
+        raise ChaosError(f"chaos md_down until {drill.until}: MotherDuck publish refused")
+
+
 def _history_publish_args(public_bucket: str, city: str) -> dict[str, Any]:
     if not publish.r2_enabled():
         return {}
@@ -594,7 +607,13 @@ def _history_publish_args(public_bucket: str, city: str) -> dict[str, Any]:
 
 
 def _rebuild_history(
-    started: float, s3: Any, run: RunRecord, first: date, last: date, version: int
+    started: float,
+    s3: Any,
+    run: RunRecord,
+    first: date,
+    last: date,
+    version: int,
+    drill: chaos.Chaos = chaos.OFF,
 ) -> dict[str, Any]:
     """Backfill history for explicit days at the current metric version; never touches gold.
 
@@ -624,6 +643,7 @@ def _rebuild_history(
         "duration_ms": round((time.monotonic() - started) * 1000),
     }
     if result.n_written:
+        _fail_publish_in_drill(drill)
         token = boto3.client("ssm").get_parameter(Name=TOKEN_PARAMETER, WithDecryption=True)[
             "Parameter"
         ]["Value"]

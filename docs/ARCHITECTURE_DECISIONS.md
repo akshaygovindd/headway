@@ -341,3 +341,28 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   changing them changes every Release 2 aggregate and is a metric-version bump (ADR-015).
 - **Revisit when:** the first days of 15 s data show that the high/medium share or the hold-out
   error differ from the spike (see `docs/MEASUREMENTS.md`).
+
+### ADR-017: Chaos switch for failure drills
+
+- **Status:** Accepted (R2)
+- **Context:** The alarms, the data-outage labelling and the recovery paths are only believed once
+  they have been seen to work. Waiting for the MBTA or MotherDuck to fail on its own is slow, and
+  editing code or IAM to fake a failure leaves a deployed pipeline different from the tested one.
+- **Decision:** One SSM parameter, `/headway/chaos`, holds `{"mode": "feed_down" | "md_down" |
+  "off", "until": "<UTC ISO>"}`. It is created by hand for a drill (Terraform never creates it,
+  and the roles can read it but not write it), so a fresh deployment cannot be in a drill. A mode
+  is active only before `until`; a missing parameter, malformed JSON, an unknown mode, a missing
+  `until` or any error reading it (read once per invocation, 2 s timeout, one attempt) means
+  `off`. While active, each invocation logs `CHAOS ACTIVE mode=... until=...`. `feed_down`: ingest
+  fetches nothing and records every feed as `status = error` (the minute is still claimed and its
+  manifest written), as a real outage of the feeds would. `md_down`: the transform's MotherDuck
+  publish raises before it reads the token; gold is exported to S3 first, exactly as when
+  MotherDuck is really down. Ingest and transform carry their own copy of the 70 lines that read
+  it (they ship in different artifacts); a test keeps the two in step. The drills and how to start
+  and stop them are in `docs/RUNBOOK.md`.
+- **Consequences:** A drill is a real, recorded outage: the hour is labelled `data_outage`, the
+  SLO budgets are spent, and the alarms fire (the 15-minute window is chosen to trip the ingest
+  alarms). Drills are logged in INCIDENTS.md and marked as drills. The permission to read one
+  parameter is the only addition to the roles.
+- **Revisit when:** a drill needs a mode that cannot be made by failing a fetch or the publish
+  (for example a corrupt payload), or a second environment needs its own switch.
