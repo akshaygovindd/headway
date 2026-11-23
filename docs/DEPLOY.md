@@ -181,7 +181,14 @@ Expected: curate logs one JSON line per run; the gold folder holds eight parquet
 `manifest.json`, and `cost_daily.parquet` after the first transform run at or after 06:00 UTC
 (Cost Explorer must be enabled for the account; the `project` tag must be active, see section 6).
 The transform summary line reports `dbt_status`, `tests_failed`, `rows_exported`, step durations
-and `cost_rows`. dbt test failures do not stop the export; they are counted in that line.
+and `cost_rows`; `step_ms` has `s3_load`, `dbt_build`, `dbt_test`, `export_gold`, `cost` and
+`publish`. dbt test failures do not stop the export; they are counted in that line.
+
+Transform runs are serialized with a lock object (`state/boston/transform.lock` in the raw bucket).
+A run that finds a fresh lock, for example a manual invoke during the scheduled `:20` run, logs
+`{"skipped": "locked"}` and exits successfully without touching anything. A lock older than 15
+minutes is left by a crashed or timed-out run and is replaced by the next run, so there is nothing
+to clean up by hand.
 
 MotherDuck: in the MotherDuck UI or CLI, `SHOW TABLES FROM headway;` lists the gold tables (the
 `headway` database is created by the first publish).
