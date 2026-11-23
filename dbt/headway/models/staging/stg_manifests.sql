@@ -11,6 +11,7 @@ select
     city_id,
     feed,
     scheduled_at,
+    poll_index,
     fetched_at,
     status,
     http_status,

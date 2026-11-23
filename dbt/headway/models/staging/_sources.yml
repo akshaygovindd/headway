@@ -39,6 +39,18 @@ sources:
         description: Static GTFS shapes, one partition per loaded feed_version.
         meta:
           external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=shapes/feed_version=*/part.parquet', hive_partitioning=true)"
+      - name: gtfs_shape_points_dist
+        description: >-
+          Shape points with cumulative distance in metres along the shape, precomputed by the
+          static load (one partition per loaded feed_version).
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=shape_points_dist/feed_version=*/part.parquet', hive_partitioning=true)"
+      - name: gtfs_stop_shape_positions
+        description: >-
+          Each stop of a trip pattern projected onto its shape, as metres along the shape,
+          precomputed by the static load (one partition per loaded feed_version).
+        meta:
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/static/table=stop_shape_positions/feed_version=*/part.parquet', hive_partitioning=true)"
       - name: gtfs_calendar
         description: Static GTFS calendar, one partition per loaded feed_version.
         meta:
@@ -57,7 +69,7 @@ sources:
           (`table=manifests`). The raw JSON manifests stay the source of truth and
           `{"task": "backfill_manifests"}` rebuilds this table from them.
         meta:
-          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/table=manifests/*/*/*.parquet', hive_partitioning=true)"
+          external_location: "read_parquet('{{ var('curated_root') }}/curated/{{ var('city_prefix') }}/table=manifests/*/*/*.parquet', hive_partitioning=true, union_by_name=true)"
       - name: quarantine
         description: >-
           Quarantined records, one row per rejected record or capture, written by curation as

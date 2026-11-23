@@ -1,15 +1,19 @@
 -- One row per ingest run: how each feed fetched, what it contained, and what was
--- quarantined from the run's captures.
+-- quarantined from the run's captures. The per-feed status, bytes, entity count and duplicate
+-- columns describe poll 0 (every feed fetched once per run); the extra 15 s vehicle polls are
+-- summarised in vehicle_polls_ok / vehicle_polls_error, and n_captures counts all captures.
 with feeds as (
     select
         run_id,
         min(scheduled_at) as scheduled_at,
         {% for feed in ['trip_updates', 'vehicle_positions', 'alerts'] %}
-        max(status) filter (where feed = '{{ feed }}') as {{ feed }}_status,
-        max(bytes) filter (where feed = '{{ feed }}') as {{ feed }}_bytes,
-        max(entity_count) filter (where feed = '{{ feed }}') as {{ feed }}_entity_count,
-        bool_or(is_duplicate_capture) filter (where feed = '{{ feed }}') as {{ feed }}_is_duplicate,
+        max(status) filter (where feed = '{{ feed }}' and poll_index = 0) as {{ feed }}_status,
+        max(bytes) filter (where feed = '{{ feed }}' and poll_index = 0) as {{ feed }}_bytes,
+        max(entity_count) filter (where feed = '{{ feed }}' and poll_index = 0) as {{ feed }}_entity_count,
+        bool_or(is_duplicate_capture) filter (where feed = '{{ feed }}' and poll_index = 0) as {{ feed }}_is_duplicate,
         {% endfor %}
+        count(*) filter (where feed = 'vehicle_positions' and status = 'ok') as vehicle_polls_ok,
+        count(*) filter (where feed = 'vehicle_positions' and status <> 'ok') as vehicle_polls_error,
         count(*) as n_captures
     from {{ ref('int_captures') }}
     group by run_id
@@ -48,6 +52,8 @@ select
     f.run_id,
     f.scheduled_at,
     f.n_captures,
+    f.vehicle_polls_ok,
+    f.vehicle_polls_error,
     coalesce(d.n_extra, 0) as duplicate_delivery_count,
     {% for feed in ['trip_updates', 'vehicle_positions', 'alerts'] %}
     f.{{ feed }}_status,

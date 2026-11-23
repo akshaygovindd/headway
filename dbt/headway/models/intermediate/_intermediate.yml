@@ -31,6 +31,13 @@ models:
         description: UTC time the run was scheduled for.
         data_tests:
           - not_null
+      - name: poll_index
+        description: Position of the capture within its scheduled minute, 0-3 (0 fetches every feed, 1-3 are the 15 s vehicle polls); 0 for captures written before 15 s sampling.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3]
+                quote: false
       - name: capture_minute
         description: scheduled_at truncated to the minute; the unit of observation coverage.
         data_tests:
@@ -213,3 +220,95 @@ models:
         description: True when capture_minutes is at least 55.
         data_tests:
           - not_null
+  - name: int_trip_stop_distances
+    description: Scheduled stops of each trip instance with their distance along the trip's shape (null dist_m when the trip has no shape or the stop no projection).
+    config:
+      meta:
+        grain: "trip_instance_key x stop_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [trip_instance_key, stop_sequence]
+    columns:
+      - name: trip_instance_key
+        description: Trip instance identifier (trip_id, service date, start time).
+        data_tests:
+          - not_null
+      - name: service_date
+        description: Service date of the trip instance.
+      - name: feed_version
+        description: GTFS feed version the schedule comes from.
+      - name: trip_id
+        description: Scheduled trip identifier.
+      - name: line
+        description: Reporting line (the route id).
+      - name: direction_id
+        description: Direction of travel (0 or 1).
+      - name: shape_id
+        description: Shape the trip follows; null when the trip has none.
+      - name: stop_sequence
+        description: Position of the stop in the trip.
+        data_tests:
+          - not_null
+      - name: stop_id
+        description: Stop identifier.
+      - name: scheduled_arrival_ts
+        description: Scheduled arrival (UTC).
+      - name: dist_m
+        description: Metres along the shape of the stop's projection; null when unknown.
+  - name: int_vehicle_stop_events
+    description: One row per vehicle position observation of a trip, de-duplicated across captures, with stale positions removed and the observation placed on the trip's shape (dist_m, non-decreasing along the trip). Observations that cannot be placed carry an exclusion_reason and are not used for reconstruction.
+    config:
+      meta:
+        grain: "vehicle_id x trip_instance_key x event_ts"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [vehicle_id, trip_instance_key, event_ts]
+    columns:
+      - name: vehicle_id
+        description: Vehicle identifier.
+        data_tests:
+          - not_null
+      - name: trip_instance_key
+        description: Trip instance identifier; trip_id, service date of event_ts and scheduled start time (empty for unscheduled trips).
+        data_tests:
+          - not_null
+      - name: event_ts
+        description: Time the vehicle reported the position (UTC).
+        data_tests:
+          - not_null
+      - name: capture_id
+        description: First capture that carried the observation.
+      - name: fetched_at
+        description: When that capture was fetched.
+      - name: service_date
+        description: Service date of event_ts.
+      - name: trip_id
+        description: Trip identifier from the feed.
+      - name: line
+        description: Route id reported by the vehicle.
+      - name: direction_id
+        description: Direction of travel (0 or 1).
+      - name: shape_id
+        description: Shape of the scheduled trip; null when unscheduled.
+      - name: current_status
+        description: Vehicle status (INCOMING_AT, STOPPED_AT, IN_TRANSIT_TO).
+      - name: current_stop_sequence
+        description: Stop sequence the status refers to.
+      - name: stop_id
+        description: Stop the status refers to.
+      - name: lat
+        description: Latitude.
+      - name: lon
+        description: Longitude.
+      - name: raw_dist_m
+        description: Metres along the shape, before the non-decreasing correction; null when it could not be placed.
+      - name: dist_m
+        description: Metres along the shape, running maximum of raw_dist_m over the trip.
+      - name: exclusion_reason
+        description: Why the observation is not used for reconstruction; null when it is used.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [added_trip, unscheduled_trip, no_shape, off_shape]

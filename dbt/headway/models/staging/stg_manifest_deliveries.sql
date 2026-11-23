@@ -13,6 +13,7 @@ with deliveries as (
         city_id,
         feed,
         scheduled_at,
+        coalesce(poll_index, 0) as poll_index,
         fetched_at,
         status,
         http_status,
