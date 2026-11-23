@@ -23,10 +23,20 @@ vars:
 
 models:
   headway:
+    # Static GTFS staging stays a view. Realtime staging reads S3 (httpfs) and every downstream
+    # model and test would re-scan it, so it is materialized once per run; tagged s3_load so the
+    # transform can run, and time, that step on its own.
     staging:
       +materialized: view
+      stg_manifests: &s3_load
+        +materialized: table
+        +tags: ["s3_load"]
+      stg_quarantine: *s3_load
+      stg_service_alerts: *s3_load
+      stg_trip_updates: *s3_load
+      stg_vehicle_positions: *s3_load
     intermediate:
-      +materialized: view
+      +materialized: table
     marts:
       +materialized: table
 
