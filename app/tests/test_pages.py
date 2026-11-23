@@ -156,7 +156,7 @@ def test_accuracy_page_renders_with_release_2(data_url: str) -> None:
     assert (
         "Prediction accuracy by horizon" in text and "Actual deviation from the timetable" in text
     )
-    assert "Arrival coverage" in text
+    assert "Reconstruction confidence" in text
     assert not at.info or not any("not enabled" in i.value for i in at.info)
     assert any(c.value.startswith("coverage") or "coverage" in c.value for c in at.caption)
 

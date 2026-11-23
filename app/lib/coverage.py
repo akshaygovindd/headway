@@ -20,3 +20,11 @@ def coverage_badge(coverage_pct: float | None) -> CoverageBadge:
     if coverage_pct < NORMAL_MIN:
         return CoverageBadge("low", "low coverage", True)
     return CoverageBadge("normal", f"{coverage_pct:.0f}% coverage", True)
+
+
+def is_withheld(coverage_pct: float | None) -> bool:
+    """The one withholding rule: a value with coverage below 50% (or unknown) is not shown."""
+    return coverage_pct is None or coverage_pct != coverage_pct or coverage_pct < LOW_MIN
+
+
+WITHHELD_TEXT = "withheld (<50% coverage)"

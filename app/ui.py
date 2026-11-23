@@ -9,7 +9,7 @@ import pandas as pd
 import streamlit as st
 
 from lib import data
-from lib.coverage import CoverageBadge, coverage_badge
+from lib.coverage import WITHHELD_TEXT, CoverageBadge, coverage_badge, is_withheld
 from lib.freshness import format_age, gold_age, snapshot_age
 from lib.timefmt import format_local
 
@@ -97,6 +97,7 @@ def render_metric_card(
     *,
     coverage_pct: float | None,
     freshness: str | None,
+    disruption: str | None = None,
 ) -> None:
     """Render one metric card. Coverage and freshness are required: no number without them.
 
@@ -110,6 +111,8 @@ def render_metric_card(
         head, tag = st.columns([2, 3])
         head.subheader(label)
         tag.markdown(badge_markdown(badge))
+        if disruption:
+            st.markdown(f":orange[{disruption}]")
         if not badge.rankable:
             st.write("Not enough data to report values.")
         else:
@@ -135,6 +138,16 @@ def fmt_seconds(value: float | None, *, signed: bool = True) -> str:
 def fmt_pct(value: float | None) -> str:
     """Whole percent, or n/a."""
     return "n/a" if value is None or pd.isna(value) else f"{value:.0f}%"
+
+
+def cell_seconds(value: float | None, coverage_pct: float | None, *, signed: bool = True) -> str:
+    """Table cell in seconds; the withholding text below 50% coverage."""
+    return WITHHELD_TEXT if is_withheld(coverage_pct) else _fmt_seconds(value, signed=signed)
+
+
+def cell_pct(value: float | None, coverage_pct: float | None) -> str:
+    """Table cell in whole percent; the withholding text below 50% coverage."""
+    return WITHHELD_TEXT if is_withheld(coverage_pct) else fmt_pct(value)
 
 
 def fmt_ratio(value: float | None) -> str:

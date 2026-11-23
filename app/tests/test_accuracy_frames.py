@@ -80,8 +80,11 @@ def test_headway_summary_dropped_counts_and_weights() -> None:
 
 def test_arrival_coverage_note() -> None:
     recon = pd.DataFrame([{"line": "Red", "trip_stops": 100, "n_high": 10, "n_medium": 70}])
-    assert "80%" in accuracy.arrival_coverage_note(recon, "Red")
-    assert accuracy.arrival_coverage_note(None) == "Arrival coverage: n/a."
+    note = accuracy.arrival_coverage_note(recon, "Red")
+    assert note.startswith(
+        "Reconstruction confidence: 80% high/medium of 100 reconstructed trip stops"
+    )
+    assert accuracy.arrival_coverage_note(None) == "Reconstruction confidence: n/a."
 
 
 def test_heavy_rail_set() -> None:
@@ -154,12 +157,80 @@ def test_slo_table_shows_latest_7_and_30_day_values_and_separates_disrupted_line
     roll = pd.DataFrame([
         {"slo_name": "capture_completeness", "window_label": "last_7d", "target_pct": 99.0,
          "actual_pct": 98.5, "met": False, "error_budget_used": 1.5, "days_covered": 7,
-         "counts_toward_slo": True},
+         "total_events": 1680, "counts_toward_slo": True},
     ])  # fmt: skip
     out = health.slo_table(daily, roll).set_index("Objective")
     row = out.loc["Capture completeness (minutes)"]
     assert row["Latest date"] == "✅ 99.50%"
-    assert row["Last 7 days"] == "❌ 98.50% · budget 150%"
-    assert row["Last 30 days"] == "n/a"
+    assert row["Last 7 days (based on 28 h)"] == "❌ 98.50% · budget 150%"
+    assert row["Last 30 days"] == "no data yet (no runs recorded)"
     assert list(out["Counts"])[-1] == "reported separately"  # listed last, not hidden
-    assert len(out) == 3
+    assert len(out) == 5  # all four objectives and the informational one, even without events
+    assert (
+        out.loc["Gold freshness ≤ 90 min (hours)", "Latest date"]
+        == "no data yet (no runs recorded)"
+    )
+
+
+def test_slo_table_without_any_runs_still_lists_every_objective() -> None:
+    from lib import health
+
+    out = health.slo_table(pd.DataFrame(), pd.DataFrame())
+    assert len(out) == 5
+    assert set(out["Latest date"]) == {"no data yet (no runs recorded)"}
+    assert list(out["Counts"]).count("reported separately") == 1
+
+
+def test_withholding_rule_is_one_predicate() -> None:
+    from lib.coverage import is_withheld
+
+    assert is_withheld(49.9) and is_withheld(None) and is_withheld(float("nan"))
+    assert not is_withheld(50.0)
+    assert ui.cell_seconds(12.0, 49.0) == "withheld (<50% coverage)"
+    assert ui.cell_pct(12.0, 80.0) == "12%"
+
+
+def test_headway_by_hour_runs_05_to_04_and_labels_missing_hours() -> None:
+    def row(hour: int, outage: bool = False, cov: int = 9) -> dict[str, object]:
+        return {"line": "Red", "direction_id": 0, "hour_local": hour, "data_outage": outage,
+                "n_headways": 10, "pct_within_band": 70.0,
+                "coverage_numerator": cov, "coverage_denominator": 10}  # fmt: skip
+
+    hw = pd.DataFrame([row(1), row(5), row(9), row(10, outage=True), row(11, cov=3)])
+    out = accuracy.headway_by_hour(hw, "Red", None)
+    assert list(out["hour_local"]) == [*range(5, 24), 0, 1, 2, 3, 4]
+    status = dict(zip(out["hour_local"], out["status"], strict=True))
+    assert status[5] == "ok" and status[1] == "ok" and status[9] == "ok"
+    assert status[10] == "data outage" and status[11] == "withheld" and status[12] == "no data"
+    assert pd.isna(out.set_index("hour_local").loc[11, "pct_within_band"])
+
+
+def test_disrupted_lines_follow_the_window() -> None:
+    alerts = pd.DataFrame([
+        {"line": "Red", "service_date": date(2026, 11, 22), "hour_local": 12,
+         "effect": "DETOUR", "is_service_disruption": True},
+        {"line": "Blue", "service_date": date(2026, 11, 10), "hour_local": 12,
+         "effect": "NO_SERVICE", "is_service_disruption": True},
+        {"line": "Orange", "service_date": date(2026, 11, 22), "hour_local": 12,
+         "effect": "ACCESSIBILITY_ISSUE", "is_service_disruption": False},
+    ])  # fmt: skip
+    as_of = "2026-11-23T20:00:00+00:00"
+    assert accuracy.disrupted_lines(alerts, as_of, "last_24h") == {}
+    assert accuracy.disrupted_lines(alerts, as_of, "last_7d") == {"Red": ["detour"]}
+    assert accuracy.disrupted_lines(alerts, as_of, "all_days") == {
+        "Blue": ["no service"], "Red": ["detour"]
+    }  # fmt: skip
+    assert accuracy.disrupted_lines(None, as_of, "all_days") == {}
+    assert accuracy.disruption_label(["detour"]) == "Service disruption: detour"
+
+
+def test_window_labels_give_different_rows() -> None:
+    win = pd.DataFrame([
+        {"line": "Red", "window_label": label, "horizon_bucket": "0-5", "n": n,
+         "median_abs_error_s": m, "mae_s": m, "pct_within_60s": 50.0, "pct_within_120s": 60.0,
+         "n_disruption": 0, "coverage_pct": 80.0}
+        for label, n, m in (("last_24h", 10, 20.0), ("last_7d", 70, 35.0))
+    ])  # fmt: skip
+    a = accuracy.accuracy_window_by_horizon(win, "last_24h").iloc[0]
+    b = accuracy.accuracy_window_by_horizon(win, "last_7d").iloc[0]
+    assert (a["n"], a["median_abs_error_s"]) != (b["n"], b["median_abs_error_s"])

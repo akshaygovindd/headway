@@ -7,9 +7,20 @@ frame carries coverage_pct (numerator and denominator summed, never averaged).
 
 import pandas as pd
 
-from lib.coverage import LOW_MIN
+from lib.coverage import is_withheld
+from lib.timefmt import hour_start_utc, parse_utc
 
 WINDOWS = {"last_24h": "Last 24 hours", "last_7d": "Last 7 days"}
+WINDOW_HOURS = {"last_24h": 24, "last_7d": 168}
+EFFECT_LABELS = {
+    "DETOUR": "detour",
+    "NO_SERVICE": "no service",
+    "REDUCED_SERVICE": "reduced service",
+    "SIGNIFICANT_DELAYS": "significant delays",
+    "MODIFIED_SERVICE": "modified service",
+    "OTHER_EFFECT": "shuttle or other change",
+    "UNKNOWN_EFFECT": "suspension or other change",
+}
 ALL_DAYS = "all_days"
 BUCKETS = ["0-5", "5-10", "10-20", "20-30"]
 HEAVY_RAIL = ("Red", "Orange", "Blue")
@@ -193,15 +204,16 @@ def arrival_coverage(recon: pd.DataFrame) -> pd.DataFrame:
 def arrival_coverage_note(recon: pd.DataFrame | None, line: str | None = None) -> str:
     """One-line note on how much of the reconstruction the numbers rest on."""
     if recon is None or recon.empty:
-        return "Arrival coverage: n/a."
+        return "Reconstruction confidence: n/a."
     sel = recon if line is None else recon[recon["line"] == line]
     if sel.empty or sel["trip_stops"].sum() == 0:
-        return "Arrival coverage: n/a."
+        return "Reconstruction confidence: n/a."
     usable = 100.0 * (sel["n_high"].sum() + sel["n_medium"].sum()) / sel["trip_stops"].sum()
     return (
-        f"Arrival coverage: {usable:.0f}% of {int(sel['trip_stops'].sum()):,} reconstructed trip "
-        "stops have high or medium confidence; only those are used. Arrivals are reconstructed "
-        "from vehicle positions, not official times."
+        f"Reconstruction confidence: {usable:.0f}% high/medium of "
+        f"{int(sel['trip_stops'].sum()):,} reconstructed trip stops; only those are used. This is "
+        "not coverage (the share of scheduled trip stops with a value). Arrivals are "
+        "reconstructed from vehicle positions, not official times."
     )
 
 
@@ -235,22 +247,44 @@ def headway_summary(hw: pd.DataFrame, line: str, direction: int | None) -> dict[
     }
 
 
+HEADWAY_HOUR_ORDER = [*range(5, 24), 0, 1, 2, 3, 4]  # the service day, 05:00 to 04:00
+
+
 def headway_by_hour(hw: pd.DataFrame, line: str, direction: int | None) -> pd.DataFrame:
-    """Share within band per local hour of day (all days), outage hours left out."""
+    """Share within band per local hour of the service day (05:00 to 04:00), all days.
+
+    Every hour of the service day has a row. `status` is "ok", "withheld" (coverage below 50%),
+    "data outage" (every row of the hour is an outage hour) or "no data" (no rows at all);
+    pct_within_band is None unless the status is "ok".
+    """
     sel = _select(hw, line, direction)
-    sel = sel[~sel["data_outage"]]
     rows = []
-    for hour, g in sel.groupby("hour_local"):
-        w = g["n_headways"].astype(float)
+    for hour in HEADWAY_HOUR_ORDER:
+        g = sel[sel["hour_local"] == hour]
+        usable = g[~g["data_outage"]]
+        w = usable["n_headways"].astype(float)
+        cov = _cov(usable["coverage_numerator"], usable["coverage_denominator"])
+        value = _wmean(usable["pct_within_band"], w)
+        if g.empty:
+            status = "no data"
+        elif usable.empty:
+            status = "data outage"
+        elif value is None or is_withheld(cov):
+            status = "withheld"
+        else:
+            status = "ok"
         rows.append(
             {
-                "hour_local": int(hour),
+                "hour_local": hour,
                 "n": int(w.sum()),
-                "pct_within_band": _wmean(g["pct_within_band"], w),
-                "coverage_pct": _cov(g["coverage_numerator"], g["coverage_denominator"]),
+                "pct_within_band": value if status == "ok" else None,
+                "coverage_pct": cov,
+                "status": status,
             }
         )
-    return pd.DataFrame(rows, columns=["hour_local", "n", "pct_within_band", "coverage_pct"])
+    return pd.DataFrame(
+        rows, columns=["hour_local", "n", "pct_within_band", "coverage_pct", "status"]
+    )
 
 
 def ett_by_band(ett: pd.DataFrame, line: str, direction: int | None) -> pd.DataFrame:
@@ -275,6 +309,32 @@ def ett_by_band(ett: pd.DataFrame, line: str, direction: int | None) -> pd.DataF
 
 def shown(value: float | None, coverage_pct: float | None) -> float | None:
     """Withhold a value below the lowest coverage bar (same rule as the metric cards)."""
-    if coverage_pct is None or pd.isna(coverage_pct) or coverage_pct < LOW_MIN:
-        return None
-    return value
+    return None if is_withheld(coverage_pct) else value
+
+
+def disrupted_lines(
+    alerts: pd.DataFrame | None, as_of: str | None, window: str
+) -> dict[str, list[str]]:
+    """Lines with an active service-disruption hour in the window, with their alert effects.
+
+    `window` is last_24h, last_7d or all_days; the windows end at `as_of` (metrics_as_of).
+    """
+    if alerts is None or alerts.empty or not bool(alerts["is_service_disruption"].any()):
+        return {}
+    sel = alerts[alerts["is_service_disruption"]]
+    if window in WINDOW_HOURS and as_of:
+        end = parse_utc(as_of)
+        starts = [
+            hour_start_utc(d, int(h))
+            for d, h in zip(sel["service_date"], sel["hour_local"], strict=True)
+        ]
+        keep = [(end - s).total_seconds() < WINDOW_HOURS[window] * 3600 for s in starts]
+        sel = sel[keep]
+    out: dict[str, list[str]] = {}
+    for line, g in sel.groupby("line"):
+        out[str(line)] = sorted({EFFECT_LABELS.get(e, "alert") for e in g["effect"]})
+    return out
+
+
+def disruption_label(effects: list[str]) -> str:
+    return "Service disruption: " + ", ".join(effects)

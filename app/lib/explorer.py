@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from lib.coverage import NORMAL_MIN
+from lib.coverage import NORMAL_MIN, is_withheld
 from lib.timefmt import WEEKDAYS, date_label, hour_label, hour_start_utc, local_date
 
 SERVICE_HOUR_ORDER = [*range(3, 24), 0, 1, 2]
@@ -57,17 +57,15 @@ def heatmap(hourly: pd.DataFrame, line: str, direction: int | None) -> pd.DataFr
     keyed = sel.assign(weekday=[WEEKDAYS[pd.Timestamp(d).weekday()] for d in sel["service_date"]])
     for (weekday, hour), g in keyed.groupby(["weekday", "hour_local"]):
         denom = float(g["observable_trip_stops"].sum())
+        cov = 100.0 * float(g["coverage_numerator"].sum()) / denom if denom else None
+        value = _wmean(g["median_predicted_deviation_s"], g["n_eligible"].astype(float))
         rows.append(
             {
                 "weekday": weekday,
                 "hour_local": int(hour),
                 "hour": hour_label(int(hour)),
-                "median_deviation_s": _wmean(
-                    g["median_predicted_deviation_s"], g["n_eligible"].astype(float)
-                ),
-                "coverage_pct": 100.0 * float(g["coverage_numerator"].sum()) / denom
-                if denom
-                else None,
+                "median_deviation_s": None if is_withheld(cov) else value,  # below 50%: withheld
+                "coverage_pct": cov,
             }
         )
     return pd.DataFrame(
@@ -91,17 +89,18 @@ def deviation_by_hour(hourly: pd.DataFrame, line: str, direction: int | None) ->
     rows: list[dict[str, object]] = []
     for (sd, hour), g in sel.groupby(["service_date", "hour_local"]):
         w = g["n_eligible"].astype(float)
+        denom = float(g["observable_trip_stops"].sum())
+        cov = 100.0 * float(g["coverage_numerator"].sum()) / denom if denom else None
+        withheld = is_withheld(cov)  # below 50% coverage: no value
         rows.append(
             {
                 "start_utc": hour_start_utc(sd, int(hour)),
                 "label": f"{date_label(local_date(sd, int(hour)))} {hour_label(int(hour))}",
-                "median_deviation_s": _wmean(g["median_predicted_deviation_s"], w),
-                "p90_deviation_s": _wmean(g["p90_predicted_deviation_s"], w),
-                "coverage_pct": 100.0
-                * float(g["coverage_numerator"].sum())
-                / float(g["observable_trip_stops"].sum())
-                if g["observable_trip_stops"].sum()
-                else None,
+                "median_deviation_s": None
+                if withheld
+                else _wmean(g["median_predicted_deviation_s"], w),
+                "p90_deviation_s": None if withheld else _wmean(g["p90_predicted_deviation_s"], w),
+                "coverage_pct": cov,
             }
         )
     frame = pd.DataFrame(
