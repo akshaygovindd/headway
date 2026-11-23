@@ -37,6 +37,7 @@ ett = ui.gold_table_optional(base, "agg_ett_daily")
 recon = ui.gold_table_optional(base, "agg_arrival_reconstruction_daily")
 hw_win = ui.gold_table_optional(base, "agg_headway_window")
 ett_win = ui.gold_table_optional(base, "agg_ett_window")
+alerts = ui.gold_table_optional(base, "agg_active_alerts")
 
 
 def headway_adherence() -> None:
@@ -49,12 +50,20 @@ def headway_adherence() -> None:
         "headway is on target, below 0.5 is bunching, above 1.5 is a gap."
     )
     st.caption(accuracy.arrival_coverage_note(recon, line))
-    # The window tables combine both directions; one direction falls back to the hourly rows.
-    options = accuracy.window_options(hw_win if direction is None else None, ett_win)
+    # The same windows as the Accuracy page. The window marts combine both directions.
+    options = accuracy.window_options(hw_win, ett_win)
     window = st.radio(
         "Window", list(options), format_func=options.get, horizontal=True, key="hw_window"
     )
     exact = window != accuracy.ALL_DAYS
+    if exact and direction is not None:
+        st.caption(
+            "Window figures combine both directions; the direction filter applies to "
+            "'All exported days' and to the charts."
+        )
+    disrupted = accuracy.disrupted_lines(alerts, manifest.get("metrics_as_of"), window)
+    if line in disrupted:
+        st.markdown(f":orange[{accuracy.disruption_label(disrupted[line])}]")
     s = (
         accuracy.headway_window_summary(hw_win, line, window)
         if exact
@@ -84,17 +93,26 @@ def headway_adherence() -> None:
     disruption = f", {int(n_disrupted):,} {unit} included" if n_disrupted else ""
     st.caption(f"{ui.coverage_text(s['coverage_pct'], s['n'])}{dropped}{outage}{disruption}")
     by_hour = accuracy.headway_by_hour(headways, line, direction)
-    if not by_hour.empty and ui.has_values(by_hour["pct_within_band"]) and badge.rankable:
+    if badge.rankable and ui.has_values(by_hour["pct_within_band"]):
+        labels = [f"{h:02d}:00" for h in by_hour["hour_local"]]
         fig = go.Figure(go.Bar(
-            x=[f"{h:02d}:00" for h in by_hour["hour_local"]],
+            x=labels,
             y=by_hour["pct_within_band"],
             marker_color=line_color(line),
             customdata=by_hour[["n", "coverage_pct"]].to_numpy(),
             hovertemplate="%{x}<br>Within band %{y:.0f}%<br>n=%{customdata[0]}, coverage %{customdata[1]:.0f}%<extra></extra>",
         ))  # fmt: skip
-        fig.update_layout(yaxis_title="Within band (%)", xaxis={"type": "category"},
+        gaps = by_hour[by_hour["status"] != "ok"]
+        for _, gap in gaps.iterrows():
+            fig.add_annotation(x=f"{int(gap['hour_local']):02d}:00", y=2, text=gap["status"],
+                               textangle=-90, showarrow=False, yanchor="bottom")  # fmt: skip
+        fig.update_layout(yaxis={"title": "Within band (%)", "range": [0, 100]},
+                          xaxis={"type": "category", "categoryorder": "array", "categoryarray": labels},
                           margin={"l": 10, "r": 10, "t": 10, "b": 10})  # fmt: skip
         st.plotly_chart(fig, width="stretch")
+        st.caption(
+            "Hours run 05:00 to 04:00. Hours marked data outage, no data or withheld (coverage under 50%) have no bar."
+        )
     if ett is not None:
         if exact and ett_win is not None:
             w = accuracy.ett_window_row(ett_win, line, window)
@@ -112,11 +130,11 @@ def headway_adherence() -> None:
         view = bands.assign(
             **{
                 "Median ETT": [
-                    ui.fmt_seconds(accuracy.shown(v, c))
+                    ui.cell_seconds(v, c)
                     for v, c in zip(bands["median_ett_s"], bands["coverage_pct"], strict=True)
                 ],
                 "90th percentile": [
-                    ui.fmt_seconds(accuracy.shown(v, c))
+                    ui.cell_seconds(v, c)
                     for v, c in zip(bands["p90_ett_s"], bands["coverage_pct"], strict=True)
                 ],
                 "Coverage": [ui.fmt_pct(c) for c in bands["coverage_pct"]],

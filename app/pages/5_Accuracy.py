@@ -1,6 +1,7 @@
 """Accuracy: how close the feed's predictions are to reconstructed arrivals, and how far trains
 ran from the timetable. Release 2; hidden when the export has no Release 2 tables."""
 
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -19,6 +20,7 @@ dev = ui.gold_table_optional(base, "agg_actual_deviation_hourly")
 recon = ui.gold_table_optional(base, "agg_arrival_reconstruction_daily")
 acc_win = ui.gold_table_optional(base, "agg_accuracy_window")
 dev_win = ui.gold_table_optional(base, "agg_actual_deviation_window")
+alerts = ui.gold_table_optional(base, "agg_active_alerts")
 if acc is None or dev is None:
     st.info(
         "Accuracy metrics are not enabled in this deployment yet. They need the Release 2 "
@@ -36,6 +38,13 @@ st.caption(
 options = accuracy.window_options(acc_win, dev_win)
 window = st.radio("Window", list(options), format_func=options.get, horizontal=True)
 exact = window != accuracy.ALL_DAYS
+disrupted = accuracy.disrupted_lines(alerts, manifest.get("metrics_as_of"), window)
+if disrupted:
+    st.caption(
+        "Lines under a service disruption in this window: "
+        + "; ".join(f"{ln} ({', '.join(fx)})" for ln, fx in sorted(disrupted.items()))
+        + ". Their hours are kept in the figures and counted as service disruption."
+    )
 
 st.subheader("Prediction accuracy by horizon")
 st.caption(
@@ -57,6 +66,8 @@ else:
             accuracy.shown(v, c)
             for v, c in zip(sel["median_abs_error_s"], sel["coverage_pct"], strict=True)
         ]
+        if not ui.has_values(vals):
+            continue  # every bucket of the line is withheld
         fig.add_scatter(
             x=sel["horizon_bucket"].astype(str),
             y=vals,
@@ -68,47 +79,32 @@ else:
             + line
             + "</extra>",
         )
-    fig.update_layout(xaxis={"title": "Minutes before arrival", "categoryorder": "array", "categoryarray": accuracy.BUCKETS},
-                      yaxis_title="Median absolute error (s)", margin={"l": 10, "r": 10, "t": 10, "b": 10})  # fmt: skip
-    st.plotly_chart(fig, width="stretch")
-    view = table.assign(
-        **{
-            "Median abs error": [
-                ui.fmt_seconds(accuracy.shown(v, c), signed=False)
-                for v, c in zip(table["median_abs_error_s"], table["coverage_pct"], strict=True)
-            ],
-            "Mean abs error": [
-                ui.fmt_seconds(accuracy.shown(v, c), signed=False)
-                for v, c in zip(table["mae_s"], table["coverage_pct"], strict=True)
-            ],
-            "Within ±60 s": [
-                ui.fmt_pct(accuracy.shown(v, c))
-                for v, c in zip(table["pct_within_60s"], table["coverage_pct"], strict=True)
-            ],
-            "Within ±120 s": [
-                ui.fmt_pct(accuracy.shown(v, c))
-                for v, c in zip(table["pct_within_120s"], table["coverage_pct"], strict=True)
-            ],
-            "Coverage": [ui.fmt_pct(c) for c in table["coverage_pct"]],
+    if fig.data:
+        fig.update_layout(xaxis={"title": "Minutes before arrival", "categoryorder": "array", "categoryarray": accuracy.BUCKETS},
+                          yaxis_title="Median absolute error (s)", margin={"l": 10, "r": 10, "t": 10, "b": 10})  # fmt: skip
+        st.plotly_chart(fig, width="stretch")
+    else:
+        st.info("Every line is below 50% coverage in this window, so no accuracy values are shown.")
+    st.markdown("**Prediction accuracy by line and horizon**")
+    cov = table["coverage_pct"]
+    view = pd.DataFrame(
+        {
+            "Line": table["line"],
+            "Minutes ahead": table["horizon_bucket"].astype(str),
+            "Median abs error": [ui.cell_seconds(v, c, signed=False) for v, c in zip(table["median_abs_error_s"], cov, strict=True)],
+            "MAE": [ui.cell_seconds(v, c, signed=False) for v, c in zip(table["mae_s"], cov, strict=True)],
+            "Within ±60 s": [ui.cell_pct(v, c) for v, c in zip(table["pct_within_60s"], cov, strict=True)],
+            "Within ±120 s": [ui.cell_pct(v, c) for v, c in zip(table["pct_within_120s"], cov, strict=True)],
+            "n": table["n"],
+            "Coverage": [ui.fmt_pct(c) for c in cov],
+            "of which service disruption": table["n_disruption"],
         }
-    ).rename(
-        columns={
-            "line": "Line",
-            "horizon_bucket": "Minutes ahead",
-            "n": "n",
-            "n_disruption": "of which service disruption",
-        }
-    )
-    st.dataframe(
-        view[["Line", "Minutes ahead", "Median abs error", "Mean abs error", "Within ±60 s",
-              "Within ±120 s", "Coverage", "n", "of which service disruption"]],
-        hide_index=True,
-        width="stretch",
     )  # fmt: skip
+    st.dataframe(view, hide_index=True, width="stretch")
     st.caption(
-        "Medians are computed over every error in the window. Values below 50% coverage are withheld."
+        "Medians are computed over every error in the window. Coverage is the share of scheduled trip stops with a prediction in the bucket; values below 50% are withheld."
         if exact
-        else "The median is the n-weighted mean of daily medians, an approximation. Values below 50% coverage are withheld."
+        else "The median is the n-weighted mean of daily medians, an approximation. Coverage is the share of scheduled trip stops with a prediction in the bucket; values below 50% are withheld."
     )
 
 st.subheader("Actual deviation from the timetable")
@@ -130,6 +126,8 @@ else:
             head, tag = st.columns([2, 3])
             head.markdown(f"**{row['line']}**")
             tag.markdown(ui.badge_markdown(badge))
+            if row["line"] in disrupted:
+                st.markdown(f":orange[{accuracy.disruption_label(disrupted[row['line']])}]")
             if not badge.rankable:
                 st.write("Not enough data to report values.")
             else:

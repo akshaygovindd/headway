@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import ui
+from lib import accuracy
 from lib.lines import line_color
 from lib.overview import line_summary
 from lib.ranking import rank_lines
@@ -60,6 +61,9 @@ if ranked and ui.has_values([r.value for r in ranked]):
 for note in ranking.notes:
     st.caption(note)
 
+disrupted = accuracy.disrupted_lines(
+    ui.gold_table_optional(base, "agg_active_alerts"), manifest.get("metrics_as_of"), "last_24h"
+)
 st.subheader("Lines")
 cols = st.columns(2)
 for i, line in enumerate(order):
@@ -75,4 +79,5 @@ for i, line in enumerate(order):
             },
             coverage_pct=row["coverage_pct"],
             freshness=None,  # shown once at the top of the page
+            disruption=accuracy.disruption_label(disrupted[line]) if line in disrupted else None,
         )
