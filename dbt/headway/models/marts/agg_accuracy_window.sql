@@ -3,8 +3,8 @@
 -- are those of fct_prediction_errors whose arrival hour is inside the window. Outage hours are
 -- excluded from every statistic and counted in n_excluded_outage; hours with an active
 -- service-disruption alert are kept and counted in n_disruption. Coverage: trip stops with an
--- error in the bucket over the high or medium reconstructed trip stops of the line in the window
--- (outage hours excluded). Percentages are 0-100.
+-- error in the bucket over the scheduled trip stops of the line in the window (outage hours
+-- excluded), the same basis as agg_actual_deviation_window. Percentages are 0-100.
 with stats as (
     select
         e.line,
@@ -27,11 +27,17 @@ with stats as (
 ),
 
 denominators as (
-    select u.line, w.window_label, count(*) as reconstructed_trip_stops
-    from {{ ref('int_usable_arrivals') }} u
-    join {{ ref('int_window_hours') }} w
-        on w.service_date = u.arrival_service_date and w.hour_local = u.arrival_hour_local
-    where u.is_nearest_segment and not u.data_outage
+    select
+        s.line,
+        w.window_label,
+        sum(s.n) filter (where not f.data_outage) as scheduled_trip_stops
+    from (
+        select line, service_date, hour_local, count(*) as n
+        from {{ ref('int_scheduled_stop_times') }}
+        group by 1, 2, 3
+    ) s
+    join {{ ref('int_window_hours') }} w on w.service_date = s.service_date and w.hour_local = s.hour_local
+    join {{ ref('int_hour_flags') }} f on f.service_date = s.service_date and f.hour_local = s.hour_local
     group by 1, 2
 )
 
@@ -48,7 +54,7 @@ select
     s.pct_within_60s,
     s.pct_within_120s,
     s.n as coverage_numerator,
-    coalesce(d.reconstructed_trip_stops, 0) as coverage_denominator,
-    100.0 * s.n / nullif(d.reconstructed_trip_stops, 0) as coverage_pct
+    coalesce(d.scheduled_trip_stops, 0) as coverage_denominator,
+    100.0 * s.n / nullif(d.scheduled_trip_stops, 0) as coverage_pct
 from stats s
 left join denominators d on d.line = s.line and d.window_label = s.window_label

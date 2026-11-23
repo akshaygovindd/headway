@@ -225,7 +225,7 @@ unit_tests:
     description: >-
       Red, 0-5 minutes: absolute errors 10, 50, 100, 200 and one outage-hour error of 5000. Median
       75, MAE 90, 50% within 60 s, 75% within 120 s, n 4, one excluded for the outage. Coverage is 4
-      of 8 usable trip stops (the outage one is not counted).
+      of 8 scheduled trip stops (the two scheduled in the outage hour are not counted).
     model: agg_prediction_accuracy_daily
     given:
       - input: ref('fct_prediction_errors')
@@ -235,17 +235,25 @@ unit_tests:
           - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, abs_error_s: 100, error_s: 100}
           - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, abs_error_s: 200, error_s: -200}
           - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: true, abs_error_s: 5000, error_s: 5000}
-      - input: ref('int_usable_arrivals')
+      - input: ref('int_scheduled_stop_times')
         rows:
-          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
-          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
-          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
-          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
-          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
-          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
-          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
-          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: false}
-          - {line: "Red", service_date: "2026-11-22", service_disruption: false, is_nearest_segment: true, data_outage: true}
+          - {line: "Red", service_date: "2026-11-22", hour_local: 8}
+          - {line: "Red", service_date: "2026-11-22", hour_local: 8}
+          - {line: "Red", service_date: "2026-11-22", hour_local: 8}
+          - {line: "Red", service_date: "2026-11-22", hour_local: 8}
+          - {line: "Red", service_date: "2026-11-22", hour_local: 8}
+          - {line: "Red", service_date: "2026-11-22", hour_local: 8}
+          - {line: "Red", service_date: "2026-11-22", hour_local: 8}
+          - {line: "Red", service_date: "2026-11-22", hour_local: 8}
+          - {line: "Red", service_date: "2026-11-22", hour_local: 9}
+          - {line: "Red", service_date: "2026-11-22", hour_local: 9}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 8, data_outage: false}
+          - {service_date: "2026-11-22", hour_local: 9, data_outage: true}
+      - input: ref('int_disrupted_line_hours')
+        rows:
+          - {line: "Orange", service_date: "2026-11-22", hour_local: 8}
     expect:
       rows:
         - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, n: 4, n_excluded_outage: 1, median_abs_error_s: 75.0, mae_s: 90.0, pct_within_60s: 50.0, pct_within_120s: 75.0, coverage_numerator: 4, coverage_denominator: 8, coverage_pct: 50.0}
@@ -386,8 +394,8 @@ unit_tests:
       Red, bucket 0-5, last_7d. Day 1 has three absolute errors of 10 s, day 2 has 100 s and 200 s
       (one of them in a disrupted hour), and one more error sits in an outage hour. Over all five
       errors the median is 10 s, the p90 160 s, the mean 66 s; an n-weighted mean of the daily
-      medians (10 and 150) would give 66 s for the median. Coverage: 5 of 7 reconstructed trip
-      stops (the outage hour's arrival is not in the denominator).
+      medians (10 and 150) would give 66 s for the median. Coverage: 5 of 7 scheduled trip stops
+      (the two scheduled in the outage hour are not in the denominator).
     model: agg_accuracy_window
     given:
       - input: ref('int_window_hours')
@@ -405,16 +413,22 @@ unit_tests:
           - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-23", hour_local: 9, abs_error_s: 500.0, data_outage: true, service_disruption: false}
           # outside the window
           - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-01", hour_local: 8, abs_error_s: 900.0, data_outage: false, service_disruption: false}
-      - input: ref('int_usable_arrivals')
+      - input: ref('int_scheduled_stop_times')
         rows:
-          - {line: Red, arrival_service_date: "2026-11-22", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
-          - {line: Red, arrival_service_date: "2026-11-22", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
-          - {line: Red, arrival_service_date: "2026-11-22", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
-          - {line: Red, arrival_service_date: "2026-11-22", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
-          - {line: Red, arrival_service_date: "2026-11-23", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
-          - {line: Red, arrival_service_date: "2026-11-23", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
-          - {line: Red, arrival_service_date: "2026-11-23", arrival_hour_local: 8, is_nearest_segment: true, data_outage: false}
-          - {line: Red, arrival_service_date: "2026-11-23", arrival_hour_local: 9, is_nearest_segment: true, data_outage: true}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8}
+          - {line: Red, service_date: "2026-11-23", hour_local: 8}
+          - {line: Red, service_date: "2026-11-23", hour_local: 8}
+          - {line: Red, service_date: "2026-11-23", hour_local: 8}
+          - {line: Red, service_date: "2026-11-23", hour_local: 9}
+          - {line: Red, service_date: "2026-11-23", hour_local: 9}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 8, data_outage: false}
+          - {service_date: "2026-11-23", hour_local: 8, data_outage: false}
+          - {service_date: "2026-11-23", hour_local: 9, data_outage: true}
     expect:
       rows:
         - {line: Red, window_label: last_7d, horizon_bucket: "0-5", n: 5, n_excluded_outage: 1, n_disruption: 1, median_abs_error_s: 10.0, p90_abs_error_s: 160.0, mae_s: 66.0, pct_within_60s: 60.0, pct_within_120s: 80.0, coverage_numerator: 5, coverage_denominator: 7}

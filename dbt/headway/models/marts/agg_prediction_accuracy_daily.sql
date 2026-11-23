@@ -1,7 +1,8 @@
 -- Prediction accuracy per line, service date, horizon bucket and service-disruption label, from
 -- fct_prediction_errors. Outage hours are excluded from every statistic and counted in
--- n_excluded_outage. Coverage: trip stops with an error in the bucket over the high or medium
--- reconstructed trip stops of the same line, day and label (outage hours excluded).
+-- n_excluded_outage. Coverage: trip stops with an error in the bucket over the scheduled trip
+-- stops of the same line, day and label (outage hours excluded), the same basis as
+-- agg_actual_deviation_daily.
 -- Percentages are 0-100.
 with computed as (
 with stats as (
@@ -23,9 +24,16 @@ with stats as (
 ),
 
 denominators as (
-    select line, service_date, service_disruption, count(*) as reconstructed_trip_stops
-    from {{ ref('int_usable_arrivals') }}
-    where is_nearest_segment and not data_outage
+    select
+        t.line,
+        t.service_date,
+        d.line is not null as service_disruption,
+        count(*) as scheduled_trip_stops
+    from {{ ref('int_scheduled_stop_times') }} t
+    join {{ ref('int_hour_flags') }} f on f.service_date = t.service_date and f.hour_local = t.hour_local
+    left join {{ ref('int_disrupted_line_hours') }} d
+        on d.line = t.line and d.service_date = t.service_date and d.hour_local = t.hour_local
+    where not f.data_outage
     group by 1, 2, 3
 )
 
@@ -41,8 +49,8 @@ select
     s.pct_within_60s,
     s.pct_within_120s,
     s.n as coverage_numerator,
-    coalesce(d.reconstructed_trip_stops, 0) as coverage_denominator,
-    100.0 * s.n / nullif(d.reconstructed_trip_stops, 0) as coverage_pct
+    coalesce(d.scheduled_trip_stops, 0) as coverage_denominator,
+    100.0 * s.n / nullif(d.scheduled_trip_stops, 0) as coverage_pct
 from stats s
 left join denominators d
     on d.line = s.line and d.service_date = s.service_date and d.service_disruption = s.service_disruption
