@@ -19,6 +19,8 @@ stable: other documents and code comments cite them as `ADR-NNN`.
 | 012 | dbt in Lambda DuckDB, MotherDuck gold-only, DuckDB 1.5.6 pin | Accepted |
 | 013 | Duplicate deliveries flagged, never dropped | Accepted |
 | 014 | Vehicle positions sampled every 15 s | Accepted (R2) |
+| 015 | Immutable history of daily aggregates, versioned per metric family | Accepted (R2) |
+| 016 | Confidence levels: only high and medium arrivals feed metrics | Accepted (R2) |
 
 Template: Status, Context, Decision, Consequences, Revisit when.
 
@@ -290,3 +292,52 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   `docs/MEASUREMENTS.md` after the first days of 15 s data.
 - **Revisit when:** two full days of 15 s data allow the spike to be repeated, real Lambda
   duration or memory differs from the above, or the cost per month exceeds the USD 8 alert.
+
+### ADR-015: Immutable history of daily aggregates, versioned per metric family
+
+- **Status:** Accepted (R2; active only when `HEADWAY_ENABLE_R2=true`)
+- **Context:** The transform rebuilds every table from the last 7 days of curated data each hour,
+  so gold forgets everything older than a week, and a late fix to the raw or curated data would
+  silently change numbers that were already shown. SLO rollups need 30 days, and accuracy trends
+  need more.
+- **Decision:** A service day closes at 06:00 local on the day after its service date (the day
+  ends at 03:00; three hours let curation catch up). After that, the transform writes the day of
+  each daily aggregate once, as Parquet, to
+  `s3://<public>/public/<city>/history/table=<agg>/metric_version=<N>/service_date=YYYY-MM-DD/part.parquet`.
+  An object is created with a conditional put (`If-None-Match: *`); an existing day is never
+  rewritten, and a day cut by the edge of the lookback window is never written. `metric_version`
+  comes from one constant per metric family (`METRIC_VERSIONS` in `headway_transform/history.py`):
+  a change to the definition of any aggregate of a family bumps its version, which writes next to
+  the old data instead of over it. dbt reads closed days from history and open days from the
+  7-day build (`history_union`), so gold spans more than a week while open days stay live. An
+  explicit backfill is the transform task `{"task":"rebuild_history","from","to","metric_version"}`
+  (at most 14 days; the version must be the family's current one, because the code that builds the
+  rows is the current code). History tables are also published to MotherDuck as
+  `history_<agg>`, with every version and `metric_version` as a column.
+- **Consequences:** A day written while the pipeline had only partly captured it (R2 switched on
+  mid-day, an outage) stays as written; its coverage columns say so. Correcting a past day means
+  a new version, not an edit. The transform role may create objects under `history/` but not
+  delete them. Storage is small (one file per table and day).
+- **Revisit when:** a correction without a definition change is needed often (add a
+  `revision` partition), or history outgrows reading it with DuckDB globs.
+
+### ADR-016: Confidence levels: only high and medium arrivals feed metrics
+
+- **Status:** Accepted (R2)
+- **Context:** Arrivals are reconstructed from vehicle positions sampled every 15 s (ADR-014), so
+  the arrival time of a stop is only known to within an interval. The 2.0 spike found that the
+  error is small when the interval is short and grows quickly when it is not.
+- **Decision:** Each reconstructed arrival has a confidence. `high`: observed (a `STOPPED_AT`
+  after a previous capture) with an interval of 30 s or less. `medium`: observed with an interval
+  up to 120 s, or bracketed between two observations no more than 120 s apart. `low`: anything
+  else, and every arrival of a run that breaks the monotonic order. Missing arrivals have no
+  confidence. Only `high` and `medium` arrivals feed a metric value (`int_usable_arrivals`);
+  `low` and missing are counted in `agg_arrival_reconstruction_daily` and left out. The one use
+  of low arrivals is as evidence: a train of any confidence between two others at a stop makes
+  that pair an invalid headway. Coverage (usable over scheduled or reconstructed trip stops) is
+  shown beside every value, and a value below 50 % coverage is withheld.
+- **Consequences:** Coverage, not accuracy, absorbs the missing 15 s samples: busy lines with
+  many updates are well covered, slow ones less so. The thresholds are shared by every metric, so
+  changing them changes every Release 2 aggregate and is a metric-version bump (ADR-015).
+- **Revisit when:** the first days of 15 s data show that the high/medium share or the hold-out
+  error differ from the spike (see `docs/MEASUREMENTS.md`).
