@@ -6,8 +6,9 @@ import os
 import shutil
 import time
 import traceback
+import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import boto3
@@ -21,6 +22,9 @@ DEFAULT_LOOKBACK_DAYS = 7
 TOKEN_PARAMETER = "/headway/motherduck_token"
 DBT_TARGET_PATH = "/tmp/dbt_target"  # noqa: S108
 DBT_LOG_PATH = "/tmp/dbt_logs"  # noqa: S108
+# A lock older than this belongs to a run that crashed or timed out (the Lambda limit is 900 s).
+LOCK_STALE_AFTER = timedelta(minutes=15)
+_LOCK_CONFLICT = {"PreconditionFailed", "ConditionalRequestConflict"}
 
 
 RUNTIME_EXTENSION_DIR = "/tmp/duckdb_extensions"  # noqa: S108
@@ -44,6 +48,68 @@ class DbtOutcome:
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+class RunLock:
+    """Single-run guard: an S3 object created with a conditional put (``IfNoneMatch='*'``).
+
+    Another run holding a fresh lock makes ``acquire`` return False. A lock older than
+    ``LOCK_STALE_AFTER`` is replaced with ``IfMatch`` on the stale object's ETag, so two runs that
+    both find it stale cannot both win.
+    """
+
+    def __init__(self, s3: Any, bucket: str, key: str, now: Any = None) -> None:
+        self.s3 = s3
+        self.bucket = bucket
+        self.key = key
+        self.now = now or _now
+        self.run_id = uuid.uuid4().hex
+
+    def _body(self) -> bytes:
+        return json.dumps({"run_id": self.run_id, "started_at": self.now().isoformat()}).encode()
+
+    def _put(self, **condition: str) -> bool:
+        try:
+            self.s3.put_object(
+                Bucket=self.bucket, Key=self.key, Body=self._body(),
+                ContentType="application/json", **condition,
+            )  # fmt: skip
+        except self.s3.exceptions.ClientError as exc:
+            if exc.response["Error"]["Code"] in _LOCK_CONFLICT | {"NoSuchKey"}:
+                return False
+            raise
+        return True
+
+    def acquire(self) -> bool:
+        for _ in range(2):  # the second pass covers a holder releasing between our two calls
+            if self._put(IfNoneMatch="*"):
+                return True
+            try:
+                held = self.s3.get_object(Bucket=self.bucket, Key=self.key)
+            except self.s3.exceptions.NoSuchKey:
+                continue
+            started = self._started_at(held)
+            if self.now() - started <= LOCK_STALE_AFTER:
+                return False
+            logger.warning("replacing stale transform lock from %s", started.isoformat())
+            return self._put(IfMatch=held["ETag"])
+        return False
+
+    @staticmethod
+    def _started_at(held: dict[str, Any]) -> datetime:
+        try:
+            return datetime.fromisoformat(json.loads(held["Body"].read())["started_at"])
+        except (ValueError, KeyError, TypeError):
+            return held["LastModified"]  # type: ignore[no-any-return]  # unreadable lock: age it by the object's own timestamp
+
+    def release(self) -> None:
+        """Delete the lock if it is still ours; never raises (the run's outcome matters more)."""
+        try:
+            held = json.loads(self.s3.get_object(Bucket=self.bucket, Key=self.key)["Body"].read())
+            if held.get("run_id") == self.run_id:
+                self.s3.delete_object(Bucket=self.bucket, Key=self.key)
+        except Exception:
+            logger.exception("could not release transform lock")
 
 
 def prepare_extension_dir() -> str:
@@ -178,17 +244,33 @@ def verify_export(s3: Any, bucket: str, gold_prefix: str) -> None:
         )
 
 
-def _build_and_test(variables: str) -> DbtOutcome:
-    """Build seeds and models, then run tests as a separate step.
+def _build_and_test(variables: str, steps: dict[str, int] | None = None) -> DbtOutcome:
+    """Load S3 data, build seeds and models, then run tests, each as its own timed step.
 
-    `dbt build` skips every model downstream of a failing test, which silently dropped the
-    gold aggregates. Models are built first; test failures are reported but never skip models.
+    The realtime staging models (tag ``s3_load``) are the only ones that read S3; building them
+    first, once, means everything after reads the local database. `dbt build` skips every model
+    downstream of a failing test, which silently dropped the gold aggregates, so models are built
+    without tests and test failures are reported but never skip models.
     """
-    build = run_dbt(["build", "--exclude", "resource_type:test", "--vars", variables])
+
+    def step(name: str, args: list[str]) -> DbtOutcome:
+        t0 = time.monotonic()
+        try:
+            return run_dbt([*args, "--vars", variables])
+        finally:
+            ms = round((time.monotonic() - t0) * 1000)
+            logger.info("step %s finished in %d ms", name, ms)
+            if steps is not None:
+                steps[name] = ms
+
+    load = step("s3_load", ["run", "--select", "tag:s3_load"])
+    if load.node_errors:
+        raise TransformError(f"dbt S3 load failed: {', '.join(load.node_errors)}")
+    build = step("dbt_build", ["build", "--exclude", "resource_type:test", "tag:s3_load"])
     if build.node_errors:
         raise TransformError(f"dbt models failed: {', '.join(build.node_errors)}")
-    tests = run_dbt(["test", "--vars", variables])
-    tests.success = tests.success and build.success
+    tests = step("dbt_test", ["test"])
+    tests.success = tests.success and build.success and load.success
     return tests
 
 
@@ -217,7 +299,8 @@ def _smoke(started: float) -> dict[str, Any]:
             "lookback_days": int(os.environ.get("LOOKBACK_DAYS", DEFAULT_LOOKBACK_DAYS)),
         }
     )
-    build = _build_and_test(variables)
+    steps: dict[str, int] = {}
+    build = _build_and_test(variables, steps)
     run_dbt(["run-operation", "export_gold", "--vars", variables,
              "--args", json.dumps({"target_dir": gold})])  # fmt: skip
     if s3_gold:
@@ -239,6 +322,7 @@ def _smoke(started: float) -> dict[str, Any]:
         "tests_passed": build.tests_passed,
         "rows_exported": sum(counts.values()),
         "tables_exported": len(counts),
+        "step_ms": steps,
         "duration_ms": round((time.monotonic() - started) * 1000),
     }
     logger.info(json.dumps(summary, sort_keys=True))
@@ -251,6 +335,21 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     prepare_extension_dir()
     if os.environ.get("HEADWAY_SMOKE_GOLD_DIR"):
         return _smoke(started)
+    city = os.environ["CITY_ID"]
+    s3 = boto3.client("s3")
+    lock = RunLock(s3, os.environ["RAW_BUCKET"], f"state/{city}/transform.lock")
+    if not lock.acquire():
+        # Another run (a scheduled run overlapping a manual one) holds the lock: not an error.
+        summary: dict[str, Any] = {"skipped": "locked"}
+        logger.info(json.dumps(summary, sort_keys=True))
+        return summary
+    try:
+        return _transform(started, s3)
+    finally:
+        lock.release()
+
+
+def _transform(started: float, s3: Any) -> dict[str, Any]:
     raw_bucket = os.environ["RAW_BUCKET"]
     public_bucket = os.environ["PUBLIC_BUCKET"]
     city = os.environ["CITY_ID"]
@@ -258,19 +357,17 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     gold_prefix = f"public/{city}/gold"
     gold_url = f"s3://{public_bucket}/{gold_prefix}"
     db_path = os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
-    s3 = boto3.client("s3")
     steps: dict[str, int] = {}
     summary: dict[str, Any] = {}
 
     def timed(name: str, t0: float) -> None:
         steps[name] = round((time.monotonic() - t0) * 1000)
+        logger.info("step %s finished in %d ms", name, steps[name])
 
-    t0 = time.monotonic()
     variables = json.dumps(
         {"curated_root": f"s3://{raw_bucket}", "city_prefix": city, "lookback_days": lookback}
     )
-    build = _build_and_test(variables)
-    timed("dbt_build", t0)
+    build = _build_and_test(variables, steps)
     if build.tests_failed:
         logger.warning("dbt tests failed: %d (export continues)", build.tests_failed)
 

@@ -2,7 +2,7 @@ import io
 import json
 import logging
 import os
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -173,7 +173,7 @@ def fakes(aws: Any, monkeypatch: pytest.MonkeyPatch, pipeline_db: str) -> dict[s
                 for table in publish.GOLD_TABLES:
                     aws.put_object(Bucket="public-bucket", Key=f"{GOLD}/{table}.parquet", Body=b"x")
             return handler.DbtOutcome(True)
-        return state["outcome"]  # type: ignore[no-any-return]
+        return state.get("by_command", {}).get(args[0], state["outcome"])  # type: ignore[no-any-return]
 
     def fake_publish(token: str, gold_url: str, tables: list[str]) -> list[str]:
         state["published"].append((token, gold_url, list(tables)))
@@ -201,8 +201,9 @@ def test_handler_builds_exports_costs_and_publishes(
     caplog.set_level(logging.INFO)
     summary = handler.lambda_handler({}, None)
 
-    build, test, export = fakes["dbt"]
-    assert build[:3] == ["build", "--exclude", "resource_type:test"]
+    load, build, test, export = fakes["dbt"]
+    assert load[:3] == ["run", "--select", "tag:s3_load"]
+    assert build[:4] == ["build", "--exclude", "resource_type:test", "tag:s3_load"]
     assert test[0] == "test"
     assert json.loads(build[build.index("--vars") + 1]) == {
         "curated_root": "s3://raw-bucket",
@@ -226,7 +227,10 @@ def test_handler_builds_exports_costs_and_publishes(
     assert summary["tests_failed"] == 0 and summary["tests_passed"] == 9
     assert summary["rows_exported"] == 12
     assert summary["cost_rows"] == 1
-    assert set(summary["step_ms"]) == {"dbt_build", "export_gold", "cost", "publish"}
+    assert set(summary["step_ms"]) == {
+        "s3_load", "dbt_build", "dbt_test", "export_gold", "cost", "publish",
+    }  # fmt: skip
+    assert all(isinstance(ms, int) and ms >= 0 for ms in summary["step_ms"].values())
 
 
 def test_test_failures_do_not_block_export(
@@ -235,7 +239,7 @@ def test_test_failures_do_not_block_export(
     caplog.set_level(logging.INFO)
     fakes["outcome"] = handler.DbtOutcome(False, tests_passed=8, tests_failed=2)
     summary = handler.lambda_handler({}, None)
-    assert [a[0] for a in fakes["dbt"]] == ["build", "test", "run-operation"]
+    assert [a[0] for a in fakes["dbt"]] == ["run", "build", "test", "run-operation"]
     assert summary["dbt_status"] == "tests_failed"
     assert summary["tests_failed"] == 2
     assert fakes["published"]
@@ -249,11 +253,86 @@ def test_missing_export_objects_fail_loudly(fakes: dict[str, Any]) -> None:
 
 
 def test_model_errors_stop_before_export(fakes: dict[str, Any]) -> None:
-    fakes["outcome"] = handler.DbtOutcome(False, node_errors=["agg_pipeline_health"])
+    fakes["by_command"] = {"build": handler.DbtOutcome(False, node_errors=["agg_pipeline_health"])}
     with pytest.raises(handler.TransformError, match="agg_pipeline_health"):
         handler.lambda_handler({}, None)
-    assert [a[0] for a in fakes["dbt"]] == ["build"]
+    assert [a[0] for a in fakes["dbt"]] == ["run", "build"]
     assert not fakes["published"]
+
+
+def test_s3_load_errors_stop_before_the_build(fakes: dict[str, Any]) -> None:
+    fakes["by_command"] = {"run": handler.DbtOutcome(False, node_errors=["stg_manifests"])}
+    with pytest.raises(handler.TransformError, match="S3 load failed: stg_manifests"):
+        handler.lambda_handler({}, None)
+    assert [a[0] for a in fakes["dbt"]] == ["run"]
+
+
+# ---------------------------------------------------------------- run lock
+
+LOCK_KEY = "state/boston/transform.lock"
+
+
+def _lock_body(started: datetime, run_id: str = "other") -> bytes:
+    return json.dumps({"run_id": run_id, "started_at": started.isoformat()}).encode()
+
+
+def test_run_lock_is_released_after_a_run(fakes: dict[str, Any], aws: Any) -> None:
+    handler.lambda_handler({}, None)
+    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/")
+
+
+def test_run_lock_is_released_when_the_run_fails(fakes: dict[str, Any], aws: Any) -> None:
+    fakes["by_command"] = {"build": handler.DbtOutcome(False, node_errors=["agg_pipeline_health"])}
+    with pytest.raises(handler.TransformError):
+        handler.lambda_handler({}, None)
+    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/")
+
+
+def test_a_concurrent_run_exits_cleanly_without_touching_the_lock(
+    fakes: dict[str, Any], aws: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.INFO)
+    held = _lock_body(NOW - timedelta(minutes=2))
+    aws.put_object(Bucket="raw-bucket", Key=LOCK_KEY, Body=held)
+    summary = handler.lambda_handler({}, None)
+    assert summary == {"skipped": "locked"}
+    assert _summary(caplog) == {"skipped": "locked"}
+    assert fakes["dbt"] == [] and not fakes["published"]
+    assert aws.get_object(Bucket="raw-bucket", Key=LOCK_KEY)["Body"].read() == held
+
+
+def test_a_stale_lock_is_replaced_and_the_run_proceeds(fakes: dict[str, Any], aws: Any) -> None:
+    aws.put_object(Bucket="raw-bucket", Key=LOCK_KEY, Body=_lock_body(NOW - timedelta(minutes=16)))
+    summary = handler.lambda_handler({}, None)
+    assert summary["dbt_status"] == "success"
+    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/")
+
+
+def test_lock_exactly_at_the_stale_limit_is_still_held(aws: Any) -> None:
+    aws.put_object(Bucket="raw-bucket", Key=LOCK_KEY, Body=_lock_body(NOW - timedelta(minutes=15)))
+    assert not handler.RunLock(aws, "raw-bucket", LOCK_KEY, lambda: NOW).acquire()
+
+
+def test_only_one_of_two_runs_replaces_a_stale_lock(aws: Any) -> None:
+    aws.put_object(Bucket="raw-bucket", Key=LOCK_KEY, Body=_lock_body(NOW - timedelta(hours=1)))
+    first = handler.RunLock(aws, "raw-bucket", LOCK_KEY, lambda: NOW)
+    second = handler.RunLock(aws, "raw-bucket", LOCK_KEY, lambda: NOW)
+    assert first.acquire()
+    assert not second.acquire()  # the first run's fresh lock now holds
+    second.release()  # not the owner: leaves the lock alone
+    assert aws.head_object(Bucket="raw-bucket", Key=LOCK_KEY)
+    first.release()
+    assert "Contents" not in aws.list_objects_v2(Bucket="raw-bucket", Prefix="state/")
+
+
+def test_unreadable_lock_ages_by_its_last_modified_time(aws: Any) -> None:
+    aws.put_object(Bucket="raw-bucket", Key=LOCK_KEY, Body=b"not json")
+    fresh = handler.RunLock(aws, "raw-bucket", LOCK_KEY, lambda: datetime.now(UTC))
+    assert not fresh.acquire()
+    later = handler.RunLock(
+        aws, "raw-bucket", LOCK_KEY, lambda: datetime.now(UTC) + timedelta(minutes=20)
+    )
+    assert later.acquire()
 
 
 def test_cost_failure_is_logged_not_raised(
