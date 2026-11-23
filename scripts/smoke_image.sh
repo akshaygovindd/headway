@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Invoke a Lambda container image through the Runtime Interface Emulator under Lambda-like
 # constraints: read-only root filesystem, writable /tmp only, unprivileged user, HOME unset,
-# working dir /var/task. Local fixtures only: no AWS access, no network use by the handlers.
+# working dir /var/task, no /dev/shm (--ipc=none, as in real Lambda). Local fixtures only: no AWS access, no network use by the handlers.
 #
 #   smoke_image.sh transform|curate
 set -euo pipefail
@@ -18,7 +18,7 @@ invoke() {
     local image=$1 handler=$2 check=$3
     shift 3
     docker rm -f "$name" >/dev/null 2>&1 || true
-    docker run -d --name "$name" --platform linux/arm64 --read-only --tmpfs /tmp:exec \
+    docker run -d --name "$name" --platform linux/arm64 --read-only --ipc=none --tmpfs /tmp:exec \
         --user 993:990 -p "$port:8080" \
         -e AWS_DEFAULT_REGION=us-east-1 -e AWS_ACCESS_KEY_ID=smoke -e AWS_SECRET_ACCESS_KEY=smoke \
         "$@" --entrypoint env "$image" -u HOME /lambda-entrypoint.sh "$handler" >/dev/null

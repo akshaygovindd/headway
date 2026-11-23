@@ -49,7 +49,35 @@ def _dbt_flags() -> list[str]:
     ]  # fmt: skip
 
 
+def _use_thread_locks_without_semaphores() -> None:
+    """Lambda has no /dev/shm, so POSIX semaphores (sem_open) fail with ENOENT.
+
+    dbt builds its connection-manager lock via ``get_mp_context().RLock()``, which resolves to
+    ``multiprocessing.synchronize``. We run single-process (threads only), so thread locks are
+    equivalent. Only patches when a semaphore genuinely cannot be created.
+    """
+    import multiprocessing
+    import multiprocessing.synchronize as synchronize
+    import threading
+
+    try:
+        multiprocessing.get_context("spawn").RLock()
+        return
+    except OSError:
+        logger.warning("multiprocessing semaphores unavailable; using thread locks for dbt")
+
+    def thread_lock(*, ctx: object = None) -> Any:
+        return threading.Lock()
+
+    def thread_rlock(*, ctx: object = None) -> Any:
+        return threading.RLock()
+
+    synchronize.Lock = thread_lock  # type: ignore[misc,assignment]
+    synchronize.RLock = thread_rlock  # type: ignore[misc,assignment]
+
+
 def run_dbt(args: list[str]) -> DbtOutcome:
+    _use_thread_locks_without_semaphores()
     from dbt.cli.main import dbtRunner  # imported lazily: dbt lives in the image env only
 
     res = dbtRunner().invoke([*args, *_dbt_flags()])
