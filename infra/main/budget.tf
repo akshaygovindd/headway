@@ -12,7 +12,7 @@ resource "aws_budgets_budget" "monthly" {
   }
 
   dynamic "notification" {
-    for_each = [5, 10]
+    for_each = [8, 15]
 
     content {
       comparison_operator        = "GREATER_THAN"

@@ -17,7 +17,7 @@ variable "city_id" {
 variable "budget_limit_usd" {
   description = "Monthly cost budget in USD for resources tagged project=headway."
   type        = string
-  default     = "10"
+  default     = "15"
 }
 
 variable "curate_image_uri" {
