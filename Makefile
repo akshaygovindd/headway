@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke images-smoke deploy seed
+.PHONY: acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke ingest-smoke images-smoke deploy seed
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -80,7 +80,11 @@ transform-smoke:
 curate-smoke:
 	scripts/smoke_image.sh curate
 
-images-smoke: curate-smoke transform-smoke
+# Ingest is a zip function: this runs the built package on the Lambda Python image at 128 MB.
+ingest-smoke: lambda-zip
+	scripts/smoke_image.sh ingest
+
+images-smoke: curate-smoke transform-smoke ingest-smoke
 
 # Logs in to ECR, tags with the git short sha and pushes. The ECR repositories must already exist
 # (see docs/DEPLOY.md). Prints the image URIs to put in terraform.tfvars.

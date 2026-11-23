@@ -3,10 +3,10 @@
 # constraints: read-only root filesystem, writable /tmp only, unprivileged user, HOME unset,
 # working dir /var/task, no /dev/shm (--ipc=none, as in real Lambda). Local fixtures only: no AWS access, no network use by the handlers.
 #
-#   smoke_image.sh transform|curate
+#   smoke_image.sh transform|curate|ingest
 set -euo pipefail
 
-kind=${1:?usage: smoke_image.sh transform|curate}
+kind=${1:?usage: smoke_image.sh transform|curate|ingest}
 root=$(cd "$(dirname "$0")/.." && pwd)
 smoke="$root/.local/smoke"
 port=$((9200 + RANDOM % 500))
@@ -87,6 +87,20 @@ curate)
         "not r['skipped'] and r['rows']['routes'] > 0" "${common[@]}"
     invoke headway-curate:local headway.curate.handler.curate_handler \
         "r['task'] == 'curate' and r['batches'] > 0" "${common[@]}"
+    ;;
+ingest)
+    # The ingest function is a zip, not an image: run it on the Lambda Python base image with the
+    # package built by `make lambda-zip` mounted at /var/task, under the function's 128 MB limit.
+    # A time-compressed 4-poll cycle with fake feeds; fails when peak RSS exceeds 110 MB.
+    rm -rf "$smoke/ingest" && mkdir -p "$smoke/ingest" && chmod a+rwx "$smoke/ingest"
+    docker run --rm --name "$name" --platform linux/arm64 --memory=128m --memory-swap=128m \
+        --read-only --ipc=none --tmpfs /tmp:exec --user 993:990 \
+        -v "$root/build/lambda:/var/task:ro" -v "$root/scripts/smoke_ingest.py:/smoke/smoke_ingest.py:ro" \
+        -v "$smoke/ingest:/out" \
+        -e PYTHONPATH=/var/task -e HEADWAY_CONFIG_DIR=/var/task/config/cities -e HOME=/tmp \
+        -e AWS_DEFAULT_REGION=us-east-1 -e AWS_ACCESS_KEY_ID=smoke -e AWS_SECRET_ACCESS_KEY=smoke \
+        --entrypoint /var/lang/bin/python3.12 public.ecr.aws/lambda/python:3.12 \
+        /smoke/smoke_ingest.py --out /out | tee "$smoke/ingest/result.json"
     ;;
 *) echo "unknown image: $kind" >&2; exit 2 ;;
 esac
