@@ -128,7 +128,9 @@ to the public gold bucket. Deploying your own copy is described in [docs/DEPLOY.
 ## Roadmap
 
 - **Release 1 (this):** capture, curate, four metrics, public Streamlit app, pipeline health.
-- **Release 2:** incremental history beyond the 7-day rebuild window and more cities from config.
+- **Release 2:** reconstructed arrivals with accuracy, actual deviation, headway adherence and ETT
+  (exact 24 h and 7 d windows), immutable history beyond the 7-day rebuild window, persisted run
+  state and service level objectives (`docs/SLO.md`); more cities from config.
 - **Release 3:** natural-language analytics with unsupported claims prevented
   (ADR-008) and an MCP server (ADR-011).
 - **Release 4:** Next.js front end on a FastAPI service (ADR-010).

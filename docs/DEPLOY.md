@@ -246,3 +246,34 @@ Switch-on, Phase 2.6, in this order:
    0-3, a run of 45-58 s, memory under about 100 MB in the Lambda report line, the live snapshot
    updating every 15 s. If memory is close to the limit, set `memory_size` to 256 and deploy again.
 4. Turning either back off is the same variable change; data already written stays valid.
+
+## Release 2 history, run state and SLOs
+
+With `enable_r2 = true` the transform Lambda also keeps two kinds of object, both written by its
+role (`terraform validate` is the only check made before a deploy; the policy is in
+`infra/main/pipeline.tf`):
+
+- **Run state** at `s3://<raw>/state/transform_runs/dt=YYYY-MM-DD/rows.parquet`: one row per
+  invocation, loaded at the start of the next run. It is written whether or not Release 2 is on.
+  Losing it only empties the SLO tables for the missing days.
+- **History** at `s3://<public>/public/boston/history/table=<agg>/metric_version=<N>/service_date=YYYY-MM-DD/part.parquet`:
+  one object per closed service day and daily aggregate, publicly readable like the gold. A day
+  appears after 06:00 local on the next day. Objects are created once (conditional put) and never
+  replaced; the role can create but not delete them. MotherDuck gets `history_<agg>` tables.
+
+Check after the first full day: the history prefix has one object per table for the closed day,
+`agg_slo_daily` has its four objectives, and `make slo-report` writes a report instead of the
+"not enabled" notice.
+
+Backfill history for explicit days (for example after bumping a metric version in
+`dbt/headway_transform/history.py`; at most 14 days per call, `metric_version` must equal the
+family's current version; existing days are left as they are and gold is not touched):
+
+```
+aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"task":"rebuild_history","from":"2026-11-16","to":"2026-11-22","metric_version":1}' out.json
+```
+
+A backfill reads as many days of curated data as separate it from today, inside the 900 s limit of
+the function; split a long range into calls of a few days if one times out.

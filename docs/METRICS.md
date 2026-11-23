@@ -180,6 +180,19 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
   aggregates carry the label so a reader can separate them. The GTFS-realtime effect list has no
   SHUTTLE or SUSPENSION value, hence the text match.
 - **Observation window.** Hours outside the `vehicle_positions` observation window have no rows.
+- **Windows are exact.** `agg_accuracy_window`, `agg_actual_deviation_window`,
+  `agg_headway_window` and `agg_ett_window` hold the last 24 hours (`last_24h`) and the last 7
+  days (`last_7d`) per line (accuracy also per horizon bucket), ending at the latest hour of
+  `agg_line_reliability_hourly`. Medians, 90th percentiles and shares are computed over every
+  eligible row of the window, not by averaging per-hour or per-day medians, which would weight a
+  quiet hour like a busy one. They combine directions (and, for ETT, time bands and day types);
+  a view that needs one direction, or all exported days, uses the hourly and daily aggregates,
+  and the app labels those values approximate. Outage hours are left out and counted, disruption
+  hours kept and counted (`n_disruption`), exactly as in the finer tables.
+- **History.** The daily aggregates of closed service days are kept as immutable, versioned
+  Parquet and read back by the same tables (ADR-015), so a daily table covers more than the 7-day
+  build window. A change to a definition bumps the version of its family; old versions stay.
+- **Objectives.** The pipeline's own service level objectives are in `docs/SLO.md`.
 
 ## 6. Prediction accuracy (Release 2)
 
