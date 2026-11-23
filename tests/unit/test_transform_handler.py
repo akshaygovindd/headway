@@ -168,6 +168,9 @@ def fakes(aws: Any, monkeypatch: pytest.MonkeyPatch, pipeline_db: str) -> dict[s
             aws.put_object(
                 Bucket="public-bucket", Key=f"{GOLD}/manifest.json", Body=json.dumps(manifest)
             )
+            if not state.get("skip_parquet"):
+                for table in publish.GOLD_TABLES:
+                    aws.put_object(Bucket="public-bucket", Key=f"{GOLD}/{table}.parquet", Body=b"x")
             return handler.DbtOutcome(True)
         return state["outcome"]  # type: ignore[no-any-return]
 
@@ -197,9 +200,10 @@ def test_handler_builds_exports_costs_and_publishes(
     caplog.set_level(logging.INFO)
     summary = handler.lambda_handler({}, None)
 
-    build, export = fakes["dbt"]
-    assert build[0] == "build"
-    assert json.loads(build[2]) == {
+    build, test, export = fakes["dbt"]
+    assert build[:3] == ["build", "--exclude", "resource_type:test"]
+    assert test[0] == "test"
+    assert json.loads(build[build.index("--vars") + 1]) == {
         "curated_root": "s3://raw-bucket",
         "city_prefix": "boston",
         "lookback_days": 7,
@@ -230,10 +234,17 @@ def test_test_failures_do_not_block_export(
     caplog.set_level(logging.INFO)
     fakes["outcome"] = handler.DbtOutcome(False, tests_passed=8, tests_failed=2)
     summary = handler.lambda_handler({}, None)
-    assert [a[0] for a in fakes["dbt"]] == ["build", "run-operation"]
+    assert [a[0] for a in fakes["dbt"]] == ["build", "test", "run-operation"]
     assert summary["dbt_status"] == "tests_failed"
     assert summary["tests_failed"] == 2
     assert fakes["published"]
+
+
+def test_missing_export_objects_fail_loudly(fakes: dict[str, Any]) -> None:
+    fakes["skip_parquet"] = True
+    with pytest.raises(handler.ExportError, match=r"gold/agg_line_reliability_hourly\.parquet"):
+        handler.lambda_handler({}, None)
+    assert not fakes["published"]
 
 
 def test_model_errors_stop_before_export(fakes: dict[str, Any]) -> None:
@@ -322,3 +333,15 @@ def test_run_dbt_raises_on_invocation_exception(monkeypatch: pytest.MonkeyPatch)
     _fake_dbt(monkeypatch, NS(exception=ValueError("bad profile"), success=False, result=None))
     with pytest.raises(handler.TransformError, match="bad profile"):
         handler.run_dbt(["build"])
+
+
+def test_run_operation_failure_raises_with_log_tail(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from types import SimpleNamespace as NS
+
+    (tmp_path / "dbt.log").write_text("noise\nCatalog Error: Table agg_x does not exist\n")
+    monkeypatch.setattr(handler, "DBT_LOG_PATH", str(tmp_path))
+    _fake_dbt(monkeypatch, NS(exception=None, success=False, result=NS(results=[])))
+    with pytest.raises(handler.TransformError, match="Catalog Error: Table agg_x"):
+        handler.run_dbt(["run-operation", "export_gold"])

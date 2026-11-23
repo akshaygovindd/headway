@@ -23,7 +23,7 @@ headway = "headway.cli:main"
 dev = [
     "boto3-stubs[s3]",
     "duckdb>=2.0.1",
-    "moto[s3]",
+    "moto[s3,server]",
     "mypy",
     "pytest",
     "ruff",

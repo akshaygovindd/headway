@@ -24,6 +24,27 @@ headway:
       secrets:
         - type: s3
           provider: credential_chain
+    # Same as `lambda`, but S3 goes to an S3-compatible endpoint (moto server) with static
+    # credentials. Used only by the S3 export tests and the image smoke test.
+    s3_test:
+      type: duckdb
+      path: "{{ env_var('HEADWAY_DUCKDB_PATH', '/tmp/headway.duckdb') }}"
+      threads: 4
+      extensions:
+        - httpfs
+      config_options:
+        home_directory: /tmp
+        extension_directory: "{{ env_var('HEADWAY_DUCKDB_EXTENSIONS', '/tmp/duckdb_extensions') }}"
+      settings:
+        TimeZone: UTC
+      secrets:
+        - type: s3
+          key_id: "{{ env_var('AWS_ACCESS_KEY_ID') }}"
+          secret: "{{ env_var('AWS_SECRET_ACCESS_KEY') }}"
+          region: "{{ env_var('AWS_DEFAULT_REGION', 'us-east-1') }}"
+          endpoint: "{{ env_var('HEADWAY_S3_ENDPOINT') }}"
+          url_style: path
+          use_ssl: false
     # Defined only; not run in Release 1 local work.
     motherduck:
       type: duckdb

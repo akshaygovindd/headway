@@ -11,7 +11,8 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 smoke="$root/.local/smoke"
 port=$((9200 + RANDOM % 500))
 name="headway-smoke-$kind-$$"
-trap 'docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
+moto_pid=
+trap 'docker rm -f "$name" >/dev/null 2>&1 || true; [ -z "$moto_pid" ] || kill "$moto_pid" 2>/dev/null || true' EXIT
 
 # invoke <image> <handler> <expected-python-expression-on-result> [docker args...]
 invoke() {
@@ -50,6 +51,28 @@ transform)
         -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated -e HEADWAY_SMOKE_GOLD_DIR=/tmp/gold
+
+    # Same image, but export_gold writes to s3:// on a moto server (host process, reached via
+    # host.docker.internal) so the httpfs/secret/COPY-to-S3 path runs under Lambda constraints.
+    moto_port=$((9800 + RANDOM % 150))
+    (cd "$root" && uv run python -m moto.server -H 0.0.0.0 -p "$moto_port" >/dev/null 2>&1) &
+    moto_pid=$!
+    for _ in $(seq 1 40); do
+        curl -s -o /dev/null "localhost:$moto_port/" && break
+        sleep 0.5
+    done
+    curl -s -o /dev/null -XPUT "localhost:$moto_port/smoke-public" \
+        -H "Authorization: AWS4-HMAC-SHA256 Credential=smoke/20260101/us-east-1/s3/aws4_request"
+    endpoint="host.docker.internal:$moto_port"
+    invoke headway-transform:local headway_transform.handler.lambda_handler \
+        "r['smoke'] and r['tables_exported'] >= 8 and r['rows_exported'] > 0" \
+        --add-host=host.docker.internal:host-gateway \
+        -v "$smoke/curated:/fixture/curated:ro" \
+        -e CITY_ID=boston -e LOOKBACK_DAYS=36500 \
+        -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
+        -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public/public/boston/gold \
+        -e HEADWAY_DBT_TARGET=s3_test -e HEADWAY_S3_ENDPOINT="$endpoint" \
+        -e AWS_ENDPOINT_URL="http://$endpoint"
     ;;
 curate)
     rm -rf "$smoke/store" "$smoke/gtfs.zip"

@@ -26,6 +26,10 @@ class TransformError(Exception):
     """dbt could not build the models, so there is nothing to export."""
 
 
+class ExportError(TransformError):
+    """export_gold ran but the expected gold objects are not in the bucket."""
+
+
 @dataclass
 class DbtOutcome:
     success: bool
@@ -43,7 +47,7 @@ def _dbt_flags() -> list[str]:
     return [
         "--project-dir", project,
         "--profiles-dir", project,
-        "--target", "lambda",
+        "--target", os.environ.get("HEADWAY_DBT_TARGET", "lambda"),
         "--target-path", DBT_TARGET_PATH,
         "--log-path", DBT_LOG_PATH,
     ]  # fmt: skip
@@ -88,6 +92,8 @@ def run_dbt(args: list[str]) -> DbtOutcome:
             "".join(traceback.format_exception(res.exception)),
         )
         raise TransformError(f"dbt {args[0]} failed: {res.exception}")
+    if args[0] == "run-operation" and not res.success:
+        raise TransformError(f"dbt run-operation {args[1]} failed:\n{_dbt_log_tail()}")
     outcome = DbtOutcome(success=bool(res.success))
     results = getattr(res.result, "results", None) or []
     for r in results:
@@ -102,6 +108,46 @@ def run_dbt(args: list[str]) -> DbtOutcome:
         elif not is_test and status == "error":
             outcome.node_errors.append(str(r.node.name))
     return outcome
+
+
+def _dbt_log_tail(lines: int = 25) -> str:
+    """Last lines of the dbt log: where a failed run-operation reports its error."""
+    try:
+        with open(f"{DBT_LOG_PATH}/dbt.log") as handle:
+            return "".join(handle.readlines()[-lines:]).strip()
+    except OSError:
+        return "(dbt log unavailable)"
+
+
+def verify_export(s3: Any, bucket: str, gold_prefix: str) -> None:
+    """Raise ExportError naming every expected gold object that is not in the bucket."""
+    missing = []
+    for key in [f"{gold_prefix}/{t}.parquet" for t in publish.GOLD_TABLES] + [
+        f"{gold_prefix}/manifest.json"
+    ]:
+        try:
+            s3.head_object(Bucket=bucket, Key=key)
+        except s3.exceptions.ClientError:
+            missing.append(key)
+    if missing:
+        raise ExportError(
+            f"export_gold left {len(missing)} object(s) missing from s3://{bucket}: "
+            f"{', '.join(missing)}\nexport log:\n{_dbt_log_tail()}"
+        )
+
+
+def _build_and_test(variables: str) -> DbtOutcome:
+    """Build seeds and models, then run tests as a separate step.
+
+    `dbt build` skips every model downstream of a failing test, which silently dropped the
+    gold aggregates. Models are built first; test failures are reported but never skip models.
+    """
+    build = run_dbt(["build", "--exclude", "resource_type:test", "--vars", variables])
+    if build.node_errors:
+        raise TransformError(f"dbt models failed: {', '.join(build.node_errors)}")
+    tests = run_dbt(["test", "--vars", variables])
+    tests.success = tests.success and build.success
+    return tests
 
 
 def _tables_to_publish(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
@@ -119,7 +165,9 @@ def _smoke(started: float) -> dict[str, Any]:
     """Image smoke test: dbt build + gold export on a local curated root; no AWS, no publish."""
     root = os.environ["HEADWAY_SMOKE_CURATED_ROOT"]
     gold = os.environ["HEADWAY_SMOKE_GOLD_DIR"]
-    os.makedirs(gold, exist_ok=True)
+    s3_gold = gold.startswith("s3://")
+    if not s3_gold:
+        os.makedirs(gold, exist_ok=True)
     variables = json.dumps(
         {
             "curated_root": root,
@@ -127,13 +175,18 @@ def _smoke(started: float) -> dict[str, Any]:
             "lookback_days": int(os.environ.get("LOOKBACK_DAYS", DEFAULT_LOOKBACK_DAYS)),
         }
     )
-    build = run_dbt(["build", "--vars", variables])
-    if build.node_errors:
-        raise TransformError(f"dbt models failed: {', '.join(build.node_errors)}")
+    build = _build_and_test(variables)
     run_dbt(["run-operation", "export_gold", "--vars", variables,
              "--args", json.dumps({"target_dir": gold})])  # fmt: skip
-    with open(f"{gold}/manifest.json") as handle:
-        counts = json.load(handle)["row_counts"]
+    if s3_gold:
+        bucket, _, prefix = gold.removeprefix("s3://").partition("/")
+        client = boto3.client("s3")
+        verify_export(client, bucket, prefix.rstrip("/"))
+        body = client.get_object(Bucket=bucket, Key=f"{prefix.rstrip('/')}/manifest.json")["Body"]
+        counts = json.loads(body.read())["row_counts"]
+    else:
+        with open(f"{gold}/manifest.json") as handle:
+            counts = json.load(handle)["row_counts"]
     summary = {
         "smoke": True,
         "dbt_status": "success" if build.success else "tests_failed",
@@ -170,16 +223,15 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     variables = json.dumps(
         {"curated_root": f"s3://{raw_bucket}", "city_prefix": city, "lookback_days": lookback}
     )
-    build = run_dbt(["build", "--vars", variables])
+    build = _build_and_test(variables)
     timed("dbt_build", t0)
-    if build.node_errors:
-        raise TransformError(f"dbt models failed: {', '.join(build.node_errors)}")
     if build.tests_failed:
         logger.warning("dbt tests failed: %d (export continues)", build.tests_failed)
 
     t0 = time.monotonic()
     run_dbt(["run-operation", "export_gold", "--vars", variables,
              "--args", json.dumps({"target_dir": gold_url})])  # fmt: skip
+    verify_export(s3, public_bucket, gold_prefix)
     timed("export_gold", t0)
     manifest = json.loads(
         s3.get_object(Bucket=public_bucket, Key=f"{gold_prefix}/manifest.json")["Body"].read()
