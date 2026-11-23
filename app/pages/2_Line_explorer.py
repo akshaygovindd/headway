@@ -64,6 +64,9 @@ def headway_adherence() -> None:
     disrupted = accuracy.disrupted_lines(alerts, manifest.get("metrics_as_of"), window)
     if line in disrupted:
         st.markdown(f":orange[{accuracy.disruption_label(disrupted[line])}]")
+    notices = accuracy.stop_notices(alerts, manifest.get("metrics_as_of"), window)
+    if line in notices:
+        st.caption(accuracy.stop_notice_label(notices[line]))
     s = (
         accuracy.headway_window_summary(hw_win, line, window)
         if exact

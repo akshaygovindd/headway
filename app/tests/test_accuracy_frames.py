@@ -224,6 +224,30 @@ def test_disrupted_lines_follow_the_window() -> None:
     assert accuracy.disruption_label(["detour"]) == "Service disruption: detour"
 
 
+def test_a_station_alert_is_a_notice_not_a_line_disruption() -> None:
+    def row(line: str, scope: str, names: str | None) -> dict[str, object]:
+        return {"line": line, "service_date": date(2026, 11, 22), "hour_local": 12,
+                "effect": "NO_SERVICE", "is_service_disruption": True, "scope": scope,
+                "stop_names": names}  # fmt: skip
+
+    alerts = pd.DataFrame([
+        row("Red", "line", None),
+        row("Green-E", "stop", "Symphony"),
+        row("Green-C", "stop", "Fairbanks Street, Hawes Street"),
+    ])  # fmt: skip
+    as_of = "2026-11-23T08:00:00+00:00"
+    assert accuracy.disrupted_lines(alerts, as_of, "last_24h") == {"Red": ["no service"]}
+    assert accuracy.stop_notices(alerts, as_of, "last_24h") == {
+        "Green-C": ["Fairbanks Street", "Hawes Street"], "Green-E": ["Symphony"],
+    }  # fmt: skip
+    assert accuracy.stop_notice_label(["Symphony"]).startswith("Station alert: Symphony")
+    # gold written before scopes existed: every alert is a line alert, no notices
+    legacy = alerts.drop(columns=["scope", "stop_names"])
+    assert set(accuracy.disrupted_lines(legacy, as_of, "all_days")) == {"Red", "Green-E", "Green-C"}
+    assert accuracy.stop_notices(legacy, as_of, "all_days") == {}
+    assert accuracy.stop_notices(None, as_of, "all_days") == {}
+
+
 def test_window_labels_give_different_rows() -> None:
     win = pd.DataFrame([
         {"line": "Red", "window_label": label, "horizon_bucket": "0-5", "n": n,

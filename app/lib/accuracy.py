@@ -312,16 +312,19 @@ def shown(value: float | None, coverage_pct: float | None) -> float | None:
     return None if is_withheld(coverage_pct) else value
 
 
-def disrupted_lines(
-    alerts: pd.DataFrame | None, as_of: str | None, window: str
-) -> dict[str, list[str]]:
-    """Lines with an active service-disruption hour in the window, with their alert effects.
-
-    `window` is last_24h, last_7d or all_days; the windows end at `as_of` (metrics_as_of).
-    """
+def _disruption_rows(
+    alerts: pd.DataFrame | None, as_of: str | None, window: str, scope: str
+) -> pd.DataFrame:
+    """Service-disruption alert rows of one scope inside the window (all rows for all_days)."""
     if alerts is None or alerts.empty or not bool(alerts["is_service_disruption"].any()):
-        return {}
+        return pd.DataFrame()
     sel = alerts[alerts["is_service_disruption"]]
+    # Gold written before alert scopes existed has no column: every alert then counts as line scope.
+    sel = (
+        sel[sel["scope"] == scope] if "scope" in sel else sel if scope == "line" else sel.iloc[0:0]
+    )
+    if sel.empty:
+        return sel
     if window in WINDOW_HOURS and as_of:
         end = parse_utc(as_of)
         starts = [
@@ -330,10 +333,46 @@ def disrupted_lines(
         ]
         keep = [(end - s).total_seconds() < WINDOW_HOURS[window] * 3600 for s in starts]
         sel = sel[keep]
+    return sel
+
+
+def disrupted_lines(
+    alerts: pd.DataFrame | None, as_of: str | None, window: str
+) -> dict[str, list[str]]:
+    """Lines with an active line-scope service-disruption hour in the window, with their effects.
+
+    `window` is last_24h, last_7d or all_days; the windows end at `as_of` (metrics_as_of). An
+    alert on a single station does not disrupt the line (see `stop_notices`).
+    """
+    sel = _disruption_rows(alerts, as_of, window, "line")
     out: dict[str, list[str]] = {}
-    for line, g in sel.groupby("line"):
+    for line, g in sel.groupby("line") if not sel.empty else []:
         out[str(line)] = sorted({EFFECT_LABELS.get(e, "alert") for e in g["effect"]})
     return out
+
+
+def stop_notices(
+    alerts: pd.DataFrame | None, as_of: str | None, window: str
+) -> dict[str, list[str]]:
+    """Per line, the stations under a stop-level service-disruption alert in the window.
+
+    Information only: the line stays in every metric, only that station's trip stops are left out
+    of arrival coverage.
+    """
+    sel = _disruption_rows(alerts, as_of, window, "stop")
+    out: dict[str, list[str]] = {}
+    for line, g in sel.groupby("line") if not sel.empty else []:
+        names = {
+            n.strip() for v in g["stop_names"].dropna() for n in str(v).split(", ") if n.strip()
+        }
+        out[str(line)] = sorted(names)
+    return out
+
+
+def stop_notice_label(stations: list[str]) -> str:
+    return (
+        "Station alert: " + ", ".join(stations) + " (that station only; the line is not disrupted)"
+    )
 
 
 def disruption_label(effects: list[str]) -> str:
