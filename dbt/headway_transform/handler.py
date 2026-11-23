@@ -288,6 +288,11 @@ def set_gold_cache_control(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
     return keys
 
 
+def r2_exclusions() -> list[str]:
+    """Selectors keeping Release 2 models (tag r2) out unless HEADWAY_ENABLE_R2=true."""
+    return [] if os.environ.get("HEADWAY_ENABLE_R2", "").lower() == "true" else ["tag:r2"]
+
+
 def _build_and_test(variables: str, steps: dict[str, int] | None = None) -> DbtOutcome:
     """Load S3 data, build seeds and models, then run tests, each as its own timed step.
 
@@ -310,10 +315,14 @@ def _build_and_test(variables: str, steps: dict[str, int] | None = None) -> DbtO
     load = step("s3_load", ["run", "--select", "tag:s3_load"])
     if load.node_errors:
         raise TransformError(f"dbt S3 load failed: {', '.join(load.node_errors)}")
-    build = step("dbt_build", ["build", "--exclude", "resource_type:test", "tag:s3_load"])
+    build = step(
+        "dbt_build", ["build", "--exclude", "resource_type:test", "tag:s3_load", *r2_exclusions()]
+    )
     if build.node_errors:
         raise TransformError(f"dbt models failed: {', '.join(build.node_errors)}")
-    tests = step("dbt_test", ["test"])
+    tests = step(
+        "dbt_test", ["test", *(["--exclude", *r2_exclusions()] if r2_exclusions() else [])]
+    )
     tests.success = tests.success and build.success and load.success
     return tests
 
@@ -362,6 +371,7 @@ def _smoke(started: float) -> dict[str, Any]:
             os.environ["HEADWAY_DUCKDB_EXTENSIONS"]
         ),
         "dbt_status": "success" if build.success else "tests_failed",
+        "r2_enabled": not r2_exclusions(),
         "tests_failed": build.tests_failed,
         "tests_passed": build.tests_passed,
         "rows_exported": sum(counts.values()),

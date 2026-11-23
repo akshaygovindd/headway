@@ -2,6 +2,8 @@ version: 2
 
 unit_tests:
   - name: vehicle_stop_events_placement_and_exclusions
+    config:
+      tags: [r2]
     description: >-
       Shape S runs east to west along 42.0 N: points at 0 m (-71.00), 826 m (-71.01) and 1652 m
       (-71.02). Trip T1 on it has stop 2 projected at 826 m. A repeat of an observation from a

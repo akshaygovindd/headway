@@ -3,6 +3,8 @@ version: 2
 # Synthetic trips with known true arrivals. Times are UTC on 2026-11-22 (08:00 local).
 unit_tests:
   - name: reconstructed_arrivals_known_trip
+    config:
+      tags: [r2]
     description: >-
       Trip T1 with stops at 0, 1000, 2000, 3000 and 4000 m. Stop 1: the first observation is
       already STOPPED_AT, so there is no interval (missing). Stop 2: observed, previous capture
@@ -40,6 +42,8 @@ unit_tests:
         - {trip_instance_key: "T1|2026-11-22|08:00:00", stop_sequence: 5, method: observed, confidence: medium, arrival_ts: "2026-11-22 13:05:40+00", interval_width_s: 40, bracket_gap_s: null, monotonic_ok: true}
 
   - name: reconstructed_arrivals_confidence_bands
+    config:
+      tags: [r2]
     description: >-
       Observed interval widths of 30 s, 31 s and 120 s, 121 s sit on the band edges (high, medium,
       medium, low); a bracket gap of 121 s is low.
@@ -69,6 +73,8 @@ unit_tests:
         - {trip_instance_key: "T2|2026-11-22|08:00:00", stop_sequence: 5, method: bracketed, confidence: low, arrival_ts: "2026-11-22 14:06:02.5+00", interval_width_s: null, bracket_gap_s: 121, monotonic_ok: true}
 
   - name: reconstructed_arrivals_monotonic_violation
+    config:
+      tags: [r2]
     description: >-
       Stop 2 is projected before stop 1 on the shape (900 m against 1000 m), so its bracketed
       arrival (36 s) comes before stop 1's (40 s). Both rows are flagged, set to low, and stop 3,

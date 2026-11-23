@@ -282,7 +282,8 @@ def test_handler_builds_exports_costs_and_publishes(
     load, build, test, export = fakes["dbt"]
     assert load[:3] == ["run", "--select", "tag:s3_load"]
     assert build[:4] == ["build", "--exclude", "resource_type:test", "tag:s3_load"]
-    assert test[0] == "test"
+    assert "tag:r2" in build  # Release 2 models are off by default
+    assert test[0] == "test" and test[1:3] == ["--exclude", "tag:r2"]
     assert json.loads(build[build.index("--vars") + 1]) == {
         "curated_root": "s3://raw-bucket",
         "city_prefix": "boston",
@@ -523,3 +524,21 @@ def test_run_operation_failure_raises_with_log_tail(
     _fake_dbt(monkeypatch, NS(exception=None, success=False, result=NS(results=[])))
     with pytest.raises(handler.TransformError, match="Catalog Error: Table agg_x"):
         handler.run_dbt(["run-operation", "export_gold"])
+
+
+def test_r2_models_are_built_only_when_enabled(
+    fakes: dict[str, Any], aws: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
+    handler.lambda_handler({}, None)
+    _, build, test, _ = fakes["dbt"]
+    assert "tag:r2" not in build and "tag:r2" not in test
+    assert build[:4] == ["build", "--exclude", "resource_type:test", "tag:s3_load"]
+    assert test[0] == "test"
+
+
+def test_r2_exclusion_helper() -> None:
+    import os
+
+    os.environ.pop("HEADWAY_ENABLE_R2", None)
+    assert handler.r2_exclusions() == ["tag:r2"]
