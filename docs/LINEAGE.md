@@ -2,6 +2,80 @@
 
 Written during Release 1.
 
+## End to end
+
+```mermaid
+flowchart LR
+    subgraph MBTA["MBTA feeds"]
+        F1[TripUpdates]
+        F2[VehiclePositions]
+        F3[Alerts]
+        F4[GTFS static zip]
+    end
+
+    subgraph INGEST["Ingest (Lambda, every minute)"]
+        I1[fetch + gzip]
+        I2[claim minute:<br/>conditional manifest write]
+    end
+
+    subgraph S3RAW["S3 raw bucket"]
+        R1[(raw captures<br/>never modified)]
+        R2[(manifests JSON<br/>UTC, run_id)]
+        R3[(duplicates/<br/>delivery records)]
+    end
+
+    subgraph CURATE["Curate (Lambda, every 15 min)"]
+        C1{{"contracts:<br/>schema + range checks"}}
+        C2[out-of-scope<br/>route filter]
+        C3[(curated Parquet<br/>incl. manifests table)]
+        Q[(quarantine<br/>Parquet + JSONL)]
+    end
+
+    subgraph TRANSFORM["Transform (Lambda, hourly :20)"]
+        T1[dbt on DuckDB<br/>staging, intermediate, marts]
+        T2{{"dbt tests +<br/>hourly quality checks"}}
+    end
+
+    G[(gold Parquet<br/>public S3)]
+    MD[(MotherDuck)]
+    APP[Streamlit app]
+    LIVE[(live snapshot JSON)]
+
+    F1 & F2 & F3 --> I1 --> I2
+    I1 --> R1
+    I2 --> R2
+    I2 -. lost minute .-> R3
+    I1 --> LIVE
+    F4 --> C1
+    R1 --> C1
+    R2 --> C1
+    R3 --> C3
+    C1 -- valid --> C2 --> C3
+    C1 -- rejected --> Q
+    C3 --> T1
+    Q --> T1
+    T1 --> T2 --> G
+    G --> MD
+    G --> APP
+    LIVE --> APP
+
+    REPLAY(["replay: rebuild curated,<br/>quarantine from raw + manifests"]) -.-> C3
+    R1 -.-> REPLAY
+    ALARMS["CloudWatch alarms -> SNS email:<br/>function errors, ingest invocations low,<br/>transform not succeeded"] -.-> INGEST
+    ALARMS -.-> CURATE
+    ALARMS -.-> TRANSFORM
+```
+
+Where each control sits:
+
+| Control | Where | What it does |
+| --- | --- | --- |
+| Validation | curate (`contracts`), dbt tests | Pydantic contracts reject rows with a bad schema, ids, coordinates or timestamps. dbt tests check grain, keys, accepted ranges and descriptions. |
+| Quarantine | curate | Rejected rows are written with `capture_id`, `reason` and the original row, then counted in `agg_pipeline_health` and the hourly checks. Out-of-scope routes are filtered and counted, not quarantined. |
+| Duplicate handling | ingest, curate, dbt | Lost-minute deliveries are recorded under `manifests/<city>/duplicates/` and flagged `duplicate_delivery`, never dropped (ADR-013). Identical payloads are flagged `is_duplicate_capture` (ADR-005). |
+| Monitoring and alarms | CloudWatch, `agg_quality_checks_hourly` | Alarms on errors of every function, on too few ingest invocations and on a transform that did not succeed; hourly quality checks and the Pipeline health page show coverage, missed runs and quarantine. |
+| Replay | `headway replay`, `backfill_manifests` | Raw captures and manifests are never modified, so curated, quarantine and manifest tables can be rebuilt deterministically (batch ids are content hashes). |
+
 ## Raw to curated to quarantine
 
 Every object lives under a city prefix (`boston` below). Keys are UTC.
