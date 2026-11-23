@@ -46,6 +46,7 @@ st.markdown(
     f"- [METRICS.md]({DOCS}/METRICS.md): definitions, grain and inclusion rules of the Release 1 "
     "metrics and, when enabled, the Release 2 metrics (prediction accuracy, actual deviation, "
     "headway adherence, ETT approximation)\n"
+    f"- [SLO.md]({DOCS}/SLO.md): service level objectives of the pipeline (Release 2)\n"
     f"- [INCIDENTS.md]({DOCS}/INCIDENTS.md): production incidents and what now prevents them\n"
     f"- [MEASUREMENTS.md]({DOCS}/MEASUREMENTS.md): measured runtimes, volumes, reliability and cost\n"
     f"- [Source repository]({REPO})"

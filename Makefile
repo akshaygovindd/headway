@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke ingest-smoke images-smoke deploy seed
+.PHONY: slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke ingest-smoke images-smoke deploy seed
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -56,6 +56,11 @@ demo-data:
 # Build the demo data and launch the app on it.
 demo: demo-data
 	HEADWAY_DATA_URL=$(DEMO_DATA_URL) uv run --group app streamlit run app/Home.py
+
+# Write docs/SLO_REPORT.md from the published SLO tables over HTTPS (HEADWAY_DATA_URL, else the
+# public bucket); no credentials.
+slo-report:
+	uv run python scripts/slo_report.py
 
 # Release 2 demo on the real 27 h spike capture (.local/spike_root): builds every model with
 # HEADWAY_ENABLE_R2=true, exports gold to .local/demo-r2 and launches the app on it.

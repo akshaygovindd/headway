@@ -133,8 +133,8 @@ with computed as (
         select
             case when service_disruption then 'arrival_coverage_disrupted' else 'arrival_coverage' end as slo_name,
             service_date,
-            sum(coverage_numerator) as good_events,
-            sum(coverage_denominator) as total_events
+            cast(sum(coverage_numerator) as bigint) as good_events,
+            cast(sum(coverage_denominator) as bigint) as total_events
         from {{ ref('agg_actual_deviation_hourly') }}
         where not data_outage
         group by 1, 2

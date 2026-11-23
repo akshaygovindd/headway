@@ -136,3 +136,30 @@ def test_window_options_offer_exact_windows_only_when_all_tables_exist() -> None
     assert list(accuracy.window_options(table, table)) == ["last_24h", "last_7d", "all_days"]
     assert list(accuracy.window_options(table, None)) == ["all_days"]
     assert list(accuracy.window_options(table, pd.DataFrame())) == ["all_days"]
+
+
+def _slo(name: str, pct: float, met: bool, counts: bool = True) -> dict[str, object]:
+    return {"slo_name": name, "service_date": date(2026, 11, 22), "target_pct": 99.0,
+            "actual_pct": pct, "met": met, "counts_toward_slo": counts}  # fmt: skip
+
+
+def test_slo_table_shows_latest_7_and_30_day_values_and_separates_disrupted_lines() -> None:
+    from lib import health
+
+    daily = pd.DataFrame([
+        _slo("capture_completeness", 99.5, True),
+        _slo("arrival_coverage_disrupted", 50.0, False, counts=False),
+        _slo("arrival_coverage", 81.0, True),
+    ])  # fmt: skip
+    roll = pd.DataFrame([
+        {"slo_name": "capture_completeness", "window_label": "last_7d", "target_pct": 99.0,
+         "actual_pct": 98.5, "met": False, "error_budget_used": 1.5, "days_covered": 7,
+         "counts_toward_slo": True},
+    ])  # fmt: skip
+    out = health.slo_table(daily, roll).set_index("Objective")
+    row = out.loc["Capture completeness (minutes)"]
+    assert row["Latest date"] == "✅ 99.50%"
+    assert row["Last 7 days"] == "❌ 98.50% · budget 150%"
+    assert row["Last 30 days"] == "n/a"
+    assert list(out["Counts"])[-1] == "reported separately"  # listed last, not hidden
+    assert len(out) == 3

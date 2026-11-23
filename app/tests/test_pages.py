@@ -121,6 +121,14 @@ R2_FILES = (
     "agg_headway_adherence_hourly",
     "agg_ett_daily",
     "agg_arrival_reconstruction_daily",
+    "agg_accuracy_window",
+    "agg_actual_deviation_window",
+    "agg_headway_window",
+    "agg_ett_window",
+    "agg_actual_deviation_daily",
+    "agg_headway_adherence_daily",
+    "agg_slo_daily",
+    "agg_slo_rollup",
 )
 
 
@@ -180,3 +188,17 @@ def test_heavy_rail_shows_headway_before_deviation(data_url: str) -> None:
     at.selectbox[0].select("Green-B").run()
     heads = [s.value for s in at.subheader]
     assert heads.index("Median deviation by hour and weekday") < heads.index("Headway adherence")
+
+
+def test_pipeline_health_slo_section_follows_the_flag(
+    data_url: str, monkeypatch: pytest.MonkeyPatch, export_root_no_r2: Path
+) -> None:
+    on = AppTest.from_file(str(APP / "pages/3_Pipeline_health.py"), default_timeout=60).run()
+    assert not on.exception, [e.value for e in on.exception]
+    assert "Service level objectives" in [s.value for s in on.subheader]
+    slo = next(d for d in on.dataframe if "Objective" in d.value.columns)
+    assert "Capture completeness (minutes)" in set(slo.value["Objective"])
+    monkeypatch.setenv("HEADWAY_DATA_URL", f"file://{export_root_no_r2}")
+    off = AppTest.from_file(str(APP / "pages/3_Pipeline_health.py"), default_timeout=60).run()
+    assert not off.exception, [e.value for e in off.exception]
+    assert "Service level objectives" not in [s.value for s in off.subheader]

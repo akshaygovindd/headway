@@ -229,3 +229,8 @@ flowchart LR
 - **History is append-only.** Days are never rewritten; a change of definition bumps the metric
   version of its family and backfills with `{"task":"rebuild_history",...}` (ADR-015).
   `metric_version` is the single constant per family in `headway_transform/history.py`.
+
+- **SLOs.** `agg_slo_daily` reads capture minutes (`int_captures`), the persisted runs
+  (`stg_transform_runs`) and the hourly actual-deviation coverage, and its closed days are kept
+  in history; `agg_slo_rollup` sums them over 7 and 30 service dates. `make slo-report` reads the
+  published tables over HTTPS and writes `docs/SLO_REPORT.md` (definitions in `docs/SLO.md`).
