@@ -42,6 +42,17 @@ missed_runs as (
     left join runs r on r.service_date = m.service_date and r.hour_local = m.hour_local
 ),
 
+-- extra scheduler deliveries of a minute (EventBridge Scheduler is at-least-once)
+duplicate_deliveries as (
+    select
+        {{ service_date_from_ts('scheduled_at') }} as service_date,
+        cast(extract(hour from scheduled_at at time zone '{{ var("timezone") }}') as integer) as hour_local,
+        'duplicate_deliveries' as check_name,
+        cast(sum(duplicate_delivery_count) as double) as value
+    from {{ ref('agg_pipeline_health') }}
+    group by 1, 2
+),
+
 duplicate_share as (
     select
         service_date,
@@ -183,6 +194,7 @@ vehicle_count_drop as (
 
 all_checks as (
     select * from missed_runs
+    union all select * from duplicate_deliveries
     union all select * from duplicate_share
     union all select * from invalid_coordinate_share
     union all select * from missing_trip_id_share

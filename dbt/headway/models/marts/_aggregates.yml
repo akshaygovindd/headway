@@ -227,6 +227,10 @@ models:
         description: "Captures recorded for the run (one per feed)."
         data_tests:
           - not_null
+      - name: duplicate_delivery_count
+        description: "Extra deliveries of this run's scheduled minute beyond the first (flagged by ingest, dropped by the capture_id dedupe, or a separate run for the same minute), reported on the earliest kept run of the minute; 0 when the minute was delivered once."
+        data_tests:
+          - not_null
       - name: trip_updates_status
         description: "Capture status of the trip_updates feed in the run (ok or error)."
       - name: trip_updates_bytes
@@ -282,7 +286,7 @@ models:
         data_tests:
           - not_null
   - name: agg_quality_checks_hourly
-    description: "Hourly data-quality checks (prediction_coverage and schedule_join_coverage consider observable trip stops only) with warn/fail status from the quality_thresholds seed. Values are percentages except missed_runs (count). implausible_deviation_share is the percentage of last-snapshot picks more than 3600 s from the schedule. late_event_share counts records fetched more than 300 seconds after their event_ts. vehicle_count_drop compares with the same hour one week earlier and is no_baseline when that hour was not observed."
+    description: "Hourly data-quality checks (prediction_coverage and schedule_join_coverage consider observable trip stops only) with warn/fail status from the quality_thresholds seed. Values are percentages except missed_runs and duplicate_deliveries (counts per hour; duplicate_deliveries is the number of extra scheduler deliveries). implausible_deviation_share is the percentage of last-snapshot picks more than 3600 s from the schedule. late_event_share counts records fetched more than 300 seconds after their event_ts. vehicle_count_drop compares with the same hour one week earlier and is no_baseline when that hour was not observed."
     config:
       meta:
         grain: "service_date x hour_local x check_name"
@@ -309,7 +313,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: [missed_runs, duplicate_share, invalid_coordinate_share, missing_trip_id_share, prediction_coverage, schedule_join_coverage, implausible_deviation_share, late_event_share, vehicle_count_drop]
+                values: [missed_runs, duplicate_deliveries, duplicate_share, invalid_coordinate_share, missing_trip_id_share, prediction_coverage, schedule_join_coverage, implausible_deviation_share, late_event_share, vehicle_count_drop]
       - name: value
         description: "Measured value; null when it cannot be computed."
       - name: direction

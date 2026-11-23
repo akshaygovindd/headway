@@ -504,8 +504,61 @@ models:
                 quote: false
       - name: holiday_name
         description: Holiday name.
+  - name: stg_manifest_deliveries
+    description: "Every delivery row of the curated manifests table, with the dedupe rank. Ingest records a second scheduler delivery of a minute as a duplicate delivery (status duplicate_delivery); older data can hold two runs with the same capture_id. delivery_rank = 1 marks the row stg_manifests keeps (earliest fetched_at, then lowest run_id); duplicate-delivery rows have no rank."
+    config:
+      meta:
+        grain: "run_id x capture_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [run_id, capture_id]
+    columns:
+      - name: capture_id
+        description: Capture identifier.
+        data_tests:
+          - not_null
+      - name: run_id
+        description: Ingest run (delivery) that recorded the capture.
+        data_tests:
+          - not_null
+      - name: city_id
+        description: City the capture belongs to.
+      - name: feed
+        description: Feed fetched.
+      - name: scheduled_at
+        description: UTC time the run was scheduled for.
+        data_tests:
+          - not_null
+      - name: scheduled_minute
+        description: scheduled_at truncated to the minute; the unit a delivery claims.
+      - name: fetched_at
+        description: UTC time the fetch completed.
+      - name: status
+        description: ok, error, or duplicate_delivery for rows of a flagged second delivery.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [ok, error, duplicate_delivery]
+      - name: http_status
+        description: HTTP status of the fetch.
+      - name: bytes
+        description: Size of the stored payload in bytes.
+      - name: entity_count
+        description: Number of entities in the payload.
+      - name: content_hash
+        description: SHA-256 of the payload; null on error.
+      - name: feed_header_ts
+        description: Feed header timestamp.
+      - name: header_parse_error
+        description: Error text when the feed header could not be parsed.
+      - name: error
+        description: Fetch error text.
+      - name: delivery_rank
+        description: "1 for the row kept per capture_id (earliest fetched_at, then lowest run_id); null for flagged duplicate deliveries."
   - name: stg_manifests
-    description: One row per capture attempt recorded in the ingest run manifests.
+    description: "One row per capture attempt recorded in the ingest run manifests. Two deliveries of the same minute that share a capture_id collapse to the earlier fetch (see stg_manifest_deliveries); flagged duplicate deliveries are excluded and counted in agg_pipeline_health."
     config:
       meta:
         grain: "capture_id"

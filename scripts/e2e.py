@@ -7,7 +7,9 @@ Use --update to rewrite tests/e2e/expected/*.csv after reviewing a change.
 import csv
 import difflib
 import io
+import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -57,15 +59,46 @@ def export(db: Path, table: str) -> str:
     return buf.getvalue()
 
 
+def add_duplicate_deliveries(source: Path) -> None:
+    """Add the two shapes a double scheduler delivery leaves, to a copy of the sample.
+
+    - history: a second run for minute 14:50 with the same capture_ids (written before ingest
+      claimed the minute); stg_manifests keeps one row per capture and the run is counted.
+    - flagged: a duplicate-delivery record for minute 15:08, as ingest writes it today.
+    """
+    root = source / "manifests" / "boston"
+
+    def clone(src: str, dst: Path, run_id: str, **extra: object) -> None:
+        doc = json.loads((root / src).read_text())
+        doc["run_id"] = run_id
+        for entry in doc["entries"]:
+            entry["run_id"] = run_id
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_text(json.dumps({**doc, **extra}, indent=2, sort_keys=True))
+
+    hour14 = root / "dt=2026-11-22/hour=14"
+    twin_id = "01M81VPPV5ZJ5QDPXP9DK7P4YR"
+    clone(
+        "dt=2026-11-22/hour=14/01M81VPPV5ZJ5QDPXP9DK7P4YQ.json", hour14 / f"{twin_id}.json", twin_id
+    )
+    original = "dt=2026-11-22/hour=15/01M81WSG450EHBGR58P51QZQGA.json"
+    run_id = "01M81WSG450EHBGR58P51QZQGB"
+    record = root / "duplicates/dt=2026-11-22/hour=15" / f"20261122T1508Z-{run_id}.json"
+    clone(original, record, run_id, duplicate_of=f"manifests/boston/{original}")
+
+
 def main(argv: list[str]) -> int:
     update = "--update" in argv
     with tempfile.TemporaryDirectory(prefix="headway-e2e-") as tmp:
+        source = Path(tmp) / "source"
+        shutil.copytree(ROOT / "samples" / "boston", source)
+        add_duplicate_deliveries(source)
         replay_dir = Path(tmp) / "replay"
         db = Path(tmp) / "e2e.duckdb"
         subprocess.run(
             [
                 "uv", "run", "headway", "replay",
-                "--source", "samples/boston", "--target", str(replay_dir), "--city", "boston",
+                "--source", str(source), "--target", str(replay_dir), "--city", "boston",
             ],  # fmt: skip
             cwd=ROOT, env=_clean_env(), check=True, stdout=subprocess.DEVNULL,
         )  # fmt: skip

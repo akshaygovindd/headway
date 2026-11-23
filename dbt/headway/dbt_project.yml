@@ -28,9 +28,10 @@ models:
     # transform can run, and time, that step on its own.
     staging:
       +materialized: view
-      stg_manifests: &s3_load
+      stg_manifest_deliveries: &s3_load
         +materialized: table
         +tags: ["s3_load"]
+      stg_manifests: *s3_load
       stg_quarantine: *s3_load
       stg_service_alerts: *s3_load
       stg_trip_updates: *s3_load

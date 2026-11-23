@@ -15,6 +15,17 @@ with feeds as (
     group by run_id
 ),
 
+-- Extra deliveries per scheduled minute: every distinct run that recorded the minute (kept,
+-- dropped by the capture_id dedupe, or flagged by ingest as a duplicate delivery) beyond the
+-- first. Reported once, on the earliest kept run of the minute, so sums over time stay exact.
+deliveries as (
+    select
+        min(run_id) filter (where delivery_rank = 1) as primary_run_id,
+        count(distinct run_id) - 1 as n_extra
+    from {{ ref('stg_manifest_deliveries') }}
+    group by scheduled_minute
+),
+
 vehicles as (
     select run_id, count(distinct vehicle_id) as subway_vehicle_count
     from {{ ref('stg_vehicle_positions') }}
@@ -37,6 +48,7 @@ select
     f.run_id,
     f.scheduled_at,
     f.n_captures,
+    coalesce(d.n_extra, 0) as duplicate_delivery_count,
     {% for feed in ['trip_updates', 'vehicle_positions', 'alerts'] %}
     f.{{ feed }}_status,
     f.{{ feed }}_bytes,
@@ -50,5 +62,6 @@ select
     coalesce(q.quarantine_protobuf_parse_error, 0) as quarantine_protobuf_parse_error,
     coalesce(q.quarantine_other, 0) as quarantine_other
 from feeds f
+left join deliveries d on d.primary_run_id = f.run_id
 left join vehicles v on v.run_id = f.run_id
 left join quarantined q on q.run_id = f.run_id
