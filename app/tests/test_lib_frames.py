@@ -134,3 +134,37 @@ def test_cost_summary_uses_latest_day_and_orders_services() -> None:
     assert out["last_7_days_usd"] == 0.6
     assert out["cost_per_1000_captures"] is None
     assert list(out["by_service"]["service"]) == ["Lambda", "S3"]
+
+
+def test_slowest_stretches_only_positive_rises_whole_seconds() -> None:
+    stops, dim = _stops()
+    stops.loc[stops["stop_id"] == "e", "median_predicted_deviation_s"] = 10.4  # falls after d
+    out = explorer.slowest_stretches(stops, dim, "Red", 0)
+    assert (out["rise_s"] > 0).all() and out["rise_s"].dtype.kind == "i"
+
+
+def test_direction_labels_use_terminal_with_fallback() -> None:
+    stops, dim = _stops()
+    assert explorer.direction_labels(stops, dim, "Red", [0])[0] == "Direction 0 (toward E)"
+    assert explorer.direction_labels(stops, dim.iloc[0:0], "Red", [0, 1]) == {
+        0: "Direction 0",
+        1: "Direction 1",
+    }
+
+
+def test_heatmap_buckets_by_service_day() -> None:
+    from conftest import hourly_row
+
+    cells = explorer.heatmap(pd.DataFrame([hourly_row("Red", 1)]), "Red", 0)
+    assert cells["weekday"].tolist() == ["Sun"]  # 01:00 after Sunday's service date is Sunday's
+
+
+def test_quarantine_falls_back_to_total_and_partial_hour_flag() -> None:
+    p = pd.DataFrame({"quarantine_total": [3, 2], "quarantine_other": [1, 0]})
+    out = health.quarantine_by_reason(p)
+    assert out["reason"].tolist() == ["other", "not itemised in this export"]
+    assert out["records"].tolist() == [1, 4]
+    times = pd.date_range("2026-11-22 14:00", periods=90, freq="min", tz="UTC")
+    df = pd.DataFrame({"run_id": [f"r{i}" for i in range(90)], "scheduled_at": times})
+    now = pd.Timestamp("2026-11-22 15:10", tz="UTC").to_pydatetime()
+    assert health.captures_per_hour(df, now)["partial"].tolist() == [False, True]

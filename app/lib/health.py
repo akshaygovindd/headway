@@ -1,5 +1,7 @@
 """Frames for the Pipeline health page."""
 
+from datetime import UTC, datetime
+
 import pandas as pd
 
 from lib.timefmt import date_label, hour_label, local_date, to_local
@@ -40,13 +42,14 @@ def check_summary(checks: pd.DataFrame, hours: int = 12) -> dict[str, int]:
     return counts
 
 
-def captures_per_hour(pipeline: pd.DataFrame) -> pd.DataFrame:
+def captures_per_hour(pipeline: pd.DataFrame, now: datetime | None = None) -> pd.DataFrame:
     """Ingest runs per UTC hour against the runs expected between the first and last run.
 
-    Columns: hour_start_utc, label (local), runs, expected, missed. The first and last
-    hours are clipped to the observed range so edges are not counted as gaps.
+    Columns: hour_start_utc, label (local), runs, expected, missed, partial. The first and last
+    hours are clipped to the observed range so edges are not counted as gaps; `partial` marks
+    the hour that is still in progress at `now`.
     """
-    cols = ["hour_start_utc", "label", "runs", "expected", "missed"]
+    cols = ["hour_start_utc", "label", "runs", "expected", "missed", "partial"]
     if pipeline.empty:
         return pd.DataFrame(columns=cols)
     ts = pd.to_datetime(pipeline["scheduled_at"], utc=True).dt.floor("min")
@@ -61,17 +64,24 @@ def captures_per_hour(pipeline: pd.DataFrame) -> pd.DataFrame:
     frame["label"] = [
         to_local(t.to_pydatetime()).strftime("%Y-%m-%d %H:00") for t in frame["hour_start_utc"]
     ]
+    current = pd.Timestamp(now or datetime.now(UTC)).floor("h")
+    frame["partial"] = frame["hour_start_utc"] == current
     return frame[cols]
 
 
 def quarantine_by_reason(pipeline: pd.DataFrame) -> pd.DataFrame:
-    """Quarantined record counts by reason over all runs."""
-    return pd.DataFrame(
-        {
-            "reason": list(QUARANTINE_REASONS),
-            "records": [int(pipeline[f"quarantine_{r}"].sum()) for r in QUARANTINE_REASONS],
-        }
-    )
+    """Quarantined record counts by reason over all runs.
+
+    Uses the per-reason columns the gold has. When the gold only carries a total (or fewer
+    reasons than expected), the remainder is shown as "not itemised in this export".
+    """
+    present = [r for r in QUARANTINE_REASONS if f"quarantine_{r}" in pipeline.columns]
+    rows = [{"reason": r, "records": int(pipeline[f"quarantine_{r}"].sum())} for r in present]
+    if "quarantine_total" in pipeline.columns:
+        rest = int(pipeline["quarantine_total"].sum()) - sum(int(x["records"]) for x in rows)  # type: ignore[call-overload]
+        if rest > 0 or not rows:
+            rows.append({"reason": "not itemised in this export", "records": max(rest, 0)})
+    return pd.DataFrame(rows, columns=["reason", "records"])
 
 
 def duplicates_by_feed(pipeline: pd.DataFrame) -> pd.DataFrame:

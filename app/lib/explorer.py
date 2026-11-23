@@ -3,7 +3,7 @@
 import pandas as pd
 
 from lib.coverage import NORMAL_MIN
-from lib.timefmt import WEEKDAYS, date_label, hour_label, hour_start_utc, local_date, weekday_name
+from lib.timefmt import WEEKDAYS, date_label, hour_label, hour_start_utc, local_date
 
 SERVICE_HOUR_ORDER = [*range(3, 24), 0, 1, 2]
 
@@ -15,6 +15,28 @@ def _select(df: pd.DataFrame, line: str, direction: int | None) -> pd.DataFrame:
 
 def directions(df: pd.DataFrame, line: str) -> list[int]:
     return sorted(int(d) for d in df.loc[df["line"] == line, "direction_id"].dropna().unique())
+
+
+def direction_labels(
+    stops: pd.DataFrame, dim_stop: pd.DataFrame, line: str, dirs: list[int]
+) -> dict[int, str]:
+    """Label per direction from the terminal stop (highest stop_sequence) in the dim data.
+
+    Falls back to "Direction N" when stop names or sequences are unavailable.
+    """
+    labels = {d: f"Direction {d}" for d in dirs}
+    if dim_stop.empty or not {"stop_id", "stop_name"} <= set(dim_stop.columns):
+        return labels
+    names = dict(zip(dim_stop["stop_id"], dim_stop["stop_name"], strict=False))
+    for d in dirs:
+        sel = _select(stops, line, d)
+        sel = sel[sel["stop_sequence"].notna()] if "stop_sequence" in sel else sel.iloc[0:0]
+        if sel.empty:
+            continue
+        terminal = names.get(str(sel.loc[sel["stop_sequence"].idxmax(), "stop_id"]))
+        if terminal:
+            labels[d] = f"Direction {d} (toward {terminal})"
+    return labels
 
 
 def _wmean(values: pd.Series, weights: pd.Series) -> float | None:
@@ -31,12 +53,8 @@ def heatmap(hourly: pd.DataFrame, line: str, direction: int | None) -> pd.DataFr
     """
     sel = _select(hourly, line, direction)
     rows: list[dict[str, object]] = []
-    keyed = sel.assign(
-        weekday=[
-            weekday_name(d, int(h))
-            for d, h in zip(sel["service_date"], sel["hour_local"], strict=True)
-        ]
-    )
+    # Bucket by service day (hours 00-02 belong to the previous service date), not calendar day.
+    keyed = sel.assign(weekday=[WEEKDAYS[pd.Timestamp(d).weekday()] for d in sel["service_date"]])
     for (weekday, hour), g in keyed.groupby(["weekday", "hour_local"]):
         denom = float(g["observable_trip_stops"].sum())
         rows.append(
@@ -81,7 +99,9 @@ def deviation_by_hour(hourly: pd.DataFrame, line: str, direction: int | None) ->
                 "p90_deviation_s": _wmean(g["p90_predicted_deviation_s"], w),
                 "coverage_pct": 100.0
                 * float(g["coverage_numerator"].sum())
-                / float(g["observable_trip_stops"].sum()),
+                / float(g["observable_trip_stops"].sum())
+                if g["observable_trip_stops"].sum()
+                else None,
             }
         )
     frame = pd.DataFrame(
@@ -96,10 +116,10 @@ def slowest_stretches(
     dim_stop: pd.DataFrame,
     line: str,
     direction: int,
-    top: int = 10,
+    top: int = 5,
     min_coverage: float = NORMAL_MIN,
 ) -> pd.DataFrame:
-    """Consecutive stop pairs with the largest rise in median deviation.
+    """Consecutive stop pairs with the largest positive rise in median deviation (whole seconds).
 
     Stops are ordered by stop_sequence. A pair counts only when both stops have at least
     `min_coverage` percent coverage. rise_s = deviation at the second stop minus the first.
@@ -154,4 +174,8 @@ def slowest_stretches(
             }
         )
     out = pd.DataFrame(pairs, columns=cols)
-    return out.sort_values("rise_s", ascending=False).head(top).reset_index(drop=True)
+    out = out[out["rise_s"].round() > 0]
+    out = out.sort_values("rise_s", ascending=False).head(top).reset_index(drop=True)
+    for col in ("rise_s", "from_deviation_s", "to_deviation_s", "min_coverage_pct"):
+        out[col] = out[col].round().astype(int)
+    return out
