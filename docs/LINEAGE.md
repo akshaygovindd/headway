@@ -138,3 +138,59 @@ Every object lives under a city prefix (`boston` below). Keys are UTC.
   total, capture count from `agg_pipeline_health`, and `cost_per_1000_captures`. It is not a dbt
   model; the app treats a missing file as "no cost data yet".
 - **MotherDuck** holds a copy of each gold table (and `cost_daily`), replaced on every run.
+
+## Release 2: reconstruction, metrics and windows
+
+All models below are tagged `r2`; the transform Lambda builds them only when
+`HEADWAY_ENABLE_R2=true`. Rows of `vehicle_positions` are sampled every 15 s (ADR-014).
+
+```mermaid
+flowchart LR
+    VP[(vehicle_positions<br/>curated, 15 s)] --> SE[int_vehicle_stop_events<br/>trip match, shape distance,<br/>segments per reused trip id]
+    SHAPES[(static: shapes,<br/>stop_shape_positions)] --> TSD[int_trip_stop_distances]
+    TSD --> RA
+    SE --> RA[fct_reconstructed_arrivals<br/>observed / bracketed / missing,<br/>confidence high / medium / low]
+    RA --> UA[int_usable_arrivals<br/>high + medium only, ADR-016]
+    RA --> HW[fct_headways<br/>valid / train_between /<br/>unproven_order / implausible]
+    RA --> ARD[agg_arrival_reconstruction_daily]
+    TU[(trip_updates)] --> SP[fct_stop_predictions]
+    SP --> PE[fct_prediction_errors<br/>last snapshot per horizon bucket]
+    UA --> PE
+    AL[(alerts)] --> AA[agg_active_alerts]
+    AA --> DLH[int_disrupted_line_hours]
+    OW[int_observation_window<br/>+ missed_runs check] --> HF[int_hour_flags<br/>data_outage]
+    PE & HF & DLH --> ACCD[agg_prediction_accuracy_daily]
+    UA & HF & DLH --> DEVH[agg_actual_deviation_hourly]
+    HW & HF & DLH --> HWH[agg_headway_adherence_hourly]
+    UA & HF & DLH --> ETTD[agg_ett_daily]
+    ARH[agg_line_reliability_hourly<br/>metrics_as_of] --> WH[int_window_hours<br/>last_24h, last_7d]
+    WH --> ACCW[agg_accuracy_window]
+    WH --> DEVW[agg_actual_deviation_window]
+    WH --> HWW[agg_headway_window]
+    WH --> ETTW[agg_ett_window]
+    PE --> ACCW
+    UA --> DEVW
+    HW --> HWW
+    UA --> ETTW
+```
+
+- **Reconstruction.** An arrival is the midpoint between the last observation before a vehicle's
+  first `STOPPED_AT` at a stop and that observation (`observed`), or an interpolation along the
+  shape between the observations either side (`bracketed`). Confidence is `high` for an interval
+  up to 30 s, `medium` up to 120 s, otherwise `low`. A reused trip id starts a new `segment`.
+  `int_usable_arrivals` keeps high and medium only and marks the segment nearest the schedule
+  (`is_nearest_segment`); every Release 2 metric reads that model, never the low arrivals.
+- **Outage and disruption flags.** `int_hour_flags.data_outage` marks hours with three or more
+  missed runs or an incomplete vehicle window: metrics leave them out and count them
+  (`n_excluded_outage`). `int_disrupted_line_hours` marks line hours with an active detour,
+  suspension or shuttle alert: those hours stay in the statistics and are counted
+  (`service_disruption`, `n_disruption`).
+- **Windows.** `int_window_hours` lists the service hours of `last_24h` (24 hours) and `last_7d`
+  (168 hours) ending at the latest hour of `agg_line_reliability_hourly` (the export's
+  `metrics_as_of`). The four `agg_*_window` marts compute medians, p90 and shares over every
+  eligible row of those hours, so the app never averages per-hour or per-day medians for a window.
+  The daily and hourly marts remain for trends; the app labels any value built from them
+  "approximate".
+- **Gold.** The `gold_r2_allowlist` macro adds the six daily/hourly aggregates and the four window
+  marts to the export when the flag is on; `publish.R2_GOLD_TABLES` publishes the same set to
+  MotherDuck.
