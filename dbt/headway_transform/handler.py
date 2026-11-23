@@ -8,17 +8,18 @@ import time
 import traceback
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import boto3
 
-from headway_transform import cost, publish
+from headway_transform import cost, history, publish
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 DEFAULT_LOOKBACK_DAYS = 7
+DEFAULT_TIMEZONE = "America/New_York"
 TOKEN_PARAMETER = "/headway/motherduck_token"
 DBT_TARGET_PATH = "/tmp/dbt_target"  # noqa: S108
 DBT_LOG_PATH = "/tmp/dbt_logs"  # noqa: S108
@@ -383,12 +384,38 @@ def _smoke(started: float) -> dict[str, Any]:
     return summary
 
 
+def _variables(lookback: int, now: datetime) -> str:
+    """The dbt vars of a run. Release 2 adds the history root and metric versions (ADR-015)."""
+    variables: dict[str, Any] = {
+        "curated_root": f"s3://{os.environ['RAW_BUCKET']}",
+        "city_prefix": os.environ["CITY_ID"],
+        "lookback_days": lookback,
+    }
+    if publish.r2_enabled():
+        variables["history_root"] = (
+            f"s3://{os.environ['PUBLIC_BUCKET']}/{history.history_prefix(os.environ['CITY_ID'])}"
+        )
+        variables["metric_versions"] = history.table_versions()
+    return json.dumps(variables)
+
+
+def _timezone() -> str:
+    return os.environ.get("HEADWAY_TIMEZONE", DEFAULT_TIMEZONE)
+
+
 def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     started = time.monotonic()
     os.environ.setdefault("HOME", "/tmp")  # noqa: S108  Lambda leaves HOME unset
     prepare_extension_dir()
     if os.environ.get("HEADWAY_SMOKE_GOLD_DIR"):
         return _smoke(started)
+    rebuild = None
+    if event.get("task") == "rebuild_history":
+        if not publish.r2_enabled():
+            raise TransformError("rebuild_history needs HEADWAY_ENABLE_R2=true")
+        rebuild = history.validate_rebuild(event)
+    elif event.get("task"):
+        raise TransformError(f"unknown task {event['task']!r}")
     city = os.environ["CITY_ID"]
     s3 = boto3.client("s3")
     lock = RunLock(s3, os.environ["RAW_BUCKET"], f"state/{city}/transform.lock")
@@ -398,13 +425,14 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         logger.info(json.dumps(summary, sort_keys=True))
         return summary
     try:
+        if rebuild is not None:
+            return _rebuild_history(started, s3, *rebuild)
         return _transform(started, s3)
     finally:
         lock.release()
 
 
 def _transform(started: float, s3: Any) -> dict[str, Any]:
-    raw_bucket = os.environ["RAW_BUCKET"]
     public_bucket = os.environ["PUBLIC_BUCKET"]
     city = os.environ["CITY_ID"]
     lookback = int(os.environ.get("LOOKBACK_DAYS", DEFAULT_LOOKBACK_DAYS))
@@ -418,9 +446,7 @@ def _transform(started: float, s3: Any) -> dict[str, Any]:
         steps[name] = round((time.monotonic() - t0) * 1000)
         logger.info("step %s finished in %d ms", name, steps[name])
 
-    variables = json.dumps(
-        {"curated_root": f"s3://{raw_bucket}", "city_prefix": city, "lookback_days": lookback}
-    )
+    variables = _variables(lookback, _now())
     build = _build_and_test(variables, steps)
     if build.tests_failed:
         logger.warning("dbt tests failed: %d (export continues)", build.tests_failed)
@@ -449,6 +475,23 @@ def _transform(started: float, s3: Any) -> dict[str, Any]:
         summary["cost_error"] = f"{type(exc).__name__}: {exc}"
     timed("cost", t0)
 
+    history_error: Exception | None = None
+    if publish.r2_enabled():
+        t0 = time.monotonic()
+        try:
+            release_dbt_connections()
+            written = history.write_closed_days(
+                s3, public_bucket, city, db_path, _now(),
+                timezone=_timezone(), lookback_days=lookback,
+            )  # fmt: skip
+            summary["history_written"] = written.n_written
+            summary["history_existing"] = written.existing
+        except Exception as exc:
+            logger.exception("history write failed")
+            history_error = exc
+            summary["history_error"] = f"{type(exc).__name__}: {exc}"
+        timed("history", t0)
+
     publish_error: Exception | None = None
     t0 = time.monotonic()
     try:
@@ -456,8 +499,9 @@ def _transform(started: float, s3: Any) -> dict[str, Any]:
             "Parameter"
         ]["Value"]
         published = publish.publish_motherduck(
-            token, gold_url, _tables_to_publish(s3, public_bucket, gold_prefix)
-        )
+            token, gold_url, _tables_to_publish(s3, public_bucket, gold_prefix),
+            **_history_publish_args(public_bucket, city),
+        )  # fmt: skip
         summary["published_tables"] = len(published)
     except Exception as exc:
         logger.exception("MotherDuck publish failed")
@@ -481,4 +525,57 @@ def _transform(started: float, s3: Any) -> dict[str, Any]:
     logger.info(json.dumps(summary, sort_keys=True, default=str))
     if publish_error is not None:
         raise publish_error
+    if history_error is not None:
+        raise history_error
+    return summary
+
+
+def _history_publish_args(public_bucket: str, city: str) -> dict[str, Any]:
+    if not publish.r2_enabled():
+        return {}
+    return {
+        "history_url": f"s3://{public_bucket}/{history.history_prefix(city)}",
+        "history_tables": list(history.HISTORY_TABLES),
+    }
+
+
+def _rebuild_history(
+    started: float, s3: Any, first: date, last: date, version: int
+) -> dict[str, Any]:
+    """Backfill history for explicit days at the current metric version; never touches gold.
+
+    Builds the models over a lookback that reaches `first`, writes the days of the range that
+    have no object yet for the tables whose family is at `version`, then refreshes the
+    MotherDuck history tables. Existing days are left as they are: to change a definition, bump
+    the constant in history.py and backfill that version.
+    """
+    public_bucket = os.environ["PUBLIC_BUCKET"]
+    city = os.environ["CITY_ID"]
+    db_path = os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
+    now = _now()
+    lookback = max((now.date() - first).days, DEFAULT_LOOKBACK_DAYS)
+    steps: dict[str, int] = {}
+    _build_and_test(_variables(lookback, now), steps)
+    release_dbt_connections()
+    days = [first + timedelta(days=i) for i in range((last - first).days + 1)]
+    result = history.write_closed_days(
+        s3, public_bucket, city, db_path, now, timezone=_timezone(), lookback_days=lookback,
+        days=days, tables=history.versions_for(version),
+    )  # fmt: skip
+    summary: dict[str, Any] = {
+        "task": "rebuild_history",
+        "metric_version": version,
+        "history_written": result.n_written,
+        "history_existing": result.existing,
+        "written": result.written,
+        "duration_ms": round((time.monotonic() - started) * 1000),
+    }
+    if result.n_written:
+        token = boto3.client("ssm").get_parameter(Name=TOKEN_PARAMETER, WithDecryption=True)[
+            "Parameter"
+        ]["Value"]
+        publish.publish_motherduck(
+            token, "", [], **_history_publish_args(public_bucket, city)
+        )  # fmt: skip
+    logger.info(json.dumps(summary, sort_keys=True, default=str))
     return summary

@@ -12,7 +12,7 @@ import pyarrow.parquet as pq
 import pytest
 from moto import mock_aws
 
-from headway_transform import cost, handler, publish
+from headway_transform import cost, handler, history, publish
 
 NOW = datetime(2026, 11, 22, 7, 20, tzinfo=UTC)
 GOLD = "public/boston/gold"
@@ -253,8 +253,13 @@ def fakes(aws: Any, monkeypatch: pytest.MonkeyPatch, pipeline_db: str) -> dict[s
             return handler.DbtOutcome(True)
         return state.get("by_command", {}).get(args[0], state["outcome"])  # type: ignore[no-any-return]
 
-    def fake_publish(token: str, gold_url: str, tables: list[str]) -> list[str]:
+    state["history_publish"] = None
+
+    def fake_publish(
+        token: str, gold_url: str, tables: list[str], **history_args: Any
+    ) -> list[str]:
         state["published"].append((token, gold_url, list(tables)))
+        state["history_publish"] = history_args
         return list(tables)
 
     ssm = boto3.client("ssm")
@@ -552,3 +557,100 @@ def test_gold_tables_include_release_2_only_when_enabled(monkeypatch: pytest.Mon
     assert "agg_ett_daily" in publish.gold_tables()
     monkeypatch.setenv("HEADWAY_ENABLE_R2", "false")
     assert not set(publish.R2_GOLD_TABLES) & set(publish.gold_tables())
+
+
+# ---------------------------------------------------------------- history (Release 2)
+
+
+def _r2_database(path: str) -> None:
+    con = duckdb.connect(path)
+    con.execute("create table agg_ett_daily (service_date date, line varchar, n bigint)")
+    con.execute(
+        "insert into agg_ett_daily values ('2026-11-20', 'Red', 1), ('2026-11-22', 'Red', 2)"
+    )
+    con.close()
+
+
+def test_r2_run_passes_history_vars_and_writes_closed_days(
+    fakes: dict[str, Any], aws: Any, monkeypatch: pytest.MonkeyPatch, pipeline_db: str
+) -> None:
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
+    _r2_database(pipeline_db)
+    monkeypatch.setattr(handler, "_now", lambda: datetime(2026, 11, 23, 12, 0, tzinfo=UTC))
+    monkeypatch.setattr(handler.cost, "write_cost_daily", lambda *a, **k: None)
+    summary = handler.lambda_handler({}, None)
+
+    build = fakes["dbt"][1]
+    variables = json.loads(build[build.index("--vars") + 1])
+    assert variables["history_root"] == "s3://public-bucket/public/boston/history"
+    assert variables["metric_versions"] == history.table_versions()
+    keys = [
+        o["Key"]
+        for o in aws.list_objects_v2(Bucket="public-bucket", Prefix="public/boston/history")[
+            "Contents"
+        ]
+    ]
+    assert keys == [
+        "public/boston/history/table=agg_ett_daily/metric_version=1/service_date=2026-11-20/part.parquet",
+        "public/boston/history/table=agg_ett_daily/metric_version=1/service_date=2026-11-22/part.parquet",
+    ]  # fmt: skip
+    assert summary["history_written"] == 2
+    assert fakes["history_publish"] == {
+        "history_url": "s3://public-bucket/public/boston/history",
+        "history_tables": list(history.HISTORY_TABLES),
+    }
+
+
+def test_flag_off_has_no_history(fakes: dict[str, Any], aws: Any) -> None:
+    summary = handler.lambda_handler({}, None)
+    assert "history_written" not in summary
+    assert "Contents" not in aws.list_objects_v2(
+        Bucket="public-bucket", Prefix="public/boston/history"
+    )
+    assert fakes["history_publish"] == {}
+
+
+def test_rebuild_history_is_refused_without_the_flag_or_with_a_bad_payload(
+    fakes: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    event = {
+        "task": "rebuild_history",
+        "from": "2026-11-10",
+        "to": "2026-11-12",
+        "metric_version": 1,
+    }
+    with pytest.raises(handler.TransformError, match="HEADWAY_ENABLE_R2"):
+        handler.lambda_handler(event, None)
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
+    with pytest.raises(ValueError, match="matches no family"):
+        handler.lambda_handler({**event, "metric_version": 9}, None)
+    with pytest.raises(handler.TransformError, match="unknown task"):
+        handler.lambda_handler({"task": "bogus"}, None)
+    assert fakes["dbt"] == []  # nothing was built
+
+
+def test_rebuild_history_backfills_only_missing_days_and_leaves_gold_alone(
+    fakes: dict[str, Any], aws: Any, monkeypatch: pytest.MonkeyPatch, pipeline_db: str
+) -> None:
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
+    _r2_database(pipeline_db)
+    monkeypatch.setattr(handler, "_now", lambda: datetime(2026, 11, 23, 12, 0, tzinfo=UTC))
+    existing = (
+        "public/boston/history/table=agg_ett_daily/metric_version=1/"
+        "service_date=2026-11-20/part.parquet"
+    )
+    aws.put_object(Bucket="public-bucket", Key=existing, Body=b"original")
+    event = {
+        "task": "rebuild_history",
+        "from": "2026-11-20",
+        "to": "2026-11-22",
+        "metric_version": 1,
+    }
+    summary = handler.lambda_handler(event, None)
+    assert summary["written"] == {"agg_ett_daily": ["2026-11-22"]}
+    assert summary["history_existing"] == 1
+    assert aws.get_object(Bucket="public-bucket", Key=existing)["Body"].read() == b"original"
+    assert [a[0] for a in fakes["dbt"]] == ["run", "build", "test"]  # no export_gold
+    variables = json.loads(fakes["dbt"][1][fakes["dbt"][1].index("--vars") + 1])
+    assert variables["lookback_days"] == 7  # at least the default, reaching the 20th
+    assert fakes["history_publish"]["history_tables"] == list(history.HISTORY_TABLES)

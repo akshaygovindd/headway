@@ -65,6 +65,8 @@ models:
       agg_actual_deviation_window: *r2
       agg_headway_window: *r2
       agg_ett_window: *r2
+      agg_actual_deviation_daily: *r2
+      agg_headway_adherence_daily: *r2
 
 seeds:
   headway:

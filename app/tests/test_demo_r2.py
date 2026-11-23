@@ -31,4 +31,4 @@ def test_accuracy_and_headway_view_show_real_window_numbers() -> None:
     assert not explorer.exception, [e.value for e in explorer.exception]
     shares = {m.label: m.value for m in explorer.metric}
     assert shares.get("Within 0.5-1.5×", "n/a") != "n/a"
-    assert any("Window" == r.label for r in explorer.radio)
+    assert any(r.label == "Window" for r in explorer.radio)

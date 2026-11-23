@@ -967,3 +967,105 @@ models:
         description: "Denominator of coverage."
       - name: coverage_pct
         description: "Coverage as a percentage (0-100); null when the denominator is zero."
+  - name: agg_actual_deviation_daily
+    description: "Actual deviation from the timetable per line, direction and service date, computed over every reconstructed arrival of the day. Closed days come from immutable history (ADR-015)."
+    config:
+      meta:
+        grain: "line x direction_id x service_date"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, service_date]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel (0 or 1)."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: n_arrivals
+        description: "High and medium arrivals behind the statistics."
+        data_tests:
+          - not_null
+      - name: n_excluded_outage
+        description: "Arrivals left out because the scheduled hour was a data outage."
+      - name: n_implausible
+        description: "Arrivals beyond an hour from the schedule, left out of the statistics."
+      - name: n_disruption
+        description: "Arrivals from hours with an active service-disruption alert (kept)."
+      - name: median_deviation_s
+        description: "Median actual minus scheduled arrival in seconds."
+      - name: p90_deviation_s
+        description: "90th percentile of deviation in seconds."
+      - name: pct_on_time_window
+        description: "Percentage of arrivals within -60 to +300 seconds of the schedule."
+      - name: scheduled_trip_stops
+        description: "Scheduled trip stops of the non-outage hours."
+      - name: coverage_numerator
+        description: "Numerator of coverage."
+      - name: coverage_denominator
+        description: "Denominator of coverage."
+      - name: coverage_pct
+        description: "Coverage as a percentage (0-100); null when the denominator is zero."
+  - name: agg_headway_adherence_daily
+    description: "Headway adherence per line, direction and service date, computed over every candidate headway of the day. Closed days come from immutable history (ADR-015)."
+    config:
+      meta:
+        grain: "line x direction_id x service_date"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, service_date]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel (0 or 1)."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: n_headways
+        description: "Valid headways behind the shares."
+        data_tests:
+          - not_null
+      - name: n_disruption
+        description: "Valid headways from hours with an active service-disruption alert (kept)."
+      - name: pct_within_band
+        description: "Percentage of valid headways with a ratio of 0.5 to 1.5."
+      - name: pct_bunched
+        description: "Percentage below 0.5."
+      - name: pct_gap
+        description: "Percentage above 1.5."
+      - name: median_ratio
+        description: "Median ratio of actual to scheduled headway."
+      - name: p90_ratio
+        description: "90th percentile of the ratio."
+      - name: n_dropped_train_between
+        description: "Headways dropped because another train was between the pair."
+      - name: n_dropped_unproven_order
+        description: "Headways dropped because the order could not be proven."
+      - name: n_dropped_no_scheduled_headway
+        description: "Headways dropped without a scheduled headway."
+      - name: n_dropped_implausible
+        description: "Headways dropped as implausible."
+      - name: n_excluded_outage
+        description: "Candidate headways left out because the hour was a data outage."
+      - name: scheduled_headways
+        description: "Scheduled headways of the non-outage hours."
+      - name: coverage_numerator
+        description: "Numerator of coverage."
+      - name: coverage_denominator
+        description: "Denominator of coverage."
+      - name: coverage_pct
+        description: "Coverage as a percentage (0-100); null when the denominator is zero."

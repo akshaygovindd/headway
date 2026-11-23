@@ -6,6 +6,7 @@
 -- other otherwise. Trips with a data-outage hour at either stop are excluded and counted; an ETT
 -- beyond an hour is counted in n_implausible and left out of the statistics. Coverage: trips with
 -- an ETT over scheduled trips of the group. Adapted approximation, not an official measure.
+with computed as (
 with flagged as (
 {{ ett_trips() }}
 )
@@ -29,3 +30,6 @@ select
         / nullif(count(*) filter (where not data_outage), 0) as coverage_pct
 from flagged
 group by 1, 2, 3, 4, 5, 6
+)
+
+{{ history_union('agg_ett_daily') }}

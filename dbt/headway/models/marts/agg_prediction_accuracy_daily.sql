@@ -3,6 +3,7 @@
 -- n_excluded_outage. Coverage: trip stops with an error in the bucket over the high or medium
 -- reconstructed trip stops of the same line, day and label (outage hours excluded).
 -- Percentages are 0-100.
+with computed as (
 with stats as (
     select
         line,
@@ -45,3 +46,6 @@ select
 from stats s
 left join denominators d
     on d.line = s.line and d.service_date = s.service_date and d.service_disruption = s.service_disruption
+)
+
+{{ history_union('agg_prediction_accuracy_daily') }}

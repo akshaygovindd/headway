@@ -5,6 +5,7 @@ locals {
   static_name     = "headway-static"
   transform_name  = "headway-transform"
   gold_prefix     = "public/${var.city_id}/gold"
+  history_prefix  = "public/${var.city_id}/history"
   motherduck_ssm  = "/headway/motherduck_token"
   motherduck_arn  = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.motherduck_ssm}"
   lock_key        = "state/${var.city_id}/transform.lock"
@@ -180,6 +181,26 @@ data "aws_iam_policy_document" "transform" {
       "s3:ListMultipartUploadParts",
     ]
     resources = ["${aws_s3_bucket.public.arn}/${local.gold_prefix}/*"]
+  }
+
+  # Release 2 history (ADR-015): immutable daily aggregates, created once each with a conditional
+  # put. No delete and no overwrite permission beyond what a conditional create needs.
+  statement {
+    sid       = "ListHistory"
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.public.arn]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["${local.history_prefix}/*"]
+    }
+  }
+
+  statement {
+    sid       = "ReadAndWriteHistory"
+    actions   = ["s3:GetObject", "s3:PutObject"]
+    resources = ["${aws_s3_bucket.public.arn}/${local.history_prefix}/*"]
   }
 
   statement {

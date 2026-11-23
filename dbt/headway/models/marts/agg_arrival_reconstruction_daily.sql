@@ -2,6 +2,7 @@
 -- reconstructed, by method and confidence, how many broke the monotonic rule, and which observed
 -- trips were left out because they could not be placed on a shape. Shares are percentages
 -- (0-100) of the reconstructed trip stops (rows of fct_reconstructed_arrivals).
+with computed as (
 with reconstructed as (
     select
         service_date,
@@ -54,3 +55,6 @@ select
     coalesce(x.no_shape_trips_excluded, 0) as no_shape_trips_excluded
 from reconstructed r
 full outer join excluded x on x.service_date = r.service_date and x.line = r.line
+)
+
+{{ history_union('agg_arrival_reconstruction_daily') }}

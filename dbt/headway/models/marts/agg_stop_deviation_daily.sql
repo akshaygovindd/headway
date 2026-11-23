@@ -2,6 +2,7 @@
 -- scheduled trip stops in hours inside the trip_updates observation window.
 -- Coverage counts only observable trip stops; it counts covered trip stops (including SKIPPED); deviation uses eligible
 -- predictions only.
+with computed as (
 with observed as (
     select service_date, hour_local
     from {{ ref('int_observation_window') }}
@@ -82,3 +83,6 @@ left join covered c
     and c.direction_id is not distinct from s.direction_id
     and c.stop_id = s.stop_id
     and c.service_date = s.service_date
+)
+
+{{ history_union('agg_stop_deviation_daily') }}
