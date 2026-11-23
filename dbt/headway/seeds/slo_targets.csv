@@ -1,0 +1,5 @@
+slo_name,target_pct,threshold,event_unit,description
+capture_completeness,99,,minutes,Minutes of the service day in which all three feeds were captured
+gold_freshness,99,90,hours,Hours at whose start the newest exported gold was at most threshold minutes old
+transform_success,99,,runs,Scheduled hourly transform runs that exported and published gold
+arrival_coverage,80,,trip_stops,Scheduled subway trip stops in service hours with a high or medium reconstructed arrival (lines under a service disruption are reported separately)

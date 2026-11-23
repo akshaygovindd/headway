@@ -1,0 +1,2 @@
+slo_name,service_date,target_pct,good_events,total_events,actual_pct,met,error_budget_used,counts_toward_slo
+capture_completeness,2026-11-22,99.000,59,60,98.333,false,1.667,true

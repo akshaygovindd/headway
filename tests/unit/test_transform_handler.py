@@ -584,6 +584,7 @@ def test_r2_run_passes_history_vars_and_writes_closed_days(
     variables = json.loads(build[build.index("--vars") + 1])
     assert variables["history_root"] == "s3://public-bucket/public/boston/history"
     assert variables["metric_versions"] == history.table_versions()
+    assert variables["slo_as_of"] == "2026-11-23T11:30:00Z"  # now (12:00) minus 30 minutes
     keys = [
         o["Key"]
         for o in aws.list_objects_v2(Bucket="public-bucket", Prefix="public/boston/history")[

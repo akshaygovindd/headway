@@ -1069,3 +1069,87 @@ models:
         description: "Denominator of coverage."
       - name: coverage_pct
         description: "Coverage as a percentage (0-100); null when the denominator is zero."
+  - name: agg_slo_daily
+    description: "Service level objectives per service date: capture completeness, gold freshness, transform success and arrival coverage, with good and total events, the share, whether the target was met and the error budget used. Arrival coverage of lines under a service disruption is a separate row that does not count toward the objective. Closed days come from immutable history (ADR-015)."
+    config:
+      meta:
+        grain: "slo_name x service_date"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [slo_name, service_date]
+    columns:
+      - name: slo_name
+        description: "capture_completeness, gold_freshness, transform_success, arrival_coverage or arrival_coverage_disrupted."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: target_pct
+        description: "Target share of good events (0-100) from the slo_targets seed."
+        data_tests:
+          - not_null
+      - name: good_events
+        description: "Good events: minutes, hours, runs or trip stops, depending on the objective."
+        data_tests:
+          - not_null
+      - name: total_events
+        description: "Events measured."
+        data_tests:
+          - not_null
+      - name: actual_pct
+        description: "Share of good events (0-100)."
+      - name: met
+        description: "True when actual_pct reaches the target."
+      - name: error_budget_used
+        description: "Bad events over the bad events the target allows: 1 is the whole budget, above 1 is overspent."
+      - name: counts_toward_slo
+        description: "False for the informational arrival_coverage_disrupted row."
+        data_tests:
+          - not_null
+  - name: agg_slo_rollup
+    description: "Service level objectives over the last 7 and 30 service dates ending at the latest date of agg_slo_daily, computed from the summed events."
+    config:
+      meta:
+        grain: "slo_name x window_label"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [slo_name, window_label]
+    columns:
+      - name: slo_name
+        description: "Objective name, as in agg_slo_daily."
+        data_tests:
+          - not_null
+      - name: window_label
+        description: "last_7d or last_30d."
+        data_tests:
+          - not_null
+      - name: target_pct
+        description: "Target share of good events (0-100) from the slo_targets seed."
+        data_tests:
+          - not_null
+      - name: good_events
+        description: "Good events: minutes, hours, runs or trip stops, depending on the objective."
+        data_tests:
+          - not_null
+      - name: total_events
+        description: "Events measured."
+        data_tests:
+          - not_null
+      - name: actual_pct
+        description: "Share of good events (0-100)."
+      - name: met
+        description: "True when actual_pct reaches the target."
+      - name: error_budget_used
+        description: "Bad events over the bad events the target allows: 1 is the whole budget, above 1 is overspent."
+      - name: days_covered
+        description: "Dates of the window that have events."
+        data_tests:
+          - not_null
+      - name: counts_toward_slo
+        description: "False for the informational arrival_coverage_disrupted row."
+        data_tests:
+          - not_null

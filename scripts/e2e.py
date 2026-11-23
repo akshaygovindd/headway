@@ -36,6 +36,8 @@ TABLES = [
     "agg_ett_window",
     "agg_actual_deviation_daily",
     "agg_headway_adherence_daily",
+    "agg_slo_daily",
+    "agg_slo_rollup",
 ]
 DBT = ["uv", "run", "--project", "dbt", "dbt"]
 DBT_ARGS = ["--project-dir", "dbt/headway", "--profiles-dir", "dbt/headway", "--target", "local"]

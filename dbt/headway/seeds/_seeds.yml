@@ -26,3 +26,27 @@ seeds:
       - name: fail
         description: Value at which the check fails.
         data_tests: [not_null]
+
+  - name: slo_targets
+    description: Service level objectives of the pipeline (docs/SLO.md) with their targets.
+    config:
+      meta:
+        grain: slo_name
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [slo_name]
+    columns:
+      - name: slo_name
+        description: Name of the objective.
+        data_tests: [not_null]
+      - name: target_pct
+        description: Share of good events (0-100) the objective requires.
+        data_tests: [not_null]
+      - name: threshold
+        description: Objective-specific limit; for gold_freshness the maximum age of gold in minutes. Empty when the objective has none.
+      - name: event_unit
+        description: What one event is - minutes, hours, runs or trip stops.
+        data_tests: [not_null]
+      - name: description
+        description: What counts as a good event.

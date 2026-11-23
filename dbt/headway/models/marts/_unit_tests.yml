@@ -453,3 +453,130 @@ unit_tests:
     expect:
       rows:
         - {line: Red, window_label: last_24h, n_headways: 4, pct_within_band: 50.0, pct_bunched: 25.0, pct_gap: 25.0, median_ratio: 1.0, n_dropped_train_between: 1, n_excluded_outage: 1, scheduled_headways: 6, coverage_numerator: 4, coverage_denominator: 6}
+
+  - name: slo_capture_and_arrival_coverage
+    config:
+      tags: [r2]
+    description: >-
+      Service date 2026-11-22 (starts 08:00 UTC), measured to 08:04, so five minutes. In four of
+      them poll 0 of all three feeds was captured; in 08:02 the alerts capture is missing, and an
+      errored capture does not count. 4 of 5 is 80 % against 99 %: not met, and the day spent 20
+      times its error budget. Arrival coverage counts Red (40 of 50) and leaves the outage hour
+      out; Blue is under a service disruption and is reported on its own (10 of 20) without
+      counting toward the objective. Nothing was exported, so freshness has no hours and
+      transform_success no slots.
+    model: agg_slo_daily
+    overrides:
+      vars:
+        slo_as_of: "2026-11-22T08:04:30Z"
+    given:
+      - input: ref('slo_targets')
+        rows:
+          - {slo_name: capture_completeness, target_pct: 99, threshold: null}
+          - {slo_name: gold_freshness, target_pct: 99, threshold: 90}
+          - {slo_name: transform_success, target_pct: 99, threshold: null}
+          - {slo_name: arrival_coverage, target_pct: 80, threshold: null}
+      - input: ref('stg_manifests')
+        rows:
+          - {scheduled_at: "2026-11-22 08:00:00+00"}
+      - input: ref('int_captures')
+        rows:
+          - {capture_minute: "2026-11-22 08:00:00+00", feed: trip_updates, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:00:00+00", feed: vehicle_positions, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:00:00+00", feed: alerts, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:01:00+00", feed: trip_updates, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:01:00+00", feed: vehicle_positions, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:01:00+00", feed: alerts, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:02:00+00", feed: trip_updates, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:02:00+00", feed: vehicle_positions, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:03:00+00", feed: trip_updates, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:03:00+00", feed: vehicle_positions, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:03:00+00", feed: alerts, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:04:00+00", feed: trip_updates, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:04:00+00", feed: vehicle_positions, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:04:00+00", feed: alerts, status: ok, poll_index: 0, service_date: "2026-11-22"}
+          - {capture_minute: "2026-11-22 08:04:00+00", feed: alerts, status: error, poll_index: 1, service_date: "2026-11-22"}
+      - input: ref('stg_transform_runs')
+        rows:
+          - {run_id: r0, task: scheduled, slot: "2026-11-22 08:00:00+00", started_at: "2026-11-22 08:20:00+00", gold_exported_at: null, gold_published: false}
+      - input: ref('agg_actual_deviation_hourly')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 3, line: Red, data_outage: false, service_disruption: false, coverage_numerator: 40, coverage_denominator: 50}
+          - {service_date: "2026-11-22", hour_local: 3, line: Blue, data_outage: false, service_disruption: true, coverage_numerator: 10, coverage_denominator: 20}
+          - {service_date: "2026-11-22", hour_local: 3, line: Green-B, data_outage: true, service_disruption: false, coverage_numerator: 0, coverage_denominator: 30}
+    expect:
+      rows:
+        - {slo_name: capture_completeness, service_date: "2026-11-22", target_pct: 99, good_events: 4, total_events: 5, actual_pct: 80.0, met: false, error_budget_used: 20.0, counts_toward_slo: true}
+        - {slo_name: arrival_coverage, service_date: "2026-11-22", target_pct: 80, good_events: 40, total_events: 50, actual_pct: 80.0, met: true, error_budget_used: 1.0, counts_toward_slo: true}
+        - {slo_name: arrival_coverage_disrupted, service_date: "2026-11-22", target_pct: 80, good_events: 10, total_events: 20, actual_pct: 50.0, met: false, error_budget_used: 2.5, counts_toward_slo: false}
+
+  - name: slo_gold_freshness_and_transform_success
+    config:
+      tags: [r2]
+    description: >-
+      Measured to 12:04 UTC on 2026-11-22. Exports finished at 07:30, 08:30, 09:20 and 11:30 (the
+      10:20 run is missing). At the start of 08, 09, 10, 11 and 12 the newest export is 30, 30, 40,
+      100 and 30 minutes old, so four of five hours are within 90 minutes. The capture minutes
+      12:00 to 12:04 have one feed only: none is complete. Slots 07 to 11 each
+      need a scheduled run that exported and published: 07, 08 and 09 did, 10 has none, 11 exported
+      but its publish failed. Slot 07 UTC is 02:00 local and belongs to service date 2026-11-21.
+    model: agg_slo_daily
+    overrides:
+      vars:
+        slo_as_of: "2026-11-22T12:04:30Z"
+    given:
+      - input: ref('slo_targets')
+        rows:
+          - {slo_name: capture_completeness, target_pct: 99, threshold: null}
+          - {slo_name: gold_freshness, target_pct: 99, threshold: 90}
+          - {slo_name: transform_success, target_pct: 99, threshold: null}
+          - {slo_name: arrival_coverage, target_pct: 80, threshold: null}
+      - input: ref('stg_manifests')
+        rows:
+          - {scheduled_at: "2026-11-22 12:00:00+00"}
+      - input: ref('int_captures')
+        rows:
+          - {capture_minute: "2026-11-22 12:00:00+00", feed: alerts, status: ok, poll_index: 0, service_date: "2026-11-22"}
+      - input: ref('agg_actual_deviation_hourly')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 3, line: Red, data_outage: true, service_disruption: false, coverage_numerator: 0, coverage_denominator: 30}
+      - input: ref('stg_transform_runs')
+        rows:
+          - {run_id: r1, task: scheduled, slot: "2026-11-22 07:00:00+00", started_at: "2026-11-22 07:20:00+00", gold_exported_at: "2026-11-22 07:30:00+00", gold_published: true}
+          - {run_id: r2, task: scheduled, slot: "2026-11-22 08:00:00+00", started_at: "2026-11-22 08:20:00+00", gold_exported_at: "2026-11-22 08:30:00+00", gold_published: true}
+          - {run_id: r3, task: scheduled, slot: "2026-11-22 09:00:00+00", started_at: "2026-11-22 09:20:00+00", gold_exported_at: "2026-11-22 09:20:00+00", gold_published: true}
+          - {run_id: r4, task: scheduled, slot: "2026-11-22 11:00:00+00", started_at: "2026-11-22 11:20:00+00", gold_exported_at: "2026-11-22 11:30:00+00", gold_published: false}
+          - {run_id: r5, task: rebuild_history, slot: "2026-11-22 10:00:00+00", started_at: "2026-11-22 10:20:00+00", gold_exported_at: null, gold_published: false}
+    expect:
+      rows:
+        - {slo_name: capture_completeness, service_date: "2026-11-22", target_pct: 99, good_events: 0, total_events: 5, actual_pct: 0.0, met: false, error_budget_used: 100.0, counts_toward_slo: true}
+        - {slo_name: gold_freshness, service_date: "2026-11-22", target_pct: 99, good_events: 4, total_events: 5, actual_pct: 80.0, met: false, error_budget_used: 20.0, counts_toward_slo: true}
+        - {slo_name: transform_success, service_date: "2026-11-21", target_pct: 99, good_events: 1, total_events: 1, actual_pct: 100.0, met: true, error_budget_used: 0.0, counts_toward_slo: true}
+        - {slo_name: transform_success, service_date: "2026-11-22", target_pct: 99, good_events: 2, total_events: 4, actual_pct: 50.0, met: false, error_budget_used: 50.0, counts_toward_slo: true}
+
+  - name: slo_rollup_sums_events_over_the_window
+    config:
+      tags: [r2]
+    description: >-
+      Ten days of capture completeness ending 2026-11-22: nine days with 1,435 of 1,440 minutes
+      and one (11-15) with 1,400. The last 7 days (11-16 to 11-22) hold the days 11-16 to 11-22, the last
+      30 hold all ten. The share and the budget come from the summed events, not from the daily
+      shares: 10 days have 85 bad of 14,400 minutes, 99.41 %, against 144 allowed.
+    model: agg_slo_rollup
+    given:
+      - input: ref('agg_slo_daily')
+        rows:
+          - {slo_name: capture_completeness, service_date: "2026-11-13", target_pct: 99, good_events: 1435, total_events: 1440, counts_toward_slo: true}
+          - {slo_name: capture_completeness, service_date: "2026-11-14", target_pct: 99, good_events: 1435, total_events: 1440, counts_toward_slo: true}
+          - {slo_name: capture_completeness, service_date: "2026-11-15", target_pct: 99, good_events: 1400, total_events: 1440, counts_toward_slo: true}
+          - {slo_name: capture_completeness, service_date: "2026-11-16", target_pct: 99, good_events: 1435, total_events: 1440, counts_toward_slo: true}
+          - {slo_name: capture_completeness, service_date: "2026-11-17", target_pct: 99, good_events: 1435, total_events: 1440, counts_toward_slo: true}
+          - {slo_name: capture_completeness, service_date: "2026-11-18", target_pct: 99, good_events: 1435, total_events: 1440, counts_toward_slo: true}
+          - {slo_name: capture_completeness, service_date: "2026-11-19", target_pct: 99, good_events: 1435, total_events: 1440, counts_toward_slo: true}
+          - {slo_name: capture_completeness, service_date: "2026-11-20", target_pct: 99, good_events: 1435, total_events: 1440, counts_toward_slo: true}
+          - {slo_name: capture_completeness, service_date: "2026-11-21", target_pct: 99, good_events: 1435, total_events: 1440, counts_toward_slo: true}
+          - {slo_name: capture_completeness, service_date: "2026-11-22", target_pct: 99, good_events: 1435, total_events: 1440, counts_toward_slo: true}
+    expect:
+      rows:
+        - {slo_name: capture_completeness, window_label: last_7d, target_pct: 99, good_events: 10045, total_events: 10080, met: true, days_covered: 7, counts_toward_slo: true}
+        - {slo_name: capture_completeness, window_label: last_30d, target_pct: 99, good_events: 14315, total_events: 14400, met: true, days_covered: 10, counts_toward_slo: true}

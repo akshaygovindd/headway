@@ -35,6 +35,8 @@ R2_ALLOWLIST = {
     "agg_ett_window",
     "agg_actual_deviation_daily",
     "agg_headway_adherence_daily",
+    "agg_slo_daily",
+    "agg_slo_rollup",
 }
 
 

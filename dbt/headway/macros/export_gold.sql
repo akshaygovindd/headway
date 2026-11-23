@@ -27,6 +27,8 @@
     'agg_ett_window': "select * from " ~ ref('agg_ett_window'),
     'agg_actual_deviation_daily': "select * from " ~ ref('agg_actual_deviation_daily'),
     'agg_headway_adherence_daily': "select * from " ~ ref('agg_headway_adherence_daily'),
+    'agg_slo_daily': "select * from " ~ ref('agg_slo_daily'),
+    'agg_slo_rollup': "select * from " ~ ref('agg_slo_rollup'),
 }) }}
 {%- endmacro %}
 

@@ -30,6 +30,8 @@ R2_GOLD_TABLES = (
     "agg_ett_window",
     "agg_actual_deviation_daily",
     "agg_headway_adherence_daily",
+    "agg_slo_daily",
+    "agg_slo_rollup",
 )
 # cost_daily is written by cost.py, not dbt, so it is published only when it exists.
 OPTIONAL_TABLES = ("cost_daily",)

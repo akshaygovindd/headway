@@ -20,6 +20,7 @@ logger.setLevel(logging.INFO)
 
 DEFAULT_LOOKBACK_DAYS = 7
 DEFAULT_TIMEZONE = "America/New_York"
+SLO_LAG = timedelta(minutes=30)
 TOKEN_PARAMETER = "/headway/motherduck_token"
 DBT_TARGET_PATH = "/tmp/dbt_target"  # noqa: S108
 DBT_LOG_PATH = "/tmp/dbt_logs"  # noqa: S108
@@ -434,6 +435,8 @@ def _variables(lookback: int, now: datetime) -> str:
             f"s3://{os.environ['PUBLIC_BUCKET']}/{history.history_prefix(os.environ['CITY_ID'])}"
         )
         variables["metric_versions"] = history.table_versions()
+        # Curation runs every 15 minutes: the last half hour is incomplete, so the SLOs stop there.
+        variables["slo_as_of"] = (now - SLO_LAG).strftime("%Y-%m-%dT%H:%M:%SZ")
     return json.dumps(variables)
 
 

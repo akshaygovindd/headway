@@ -1,0 +1,3 @@
+slo_name,window_label,target_pct,good_events,total_events,actual_pct,met,error_budget_used,days_covered,counts_toward_slo
+capture_completeness,last_30d,99.000,59,60,98.333,false,1.667,1,true
+capture_completeness,last_7d,99.000,59,60,98.333,false,1.667,1,true

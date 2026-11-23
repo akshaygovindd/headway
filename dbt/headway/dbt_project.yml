@@ -20,6 +20,13 @@ vars:
   subway_route_types: [0, 1]
   # Days of realtime history read by staging models (partition `dt`); null reads everything.
   lookback_days: null
+  # Upper end of the SLO measurement, as an ISO timestamp; null uses the latest captured minute (local
+  # and replay builds). The transform sets it to 30 minutes before now, so data curation has not
+  # yet caught up with does not count as missing.
+  slo_as_of: null
+  # Release 2 history (ADR-015); set by the transform when HEADWAY_ENABLE_R2=true, null elsewhere.
+  history_root: null
+  metric_versions: {}
 
 models:
   headway:
@@ -68,9 +75,12 @@ models:
       agg_ett_window: *r2
       agg_actual_deviation_daily: *r2
       agg_headway_adherence_daily: *r2
+      agg_slo_daily: *r2
+      agg_slo_rollup: *r2
 
 seeds:
   headway:
+    slo_targets: *r2
     quality_thresholds:
       +column_types:
         warn: double
