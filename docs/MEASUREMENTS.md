@@ -58,3 +58,22 @@ deliveries are counted by `agg_pipeline_health.duplicate_delivery_count` and the
 | --- | --- | --- |
 | Capture to gold | pending | Needs several scheduled runs. By schedule alone (curate at :00/:15/:30/:45, transform at :20 plus about one minute) a capture is in gold between about 20 and 80 minutes after it is fetched; this is derived from the schedules, not measured. |
 | Cost per 1,000 captures | $0.0086 on 2026-11-22 (day total $0.0116, 1,341 captures) | `gold/cost_daily.parquet`: Cost Explorer spend for resources tagged `project=headway` divided by captures. The first day is partial (deployment started mid-day) and Lambda usage is inside the free tier, so S3 dominates. |
+
+## Arrival reconstruction
+
+First pass on the 1-minute data of 2026-11-22T16:35Z to 2026-11-23T19:40Z (about 27 hours; read-only
+copy of the curated vehicle positions and static tables), dbt models `int_vehicle_stop_events`
+and `fct_reconstructed_arrivals`, built locally on 2026-11-23. Re-validation after 15 s sampling
+ships is pending; these numbers describe 1-minute sampling.
+
+| Measure | Value | Method |
+| --- | --- | --- |
+| Hand-check, 10 trips, 30 trip stops | median absolute difference 16.0 s (mean 17.0 s, max 44 s, 25 of 30 within 30 s) | Trips of 2026-11-23: Red 2, Orange 2, Blue 2, Green-B/C/D/E 1 each. Three stops per trip (an observed one, a bracketed one, a second observed one). For each, the raw vehicle rows within 170 s of the model's arrival were printed with the straight-line distance to the stop, and an arrival was read off them by hand (approach speed from the earlier rows, time to cover the remaining distance). One reader, no second opinion. |
+| Hand-check, observed stops (20) | median 18.2 s, model earlier than the read by a median of 18.2 s | The model takes the midpoint of the interval; the read sits nearer the STOPPED_AT row. All 20 reads fall inside the model's interval. |
+| Hand-check, bracketed stops (10) | median 5.6 s (signed +2.2 s), 9 of 10 within 30 s | One case 36 s later than the read: a vehicle that dwelled, which distance interpolation cannot see. |
+| Confidence shares, all lines | high 13.1 %, medium 78.1 %, low 4.8 %, missing 4.0 % of 37,698 trip stops | `agg_arrival_reconstruction_daily` over the 27 hours; 2,357 trip instances. Medium dominates because most observed intervals are 31-120 s wide at 1-minute sampling. |
+| Trips left out | ADDED trips: 1,365 trip instances (no schedule, no shape); 13 other observed trips not in the schedule | Same table, summed over lines. |
+| Monotonic violations | 102 trip stops: Green-C 78, Green-D 14, Green-B 8, Orange 2 | Both stops of each pair are set to low. Not investigated further. |
+
+The agreement is against one person's reading of the same raw rows, not against a ground truth such
+as AVL or fare gate data, which this project does not have.
