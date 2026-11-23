@@ -22,21 +22,50 @@ ALLOWLIST = {
 }
 
 
-@pytest.fixture(scope="module")
-def gold(tmp_path_factory: pytest.TempPathFactory) -> Path:
+R2_ALLOWLIST = {
+    "agg_arrival_reconstruction_daily",
+    "agg_prediction_accuracy_daily",
+    "agg_actual_deviation_hourly",
+    "agg_headway_adherence_hourly",
+    "agg_ett_daily",
+    "agg_active_alerts",
+}
+
+
+def _build(tmp_path_factory: pytest.TempPathFactory, enable_r2: bool) -> Path:
     if shutil.which("uv") is None:
         pytest.skip("uv is required to run dbt")
     spec = importlib.util.spec_from_file_location("build_demo", ROOT / "scripts" / "build_demo.py")
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    public: Path = module.build(tmp_path_factory.mktemp("demo"), "samples/boston", "boston")
+    public: Path = module.build(
+        tmp_path_factory.mktemp("demo"), "samples/boston", "boston", enable_r2=enable_r2
+    )
     return public / "gold"
+
+
+@pytest.fixture(scope="module")
+def gold_r2(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return _build(tmp_path_factory, True)
+
+
+@pytest.fixture(scope="module")
+def gold(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Export with Release 2 off: the base allowlist only."""
+    return _build(tmp_path_factory, False)
 
 
 def test_only_allowlisted_files_are_written(gold: Path) -> None:
     names = {p.name for p in gold.rglob("*")}
     assert names == {f"{t}.parquet" for t in ALLOWLIST} | {"manifest.json"}
+
+
+def test_release_2_aggregates_are_added_when_enabled(gold_r2: Path) -> None:
+    names = {p.name for p in gold_r2.rglob("*")}
+    assert names == {f"{t}.parquet" for t in ALLOWLIST | R2_ALLOWLIST} | {"manifest.json"}
+    manifest = json.loads((gold_r2 / "manifest.json").read_text())
+    assert set(manifest["row_counts"]) == ALLOWLIST | R2_ALLOWLIST
 
 
 def _table(gold: Path, name: str) -> list[dict[str, object]]:

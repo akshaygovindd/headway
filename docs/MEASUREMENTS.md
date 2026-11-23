@@ -73,7 +73,54 @@ ships is pending; these numbers describe 1-minute sampling.
 | Hand-check, bracketed stops (10) | median 5.6 s (signed +2.2 s), 9 of 10 within 30 s | One case 36 s later than the read: a vehicle that dwelled, which distance interpolation cannot see. |
 | Confidence shares, all lines | high 13.1 %, medium 78.1 %, low 4.8 %, missing 4.0 % of 37,698 trip stops | `agg_arrival_reconstruction_daily` over the 27 hours; 2,357 trip instances. Medium dominates because most observed intervals are 31-120 s wide at 1-minute sampling. |
 | Trips left out | ADDED trips: 1,365 trip instances (no schedule, no shape); 13 other observed trips not in the schedule | Same table, summed over lines. |
-| Monotonic violations | 102 trip stops: Green-C 78, Green-D 14, Green-B 8, Orange 2 | Both stops of each pair are set to low. Not investigated further. |
+| Monotonic violations, first pass | 102 trip stops: Green-C 78, Green-D 14, Green-B 8, Orange 2 | Both stops of each pair were set to low. Superseded by the fixes below. |
 
 The agreement is against one person's reading of the same raw rows, not against a ground truth such
 as AVL or fare gate data, which this project does not have.
+
+### Reconstruction fixes (2026-11-23)
+
+Same 27 hours and the same local rebuild as above, after two changes to `fct_reconstructed_arrivals`
+and `int_vehicle_stop_events`: bracketed stops interpolate along a chain of known (distance, time)
+points (observed midpoints and raw observations) that never goes back in time, and a vehicle whose
+`current_stop_sequence` goes backwards on a trip id starts a new run (segment).
+
+| Measure | Before | After | Method |
+| --- | --- | --- | --- |
+| Monotonic violations | 102 (Green-C 78, Green-D 14, Green-B 8, Orange 2) | 0 on every line | `agg_arrival_reconstruction_daily.n_monotonic_violations` summed over lines. |
+| Reused trip ids | 49 vehicle-trip pairs whose stop sequence went backwards, merged into one run | 40 extra segments created (Green-E 15, Red 10, Green-D 6, Mattapan 5, Green-C 2, Green-B 1, Orange 1, Blue 0) | `n_segments_created`; the 49 vs 40 difference is runs with too few usable observations to reconstruct. |
+| Trip stops | 37,698 | 37,781 | The extra segments add trip stops. |
+| Confidence shares | high 13.1 %, medium 78.1 %, low 4.8 %, missing 4.0 % | high 13.1 %, medium 78.3 %, low 4.5 %, missing 4.1 % | Same table. |
+| Hand-check, 30 trip stops | median 16.0 s, 25 of 30 within 30 s | unchanged: median 16.0 s, mean 17.0 s, max 44 s, 25 of 30 within 30 s | The same 30 trip stops, re-read from the rebuilt table against the same manual reads. Bracketed stops (10): median 5.6 s, signed +2.2 s, 9 of 10 within 30 s, as before. |
+
+None of the 30 hand-check stops changed at all (checked row by row against the earlier build); the fixes change a few thousand rows
+elsewhere, none of which the hand-check sampled.
+
+### Release 2 metrics, first values (2026-11-23)
+
+The same 27 hours, local rebuild, 1-minute sampling. Hours with a data outage are left out (2 of 29
+hours here: the partial first and last hours, whose vehicle window is under 55 minutes). Values are
+exact over the pooled rows except ETT and the deviation median, which average the per-day or
+per-hour medians weighted by trip or arrival count. They describe 1-minute sampling and one
+Sunday-to-Monday stretch; they are first values, not a benchmark.
+
+| Line | Accuracy, median abs error 0-5 min | 10-20 min | Headways within 0.5-1.5× | ETT median (weekdays) | Arrival coverage (deviation) |
+| --- | --- | --- | --- | --- | --- |
+| Red | 23 s | 59 s | 67 % | +263 s | 32 % |
+| Orange | 22 s | 32 s | 89 % | -41 s | 76 % |
+| Blue | 23 s | 40 s | 87 % | +70 s | 85 % |
+| Green-B | 23 s | 74 s | 72 % | -51 s | 74 % |
+| Green-C | 23 s | 80 s | 77 % | -55 s | 76 % |
+| Green-D | 21 s | 62 s | 78 % | -166 s | 76 % |
+| Green-E | 23 s | 68 s | 77 % | -71 s | 77 % |
+| Mattapan | 13 s | 85 s | 77 % | -76 s | 79 % |
+
+Red's arrival coverage is low (32 % of scheduled trip stops, 29 % of scheduled headways, 47 % of
+scheduled trips for ETT), so the app withholds its Release 2 values; the Red numbers above are
+shown only so they are not hidden here. Accuracy is limited by the reconstruction (about 18 s
+median error on observed stops), so differences under about 20 s are not resolved. Headway pairs
+dropped for a train in between or unproven order: 1,580 of 34,000 candidates (about 5 %).
+
+The e2e sample is 59 minutes, so both of its hours are outages by the rule and the Release 2
+aggregates in `tests/e2e/expected` show the exclusion path, not values; the unit fixtures cover the
+statistics.

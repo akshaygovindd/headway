@@ -237,8 +237,11 @@ Switch-on, Phase 2.6, in this order:
    only writes `shape_points_dist` and `stop_shape_positions` for it (check both exist under
    `curated/boston/static/`).
 2. Set `enable_r2 = true` in `terraform.tfvars`, `make deploy`, and wait for one transform run:
-   `fct_reconstructed_arrivals` and `agg_arrival_reconstruction_daily` exist and its logged step
-   times are in line with the earlier runs. Run this on 1-minute data first.
+   `fct_reconstructed_arrivals`, `agg_arrival_reconstruction_daily` and the Release 2 metric models
+   (accuracy, actual deviation, headway adherence, ETT, active alerts) exist, the gold export gains
+   those six aggregates (and only then; the Accuracy page and the Line explorer headway view appear
+   when the files do), and its logged step times are in line with the earlier runs. Run this on
+   1-minute data first.
 3. Set `vehicle_polls = 4`, `make deploy`. Check the next manifests: six entries, `poll_index`
    0-3, a run of 45-58 s, memory under about 100 MB in the Lambda report line, the live snapshot
    updating every 15 s. If memory is close to the limit, set `memory_size` to 256 and deploy again.
