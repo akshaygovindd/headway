@@ -123,7 +123,8 @@ aws logs tail /aws/lambda/headway-transform --since 2h
 
 Expected:
 
-- a new manifest roughly every minute and three raw objects per run;
+- a new manifest roughly every minute and six raw objects per run (three feeds, then three more
+  vehicle polls at +15, +30 and +45 s; fewer when a late run skips polls);
 - a live snapshot with `vehicle_count` greater than zero, `Content-Type: application/json` and
   `Cache-Control: max-age=30`;
 - a gold folder with eight parquet files plus `manifest.json`, and `cost_daily.parquet` after the

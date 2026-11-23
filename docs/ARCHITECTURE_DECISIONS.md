@@ -18,7 +18,7 @@ stable: other documents and code comments cite them as `ADR-NNN`.
 | 011 | FastAPI and MCP as separate interfaces | Proposed (R3/R4) |
 | 012 | dbt in Lambda DuckDB, MotherDuck gold-only, DuckDB 1.5.6 pin | Accepted |
 | 013 | Duplicate deliveries flagged, never dropped | Accepted |
-| 014 | Vehicle sampling interval for arrival reconstruction | Proposed (R2) |
+| 014 | Vehicle positions sampled every 15 s | Accepted (R2) |
 
 Template: Status, Context, Decision, Consequences, Revisit when.
 
@@ -35,8 +35,9 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   Lambdas. Retries are 0 everywhere; the next scheduled run replaces a missed one.
 - **Consequences:** There is no broker to run and idle cost is close to zero. Delivery is
   at-least-once and at the scheduler's mercy, which is why duplicates and gaps are first-class
-  data (ADR-005, ADR-013). The finest resolution is one capture per minute, and a capture is in
-  gold roughly 20 to 80 minutes after it is fetched.
+  data (ADR-005, ADR-013). Capture is one poll per minute for trip updates and alerts and, since ADR-014,
+  four polls per minute for vehicle positions; a capture is in gold roughly 20 to 80 minutes after
+  it is fetched.
 - **Revisit when:** a source offers a push or streaming API, sub-minute capture is needed, or
   several cities make per-minute invocations the dominant cost.
 
@@ -243,32 +244,49 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 - **Revisit when:** a duplicate-heavy period makes the wasted fetch matter (claim the minute before
   fetching), or the scheduler offers exactly-once delivery.
 
-### ADR-014: Vehicle sampling interval for arrival reconstruction
+### ADR-014: Vehicle positions sampled every 15 s
 
-- **Status:** Proposed
+- **Status:** Accepted (built; not deployed yet)
 - **Context:** Release 2 reconstructs arrivals from vehicle positions captured once a minute. The
   spike in `docs/spikes/2026-11-sampling.md` (about 27 hours, scheduled subway trips) found: median
   observed interval 51-59 s; 13 % of trip-stops high confidence; hold-out median error 41-57 s on
   seven of eight lines (Mattapan 33 s), p90 70-100 s, only 16-30 % within 30 s. The vehicle feed
   header changes every 5 s and the median vehicle updates every 9 s, so most updates are never
   captured.
-- **Decision:** Keep one capture per minute for `trip_updates` and `alerts`, and sample
-  `vehicle_positions` every 15 s. EventBridge Scheduler cannot schedule below one minute, so the
-  existing minute invocation fetches the vehicle feed four times (at 0, 15, 30 and 45 s) and the
-  manifest stays one per minute. If the Lambda duration cost or a measured quarter-minute error
-  says otherwise, 30 s is the fallback (about 26 s median interval, so a median error near the
-  30 s target, with half the extra requests).
-- **Cost of extra S3 requests:** each vehicle capture is one gzip PUT. Per month (30 days):
-  1-minute 43,200 PUTs, 30 s 86,400, 15 s 172,800, at USD 0.005 per 1,000 PUTs (S3 Standard list
-  price, us-east-1; confirm in the bill). Extra PUTs: 30 s +43,200 = about USD 0.22; 15 s +129,600 =
-  about USD 0.65 a month. Extra GETs when curating are about USD 0.0004 per 1,000, below a cent.
-  Raw storage grows by the same factor on that feed (vehicle bodies are small; `trip_updates`
-  dominates curated size). Not yet measured: ingest Lambda duration and memory at about 60 s a run
-  (the schedule-to-fetch delay is already median 17.6 s), curated vehicle rows from about 98,000
-  to about 392,000 a day, and the transform runtime change.
-- **Consequences:** Needs a change to the ingest handler, capture ids that stay unique at 15 s,
-  manifest entries for several vehicle captures per run, and a curate/dbt review of
-  `vehicle_positions` grain tests. None of that is done in the spike. Arrival confidence
-  thresholds (30 s high, 120 s medium) stay as in the amended method.
-- **Revisit when:** two full service days are available to repeat the spike, the 15 s estimate is
-  measured in a short trial, or ingest duration or cost makes the extra fetches unacceptable.
+- **Decision:** `trip_updates` and `alerts` stay at one capture per minute. `vehicle_positions` is
+  sampled every 15 s: four polls per minute invocation, because EventBridge Scheduler cannot
+  schedule below one minute. Poll 0, at the scheduled time, fetches all three feeds as before;
+  polls 1-3 fetch vehicle positions only, at the scheduled time plus 15, 30 and 45 s. A poll that
+  starts more than 5 s after its slot is skipped, and nothing starts after 55 s, so a run that
+  starts late loses polls rather than overrunning. Each poll is its own capture with its own
+  capture id; manifest entries carry `poll_index` 0-3 and all share the minute's `scheduled_at`, so
+  a minute is still one manifest (claimed with the conditional create of ADR-013) and still counts
+  as one capture minute in the observation window. The live snapshot is rewritten after every
+  vehicle poll. The ingest Lambda is sized at 128 MB with a 58 s timeout; if real runs approach the
+  limit it goes to 256 MB (twice the GB-seconds below). Budget alerts move from USD 5 / 10 to
+  USD 8 / 15.
+- **Cost:** per 30-day month, us-east-1 list prices, to be checked against the bill after deploy.
+  - Lambda, the dominant item: the last poll is due 45 s after the scheduled time, so a run that
+    starts on the minute lasts about 48 s (if the 17 s start delay measured in MEASUREMENTS.md is
+    a delay before the invocation starts, it is about 30 s and the cost is a third lower). At
+    48 s and 0.125 GB that is about 6 GB-s per invocation and 259,200 GB-s a month. At USD 0.0000133334 per GB-s (arm64) that is about USD 3.46 before the
+    free tier (400,000 GB-s a month for the whole account, which the other functions also use).
+    Before, a run of an estimated 3-5 s at 256 MB was about 32,000-54,000 GB-s, USD 0.43-0.72
+    (the old duration was not measured). At 256 MB the new runs cost about USD 6.9.
+  - S3 PUTs at USD 0.005 per 1,000: raw vehicle captures 43,200 to 172,800 (+129,600), live
+    snapshot PUTs to the public bucket 43,200 to 172,800 (+129,600); +259,200 PUTs, about
+    USD 1.30. Curate reads 3 more small objects per minute, under USD 0.10.
+  - Storage and rows: about 130,000 more raw objects a month (vehicle bodies are small, 49 KB
+    average before gzip), and curated vehicle rows grow from about 98,000 to about 392,000 a day.
+  - Total: about USD 3-5 more a month, which is why the budget alerts move.
+- **Consequences:** One invocation now lasts most of a minute, so a delayed or duplicated
+  scheduler delivery overlaps the next minute (ADR-013: a duplicate delivery still runs all four
+  polls before it finds the minute claimed; claiming earlier is the open item there). Curated
+  `vehicle_positions` has up to four captures a minute with the same position repeated until the
+  vehicle reports again; arrival models de-duplicate on vehicle and `event_ts`. The memory limit
+  was checked with `make ingest-smoke` (peak 60 MB resident in a time-compressed cycle), not in
+  Lambda itself. The confidence thresholds (30 s high, 120 s medium) stay as in the spike method.
+  The quarter-minute accuracy is expected from the interval width, not yet measured: see
+  `docs/MEASUREMENTS.md` after the first days of 15 s data.
+- **Revisit when:** two full days of 15 s data allow the spike to be repeated, real Lambda
+  duration or memory differs from the above, or the cost per month exceeds the USD 8 alert.

@@ -132,11 +132,26 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
   eligible plus implausible picks, per hour). `vehicle_count_drop` (25/50 %) is computed only when the same
   hour one week earlier was observed; otherwise its status is `no_baseline`.
 
+## 5. Reconstructed arrivals (Release 2)
+
+`fct_reconstructed_arrivals`, one row per trip instance and stop on the stretch of the trip a
+vehicle was observed on. Observed arrivals are the midpoint between the last vehicle position
+before the first STOPPED_AT at the stop and that STOPPED_AT; `interval_width_s` is the width of
+that interval. Stops never seen STOPPED_AT are interpolated by distance along the shape between
+the observations either side (`bracketed`, `bracket_gap_s`). Confidence is high for an observed
+interval of 30 s or less, medium up to 120 s (observed) or for a bracket gap up to 120 s, low
+otherwise; a stop whose arrival is earlier than the previous reconstructed stop of its trip is
+flagged `monotonic_ok = false` with both stops low. ADDED trips and trips without a shape are
+not reconstructed and are counted in `agg_arrival_reconstruction_daily`. These are observed
+positions, not official arrival times, and bracketing runs late when the vehicle dwelled at the
+stop (see `docs/MEASUREMENTS.md`).
+
 ## Known limitations
 
-- Captures are sampled once a minute. A prediction can change between samples, so the
+- Trip updates are sampled once a minute. A prediction can change between samples, so the
   last snapshot before arrival may be up to a minute stale, and revisions are measured
-  between samples, not between feed updates.
+  between samples, not between feed updates. Vehicle positions are sampled every 15 s
+  (ADR-014) once that is deployed.
 - Predictions are not arrivals. Deviation compares a forecast with the timetable; it is
   not observed lateness.
 - Only the 0 to 30 minute horizon is evaluated.
