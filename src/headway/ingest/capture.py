@@ -3,9 +3,10 @@
 import gzip
 import hashlib
 import json
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from ulid import ULID
 
@@ -18,8 +19,16 @@ from headway.storage import Storage
 
 Fetcher = Callable[[str], FetchResult]
 Clock = Callable[[], datetime]
+Sleeper = Callable[[float], None]
+VehicleHook = Callable[["FeedCapture"], None]
 
 FEEDS: tuple[FeedName, ...] = ("trip_updates", "vehicle_positions", "alerts")
+
+# Poll k of a minute is due k * 15 s after the scheduled time. Poll 0 fetches every feed; later
+# polls fetch VehiclePositions only (the feed republishes about every 5 s).
+POLL_OFFSETS_S: tuple[int, ...] = (0, 15, 30, 45)
+LATE_SKIP_S = 5.0  # a poll more than this past its slot is skipped, not fetched late
+RUN_DEADLINE_S = 55.0  # the run, manifest included, should end this long after the scheduled time
 
 
 @dataclass(frozen=True)
@@ -37,6 +46,7 @@ class CaptureRun:
     captures: list[FeedCapture]
     manifest_key: str
     duplicate_key: str | None = None  # set when this run's manifest lost the claim on its minute
+    skipped_polls: tuple[int, ...] = ()  # poll indexes dropped for being late or past the deadline
 
     @property
     def duplicate(self) -> bool:
@@ -55,6 +65,7 @@ def _capture_entry(
     result: FetchResult,
     run_id: str,
     scheduled_at: datetime,
+    poll_index: int = 0,
 ) -> ManifestEntry:
     fetched_at = result.fetched_at.astimezone(UTC)
     stamp = f"{fetched_at:%Y%m%dT%H%M%SZ}"
@@ -64,6 +75,7 @@ def _capture_entry(
         "city_id": config.city_id,
         "http_status": result.http_status,
         "scheduled_at": scheduled_at,
+        "poll_index": poll_index,
         "fetched_at": fetched_at,
     }
     if result.status != "ok" or result.body is None:
@@ -121,14 +133,27 @@ def capture_run(
     fetcher: Fetcher,
     clock: Clock,
     scheduled_at: datetime,
+    *,
+    sleep: Sleeper = time.sleep,
+    poll_fetcher: Fetcher | None = None,
+    offsets: tuple[int, ...] = POLL_OFFSETS_S,
+    on_vehicle_capture: VehicleHook | None = None,
 ) -> CaptureRun:
-    """Fetch all realtime feeds once and claim the minute's manifest.
+    """Poll the realtime feeds across one scheduled minute and claim the minute's manifest.
 
-    The manifest is written with a conditional create. EventBridge Scheduler delivers at least
-    once, so the same minute can arrive twice; the delivery that loses the create writes a
-    duplicate-delivery record instead (same shape, under ``manifests/<city>/duplicates/``). The
-    record is flagged downstream, never silently dropped, and curation does not treat its
-    captures as data.
+    Poll 0 fetches all feeds immediately. Each later poll sleeps until ``scheduled_at`` plus its
+    offset and fetches VehiclePositions only, through ``poll_fetcher`` (default ``fetcher``). A
+    poll more than ``LATE_SKIP_S`` past its slot, or one that would start after the run deadline,
+    is skipped and reported in ``skipped_polls``. Every poll is its own capture with its own
+    capture id and a ``poll_index``; all share the minute's ``scheduled_at``, so downstream
+    coverage still counts one capture minute. ``on_vehicle_capture`` runs after each vehicle
+    capture (the live snapshot).
+
+    The manifest is written once, at the end, with a conditional create. EventBridge Scheduler
+    delivers at least once, so the same minute can arrive twice; the delivery that loses the
+    create writes a duplicate-delivery record instead (same shape, under
+    ``manifests/<city>/duplicates/``). The record is flagged downstream, never silently dropped,
+    and curation does not treat its captures as data.
     """
     run_id = str(ULID.from_datetime(clock()))
     urls: dict[FeedName, str] = {
@@ -136,11 +161,36 @@ def capture_run(
         "vehicle_positions": str(config.feeds.vehicle_positions),
         "alerts": str(config.feeds.alerts),
     }
+    later = poll_fetcher or fetcher
+    deadline = scheduled_at + timedelta(seconds=RUN_DEADLINE_S)
     captures: list[FeedCapture] = []
-    for feed in FEEDS:
-        result = fetcher(urls[feed])
-        entry = _capture_entry(config, storage, feed, result, run_id, scheduled_at)
-        captures.append(FeedCapture(entry, result.body if entry.status == "ok" else None))
+    skipped: list[int] = []
+
+    def take(feed: FeedName, fetch: Fetcher, poll_index: int) -> None:
+        result = fetch(urls[feed])
+        entry = _capture_entry(config, storage, feed, result, run_id, scheduled_at, poll_index)
+        capture = FeedCapture(entry, result.body if entry.status == "ok" else None)
+        captures.append(capture)
+        if feed == "vehicle_positions" and on_vehicle_capture is not None:
+            on_vehicle_capture(capture)
+
+    for poll_index, offset in enumerate(offsets):
+        if poll_index == 0:
+            for feed in FEEDS:
+                take(feed, fetcher, 0)
+            continue
+        slot = scheduled_at + timedelta(seconds=offset)
+        now = clock()
+        if now > slot + timedelta(seconds=LATE_SKIP_S):
+            skipped.append(poll_index)
+            continue
+        if now < slot:
+            sleep((slot - now).total_seconds())
+        if clock() >= deadline:
+            skipped.append(poll_index)
+            continue
+        take("vehicle_positions", later, poll_index)
+
     entries = [c.entry for c in captures]
     manifest = {
         "run_id": run_id,
@@ -149,8 +199,8 @@ def capture_run(
     key = manifest_key(config, scheduled_at)
     body = json.dumps(manifest, indent=2, sort_keys=True).encode()
     if storage.put_if_absent(key, body):
-        return CaptureRun(captures, key)
+        return CaptureRun(captures, key, skipped_polls=tuple(skipped))
     dup_key = duplicate_key(config, scheduled_at, run_id)
     record = {**manifest, "duplicate_of": key}
     storage.put_bytes(dup_key, json.dumps(record, indent=2, sort_keys=True).encode())
-    return CaptureRun(captures, key, dup_key)
+    return CaptureRun(captures, key, dup_key, tuple(skipped))

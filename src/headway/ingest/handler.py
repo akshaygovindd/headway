@@ -9,8 +9,8 @@ from typing import Any
 
 import httpx
 
-from headway.config import load_city_config
-from headway.ingest.capture import capture_run
+from headway.config import CityConfig, load_city_config
+from headway.ingest.capture import Clock, FeedCapture, Fetcher, Sleeper, capture_run
 from headway.ingest.fetch import FetchResult, fetch_feed
 from headway.ingest.live import (
     LIVE_CACHE_CONTROL,
@@ -19,7 +19,7 @@ from headway.ingest.live import (
     live_snapshot_key,
 )
 from headway.parse.gtfs_rt import CaptureMeta, ParseError
-from headway.storage import S3Storage
+from headway.storage import S3Storage, Storage
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -28,8 +28,20 @@ logger.setLevel(logging.INFO)
 _client = httpx.Client(follow_redirects=True)
 
 
+# Polls 1-3 of a minute must not eat the run: one attempt, short timeout, no backoff.
+POLL_TIMEOUT_S = 5.0
+
+
 def _fetch(url: str) -> FetchResult:
     return fetch_feed(url, _client)
+
+
+def _poll_fetch(url: str) -> FetchResult:
+    return fetch_feed(url, _client, backoffs=(), timeout=POLL_TIMEOUT_S)
+
+
+def _sleep(seconds: float) -> None:
+    time.sleep(seconds)
 
 
 def _now() -> datetime:
@@ -48,19 +60,63 @@ def _scheduled_at(event: dict[str, Any], now: datetime) -> datetime:
         return fallback
 
 
-def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
+def run_minute(
+    config: CityConfig,
+    raw_storage: Storage,
+    public_storage: Storage,
+    scheduled_at: datetime,
+    *,
+    fetcher: Fetcher,
+    poll_fetcher: Fetcher,
+    clock: Clock,
+    sleep: Sleeper,
+) -> dict[str, Any]:
+    """One scheduled minute: four timed polls, the live snapshot after each vehicle poll."""
     started = time.monotonic()
-    config = load_city_config(os.environ["CITY_ID"])
-    raw_storage = S3Storage(os.environ["RAW_BUCKET"])
-    public_storage = S3Storage(os.environ["PUBLIC_BUCKET"])
+    vehicle_count: int | None = None
+    snapshot_errors: list[Exception] = []
 
-    scheduled_at = _scheduled_at(event or {}, _now())
-    run = capture_run(config, raw_storage, _fetch, _now, scheduled_at)
+    def update_snapshot(capture: FeedCapture) -> None:
+        nonlocal vehicle_count
+        if capture.body is None:
+            return
+        meta = CaptureMeta(capture.entry.capture_id, capture.entry.fetched_at)
+        try:
+            snapshot = build_live_snapshot(capture.body, meta, config)
+            public_storage.put_bytes(
+                live_snapshot_key(config),
+                json.dumps(snapshot, separators=(",", ":")).encode(),
+                content_type=LIVE_CONTENT_TYPE,
+                cache_control=LIVE_CACHE_CONTROL,
+            )
+        except ParseError as exc:
+            logger.warning("live snapshot skipped: %s", exc)
+        except Exception as exc:
+            # A failed snapshot must not cost the minute's captures or its manifest: remember
+            # the first failure and raise it once the manifest is written, so it still alarms.
+            logger.exception("live snapshot write failed")
+            snapshot_errors.append(exc)
+        else:
+            vehicle_count = snapshot["vehicle_count"]
+
+    run = capture_run(
+        config,
+        raw_storage,
+        fetcher,
+        clock,
+        scheduled_at,
+        sleep=sleep,
+        poll_fetcher=poll_fetcher,
+        on_vehicle_capture=update_snapshot,
+    )
+    if snapshot_errors:
+        raise snapshot_errors[0]
     captures = run.captures
     run_id = captures[0].entry.run_id
     if run.duplicate:
-        # Second delivery of the same scheduled minute: the first delivery owns the manifest and
-        # the live snapshot. Record it (done by capture_run), log it, and finish cleanly.
+        # Second delivery of the same scheduled minute: the first delivery owns the manifest.
+        # Record it (done by capture_run), log it, and finish cleanly. Its polls may have
+        # refreshed the live snapshot with equally fresh data, which is harmless.
         summary: dict[str, Any] = {
             "run_id": run_id,
             "scheduled_at": scheduled_at.isoformat(),
@@ -72,30 +128,34 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         logger.warning("duplicate delivery: %s", json.dumps(summary, sort_keys=True))
         return summary
 
-    vehicle_count: int | None = None
-    vehicles = next(c for c in captures if c.entry.feed == "vehicle_positions")
-    if vehicles.body is not None:
-        meta = CaptureMeta(vehicles.entry.capture_id, vehicles.entry.fetched_at)
-        try:
-            snapshot = build_live_snapshot(vehicles.body, meta, config)
-        except ParseError as exc:
-            logger.warning("live snapshot skipped: %s", exc)
-        else:
-            public_storage.put_bytes(
-                live_snapshot_key(config),
-                json.dumps(snapshot, separators=(",", ":")).encode(),
-                content_type=LIVE_CONTENT_TYPE,
-                cache_control=LIVE_CACHE_CONTROL,
-            )
-            vehicle_count = snapshot["vehicle_count"]
-
+    first = {c.entry.feed: c.entry.status for c in captures if c.entry.poll_index == 0}
+    vehicle_polls = [c.entry.status for c in captures if c.entry.feed == "vehicle_positions"]
     summary = {
         "run_id": run_id,
         "scheduled_at": scheduled_at.isoformat(),
-        "statuses": {c.entry.feed: c.entry.status for c in captures},
-        "bytes": {c.entry.feed: c.entry.bytes for c in captures},
+        "statuses": first,
+        "vehicle_polls": vehicle_polls,
+        "skipped_polls": list(run.skipped_polls),
+        "bytes": {c.entry.feed: c.entry.bytes for c in captures if c.entry.poll_index == 0},
         "vehicle_count": vehicle_count,
         "duration_ms": round((time.monotonic() - started) * 1000),
     }
     logger.info(json.dumps(summary, sort_keys=True))
     return summary
+
+
+def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
+    config = load_city_config(os.environ["CITY_ID"])
+    raw_storage = S3Storage(os.environ["RAW_BUCKET"])
+    public_storage = S3Storage(os.environ["PUBLIC_BUCKET"])
+    scheduled_at = _scheduled_at(event or {}, _now())
+    return run_minute(
+        config,
+        raw_storage,
+        public_storage,
+        scheduled_at,
+        fetcher=_fetch,
+        poll_fetcher=_poll_fetch,
+        clock=_now,
+        sleep=_sleep,
+    )

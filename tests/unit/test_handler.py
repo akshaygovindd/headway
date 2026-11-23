@@ -1,6 +1,7 @@
 import gzip
 import json
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import boto3
@@ -22,12 +23,22 @@ def _ok(body: bytes) -> FetchResult:
 
 
 def _fake_fetch(vp: FetchResult | None = None) -> Any:
+    """Fetcher whose results are stamped with the (fake) clock; vehicle bodies differ per poll."""
     urls = {
         str(CONFIG.feeds.trip_updates): _ok(fx.trip_updates_feed()),
         str(CONFIG.feeds.vehicle_positions): vp or _ok(fx.vehicles_feed()),
         str(CONFIG.feeds.alerts): _ok(fx.alerts_feed()),
     }
-    return lambda url: urls[url]
+    calls = {"vp": 0}
+
+    def fetch(url: str) -> FetchResult:
+        result = urls[url]
+        if url == str(CONFIG.feeds.vehicle_positions) and result.body is not None:
+            calls["vp"] += 1
+            result = replace(result, body=fx.vehicles_feed(lat=42.35 + calls["vp"] / 1000))
+        return replace(result, fetched_at=handler._now())
+
+    return fetch
 
 
 @pytest.fixture
@@ -38,7 +49,13 @@ def aws(monkeypatch: pytest.MonkeyPatch) -> Any:
     monkeypatch.setenv("RAW_BUCKET", "raw-bucket")
     monkeypatch.setenv("PUBLIC_BUCKET", "public-bucket")
     monkeypatch.setenv("CITY_ID", "boston")
-    monkeypatch.setattr(handler, "_now", lambda: NOW)
+    clock = {"now": NOW}
+    monkeypatch.setattr(handler, "_now", lambda: clock["now"])
+    # a sleep advances the fake clock, so the 60 s minute runs instantly
+    monkeypatch.setattr(
+        handler, "_sleep", lambda s: clock.update(now=clock["now"] + timedelta(seconds=s))
+    )
+    monkeypatch.setattr(handler, "_poll_fetch", lambda url: handler._fetch(url))
     with mock_aws():
         s3 = boto3.client("s3")
         s3.create_bucket(Bucket="raw-bucket")
@@ -58,12 +75,13 @@ def test_end_to_end_writes_raw_manifest_and_live_snapshot(
     result = handler.lambda_handler({"scheduled_at": "2026-06-01T12:00:00Z"}, None)
 
     raw = _keys(aws, "raw-bucket", "raw/boston/")
-    assert len(raw) == 3
+    assert len(raw) == 6  # three feeds at poll 0, then three vehicle polls
     manifests = _keys(aws, "raw-bucket", "manifests/boston/")
     assert len(manifests) == 1
     assert "dt=2026-06-01/hour=12" in manifests[0]
     manifest = json.loads(aws.get_object(Bucket="raw-bucket", Key=manifests[0])["Body"].read())
-    assert [e["status"] for e in manifest["entries"]] == ["ok", "ok", "ok"]
+    assert [e["status"] for e in manifest["entries"]] == ["ok"] * 6
+    assert [e["poll_index"] for e in manifest["entries"]] == [0, 0, 0, 1, 2, 3]
     assert gzip.decompress(aws.get_object(Bucket="raw-bucket", Key=raw[0])["Body"].read())
 
     obj = aws.get_object(Bucket="public-bucket", Key="public/boston/live/vehicles_latest.json")
@@ -179,3 +197,32 @@ def test_concurrent_deliveries_give_one_manifest_and_one_duplicate_record(
     records = _keys(aws, "raw-bucket", "manifests/boston/duplicates/")
     assert len(manifests) == 1 and len(records) == 1
     assert sorted(bool(r.get("duplicate_delivery")) for r in results) == [False, True]
+
+
+def test_live_snapshot_is_refreshed_after_every_vehicle_poll(
+    aws: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(handler, "_fetch", _fake_fetch())
+    writes: list[str] = []
+    real = handler.S3Storage.put_bytes
+
+    def spy(self: Any, key: str, data: bytes, **kw: Any) -> None:
+        if key.endswith("vehicles_latest.json"):
+            writes.append(json.loads(data)["vehicles"][0]["lat"])
+        real(self, key, data, **kw)
+
+    monkeypatch.setattr(handler.S3Storage, "put_bytes", spy)
+    result = handler.lambda_handler({"scheduled_at": "2026-06-01T12:00:00Z"}, None)
+    assert len(writes) == 4 and len(set(writes)) == 4
+    assert result["vehicle_polls"] == ["ok"] * 4 and result["skipped_polls"] == []
+
+
+def test_failed_snapshot_write_still_leaves_manifest_and_all_captures(
+    aws: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(handler, "_fetch", _fake_fetch())
+    monkeypatch.setenv("PUBLIC_BUCKET", "no-such-bucket")
+    with pytest.raises(ClientError):
+        handler.lambda_handler({"scheduled_at": "2026-06-01T12:00:00Z"}, None)
+    assert len(_keys(aws, "raw-bucket", "manifests/boston/")) == 1
+    assert len(_keys(aws, "raw-bucket", "raw/boston/")) == 6

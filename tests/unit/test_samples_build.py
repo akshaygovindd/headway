@@ -86,7 +86,7 @@ def _make_capture(root: Path) -> None:
         def fetch(url: str, at: datetime = at, bodies: dict[str, bytes] = bodies) -> FetchResult:
             return FetchResult("ok", 200, bodies[url], at + timedelta(seconds=1), None)
 
-        capture_run(config, LocalStorage(root), fetch, lambda at=at: at, at)  # type: ignore[misc]
+        capture_run(config, LocalStorage(root), fetch, lambda at=at: at, at, offsets=(0,))  # type: ignore[misc]
 
 
 GTFS = {

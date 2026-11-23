@@ -2,7 +2,7 @@
 
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from headway.contracts.types import FeedName, UtcDatetime
 
@@ -17,6 +17,9 @@ class ManifestEntry(BaseModel):
     status: Literal["ok", "error"]
     http_status: int | None = None
     scheduled_at: UtcDatetime
+    # Position of the capture within its scheduled minute: 0 is the all-feeds poll, 1-3 are the
+    # vehicle-only polls at +15/+30/+45 s. Manifests written before 15 s sampling have none (0).
+    poll_index: int = Field(default=0, ge=0, le=3)
     fetched_at: UtcDatetime
     feed_header_ts: UtcDatetime | None = None
     entity_count: int | None = None

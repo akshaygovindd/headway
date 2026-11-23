@@ -53,7 +53,8 @@ def run_captures(
         wait = (scheduled_at - clock()).total_seconds()
         if wait > 0:
             sleep(wait)
-        run = capture_run(config, storage, fetcher, clock, scheduled_at)
+        # the local capture tool stays at one poll per minute: it builds 1-minute samples
+        run = capture_run(config, storage, fetcher, clock, scheduled_at, offsets=(0,))
         emit(format_run(scheduled_at, [c.entry for c in run.captures]))
         scheduled_at += timedelta(minutes=1)
 

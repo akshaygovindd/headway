@@ -90,6 +90,7 @@ META_SCHEMAS: dict[str, pa.Schema] = {
             pa.field("http_status", pa.int64()),
             pa.field("scheduled_at", TS, nullable=False),
             pa.field("fetched_at", TS, nullable=False),
+            pa.field("poll_index", pa.int32()),  # null in parts written before 15 s sampling
             pa.field("feed_header_ts", TS),
             pa.field("entity_count", pa.int64()),
             pa.field("bytes", pa.int64()),

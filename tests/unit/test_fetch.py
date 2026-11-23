@@ -72,3 +72,16 @@ def test_404_not_retried() -> None:
     sleeps: list[float] = []
     r = fetch_feed(URL, client_for(httpx.MockTransport(handler)), sleeps.append)
     assert r.status == "error" and calls == 1 and sleeps == []
+
+
+def test_single_attempt_when_no_backoffs() -> None:
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(1)
+        return httpx.Response(503)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    result = fetch_feed("https://x/y", client, sleep=lambda s: None, backoffs=(), timeout=5.0)
+    assert result.status == "error" and result.http_status == 503
+    assert len(calls) == 1

@@ -30,15 +30,20 @@ def fetch_feed(
     client: httpx.Client,
     sleep: Callable[[float], None] = time.sleep,
     now: Callable[[], datetime] = _utcnow,
+    backoffs: tuple[float, ...] = BACKOFFS_SECONDS,
+    timeout: float = TIMEOUT_SECONDS,
 ) -> FetchResult:
-    """GET url, retrying transport errors and 5xx responses; 4xx is not retried."""
+    """GET url, retrying transport errors and 5xx responses; 4xx is not retried.
+
+    ``backoffs`` is the sleep before each retry (empty: a single attempt).
+    """
     http_status: int | None = None
     error = "no attempt made"
-    for attempt in range(len(BACKOFFS_SECONDS) + 1):
+    for attempt in range(len(backoffs) + 1):
         if attempt > 0:
-            sleep(BACKOFFS_SECONDS[attempt - 1])
+            sleep(backoffs[attempt - 1])
         try:
-            response = client.get(url, headers={"Accept-Encoding": "gzip"}, timeout=TIMEOUT_SECONDS)
+            response = client.get(url, headers={"Accept-Encoding": "gzip"}, timeout=timeout)
         except httpx.HTTPError as exc:
             http_status = None
             error = f"{type(exc).__name__}: {exc}"
