@@ -95,6 +95,20 @@ def _quarantine_lines(entry: ManifestEntry, rows: list[QuarantinedRow]) -> bytes
     return ("\n".join(lines) + "\n").encode()
 
 
+def quarantine_row(
+    entry: ManifestEntry, table: str, line_no: int, q: QuarantinedRow
+) -> dict[str, Any]:
+    """The curated ``quarantine`` row for line ``line_no`` of the capture's JSONL object."""
+    return {
+        "capture_id": entry.capture_id,
+        "source_table": table,
+        "reason": q.reason.value,
+        "error": q.error,
+        "line_no": line_no,
+        "fetched_at": entry.fetched_at,
+    }
+
+
 def _curated_row(entry: ManifestEntry, model: BaseModel) -> dict[str, Any]:
     row = model.model_dump()
     row.update(run_id=entry.run_id, city_id=entry.city_id, content_hash=entry.content_hash)
@@ -185,6 +199,10 @@ def normalize_batch(
                     _quarantine_lines(entry, bad),
                 )
             )
+            qts = entry.fetched_at.astimezone(UTC)
+            qkey = ("quarantine", f"{qts:%Y-%m-%d}", f"{qts:%H}")
+            part_ts[qkey] = qts
+            parts[qkey].extend(quarantine_row(entry, table, i, q) for i, q in enumerate(bad))
             for q in bad:
                 result.count_quarantine(table, q.reason.value)
 

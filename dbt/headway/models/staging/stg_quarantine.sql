@@ -3,12 +3,14 @@
 with q as (
     select
         capture_id,
-        "table" as source_table,
+        source_table,
         reason,
         split_part(error, chr(10), 1) as error,
         dt
     from {{ source('curated', 'quarantine') }}
     {{ lookback_filter() }}
+    -- one row per quarantined line; collapses parts written twice
+    qualify row_number() over (partition by capture_id, source_table, line_no order by fetched_at) = 1
 )
 
 select

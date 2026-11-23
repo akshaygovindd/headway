@@ -8,7 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from headway.config import CityConfig
-from headway.curate.schemas import REALTIME_SCHEMAS
+from headway.curate.schemas import COMPACTABLE_SCHEMAS
 from headway.storage import Storage
 
 COMPACTED = "part-compacted.parquet"
@@ -46,7 +46,7 @@ def compact_hour(
         return CompactResult(compacted=False, rows=0, inputs_removed=0)
 
     inputs = ([compacted_key] if compacted_key in keys else []) + sorted(parts)
-    schema = REALTIME_SCHEMAS[table]
+    schema = COMPACTABLE_SCHEMAS[table]
     tables = [pq.read_table(io.BytesIO(storage.get_bytes(k)), schema=schema) for k in inputs]
     expected = sum(t.num_rows for t in tables)
     merged = pa.concat_tables(tables)
@@ -69,6 +69,6 @@ def compact_all(storage: Storage, config: CityConfig) -> list[CompactResult]:
     seen: set[tuple[str, str, str]] = set()
     for key in storage.list_keys(f"curated/{config.storage_prefix}/table="):
         m = _HOUR_DIR.match(key)
-        if m and m.group(1) in REALTIME_SCHEMAS:
+        if m and m.group(1) in COMPACTABLE_SCHEMAS:
             seen.add((m.group(1), m.group(2), m.group(3)))
     return [compact_hour(storage, config, t, d, h) for t, d, h in sorted(seen)]

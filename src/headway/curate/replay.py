@@ -11,6 +11,7 @@ import pyarrow.parquet as pq
 from headway.config import CityConfig
 from headway.curate.compact import compact_all
 from headway.curate.pipeline import curate_new
+from headway.curate.schemas import META_SCHEMAS
 from headway.curate.static import StaticResult, load_static
 from headway.parse.gtfs_static import GtfsSource
 from headway.storage import LocalStorage, Storage
@@ -38,6 +39,8 @@ def summarize(storage: Storage, config: CityConfig) -> Summary:
         if m is None or not key.endswith(".parquet"):
             continue
         n = pq.read_metadata(io.BytesIO(storage.get_bytes(key))).num_rows
+        if m.group(1) in META_SCHEMAS:  # bookkeeping copies of manifests/quarantine, not data
+            continue
         bucket = out.static if "/static/" in key else out.curated
         bucket[m.group(1)] = bucket.get(m.group(1), 0) + n
     for key in storage.list_keys(f"quarantine/{prefix}/"):

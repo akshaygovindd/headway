@@ -138,12 +138,31 @@ transform needs curated data:
 ```sh
 aws lambda invoke --function-name headway-static --cli-read-timeout 330 /dev/stdout
 aws lambda invoke --function-name headway-curate --cli-read-timeout 330 /dev/stdout
-aws lambda invoke --function-name headway-transform --cli-read-timeout 630 /dev/stdout
+aws lambda invoke --function-name headway-transform --cli-read-timeout 930 /dev/stdout
 ```
 
 After that the schedules take over: curate every 15 minutes, compaction at :05, transform at :20,
 static daily at 09:00 UTC (04:00 EST, 05:00 EDT). To redeploy new code, run `make images-push`,
 update the URIs in `terraform.tfvars`, then plan and apply.
+
+### Backfill the curated manifests tables (once, when upgrading an existing deployment)
+
+The transform reads run manifests and quarantine records from curated Parquet
+(`curated/boston/table=manifests/` and `table=quarantine/`), which curation writes from the new
+image onward. Build them for the raw data that already exists by invoking the curate Lambda once,
+right after the apply that deploys the new images and before the next `:20` transform run (a
+transform that runs earlier sees only the manifests curated since the deploy):
+
+```sh
+aws lambda invoke --function-name headway-curate --cli-read-timeout 330 \
+  --cli-binary-format raw-in-base64-out --payload '{"task":"backfill_manifests"}' /dev/stdout
+```
+
+It reads every raw manifest and quarantine object, so it takes about a minute per week of data.
+The raw JSON stays the source of truth and the task is idempotent: re-running it, or running it
+while curation is writing, never duplicates rows (a fresh deployment does not need it). The
+summary line reports `manifest_rows`, `quarantine_rows` and `hours_rewritten`; a second run
+reports `hours_rewritten: 0`.
 
 ### Verify Phase 5b
 

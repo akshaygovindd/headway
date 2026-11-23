@@ -4,11 +4,13 @@ import json
 import re
 from collections import defaultdict
 from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 from headway.config import CityConfig
 from headway.contracts.manifest import ManifestEntry
+from headway.curate.meta import READ_WORKERS, write_manifest_parts
 from headway.curate.normalize import BatchResult, normalize_batch
 from headway.curate.static import load_dim_routes
 from headway.storage import Storage
@@ -98,16 +100,17 @@ def _advance(mark: Watermark | None, entries: list[ManifestEntry]) -> Watermark:
 def list_manifest_entries(
     storage: Storage, prefix: str, since: datetime | None = None
 ) -> list[ManifestEntry]:
-    entries: list[ManifestEntry] = []
+    keys = []
     for key in storage.list_keys(f"manifests/{prefix}/"):
         m = _PARTITION.search(key)
         if since is not None and m is not None:
             start = datetime.fromisoformat(f"{m.group(1)}T{m.group(2)}:00:00+00:00")
             if start + _PARTITION_MARGIN <= since:
                 continue
-        doc = json.loads(storage.get_bytes(key))
-        entries.extend(ManifestEntry.model_validate(e) for e in doc["entries"])
-    return entries
+        keys.append(key)
+    with ThreadPoolExecutor(READ_WORKERS) as pool:
+        docs = list(pool.map(lambda k: json.loads(storage.get_bytes(k)), keys))
+    return [ManifestEntry.model_validate(e) for doc in docs for e in doc["entries"]]
 
 
 def curate_new(
@@ -134,6 +137,7 @@ def curate_new(
     for hour in sorted(groups):
         group = groups[hour]
         result.batches.append(normalize_batch(storage, config, group, routes))
+        write_manifest_parts(storage, config, group)
         mark = _advance(mark, group)
         write_watermark(storage, prefix, mark)
     return result

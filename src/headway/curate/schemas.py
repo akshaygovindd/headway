@@ -74,6 +74,48 @@ REALTIME_SCHEMAS: dict[str, pa.Schema] = {
     ),
 }
 
+# Curated copies of ingest bookkeeping, so the transform reads a few Parquet files instead of
+# one JSON object per ingest run (manifests) or per capture (quarantine). The raw JSON objects
+# stay the source of truth; these are rebuilt from them by the backfill task.
+META_SCHEMAS: dict[str, pa.Schema] = {
+    # One row per manifest entry (a capture attempt). Explicit TIMESTAMPTZ types so every DuckDB
+    # version reads the same schema (JSON inference differs between 1.5 and 2.0).
+    "manifests": pa.schema(
+        [
+            pa.field("run_id", pa.string(), nullable=False),
+            pa.field("capture_id", pa.string(), nullable=False),
+            pa.field("city_id", pa.string(), nullable=False),
+            pa.field("feed", pa.string(), nullable=False),
+            pa.field("status", pa.string(), nullable=False),
+            pa.field("http_status", pa.int64()),
+            pa.field("scheduled_at", TS, nullable=False),
+            pa.field("fetched_at", TS, nullable=False),
+            pa.field("feed_header_ts", TS),
+            pa.field("entity_count", pa.int64()),
+            pa.field("bytes", pa.int64()),
+            pa.field("content_hash", pa.string()),
+            pa.field("s3_key", pa.string()),
+            pa.field("error", pa.string()),
+            pa.field("header_parse_error", pa.string()),
+        ]
+    ),
+    # One row per quarantined record (or whole capture for parse errors). ``source_table`` is the
+    # feed table the record belonged to; ``line_no`` is its position in the JSONL object.
+    "quarantine": pa.schema(
+        [
+            pa.field("capture_id", pa.string(), nullable=False),
+            pa.field("source_table", pa.string(), nullable=False),
+            pa.field("reason", pa.string(), nullable=False),
+            pa.field("error", pa.string(), nullable=False),
+            pa.field("line_no", pa.int32(), nullable=False),
+            pa.field("fetched_at", TS),
+        ]
+    ),
+}
+
+# Every table that is written as hourly part files and merged by compaction.
+COMPACTABLE_SCHEMAS: dict[str, pa.Schema] = {**REALTIME_SCHEMAS, **META_SCHEMAS}
+
 _FV = pa.field("feed_version", pa.string(), nullable=False)
 
 STATIC_SCHEMAS: dict[str, pa.Schema] = {
@@ -197,7 +239,7 @@ SCHEMAS: dict[str, pa.Schema] = {**REALTIME_SCHEMAS, **STATIC_SCHEMAS}
 
 def to_table(name: str, rows: Iterable[Mapping[str, Any]]) -> pa.Table:
     """Build a table with the explicit schema; missing optional columns become null."""
-    schema = SCHEMAS[name]
+    schema = SCHEMAS.get(name) or META_SCHEMAS[name]
     materialized = list(rows)
     columns = {f.name: [r.get(f.name) for r in materialized] for f in schema}
     return pa.Table.from_pydict(columns, schema=schema)

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import boto3
+import pyarrow.parquet as pq
 import pytest
 from moto import mock_aws
 
@@ -104,3 +105,28 @@ def test_summary_is_one_json_line(bucket: S3Storage, caplog: pytest.LogCaptureFi
     handler.static_handler({}, None)
     lines = [r.message for r in caplog.records if r.message.startswith("{")]
     assert json.loads(lines[-1])["task"] == "static"
+
+
+def test_curate_writes_manifest_and_quarantine_tables(bucket: S3Storage) -> None:
+    stage_inputs(LocalStorage(SAMPLE), bucket, CONFIG)
+    handler.static_handler({}, None)
+    handler.curate_handler({}, None)
+    raw_entries = 3 * len(bucket.list_keys("manifests/boston/"))
+    manifests = [k for k in _curated(bucket, ".parquet") if "/table=manifests/" in k]
+    assert {k.split("/")[3] for k in manifests} == {"dt=2026-11-22"}
+    assert sum(pq.read_metadata(io.BytesIO(bucket.get_bytes(k))).num_rows for k in manifests) == (
+        raw_entries
+    )
+    assert any("/table=quarantine/" in k for k in _curated(bucket, ".parquet"))
+
+
+def test_backfill_task_builds_the_tables_from_raw_objects(bucket: S3Storage) -> None:
+    stage_inputs(LocalStorage(SAMPLE), bucket, CONFIG)
+    first = handler.curate_handler({"task": "backfill_manifests"}, None)
+    assert first["task"] == "backfill_manifests"
+    assert first["manifest_rows"] == 3 * len(bucket.list_keys("manifests/boston/"))
+    assert first["hours_rewritten"] > 0
+
+    again = handler.curate_handler({"task": "backfill_manifests"}, None)
+    assert again["manifest_rows"] == first["manifest_rows"]
+    assert again["hours_rewritten"] == 0

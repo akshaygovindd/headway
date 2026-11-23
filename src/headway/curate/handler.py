@@ -13,8 +13,9 @@ import httpx
 
 from headway.config import CityConfig, load_city_config
 from headway.curate.compact import compact_hour
+from headway.curate.meta import backfill_manifests
 from headway.curate.pipeline import curate_new
-from headway.curate.schemas import REALTIME_SCHEMAS
+from headway.curate.schemas import COMPACTABLE_SCHEMAS
 from headway.curate.static import load_static
 from headway.parse.gtfs_static import GtfsSource
 from headway.storage import LocalStorage, S3Storage, Storage
@@ -56,7 +57,7 @@ def _compact_previous_hour(storage: Storage, config: CityConfig, now: datetime) 
     hour = now.astimezone(UTC).replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
     rows = 0
     removed = 0
-    for table in sorted(REALTIME_SCHEMAS):
+    for table in sorted(COMPACTABLE_SCHEMAS):
         result = compact_hour(storage, config, table, f"{hour:%Y-%m-%d}", f"{hour:%H}")
         rows += result.rows
         removed += result.inputs_removed
@@ -64,9 +65,17 @@ def _compact_previous_hour(storage: Storage, config: CityConfig, now: datetime) 
 
 
 def curate_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
-    """Curate new captures; with ``{"task": "compact"}`` compact the previous UTC hour instead."""
+    """Curate new captures.
+
+    ``{"task": "compact"}`` compacts the previous UTC hour instead; ``{"task":
+    "backfill_manifests"}`` is a one-off that builds the curated manifests and quarantine tables
+    from all existing raw objects (idempotent).
+    """
     started = time.monotonic()
     storage, config = _storage_and_config()
+    if (event or {}).get("task") == "backfill_manifests":
+        summary = {"task": "backfill_manifests", **backfill_manifests(storage, config).as_dict()}
+        return _log(summary, started)
     if (event or {}).get("task") == "compact":
         return _log(_compact_previous_hour(storage, config, _now()), started)
     result = curate_new(storage, config)

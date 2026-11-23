@@ -41,5 +41,13 @@ Written during Release 1.
   bakes the httpfs, aws and motherduck extensions for it (`v1.5.6/linux_arm64`). Bump the pin only
   after MotherDuck lists the new version as supported.
 - **Revisit when:** history beyond the lookback is needed (R2 adds incremental history, keeping
-  older partitions rather than rebuilding them), the build approaches the 600 s timeout, or
+  older partitions rather than rebuilding them), the build approaches the 900 s timeout (the Lambda maximum), or
   MotherDuck limits change.
+- **Reading S3 once per run:** Realtime staging and all intermediate models are tables, so the
+  curated files are scanned once per run instead of by every downstream model and test (views over
+  S3 made a trivial test cost 50-110 s with a day of data). Run manifests and quarantine records
+  are also curated as hourly Parquet (`table=manifests`, `table=quarantine`) because the raw
+  objects are one JSON file per ingest run / capture, so the file count grows with every minute of
+  ingest; the raw JSON stays the source of truth and the `backfill_manifests` curate task rebuilds
+  the Parquet from it. Overlapping transform runs are prevented with an S3 lock object
+  (`state/<city>/transform.lock`, conditional put; a lock older than 15 minutes is stale).

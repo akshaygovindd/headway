@@ -13,6 +13,10 @@ from pathlib import Path
 
 import pytest
 
+from headway.config import load_city_config
+from headway.contracts.manifest import ManifestEntry
+from headway.curate.meta import write_manifest_parts
+from headway.storage import LocalStorage
 from headway.timeutil import gtfs_time_to_utc, service_date_for
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -98,34 +102,29 @@ def test_lookback_filter_bounds_the_dt_partition(tmp_path: Path) -> None:
 
 
 def test_manifest_timestamps_are_tz_aware_on_every_duckdb(tmp_path: Path) -> None:
-    """The manifests source must read `...Z` strings as TIMESTAMPTZ (UTC instants).
+    """The curated manifests Parquet must read back as TIMESTAMPTZ (UTC instants).
 
-    DuckDB 1.5 auto-detects them as naive TIMESTAMP while 2.0 detects TIMESTAMPTZ, which shifted
-    the capture/schedule comparison by the session offset. The source declares its columns.
+    DuckDB 1.5 auto-detects `...Z` JSON strings as naive TIMESTAMP while 2.0 detects TIMESTAMPTZ,
+    which shifted the capture/schedule comparison by the session offset. The Parquet table has an
+    explicit UTC timestamp schema, so every DuckDB version reads the same type and instants.
     """
-    stamps = [t for t in TS_CASES]  # includes both DST transition days
+    stamps = list(TS_CASES)  # includes both DST transition days
     entries = [
-        {
-            "capture_id": f"c{i}", "city_id": "boston", "feed": "trip_updates",
-            "scheduled_at": f"{t:%Y-%m-%dT%H:%M:%S}Z",
-            "fetched_at": f"{t:%Y-%m-%dT%H:%M:%S}.250000Z",
-            "status": "ok", "http_status": 200, "bytes": 1, "entity_count": 1,
-            "content_hash": "h", "feed_header_ts": f"{t:%Y-%m-%dT%H:%M:%S}Z",
-            "header_parse_error": None, "error": None,
-        }
+        ManifestEntry(
+            run_id="r1", capture_id=f"c{i}", feed="trip_updates", city_id="boston", status="ok",
+            http_status=200, scheduled_at=t, fetched_at=t.replace(microsecond=250000),
+            feed_header_ts=t, entity_count=1, bytes=1, content_hash="h", s3_key="raw/x",
+        )
         for i, t in enumerate(stamps)
     ]  # fmt: skip
-    manifest_dir = tmp_path / "manifests" / "boston" / "dt=2026-11-22" / "hour=14"
-    manifest_dir.mkdir(parents=True)
-    (manifest_dir / "run.json").write_text(json.dumps({"run_id": "r1", "entries": entries}))
+    write_manifest_parts(LocalStorage(tmp_path), load_city_config("boston"), entries)
     sql = (
-        "select any_value(typeof(e.fetched_at)) as typ, "
-        "string_agg(strftime(e.fetched_at at time zone 'UTC', '%Y-%m-%dT%H:%M:%S.%g'), ',' "
-        "order by e.capture_id) as fetched "
-        "from (select unnest(entries) as e from {{ source('curated', 'manifests') }})"
+        "select any_value(typeof(fetched_at)) as typ, "
+        "string_agg(strftime(fetched_at at time zone 'UTC', '%Y-%m-%dT%H:%M:%S.%g'), ',' "
+        "order by capture_id) as fetched "
+        "from {{ source('curated', 'manifests') }}"
     )
     (row,) = _dbt_show(sql, tmp_path, json.dumps({"curated_root": str(tmp_path)}))
     assert row["typ"] == "TIMESTAMP WITH TIME ZONE"
-    expected = ",".join(f"{t:%Y-%m-%dT%H:%M:%S}.250" for t in sorted(stamps, key=lambda _: 0))
-    got = sorted(row["fetched"].split(","))
-    assert got == sorted(expected.split(","))
+    expected = [f"{t:%Y-%m-%dT%H:%M:%S}.250" for t in stamps]
+    assert sorted(row["fetched"].split(",")) == sorted(expected)

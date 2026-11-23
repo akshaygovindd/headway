@@ -1,23 +1,20 @@
--- One row per capture attempt recorded in an ingest run manifest.
-with runs as (
-    select run_id, unnest(entries) as e
-    from {{ source('curated', 'manifests') }}
-    {{ lookback_filter() }}
-)
-
+-- One row per capture attempt recorded in an ingest run manifest. Duplicates (a part written
+-- twice by overlapping curation or backfill runs) collapse on run_id x capture_id.
 select
-    e.capture_id as capture_id,
+    capture_id,
     run_id,
-    e.city_id as city_id,
-    e.feed as feed,
-    e.scheduled_at as scheduled_at,
-    e.fetched_at as fetched_at,
-    e.status as status,
-    e.http_status as http_status,
-    e.bytes as bytes,
-    e.entity_count as entity_count,
-    e.content_hash as content_hash,
-    e.feed_header_ts as feed_header_ts,
-    e.header_parse_error as header_parse_error,
-    e.error as error
-from runs
+    city_id,
+    feed,
+    scheduled_at,
+    fetched_at,
+    status,
+    http_status,
+    bytes,
+    entity_count,
+    content_hash,
+    feed_header_ts,
+    header_parse_error,
+    error
+from {{ source('curated', 'manifests') }}
+{{ lookback_filter() }}
+qualify row_number() over (partition by run_id, capture_id order by fetched_at) = 1
