@@ -110,7 +110,12 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
   records with an event_ts`, over `trip_updates` and `vehicle_positions` rows of
   non-duplicate captures. The 5 minute bound is fixed. Alongside it,
   `missed_runs = expected_runs - distinct run_id`, and `duplicate_share` is the percentage
-  of successful captures that repeat the previous payload.
+  of successful captures that repeat the previous payload. `duplicate_deliveries` counts, per
+  hour, the extra scheduler deliveries of a minute (EventBridge Scheduler is at-least-once):
+  `agg_pipeline_health.duplicate_delivery_count` is the number of runs recorded for the run's
+  scheduled minute beyond the first, reported on the earliest kept run.
+  `stg_manifests` keeps one row per `capture_id`: the earliest `fetched_at`, ties broken by the
+  lowest `run_id`; duplicate-delivery records written by ingest are excluded from it.
 - **Grain:** service_date x hour_local x check_name (`agg_quality_checks_hourly`); per run
   in `agg_pipeline_health`.
 - **Numerator / denominator:** late records over records with an event time. Expected runs
@@ -120,6 +125,7 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
 - **Source models:** `int_captures`, `stg_trip_updates`, `stg_vehicle_positions`,
   `agg_quality_checks_hourly`, `agg_pipeline_health`.
 - **Thresholds:** seed `quality_thresholds` (warn / fail): missed_runs 3/10 per hour,
+  duplicate_deliveries 1/5 per hour,
   duplicate_share 20/50 %, invalid_coordinate_share 0.5/5 %, missing_trip_id_share
   5/20 %, prediction_coverage 80/50 % (below), schedule_join_coverage 90/70 % (below),
   late_event_share 5/20 %, implausible_deviation_share 1/5 % (implausible picks over

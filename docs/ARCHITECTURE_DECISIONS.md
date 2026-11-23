@@ -51,3 +51,23 @@ Written during Release 1.
   ingest; the raw JSON stays the source of truth and the `backfill_manifests` curate task rebuilds
   the Parquet from it. Overlapping transform runs are prevented with an S3 lock object
   (`state/<city>/transform.lock`, conditional put; a lock older than 15 minutes is stale).
+
+### ADR-013: At-least-once scheduling, one manifest per scheduled minute
+
+- **Status:** Accepted
+- **Context:** EventBridge Scheduler delivers at least once, so a minute can reach the ingest
+  Lambda twice, even within the same second. Both runs fetched and wrote a manifest, which put the
+  same `capture_id` in two runs and broke the grain tests (see INCIDENTS.md).
+- **Decision:** Retries stay at 0 on every schedule and function. The manifest key is derived from
+  the scheduled minute and written with a conditional create (`IfNoneMatch='*'`). The delivery
+  that loses writes a small duplicate-delivery record under `manifests/<city>/duplicates/`, logs it
+  and exits normally. Duplicates are flagged, never silently dropped: curation records them in the
+  manifests table with status `duplicate_delivery` (their captures are not curated as data),
+  `agg_pipeline_health.duplicate_delivery_count` and the hourly `duplicate_deliveries` check
+  count them, and `stg_manifests` deduplicates on `capture_id` (earliest `fetched_at`, then lowest
+  `run_id`) so history written before this change satisfies the grain tests.
+- **Consequences:** The second delivery still fetches the feeds and may leave raw objects with
+  other capture ids that no manifest references; they are not curated. Gold objects are served with
+  `Cache-Control: max-age=300` and the live snapshot with `max-age=30`.
+- **Revisit when:** a duplicate-heavy period makes the wasted fetch matter (claim the minute before
+  fetching), or the scheduler offers exactly-once delivery.
