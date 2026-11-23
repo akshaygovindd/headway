@@ -92,13 +92,20 @@ def test_freshness() -> None:
 
 def test_data_url_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("HEADWAY_DATA_URL", raising=False)
+    monkeypatch.setattr(data, "secret_url", lambda: "")
+    assert data.base_url() == data.DEFAULT_URL
+    assert data.DEFAULT_URL.startswith("https://") and not data.DEFAULT_URL.endswith("/")
+    monkeypatch.setattr(data, "secret_url", lambda: "https://secret.example/boston")
+    assert data.base_url() == "https://secret.example/boston"
+    monkeypatch.setenv("HEADWAY_DATA_URL", "ftp://bad.example/x")
     with pytest.raises(data.DataUnavailableError):
         data.base_url()
+    monkeypatch.delenv("HEADWAY_DATA_URL")
     with pytest.raises(data.DataUnavailableError):
         data.base_url("http://insecure.example/x")
     assert data.base_url("https://example.org/boston/") == "https://example.org/boston"
     monkeypatch.setenv("HEADWAY_DATA_URL", "file:///tmp/x")
-    assert data.base_url() == "file:///tmp/x"
+    assert data.base_url() == "file:///tmp/x"  # env wins over the secret
 
 
 def test_load_from_file_url(tmp_path: Path) -> None:

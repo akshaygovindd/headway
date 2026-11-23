@@ -1,4 +1,7 @@
-"""Load gold tables and the live snapshot from HEADWAY_DATA_URL (file:// or https://).
+"""Load gold tables and the live snapshot from a data URL (file:// or https://).
+
+The URL comes from the HEADWAY_DATA_URL environment variable, then the Streamlit secret of the
+same name, then the public default below. Only public HTTPS objects are read; no credentials.
 
 Layout under the base URL: gold/<table>.parquet, gold/manifest.json,
 live/vehicles_latest.json. Caching is left to the callers (the Streamlit pages).
@@ -15,6 +18,7 @@ import pandas as pd
 
 TIMEOUT_SECONDS = 15
 ENV_VAR = "HEADWAY_DATA_URL"
+DEFAULT_URL = "https://headway-public-381232271655.s3.us-east-1.amazonaws.com/public/boston"
 GOLD_TABLES = (
     "agg_line_reliability_hourly",
     "agg_line_reliability_window",
@@ -32,10 +36,19 @@ class DataUnavailableError(RuntimeError):
     """The data source could not be read."""
 
 
+def secret_url() -> str:
+    """The HEADWAY_DATA_URL Streamlit secret, or "" when there is no secrets file or key."""
+    try:
+        import streamlit as st
+
+        return str(st.secrets.get(ENV_VAR, "") or "")
+    except Exception:  # no secrets.toml, or streamlit unavailable
+        return ""
+
+
 def base_url(value: str | None = None) -> str:
-    url = value if value is not None else os.environ.get(ENV_VAR, "")
-    if not url:
-        raise DataUnavailableError(f"{ENV_VAR} is not set")
+    """Resolve the data root: `value`, else env, else Streamlit secret, else the public default."""
+    url = value if value is not None else os.environ.get(ENV_VAR) or secret_url() or DEFAULT_URL
     if not url.startswith(("file://", "https://")):
         raise DataUnavailableError(f"{ENV_VAR} must start with file:// or https://")
     return url.rstrip("/")
