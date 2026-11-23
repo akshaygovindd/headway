@@ -24,15 +24,15 @@ unit_tests:
           - {trip_instance_key: "T1|2026-11-22|08:00:00", stop_sequence: 5, stop_id: s5, dist_m: 4000}
       - input: ref('int_vehicle_stop_events')
         rows:
-          - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c1, event_ts: "2026-11-22 13:00:00+00", dist_m: 0, current_status: STOPPED_AT, current_stop_sequence: 1}
-          - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c2, event_ts: "2026-11-22 13:01:40+00", dist_m: 700, current_status: IN_TRANSIT_TO, current_stop_sequence: 2}
-          - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c3, event_ts: "2026-11-22 13:02:00+00", dist_m: 1000, current_status: STOPPED_AT, current_stop_sequence: 2}
-          - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c4, event_ts: "2026-11-22 13:02:30+00", dist_m: 1000, current_status: STOPPED_AT, current_stop_sequence: 2}
-          - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c5, event_ts: "2026-11-22 13:03:20+00", dist_m: 1800, current_status: IN_TRANSIT_TO, current_stop_sequence: 3}
-          - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c6, event_ts: "2026-11-22 13:05:20+00", dist_m: 3400, current_status: IN_TRANSIT_TO, current_stop_sequence: 5}
-          - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c7, event_ts: "2026-11-22 13:06:00+00", dist_m: 4000, current_status: STOPPED_AT, current_stop_sequence: 5}
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c1, event_ts: "2026-11-22 13:00:00+00", dist_m: 0, current_status: STOPPED_AT, current_stop_sequence: 1}
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c2, event_ts: "2026-11-22 13:01:40+00", dist_m: 700, current_status: IN_TRANSIT_TO, current_stop_sequence: 2}
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c3, event_ts: "2026-11-22 13:02:00+00", dist_m: 1000, current_status: STOPPED_AT, current_stop_sequence: 2}
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c4, event_ts: "2026-11-22 13:02:30+00", dist_m: 1000, current_status: STOPPED_AT, current_stop_sequence: 2}
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c5, event_ts: "2026-11-22 13:03:20+00", dist_m: 1800, current_status: IN_TRANSIT_TO, current_stop_sequence: 3}
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c6, event_ts: "2026-11-22 13:05:20+00", dist_m: 3400, current_status: IN_TRANSIT_TO, current_stop_sequence: 5}
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "T1|2026-11-22|08:00:00", capture_id: c7, event_ts: "2026-11-22 13:06:00+00", dist_m: 4000, current_status: STOPPED_AT, current_stop_sequence: 5}
           # an observation the model must not use
-          - {vehicle_id: v9, trip_instance_key: "ADDED-1|2026-11-22|", capture_id: c8, event_ts: "2026-11-22 13:00:30+00", dist_m: null, exclusion_reason: added_trip}
+          - {vehicle_id: v9, segment: 0, trip_instance_key: "ADDED-1|2026-11-22|", capture_id: c8, event_ts: "2026-11-22 13:00:30+00", dist_m: null, exclusion_reason: added_trip}
     expect:
       rows:
         - {trip_instance_key: "T1|2026-11-22|08:00:00", stop_sequence: 1, method: missing, confidence: null, arrival_ts: null, interval_width_s: null, bracket_gap_s: null, monotonic_ok: true}
@@ -58,12 +58,12 @@ unit_tests:
           - {trip_instance_key: "T2|2026-11-22|08:00:00", stop_sequence: 5, stop_id: s5, dist_m: 3500}
       - input: ref('int_vehicle_stop_events')
         rows:
-          - {vehicle_id: v2, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d1, event_ts: "2026-11-22 14:00:00+00", dist_m: 0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1}
-          - {vehicle_id: v2, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d2, event_ts: "2026-11-22 14:00:30+00", dist_m: 0, current_status: STOPPED_AT, current_stop_sequence: 1}
-          - {vehicle_id: v2, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d3, event_ts: "2026-11-22 14:01:01+00", dist_m: 1000, current_status: STOPPED_AT, current_stop_sequence: 2}
-          - {vehicle_id: v2, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d4, event_ts: "2026-11-22 14:03:01+00", dist_m: 2000, current_status: STOPPED_AT, current_stop_sequence: 3}
-          - {vehicle_id: v2, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d5, event_ts: "2026-11-22 14:05:02+00", dist_m: 3000, current_status: STOPPED_AT, current_stop_sequence: 4}
-          - {vehicle_id: v2, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d6, event_ts: "2026-11-22 14:07:03+00", dist_m: 4000, current_status: IN_TRANSIT_TO, current_stop_sequence: 6}
+          - {vehicle_id: v2, segment: 0, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d1, event_ts: "2026-11-22 14:00:00+00", dist_m: 0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1}
+          - {vehicle_id: v2, segment: 0, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d2, event_ts: "2026-11-22 14:00:30+00", dist_m: 0, current_status: STOPPED_AT, current_stop_sequence: 1}
+          - {vehicle_id: v2, segment: 0, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d3, event_ts: "2026-11-22 14:01:01+00", dist_m: 1000, current_status: STOPPED_AT, current_stop_sequence: 2}
+          - {vehicle_id: v2, segment: 0, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d4, event_ts: "2026-11-22 14:03:01+00", dist_m: 2000, current_status: STOPPED_AT, current_stop_sequence: 3}
+          - {vehicle_id: v2, segment: 0, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d5, event_ts: "2026-11-22 14:05:02+00", dist_m: 3000, current_status: STOPPED_AT, current_stop_sequence: 4}
+          - {vehicle_id: v2, segment: 0, trip_instance_key: "T2|2026-11-22|08:00:00", capture_id: d6, event_ts: "2026-11-22 14:07:03+00", dist_m: 4000, current_status: IN_TRANSIT_TO, current_stop_sequence: 6}
     expect:
       rows:
         - {trip_instance_key: "T2|2026-11-22|08:00:00", stop_sequence: 1, method: observed, confidence: high, arrival_ts: "2026-11-22 14:00:15+00", interval_width_s: 30, bracket_gap_s: null, monotonic_ok: true}
@@ -72,13 +72,13 @@ unit_tests:
         - {trip_instance_key: "T2|2026-11-22|08:00:00", stop_sequence: 4, method: observed, confidence: low, arrival_ts: "2026-11-22 14:04:01.5+00", interval_width_s: 121, bracket_gap_s: null, monotonic_ok: true}
         - {trip_instance_key: "T2|2026-11-22|08:00:00", stop_sequence: 5, method: bracketed, confidence: low, arrival_ts: "2026-11-22 14:06:02.5+00", interval_width_s: null, bracket_gap_s: 121, monotonic_ok: true}
 
-  - name: reconstructed_arrivals_monotonic_violation
+  - name: reconstructed_arrivals_stop_projected_behind_its_predecessor
     config:
       tags: [r2]
     description: >-
-      Stop 2 is projected before stop 1 on the shape (900 m against 1000 m), so its bracketed
-      arrival (36 s) comes before stop 1's (40 s). Both rows are flagged, set to low, and stop 3,
-      which is in order, keeps its confidence.
+      Stop 2 is projected before stop 1 on the shape (900 m against 1000 m). Its distance is lifted
+      to its predecessor's, so its bracketed arrival equals stop 1's (40 s) instead of coming
+      earlier (36 s); stop 3 follows. Every row is monotonic.
     model: fct_reconstructed_arrivals
     given:
       - input: ref('int_trip_stop_distances')
@@ -88,10 +88,70 @@ unit_tests:
           - {trip_instance_key: "T3|2026-11-22|08:00:00", stop_sequence: 3, stop_id: s3, dist_m: 1400}
       - input: ref('int_vehicle_stop_events')
         rows:
-          - {vehicle_id: v3, trip_instance_key: "T3|2026-11-22|08:00:00", capture_id: e1, event_ts: "2026-11-22 15:00:00+00", dist_m: 0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1}
-          - {vehicle_id: v3, trip_instance_key: "T3|2026-11-22|08:00:00", capture_id: e2, event_ts: "2026-11-22 15:01:00+00", dist_m: 1500, current_status: IN_TRANSIT_TO, current_stop_sequence: 3}
+          - {vehicle_id: v3, segment: 0, trip_instance_key: "T3|2026-11-22|08:00:00", capture_id: e1, event_ts: "2026-11-22 15:00:00+00", dist_m: 0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1}
+          - {vehicle_id: v3, segment: 0, trip_instance_key: "T3|2026-11-22|08:00:00", capture_id: e2, event_ts: "2026-11-22 15:01:00+00", dist_m: 1500, current_status: IN_TRANSIT_TO, current_stop_sequence: 3}
     expect:
       rows:
-        - {trip_instance_key: "T3|2026-11-22|08:00:00", stop_sequence: 1, method: bracketed, confidence: low, arrival_ts: "2026-11-22 15:00:40+00", interval_width_s: null, bracket_gap_s: 60, monotonic_ok: false}
-        - {trip_instance_key: "T3|2026-11-22|08:00:00", stop_sequence: 2, method: bracketed, confidence: low, arrival_ts: "2026-11-22 15:00:36+00", interval_width_s: null, bracket_gap_s: 60, monotonic_ok: false}
-        - {trip_instance_key: "T3|2026-11-22|08:00:00", stop_sequence: 3, method: bracketed, confidence: medium, arrival_ts: "2026-11-22 15:00:56+00", interval_width_s: null, bracket_gap_s: 60, monotonic_ok: true}
+        - {trip_instance_key: "T3|2026-11-22|08:00:00", stop_sequence: 1, method: bracketed, confidence: medium, arrival_ts: "2026-11-22 15:00:40+00", bracket_gap_s: 60, monotonic_ok: true}
+        - {trip_instance_key: "T3|2026-11-22|08:00:00", stop_sequence: 2, method: bracketed, confidence: medium, arrival_ts: "2026-11-22 15:00:40+00", bracket_gap_s: 60, monotonic_ok: true}
+        - {trip_instance_key: "T3|2026-11-22|08:00:00", stop_sequence: 3, method: bracketed, confidence: medium, arrival_ts: "2026-11-22 15:00:56+00", bracket_gap_s: 60, monotonic_ok: true}
+
+  - name: reconstructed_arrivals_bracketed_stop_follows_an_observed_stop_with_a_dwell
+    config:
+      tags: [r2]
+    description: >-
+      Stop 2 (1000 m) is observed: previous capture 13:01:00 (800 m), first STOPPED_AT 13:01:40,
+      midpoint 13:01:20. The vehicle is seen at 1050 m at 13:03:00 after a dwell and reaches
+      2000 m at 13:04:00. Stop 3 (1500 m) is bracketed between the 1050 m raw observation
+      (13:03:00) and the 2000 m one (13:04:00): 13:03:28.4, which is after stop 2's arrival. Stop 1
+      (500 m) sits between the 0 m and 800 m observations: 13:00:37.5 on its own interpolation.
+    model: fct_reconstructed_arrivals
+    given:
+      - input: ref('int_trip_stop_distances')
+        rows:
+          - {trip_instance_key: "T4|2026-11-22|08:00:00", stop_sequence: 1, stop_id: s1, dist_m: 500}
+          - {trip_instance_key: "T4|2026-11-22|08:00:00", stop_sequence: 2, stop_id: s2, dist_m: 1000}
+          - {trip_instance_key: "T4|2026-11-22|08:00:00", stop_sequence: 3, stop_id: s3, dist_m: 1500}
+      - input: ref('int_vehicle_stop_events')
+        rows:
+          - {vehicle_id: v4, segment: 0, trip_instance_key: "T4|2026-11-22|08:00:00", capture_id: f1, event_ts: "2026-11-22 13:00:00+00", dist_m: 0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1}
+          - {vehicle_id: v4, segment: 0, trip_instance_key: "T4|2026-11-22|08:00:00", capture_id: f2, event_ts: "2026-11-22 13:01:00+00", dist_m: 800, current_status: IN_TRANSIT_TO, current_stop_sequence: 2}
+          - {vehicle_id: v4, segment: 0, trip_instance_key: "T4|2026-11-22|08:00:00", capture_id: f3, event_ts: "2026-11-22 13:01:40+00", dist_m: 1000, current_status: STOPPED_AT, current_stop_sequence: 2}
+          - {vehicle_id: v4, segment: 0, trip_instance_key: "T4|2026-11-22|08:00:00", capture_id: f4, event_ts: "2026-11-22 13:03:00+00", dist_m: 1050, current_status: IN_TRANSIT_TO, current_stop_sequence: 3}
+          - {vehicle_id: v4, segment: 0, trip_instance_key: "T4|2026-11-22|08:00:00", capture_id: f5, event_ts: "2026-11-22 13:04:00+00", dist_m: 2000, current_status: IN_TRANSIT_TO, current_stop_sequence: 4}
+    expect:
+      rows:
+        - {trip_instance_key: "T4|2026-11-22|08:00:00", stop_sequence: 1, method: bracketed, arrival_ts: "2026-11-22 13:00:37.5+00", monotonic_ok: true}
+        - {trip_instance_key: "T4|2026-11-22|08:00:00", stop_sequence: 2, method: observed, arrival_ts: "2026-11-22 13:01:20+00", monotonic_ok: true}
+        - {trip_instance_key: "T4|2026-11-22|08:00:00", stop_sequence: 3, method: bracketed, arrival_ts: "2026-11-22 13:03:28.421053+00", monotonic_ok: true}
+
+  - name: reconstructed_arrivals_reused_trip_id_makes_a_second_segment
+    config:
+      tags: [r2]
+    description: >-
+      One vehicle runs trip T5 (stops at 0, 1000, 2000 m) and then runs the same trip id again: its
+      stop sequence goes 3 then back to 1. The second run is segment 1 with its own observations,
+      so its stop 1 arrives at 13:30:20 and there is no backward jump in either run; neither run
+      is flagged. Run 0 reaches stop 3 at 13:08:20.
+    model: fct_reconstructed_arrivals
+    given:
+      - input: ref('int_trip_stop_distances')
+        rows:
+          - {trip_instance_key: "T5|2026-11-22|08:00:00", stop_sequence: 1, stop_id: s1, dist_m: 0}
+          - {trip_instance_key: "T5|2026-11-22|08:00:00", stop_sequence: 2, stop_id: s2, dist_m: 1000}
+          - {trip_instance_key: "T5|2026-11-22|08:00:00", stop_sequence: 3, stop_id: s3, dist_m: 2000}
+      - input: ref('int_vehicle_stop_events')
+        rows:
+          - {vehicle_id: v5, segment: 0, trip_instance_key: "T5|2026-11-22|08:00:00", capture_id: g1, event_ts: "2026-11-22 13:00:00+00", dist_m: 0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1}
+          - {vehicle_id: v5, segment: 0, trip_instance_key: "T5|2026-11-22|08:00:00", capture_id: g2, event_ts: "2026-11-22 13:04:00+00", dist_m: 1000, current_status: STOPPED_AT, current_stop_sequence: 2}
+          - {vehicle_id: v5, segment: 0, trip_instance_key: "T5|2026-11-22|08:00:00", capture_id: g3, event_ts: "2026-11-22 13:08:00+00", dist_m: 2000, current_status: IN_TRANSIT_TO, current_stop_sequence: 3}
+          - {vehicle_id: v5, segment: 1, trip_instance_key: "T5|2026-11-22|08:00:00", capture_id: g4, event_ts: "2026-11-22 13:30:00+00", dist_m: 0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1}
+          - {vehicle_id: v5, segment: 1, trip_instance_key: "T5|2026-11-22|08:00:00", capture_id: g5, event_ts: "2026-11-22 13:30:40+00", dist_m: 0, current_status: STOPPED_AT, current_stop_sequence: 1}
+          - {vehicle_id: v5, segment: 1, trip_instance_key: "T5|2026-11-22|08:00:00", capture_id: g6, event_ts: "2026-11-22 13:34:00+00", dist_m: 1000, current_status: IN_TRANSIT_TO, current_stop_sequence: 2}
+    expect:
+      rows:
+        - {trip_instance_key: "T5|2026-11-22|08:00:00", segment: 0, stop_sequence: 1, method: missing, arrival_ts: null, monotonic_ok: true}
+        - {trip_instance_key: "T5|2026-11-22|08:00:00", segment: 0, stop_sequence: 2, method: observed, arrival_ts: "2026-11-22 13:02:00+00", monotonic_ok: true}
+        - {trip_instance_key: "T5|2026-11-22|08:00:00", segment: 0, stop_sequence: 3, method: bracketed, arrival_ts: "2026-11-22 13:08:00+00", monotonic_ok: true}
+        - {trip_instance_key: "T5|2026-11-22|08:00:00", segment: 1, stop_sequence: 1, method: observed, arrival_ts: "2026-11-22 13:30:20+00", monotonic_ok: true}
+        - {trip_instance_key: "T5|2026-11-22|08:00:00", segment: 1, stop_sequence: 2, method: bracketed, arrival_ts: "2026-11-22 13:34:00+00", monotonic_ok: true}

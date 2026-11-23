@@ -316,17 +316,21 @@ models:
         data_tests:
           - not_null
   - name: fct_reconstructed_arrivals
-    description: "Reconstructed arrival of a vehicle at each scheduled stop on the stretch of the trip it was observed on, with the method used and a confidence. Observed arrivals are the midpoint of the interval between the last capture before the first STOPPED_AT and that STOPPED_AT; bracketed ones are interpolated by distance between neighbouring observations."
+    description: "Reconstructed arrival of a vehicle at each scheduled stop on the stretch of the trip it was observed on, with the method used and a confidence. Observed arrivals are the midpoint of the interval between the last capture before the first STOPPED_AT and that STOPPED_AT; bracketed ones are interpolated by distance between neighbouring anchors (observed midpoints or raw observations), so they never run earlier than a stop before them. A trip id reused by a vehicle gives one run (segment) each."
     config:
       meta:
-        grain: "trip_instance_key x stop_sequence"
+        grain: "trip_instance_key x segment x stop_sequence"
     data_tests:
       - unique_grain:
           arguments:
-            columns: [trip_instance_key, stop_sequence]
+            columns: [trip_instance_key, segment, stop_sequence]
     columns:
       - name: trip_instance_key
         description: "Trip instance identifier."
+        data_tests:
+          - not_null
+      - name: segment
+        description: "Run of the trip id: 0 for the first, incremented when the vehicle's stop sequence went backwards on the same trip id."
         data_tests:
           - not_null
       - name: stop_sequence
@@ -363,9 +367,9 @@ models:
       - name: interval_width_s
         description: "Observed only: seconds between the last capture before the first STOPPED_AT and that STOPPED_AT."
       - name: bracket_gap_s
-        description: "Bracketed only: seconds between the observation before the stop and the one after."
+        description: "Bracketed only: seconds between the anchor (observed midpoint or raw observation) before the stop and the one after."
       - name: monotonic_ok
-        description: "False when the arrival is earlier than the previous reconstructed stop of the trip or later than the next one (both rows of the pair are flagged)."
+        description: "False when the arrival is earlier than the previous reconstructed stop of the run or later than the next one (both rows of the pair are flagged). Bracketed stops cannot violate it."
         data_tests:
           - not_null
       - name: dist_m

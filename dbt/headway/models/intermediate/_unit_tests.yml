@@ -40,6 +40,43 @@ unit_tests:
         - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", event_ts: "2026-11-22 13:04:00+00", capture_id: a6, raw_dist_m: 0, dist_m: 826, exclusion_reason: null}
         - {vehicle_id: v9, trip_instance_key: "ADDED-1|2026-11-22|", event_ts: "2026-11-22 13:00:30+00", capture_id: a7, raw_dist_m: null, dist_m: null, exclusion_reason: added_trip}
 
+  - name: vehicle_stop_events_reused_trip_id_starts_a_new_segment
+    config:
+      tags: [r2]
+    description: >-
+      A vehicle's current_stop_sequence on trip T1 goes 1, 2, 3 and then back to 1, 2: the second
+      run is segment 1, and its distance restarts instead of holding the first run's maximum. A
+      second vehicle on the same trip id has its own numbering (segment 0).
+    model: int_vehicle_stop_events
+    given:
+      - input: ref('int_trip_stop_distances')
+        rows:
+          - {trip_instance_key: "T1|2026-11-22|08:00:00", service_date: "2026-11-22", feed_version: fv, trip_id: T1, shape_id: S, stop_sequence: 2, stop_id: s2, dist_m: 826}
+      - input: ref('stg_gtfs__shape_points_dist')
+        rows:
+          - {feed_version: fv, shape_id: S, shape_pt_sequence: 1, lat: 42.0, lon: -71.00, dist_m: 0}
+          - {feed_version: fv, shape_id: S, shape_pt_sequence: 2, lat: 42.0, lon: -71.01, dist_m: 826}
+          - {feed_version: fv, shape_id: S, shape_pt_sequence: 3, lat: 42.0, lon: -71.02, dist_m: 1652}
+      - input: ref('stg_gtfs__stop_shape_positions')
+        rows:
+          - {feed_version: fv, shape_id: S, stop_id: s2, stop_sequence: 2, dist_m: 826}
+      - input: ref('stg_vehicle_positions')
+        rows:
+          - {capture_id: b1, fetched_at: "2026-11-22 13:00:05+00", vehicle_id: v1, trip_id: T1, route_id: Red, lat: 42.0, lon: -71.0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1, event_ts: "2026-11-22 13:00:00+00", is_stale_position: false}
+          - {capture_id: b2, fetched_at: "2026-11-22 13:01:05+00", vehicle_id: v1, trip_id: T1, route_id: Red, lat: 42.0, lon: -71.0095, current_status: IN_TRANSIT_TO, current_stop_sequence: 2, event_ts: "2026-11-22 13:01:00+00", is_stale_position: false}
+          - {capture_id: b3, fetched_at: "2026-11-22 13:02:05+00", vehicle_id: v1, trip_id: T1, route_id: Red, lat: 42.0, lon: -71.0195, current_status: IN_TRANSIT_TO, current_stop_sequence: 3, event_ts: "2026-11-22 13:02:00+00", is_stale_position: false}
+          - {capture_id: b4, fetched_at: "2026-11-22 13:30:05+00", vehicle_id: v1, trip_id: T1, route_id: Red, lat: 42.0, lon: -71.0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1, event_ts: "2026-11-22 13:30:00+00", is_stale_position: false}
+          - {capture_id: b5, fetched_at: "2026-11-22 13:31:05+00", vehicle_id: v1, trip_id: T1, route_id: Red, lat: 42.0, lon: -71.0095, current_status: IN_TRANSIT_TO, current_stop_sequence: 2, event_ts: "2026-11-22 13:31:00+00", is_stale_position: false}
+          - {capture_id: b6, fetched_at: "2026-11-22 13:00:35+00", vehicle_id: v2, trip_id: T1, route_id: Red, lat: 42.0, lon: -71.0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1, event_ts: "2026-11-22 13:00:30+00", is_stale_position: false}
+    expect:
+      rows:
+        - {vehicle_id: v1, segment: 0, event_ts: "2026-11-22 13:00:00+00", dist_m: 0}
+        - {vehicle_id: v1, segment: 0, event_ts: "2026-11-22 13:01:00+00", dist_m: 826}
+        - {vehicle_id: v1, segment: 0, event_ts: "2026-11-22 13:02:00+00", dist_m: 1652}
+        - {vehicle_id: v1, segment: 1, event_ts: "2026-11-22 13:30:00+00", dist_m: 0}
+        - {vehicle_id: v1, segment: 1, event_ts: "2026-11-22 13:31:00+00", dist_m: 826}
+        - {vehicle_id: v2, segment: 0, event_ts: "2026-11-22 13:00:30+00", dist_m: 0}
+
   - name: observation_window_counts_a_minute_once_however_many_polls
     description: >-
       Four vehicle_positions captures of minute 13:00 (polls 0-3) and one of 13:01 are two capture

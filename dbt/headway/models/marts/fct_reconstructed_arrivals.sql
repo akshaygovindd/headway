@@ -1,5 +1,5 @@
--- One row per trip instance and scheduled stop that the vehicle's observed path covers: when the
--- vehicle arrived, how that was worked out, and how far to trust it.
+-- One row per trip instance, run (segment) and scheduled stop that the vehicle's observed path
+-- covers: when the vehicle arrived, how that was worked out, and how far to trust it.
 --
 -- observed:   the vehicle was seen STOPPED_AT the stop. The arrival is somewhere between the last
 --             capture before the first STOPPED_AT and that STOPPED_AT; arrival_ts is the midpoint
@@ -7,17 +7,26 @@
 --             30 s, medium up to 120 s, else low. A STOPPED_AT with no earlier capture gives no
 --             interval and the stop is 'missing'.
 -- bracketed:  never seen STOPPED_AT; arrival_ts is interpolated by distance along the shape
---             between the last observation before the stop and the first at or after it.
---             medium when those two are at most 120 s apart (bracket_gap_s), else low.
+--             between the nearest anchors either side of the stop. An anchor is an observed stop's
+--             arrival (its midpoint) or a raw observation. At equal distance the observed
+--             midpoint is the anchor after a stop (the arrival there) and the last raw observation
+--             the anchor before it (the vehicle was still at the stop then). Anchor times are made non-decreasing in distance (running maximum), and the
+--             stop's distance is made non-decreasing in stop_sequence, so a bracketed arrival can
+--             never be earlier than a stop before it. bracket_gap_s is the time between the two
+--             anchors; medium when it is at most 120 s, else low.
 -- missing:    the stop lies on the observed stretch but neither method applies.
 --
--- monotonic_ok: arrival times must not decrease along stop_sequence. A row that disagrees with
--- the previous or next reconstructed stop of its trip is flagged false, both are set to low
--- confidence, and the violations are counted in agg_arrival_reconstruction_daily.
+-- segment: a reused trip id gives several runs (see int_vehicle_stop_events); each run is
+-- reconstructed on its own and there is no cross-run comparison.
+--
+-- monotonic_ok: arrival times must not decrease along stop_sequence. Bracketed stops satisfy this
+-- by construction; a row that still disagrees with the previous or next reconstructed stop of its
+-- run (two observed midpoints out of order) is flagged false, both are set to low confidence, and
+-- the violations are counted in agg_arrival_reconstruction_daily.
 --
 -- Observations that cannot be placed on a shape (ADDED trips, unscheduled trips, no shape) are
 -- not reconstructed; int_vehicle_stop_events keeps them with an exclusion_reason so they are
--- counted. A trip is reconstructed from the single vehicle with most observations on it.
+-- counted. A run is reconstructed from the single vehicle with most observations on it.
 with usable as (
     select *
     from {{ ref('int_vehicle_stop_events') }}
@@ -25,38 +34,48 @@ with usable as (
 ),
 
 chosen as (
-    select trip_instance_key, vehicle_id
+    select trip_instance_key, segment, vehicle_id
     from usable
-    group by trip_instance_key, vehicle_id
+    group by trip_instance_key, segment, vehicle_id
     qualify row_number() over (
-        partition by trip_instance_key order by count(*) desc, vehicle_id
+        partition by trip_instance_key, segment order by count(*) desc, vehicle_id
     ) = 1
 ),
 
 ev as (
     select
         u.trip_instance_key,
+        u.segment,
         u.vehicle_id,
         row_number() over (
-            partition by u.trip_instance_key order by u.event_ts, u.capture_id
+            partition by u.trip_instance_key, u.segment order by u.event_ts, u.capture_id
         ) as n,
         u.event_ts,
         u.dist_m,
         u.current_status,
         u.current_stop_sequence
     from usable u
-    join chosen c on c.trip_instance_key = u.trip_instance_key and c.vehicle_id = u.vehicle_id
+    join chosen c
+        on c.trip_instance_key = u.trip_instance_key
+        and c.segment = u.segment
+        and c.vehicle_id = u.vehicle_id
 ),
 
 span as (
-    select trip_instance_key, min(dist_m) as min_dist_m, max(dist_m) as max_dist_m
+    select trip_instance_key, segment, min(dist_m) as min_dist_m, max(dist_m) as max_dist_m
     from ev
-    group by trip_instance_key
+    group by trip_instance_key, segment
 ),
 
--- stops on the observed stretch of each observed trip
+-- stops on the observed stretch of each run; eff_dist_m never decreases along stop_sequence
 stops as (
-    select s.*
+    select
+        s.*,
+        r.segment,
+        max(s.dist_m) over (
+            partition by s.trip_instance_key, r.segment order by s.stop_sequence
+            rows between unbounded preceding and current row
+        ) as eff_dist_m
     from {{ ref('int_trip_stop_distances') }} s
     join span r
         on r.trip_instance_key = s.trip_instance_key
@@ -67,20 +86,22 @@ stops as (
 located as (
     select
         s.trip_instance_key,
+        s.segment,
         s.stop_sequence,
         min(e.n) filter (
             where e.current_status = 'STOPPED_AT' and e.current_stop_sequence = s.stop_sequence
         ) as n_stopped,
-        max(e.n) filter (where e.dist_m < s.dist_m) as n_before,
-        min(e.n) filter (where e.dist_m >= s.dist_m) as n_after
+        max(e.n) filter (where e.dist_m < s.eff_dist_m) as n_before,
+        min(e.n) filter (where e.dist_m >= s.eff_dist_m) as n_after
     from stops s
-    join ev e on e.trip_instance_key = s.trip_instance_key
-    group by s.trip_instance_key, s.stop_sequence
+    join ev e on e.trip_instance_key = s.trip_instance_key and e.segment = s.segment
+    group by s.trip_instance_key, s.segment, s.stop_sequence
 ),
 
 estimated as (
     select
         s.trip_instance_key,
+        s.segment,
         s.stop_sequence,
         s.service_date,
         s.trip_id,
@@ -88,6 +109,7 @@ estimated as (
         s.direction_id,
         s.stop_id,
         s.dist_m,
+        s.eff_dist_m,
         s.scheduled_arrival_ts,
         v.vehicle_id,
         case
@@ -97,49 +119,101 @@ estimated as (
         end as method,
         -- observed interval: previous capture to first STOPPED_AT
         pv.event_ts as interval_start_ts,
-        st.event_ts as interval_end_ts,
-        bf.event_ts as before_ts,
-        bf.dist_m as before_dist_m,
-        af.event_ts as after_ts,
-        af.dist_m as after_dist_m
+        st.event_ts as interval_end_ts
     from stops s
-    join located l on l.trip_instance_key = s.trip_instance_key and l.stop_sequence = s.stop_sequence
-    join (select distinct trip_instance_key, vehicle_id from ev) v on v.trip_instance_key = s.trip_instance_key
-    left join ev st on st.trip_instance_key = s.trip_instance_key and st.n = l.n_stopped
-    left join ev pv on pv.trip_instance_key = s.trip_instance_key and pv.n = l.n_stopped - 1
-    left join ev bf on bf.trip_instance_key = s.trip_instance_key and bf.n = l.n_before
-    left join ev af on af.trip_instance_key = s.trip_instance_key and af.n = l.n_after
+    join located l
+        on l.trip_instance_key = s.trip_instance_key
+        and l.segment = s.segment
+        and l.stop_sequence = s.stop_sequence
+    join (select distinct trip_instance_key, segment, vehicle_id from ev) v
+        on v.trip_instance_key = s.trip_instance_key and v.segment = s.segment
+    left join ev st on st.trip_instance_key = s.trip_instance_key and st.segment = s.segment and st.n = l.n_stopped
+    left join ev pv on pv.trip_instance_key = s.trip_instance_key and pv.segment = s.segment and pv.n = l.n_stopped - 1
+),
+
+observed as (
+    select
+        *,
+        interval_start_ts + to_microseconds(cast(round(
+            1e6 * (epoch(interval_end_ts) - epoch(interval_start_ts)) / 2
+        ) as bigint)) as observed_ts
+    from estimated
+    where method = 'observed'
+),
+
+-- the chain of known (distance, time) points of a run: observed midpoints and raw observations.
+-- ts_mono is the running maximum over distance, so the chain never goes back in time.
+anchors as (
+    select
+        trip_instance_key,
+        segment,
+        dist_m,
+        prio,
+        ts,
+        max(ts) over (
+            partition by trip_instance_key, segment order by dist_m, prio, ts
+            rows between unbounded preceding and current row
+        ) as ts_mono
+    from (
+        select trip_instance_key, segment, eff_dist_m as dist_m, 0 as prio, observed_ts as ts from observed
+        union all
+        select trip_instance_key, segment, dist_m, 1 as prio, event_ts as ts from ev
+    )
+),
+
+bracketed as (
+    select e.trip_instance_key, e.segment, e.stop_sequence, lo.ts_mono as lo_ts, lo.dist_m as lo_dist_m,
+        up.ts_mono as up_ts, up.dist_m as up_dist_m
+    from estimated e
+    join lateral (
+        select a.ts_mono, a.dist_m
+        from anchors a
+        where a.trip_instance_key = e.trip_instance_key and a.segment = e.segment and a.dist_m < e.eff_dist_m
+        order by a.dist_m desc, a.prio desc, a.ts desc
+        limit 1
+    ) lo on true
+    join lateral (
+        select a.ts_mono, a.dist_m
+        from anchors a
+        where a.trip_instance_key = e.trip_instance_key and a.segment = e.segment and a.dist_m >= e.eff_dist_m
+        order by a.dist_m, a.prio, a.ts
+        limit 1
+    ) up on true
+    where e.method = 'bracketed'
 ),
 
 timed as (
     select
-        *,
-        case method
-            when 'observed' then interval_start_ts + to_microseconds(cast(round(
-                1e6 * (epoch(interval_end_ts) - epoch(interval_start_ts)) / 2
-            ) as bigint))
-            when 'bracketed' then before_ts + to_microseconds(cast(round(
-                1e6 * (epoch(after_ts) - epoch(before_ts)) * (dist_m - before_dist_m)
-                    / (after_dist_m - before_dist_m)
+        e.*,
+        case e.method
+            when 'observed' then o.observed_ts
+            when 'bracketed' then b.lo_ts + to_microseconds(cast(round(
+                1e6 * (epoch(b.up_ts) - epoch(b.lo_ts)) * (e.eff_dist_m - b.lo_dist_m)
+                    / (b.up_dist_m - b.lo_dist_m)
             ) as bigint))
         end as arrival_ts,
-        case when method = 'observed' then epoch(interval_end_ts) - epoch(interval_start_ts) end as interval_width_s,
-        case when method = 'bracketed' then epoch(after_ts) - epoch(before_ts) end as bracket_gap_s
-    from estimated
+        case when e.method = 'observed' then epoch(e.interval_end_ts) - epoch(e.interval_start_ts) end as interval_width_s,
+        case when e.method = 'bracketed' then epoch(b.up_ts) - epoch(b.lo_ts) end as bracket_gap_s
+    from estimated e
+    left join observed o
+        on o.trip_instance_key = e.trip_instance_key and o.segment = e.segment and o.stop_sequence = e.stop_sequence
+    left join bracketed b
+        on b.trip_instance_key = e.trip_instance_key and b.segment = e.segment and b.stop_sequence = e.stop_sequence
 ),
 
--- compare each reconstructed stop with the neighbouring reconstructed stops of its trip
+-- compare each reconstructed stop with the neighbouring reconstructed stops of its run
 checked as (
     select
         *,
         arrival_ts < lag(arrival_ts ignore nulls) over w
             or arrival_ts > lead(arrival_ts ignore nulls) over w as is_out_of_order
     from timed
-    window w as (partition by trip_instance_key order by stop_sequence)
+    window w as (partition by trip_instance_key, segment order by stop_sequence)
 )
 
 select
     trip_instance_key,
+    segment,
     stop_sequence,
     service_date,
     trip_id,

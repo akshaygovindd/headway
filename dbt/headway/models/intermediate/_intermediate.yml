@@ -257,7 +257,7 @@ models:
       - name: dist_m
         description: Metres along the shape of the stop's projection; null when unknown.
   - name: int_vehicle_stop_events
-    description: One row per vehicle position observation of a trip, de-duplicated across captures, with stale positions removed and the observation placed on the trip's shape (dist_m, non-decreasing along the trip). Observations that cannot be placed carry an exclusion_reason and are not used for reconstruction.
+    description: One row per vehicle position observation of a trip, de-duplicated across captures, with stale positions removed and the observation placed on the trip's shape (dist_m, non-decreasing along a run of the trip id). Observations that cannot be placed carry an exclusion_reason and are not used for reconstruction.
     config:
       meta:
         grain: "vehicle_id x trip_instance_key x event_ts"
@@ -272,6 +272,10 @@ models:
           - not_null
       - name: trip_instance_key
         description: Trip instance identifier; trip_id, service date of event_ts and scheduled start time (empty for unscheduled trips).
+        data_tests:
+          - not_null
+      - name: segment
+        description: Run of the trip id by this vehicle; 0 first, incremented when current_stop_sequence went backwards from the previous observation.
         data_tests:
           - not_null
       - name: event_ts

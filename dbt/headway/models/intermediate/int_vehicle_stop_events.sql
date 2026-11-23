@@ -11,6 +11,11 @@
 -- observation takes the distance of the nearest shape point within about 500 m (no spatial
 -- extension). dist_m is then made non-decreasing along the trip (running maximum) because a
 -- vehicle does not run backwards; raw_dist_m keeps the unsmoothed value.
+--
+-- segment: a trip id can be reused within a service date (the same vehicle runs it again). When a
+-- vehicle's current_stop_sequence on a trip id drops below its previous observation the vehicle
+-- has started a new run, so segment is incremented (0 for the first run). dist_m is made
+-- non-decreasing within a segment only, so a restart is never a backward jump.
 with observations as (
     select
         vehicle_id,
@@ -107,11 +112,31 @@ placed as (
         on n.vehicle_id = k.vehicle_id
         and n.trip_instance_key = k.trip_instance_key
         and n.event_ts = k.event_ts
+),
+
+-- 1 where the stop sequence went backwards from the vehicle's previous observation of the trip id
+resets as (
+    select
+        *,
+        case when current_stop_sequence < lag(current_stop_sequence) over w then 1 else 0 end as is_reset
+    from placed
+    window w as (partition by vehicle_id, trip_instance_key order by event_ts, capture_id)
+),
+
+segmented as (
+    select
+        *,
+        sum(is_reset) over (
+            partition by vehicle_id, trip_instance_key order by event_ts, capture_id
+            rows between unbounded preceding and current row
+        ) as segment
+    from resets
 )
 
 select
     vehicle_id,
     trip_instance_key,
+    segment,
     event_ts,
     capture_id,
     fetched_at,
@@ -127,8 +152,8 @@ select
     lon,
     raw_dist_m,
     max(raw_dist_m) over (
-        partition by vehicle_id, trip_instance_key order by event_ts
+        partition by vehicle_id, trip_instance_key, segment order by event_ts, capture_id
         rows between unbounded preceding and current row
     ) as dist_m,
     coalesce(exclusion_reason, case when raw_dist_m is null then 'off_shape' end) as exclusion_reason
-from placed
+from segmented

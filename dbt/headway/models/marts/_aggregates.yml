@@ -367,6 +367,8 @@ models:
           - not_null
       - name: trips_reconstructed
         description: "Trip instances with at least one reconstructed stop."
+      - name: n_segments_created
+        description: "Extra runs created because a vehicle's stop sequence went backwards on the same trip id (runs beyond the first of a trip instance)."
       - name: n_observed
         description: "Trip stops reconstructed from an observed interval."
       - name: n_bracketed
