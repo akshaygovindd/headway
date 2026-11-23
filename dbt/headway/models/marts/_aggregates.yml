@@ -224,7 +224,15 @@ models:
         data_tests:
           - not_null
       - name: n_captures
-        description: "Captures recorded for the run (one per feed)."
+        description: "Captures recorded for the run: one per feed at poll 0, plus up to three 15 s vehicle polls."
+        data_tests:
+          - not_null
+      - name: vehicle_polls_ok
+        description: "Successful vehicle_positions captures in the run (1 before 15 s sampling, up to 4 after)."
+        data_tests:
+          - not_null
+      - name: vehicle_polls_error
+        description: "Failed vehicle_positions captures in the run."
         data_tests:
           - not_null
       - name: duplicate_delivery_count
@@ -335,3 +343,60 @@ models:
           - accepted_values:
               arguments:
                 values: [ok, warn, fail, no_baseline, no_data]
+  - name: agg_arrival_reconstruction_daily
+    description: "Arrival reconstruction coverage per service date and line: trip stops by method and confidence, monotonic violations, and observed trips excluded for lack of a shape. Shares are percentages of reconstructed trip stops."
+    config:
+      meta:
+        grain: "service_date x line"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [service_date, line]
+    columns:
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: trip_stops
+        description: "Reconstructed trip stops (rows of fct_reconstructed_arrivals), missing ones included."
+        data_tests:
+          - not_null
+      - name: trips_reconstructed
+        description: "Trip instances with at least one reconstructed stop."
+      - name: n_observed
+        description: "Trip stops reconstructed from an observed interval."
+      - name: n_bracketed
+        description: "Trip stops reconstructed by interpolation."
+      - name: n_missing
+        description: "Trip stops on the observed stretch that could not be reconstructed."
+      - name: n_high
+        description: "Trip stops with high confidence."
+      - name: n_medium
+        description: "Trip stops with medium confidence."
+      - name: n_low
+        description: "Trip stops with low confidence."
+      - name: share_high
+        description: "n_high as a percentage of trip_stops; null without trip stops."
+        data_tests:
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: share_medium
+        description: "n_medium as a percentage of trip_stops."
+      - name: share_low
+        description: "n_low as a percentage of trip_stops."
+      - name: share_missing
+        description: "n_missing as a percentage of trip_stops."
+      - name: n_monotonic_violations
+        description: "Trip stops flagged monotonic_ok = false."
+      - name: added_trips_excluded
+        description: "ADDED trip instances observed but not reconstructed (no schedule, no shape)."
+      - name: unscheduled_trips_excluded
+        description: "Observed trip instances not in the schedule for their service date, not reconstructed."
+      - name: no_shape_trips_excluded
+        description: "Scheduled trip instances without a shape, not reconstructed."

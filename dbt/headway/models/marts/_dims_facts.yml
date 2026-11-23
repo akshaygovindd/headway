@@ -315,3 +315,60 @@ models:
         description: "Longitude of the shape point."
         data_tests:
           - not_null
+  - name: fct_reconstructed_arrivals
+    description: "Reconstructed arrival of a vehicle at each scheduled stop on the stretch of the trip it was observed on, with the method used and a confidence. Observed arrivals are the midpoint of the interval between the last capture before the first STOPPED_AT and that STOPPED_AT; bracketed ones are interpolated by distance between neighbouring observations."
+    config:
+      meta:
+        grain: "trip_instance_key x stop_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [trip_instance_key, stop_sequence]
+    columns:
+      - name: trip_instance_key
+        description: "Trip instance identifier."
+        data_tests:
+          - not_null
+      - name: stop_sequence
+        description: "Position of the stop in the trip."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date of the trip instance."
+      - name: trip_id
+        description: "Scheduled trip identifier."
+      - name: line
+        description: "Reporting line."
+      - name: direction_id
+        description: "Direction of travel (0 or 1)."
+      - name: stop_id
+        description: "Stop identifier."
+      - name: vehicle_id
+        description: "Vehicle the arrival was reconstructed from (the one with most observations on the trip)."
+      - name: arrival_ts
+        description: "Reconstructed arrival (UTC); null when method is missing."
+      - name: method
+        description: "observed, bracketed or missing."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [observed, bracketed, missing]
+      - name: confidence
+        description: "high, medium or low; null when method is missing. A monotonic violation forces low."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [high, medium, low]
+      - name: interval_width_s
+        description: "Observed only: seconds between the last capture before the first STOPPED_AT and that STOPPED_AT."
+      - name: bracket_gap_s
+        description: "Bracketed only: seconds between the observation before the stop and the one after."
+      - name: monotonic_ok
+        description: "False when the arrival is earlier than the previous reconstructed stop of the trip or later than the next one (both rows of the pair are flagged)."
+        data_tests:
+          - not_null
+      - name: dist_m
+        description: "Metres along the shape of the stop."
+      - name: scheduled_arrival_ts
+        description: "Scheduled arrival (UTC), for comparison."

@@ -1,0 +1,77 @@
+version: 2
+
+unit_tests:
+  - name: vehicle_stop_events_placement_and_exclusions
+    description: >-
+      Shape S runs east to west along 42.0 N: points at 0 m (-71.00), 826 m (-71.01) and 1652 m
+      (-71.02). Trip T1 on it has stop 2 projected at 826 m. A repeat of an observation from a
+      later capture is dropped, a stale position is ignored, a STOPPED_AT row is pinned to its
+      stop even when its coordinates lie elsewhere, a position that falls back behind an earlier
+      one keeps the running maximum, and an ADDED trip is kept with its exclusion reason.
+    model: int_vehicle_stop_events
+    given:
+      - input: ref('int_trip_stop_distances')
+        rows:
+          - {trip_instance_key: "T1|2026-11-22|08:00:00", service_date: "2026-11-22", feed_version: fv, trip_id: T1, shape_id: S, stop_sequence: 2, stop_id: s2, dist_m: 826}
+      - input: ref('stg_gtfs__shape_points_dist')
+        rows:
+          - {feed_version: fv, shape_id: S, shape_pt_sequence: 1, lat: 42.0, lon: -71.00, dist_m: 0}
+          - {feed_version: fv, shape_id: S, shape_pt_sequence: 2, lat: 42.0, lon: -71.01, dist_m: 826}
+          - {feed_version: fv, shape_id: S, shape_pt_sequence: 3, lat: 42.0, lon: -71.02, dist_m: 1652}
+      - input: ref('stg_gtfs__stop_shape_positions')
+        rows:
+          - {feed_version: fv, shape_id: S, stop_id: s2, stop_sequence: 2, dist_m: 826}
+      - input: ref('stg_vehicle_positions')
+        rows:
+          - {capture_id: a1, fetched_at: "2026-11-22 13:00:05+00", vehicle_id: v1, trip_id: T1, route_id: Red, lat: 42.0001, lon: -71.0, current_status: IN_TRANSIT_TO, event_ts: "2026-11-22 13:00:00+00", is_stale_position: false}
+          - {capture_id: a2, fetched_at: "2026-11-22 13:00:20+00", vehicle_id: v1, trip_id: T1, route_id: Red, lat: 42.0001, lon: -71.0, current_status: IN_TRANSIT_TO, event_ts: "2026-11-22 13:00:00+00", is_stale_position: false}
+          - {capture_id: a3, fetched_at: "2026-11-22 13:01:05+00", vehicle_id: v1, trip_id: T1, route_id: Red, lat: 42.0, lon: -71.0095, current_status: IN_TRANSIT_TO, event_ts: "2026-11-22 13:01:00+00", is_stale_position: false}
+          - {capture_id: a4, fetched_at: "2026-11-22 13:02:05+00", vehicle_id: v1, trip_id: T1, route_id: Red, lat: 42.0, lon: -71.0095, current_status: IN_TRANSIT_TO, event_ts: "2026-11-22 13:02:00+00", is_stale_position: true}
+          - {capture_id: a5, fetched_at: "2026-11-22 13:03:05+00", vehicle_id: v1, trip_id: T1, route_id: Red, lat: 42.0, lon: -71.001, current_status: STOPPED_AT, stop_id: s2, current_stop_sequence: 2, event_ts: "2026-11-22 13:03:00+00", is_stale_position: false}
+          - {capture_id: a6, fetched_at: "2026-11-22 13:04:05+00", vehicle_id: v1, trip_id: T1, route_id: Red, lat: 42.0, lon: -71.0001, current_status: IN_TRANSIT_TO, event_ts: "2026-11-22 13:04:00+00", is_stale_position: false}
+          - {capture_id: a7, fetched_at: "2026-11-22 13:00:35+00", vehicle_id: v9, trip_id: ADDED-1, route_id: Red, lat: 42.0, lon: -71.0, current_status: IN_TRANSIT_TO, event_ts: "2026-11-22 13:00:30+00", is_stale_position: false}
+    expect:
+      rows:
+        - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", event_ts: "2026-11-22 13:00:00+00", capture_id: a1, raw_dist_m: 0, dist_m: 0, exclusion_reason: null}
+        - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", event_ts: "2026-11-22 13:01:00+00", capture_id: a3, raw_dist_m: 826, dist_m: 826, exclusion_reason: null}
+        - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", event_ts: "2026-11-22 13:03:00+00", capture_id: a5, raw_dist_m: 826, dist_m: 826, exclusion_reason: null}
+        - {vehicle_id: v1, trip_instance_key: "T1|2026-11-22|08:00:00", event_ts: "2026-11-22 13:04:00+00", capture_id: a6, raw_dist_m: 0, dist_m: 826, exclusion_reason: null}
+        - {vehicle_id: v9, trip_instance_key: "ADDED-1|2026-11-22|", event_ts: "2026-11-22 13:00:30+00", capture_id: a7, raw_dist_m: null, dist_m: null, exclusion_reason: added_trip}
+
+  - name: observation_window_counts_a_minute_once_however_many_polls
+    description: >-
+      Four vehicle_positions captures of minute 13:00 (polls 0-3) and one of 13:01 are two capture
+      minutes, not five. A failed poll does not count, and a poll whose payload repeats the
+      previous capture's is a duplicate and does not count either.
+    model: int_observation_window
+    given:
+      - input: ref('int_captures')
+        rows:
+          - {capture_id: p0, feed: vehicle_positions, status: ok, is_duplicate_capture: false, capture_minute: "2026-11-22 13:00:00+00", service_date: "2026-11-22", hour_local: 8}
+          - {capture_id: p1, feed: vehicle_positions, status: ok, is_duplicate_capture: false, capture_minute: "2026-11-22 13:00:00+00", service_date: "2026-11-22", hour_local: 8}
+          - {capture_id: p2, feed: vehicle_positions, status: error, is_duplicate_capture: false, capture_minute: "2026-11-22 13:00:00+00", service_date: "2026-11-22", hour_local: 8}
+          - {capture_id: p3, feed: vehicle_positions, status: ok, is_duplicate_capture: true, capture_minute: "2026-11-22 13:00:00+00", service_date: "2026-11-22", hour_local: 8}
+          - {capture_id: q0, feed: vehicle_positions, status: ok, is_duplicate_capture: false, capture_minute: "2026-11-22 13:01:00+00", service_date: "2026-11-22", hour_local: 8}
+          - {capture_id: t0, feed: trip_updates, status: ok, is_duplicate_capture: false, capture_minute: "2026-11-22 13:00:00+00", service_date: "2026-11-22", hour_local: 8}
+    expect:
+      rows:
+        - {service_date: "2026-11-22", hour_local: 8, feed: vehicle_positions, capture_minutes: 2, window_complete: false}
+        - {service_date: "2026-11-22", hour_local: 8, feed: trip_updates, capture_minutes: 1, window_complete: false}
+
+  - name: captures_flag_a_repeated_payload_across_polls_of_one_minute
+    description: >-
+      Three vehicle polls of one scheduled minute: poll 1 repeats poll 0's payload and is flagged;
+      poll 2 differs. Ordering is by poll_index within the minute, so all four polls share one
+      capture_minute.
+    model: int_captures
+    given:
+      - input: ref('stg_manifests')
+        rows:
+          - {capture_id: p0, run_id: r1, feed: vehicle_positions, status: ok, content_hash: h1, poll_index: 0, scheduled_at: "2026-11-22 13:00:00+00", fetched_at: "2026-11-22 13:00:17+00"}
+          - {capture_id: p1, run_id: r1, feed: vehicle_positions, status: ok, content_hash: h1, poll_index: 1, scheduled_at: "2026-11-22 13:00:00+00", fetched_at: "2026-11-22 13:00:32+00"}
+          - {capture_id: p2, run_id: r1, feed: vehicle_positions, status: ok, content_hash: h2, poll_index: 2, scheduled_at: "2026-11-22 13:00:00+00", fetched_at: "2026-11-22 13:00:47+00"}
+    expect:
+      rows:
+        - {capture_id: p0, poll_index: 0, capture_minute: "2026-11-22 13:00:00+00", is_duplicate_capture: false}
+        - {capture_id: p1, poll_index: 1, capture_minute: "2026-11-22 13:00:00+00", is_duplicate_capture: true}
+        - {capture_id: p2, poll_index: 2, capture_minute: "2026-11-22 13:00:00+00", is_duplicate_capture: false}

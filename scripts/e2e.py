@@ -13,7 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import duckdb
@@ -87,12 +87,50 @@ def add_duplicate_deliveries(source: Path) -> None:
     clone(original, record, run_id, duplicate_of=f"manifests/boston/{original}")
 
 
+def add_vehicle_polls(source: Path) -> None:
+    """Turn minutes 15:20-15:29 into 15 s sampling: three more vehicle captures per minute.
+
+    Each extra poll copies the minute's vehicle body under a new capture id, fetched 15, 30 and
+    45 s after the first and numbered poll_index 1-3. Polls 1 and 2 get their own content hash
+    (a feed that changed); poll 3 repeats poll 2's hash, so it is flagged as a duplicate capture.
+    All share the minute's scheduled_at, so the minute still counts once and the run is one run.
+    """
+    root = source / "manifests" / "boston" / "dt=2026-11-22" / "hour=15"
+    for path in sorted(root.glob("*.json")):
+        doc = json.loads(path.read_text())
+        poll0 = doc["entries"][0]
+        scheduled = datetime.fromisoformat(poll0["scheduled_at"].replace("Z", "+00:00"))
+        if not (20 <= scheduled.minute <= 29):
+            continue
+        vehicle = next(e for e in doc["entries"] if e["feed"] == "vehicle_positions")
+        fetched = datetime.fromisoformat(vehicle["fetched_at"].replace("Z", "+00:00"))
+        body = (source / vehicle["s3_key"]).read_bytes()
+        for poll, hash_poll in ((1, 1), (2, 2), (3, 2)):
+            at = fetched + timedelta(seconds=15 * poll)
+            digest = f"{hash_poll:02d}{vehicle['content_hash'][2:]}"
+            capture_id = f"vehicle_positions-{at:%Y%m%dT%H%M%SZ}-{digest[:8]}"
+            key = f"raw/boston/feed=vehicle_positions/dt=2026-11-22/hour=15/{capture_id}.pb.gz"
+            (source / key).write_bytes(body)
+            doc["entries"].append(
+                {
+                    **vehicle,
+                    "capture_id": capture_id,
+                    "content_hash": digest,
+                    "fetched_at": at.isoformat().replace("+00:00", "Z"),
+                    "poll_index": poll,
+                    "s3_key": key,
+                }
+            )
+        path.write_text(json.dumps(doc, indent=2, sort_keys=True))
+
+
 def main(argv: list[str]) -> int:
     update = "--update" in argv
     with tempfile.TemporaryDirectory(prefix="headway-e2e-") as tmp:
         source = Path(tmp) / "source"
         shutil.copytree(ROOT / "samples" / "boston", source)
         add_duplicate_deliveries(source)
+        add_vehicle_polls(source)
         replay_dir = Path(tmp) / "replay"
         db = Path(tmp) / "e2e.duckdb"
         subprocess.run(
