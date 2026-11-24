@@ -172,6 +172,32 @@ and what now prevents a repeat. Newest last.
 - **Guard:** `tests/unit/test_transform_state_iam.py` checks that every folder of every persisted
   state table is covered for list, get and put, and that the state module uses no other S3 action.
 
+## images-smoke flaky: leaked moto servers and host sleep
+
+- **Symptom:** `make transform-smoke` failed now and then in Phase 3.5 and passed on retry. Five
+  fresh runs on 2026-11-24 all passed, but one took 1007 s instead of 135 s.
+- **Evidence:** after those runs, `ps` showed about 40 `moto.server` processes, the oldest from
+  the previous Monday, each holding a port in 9800-9949. The script picked `9800 + RANDOM % 150`,
+  started moto with its output discarded, and only waited for *something* to answer on the port.
+  With a quarter of the range taken, a pick often hit an old server: the new one failed to bind
+  unseen, the wait succeeded against the old one, and the run used its leftover buckets and
+  history (the history-immutability and `history_written > 0` checks then fail). The leak is
+  from the exit trap, which killed the `uv run` wrapper and not the server under it. The 1007 s
+  run matches `pmset -g log`: the Mac idle-slept for 874 s in the middle of it; a second sleep
+  later made the 900 s request timeout fire (curl exit 28).
+- **Root cause:** the smoke trap leaked a moto server per run and the port choice and readiness
+  check could not tell a fresh server from a stale one. Host sleep was a separate cause of
+  stalls. Not a product bug: nothing in the image changed.
+- **Fix (`scripts/smoke_image.sh`):** moto starts as the python process itself on a port the OS
+  confirms free, so the trap kills the real server; the run fails if moto does not start or
+  already holds buckets; the emulator wait fails instead of falling through; curl has timeouts;
+  the script re-runs itself under `caffeinate -i`; and a preflight needs 6 GB free disk and 3 GB
+  Docker memory. Stale servers were killed by hand once.
+- **Also:** the smoke now runs the `analyst_examples.json` export step (it was untested) and
+  reads the object back from S3.
+- **Guard:** the checks above are in the script, so a leaked server or stale state fails fast
+  with its cause.
+
 ## Drills
 
 Failures caused on purpose with the chaos switch ([ADR-017](ARCHITECTURE_DECISIONS.md), how to
