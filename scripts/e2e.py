@@ -24,6 +24,7 @@ TABLES = [
     "agg_line_reliability_hourly",
     "agg_pipeline_health",
     "agg_quality_checks_hourly",
+    "agg_quarantine_reasons",
     "agg_arrival_reconstruction_daily",
     "agg_prediction_accuracy_daily",
     "agg_actual_deviation_hourly",

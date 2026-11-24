@@ -1,0 +1,4 @@
+local_date,source_table,reason,n_records
+2026-11-22,trip_updates,missing_trip_id,41
+2026-11-22,trip_updates,protobuf_parse_error,1
+2026-11-22,vehicle_positions,invalid_coordinates,9

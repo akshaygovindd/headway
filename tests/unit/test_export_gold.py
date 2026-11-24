@@ -16,6 +16,7 @@ ALLOWLIST = {
     "agg_stop_deviation_daily",
     "agg_pipeline_health",
     "agg_quality_checks_hourly",
+    "agg_quarantine_reasons",
     "dim_route",
     "dim_stop",
     "route_shapes",

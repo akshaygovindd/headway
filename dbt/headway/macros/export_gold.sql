@@ -39,6 +39,7 @@
     'agg_stop_deviation_daily': "select * from " ~ ref('agg_stop_deviation_daily'),
     'agg_pipeline_health': "select * from " ~ ref('agg_pipeline_health') ~ " where scheduled_at >= (select max(scheduled_at) from " ~ ref('agg_pipeline_health') ~ ") - interval 30 day",
     'agg_quality_checks_hourly': "select * from " ~ ref('agg_quality_checks_hourly'),
+    'agg_quarantine_reasons': "select * from " ~ ref('agg_quarantine_reasons'),
     'dim_route': "select * from " ~ ref('dim_route'),
     'dim_stop': "select * from " ~ ref('dim_stop'),
     'route_shapes': "select * from " ~ ref('route_shapes'),

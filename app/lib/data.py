@@ -29,6 +29,7 @@ GOLD_TABLES = (
     "dim_stop",
     "route_shapes",
     "cost_daily",
+    "agg_quarantine_reasons",  # exports before it was added lack it; the page loads it optionally
 )
 # Release 2 aggregates; present in the export only when the deployment has enabled them.
 R2_TABLES = (
