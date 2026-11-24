@@ -713,7 +713,7 @@ def _incident_summaries(s3: Any, db_path: str, *, smoke: bool = False) -> dict[s
         else:
             try:
                 client = incident_summaries.build_client(boto3.client("ssm"))
-            except Exception:  # no SSM client (no region, no endpoint): the template is the fallback
+            except Exception:  # no SSM client (region, endpoint): the template is the fallback
                 logger.exception("could not read the incident LLM key")
                 client = None
         out.update(
