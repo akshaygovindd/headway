@@ -116,11 +116,41 @@ transform)
          and r['report_key'] == 'public/boston/observability/index.html' and r['report_is_html'] \
          and r['report_bytes'] > 100000 and r['report_content_type'].startswith('text/html') \
          and r['forecast_state_written'] > 0 and r['forecast_state_rewritten'] == 0 \
-         and r['forecast_state_existing_on_rewrite'] == r['forecast_state_written']" \
+         and r['forecast_state_existing_on_rewrite'] == r['forecast_state_written'] \
+         and r['forecast_serving_status'] == 'baselines_only' and r['forecast_model_rows'] == 0 \
+         and r['forecast_baseline_rows'] > 0 and r['forecast_model_version'] is None \
+         and r['forecast_cache_files'] == [] and r['r3_tables_exported'] == 2 \
+         and not r['r3_backtest_exported'] and r['forecast_reports'] == \
+             {'raw_forecast_backtest': 0, 'raw_forecast_gate_status': 0}" \
         --add-host=host.docker.internal:host-gateway \
         -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R3=true \
         -e RAW_BUCKET=smoke-raw \
+        -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
+        -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public/public/boston/gold \
+        -e HEADWAY_DBT_TARGET=s3_test -e HEADWAY_S3_ENDPOINT="$endpoint" \
+        -e AWS_ENDPOINT_URL="http://$endpoint"
+
+    # Release 3 serving with a registered model (model v1 for Red, Orange and Blue under a passed
+    # gate, seeded with the training code) under the same constraints: the model is downloaded to
+    # /tmp once, LightGBM runs on the read-only image, only the approved lines past the gate get a
+    # model forecast, the reports reach the warehouse and the backtest is exported (a line passed).
+    (cd "$root" && uv run --project ml python scripts/smoke_serve_seed.py \
+        --endpoint "http://localhost:$moto_port" --bucket smoke-raw-model)
+    invoke headway-transform:local headway_transform.handler.lambda_handler \
+        "r['smoke'] and r['tests_failed'] == 0 and r['forecast_serving_status'] == 'model' \
+         and r['forecast_model_rows'] > 0 and r['forecast_model_version'] == 1 \
+         and r['forecast_model_from_cache'] is False and r['forecast_scored_trip_stops'] > 0 \
+         and r['forecast_model_error'] is None \
+         and r['forecast_baseline_rows'] > r['forecast_model_rows'] \
+         and {'model.txt', 'lines.json', 'features.json', 'meta.json'} <= set(r['forecast_cache_files']) \
+         and r['forecast_reports']['raw_forecast_gate_status'] == 3 \
+         and r['forecast_reports']['raw_forecast_backtest'] > 0 \
+         and r['r3_tables_exported'] == 3 and r['r3_backtest_exported']" \
+        --add-host=host.docker.internal:host-gateway \
+        -v "$smoke/curated:/fixture/curated:ro" \
+        -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R3=true \
+        -e RAW_BUCKET=smoke-raw-model \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
         -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public/public/boston/gold \
         -e HEADWAY_DBT_TARGET=s3_test -e HEADWAY_S3_ENDPOINT="$endpoint" \
