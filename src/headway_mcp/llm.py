@@ -25,7 +25,7 @@ class ChatClient(Protocol):
     def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
         """One assistant message: {"content": str | None, "tool_calls": [{id, name, arguments}]}.
 
-        A client may add "usage": {"prompt_tokens": int, "completion_tokens": int} (the evals read it).
+        A client may add "usage": {"prompt_tokens": int, "completion_tokens": int} (evals read it).
         """
         ...
 

@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed
+.PHONY: ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -13,9 +13,16 @@ dbt-deps:
 check: dbt-deps
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy src dbt/headway_transform
+	uv run mypy src dbt/headway_transform evals
 	uv run pytest
 	$(MAKE) ml-test
+
+# Analyst evals (docs/EVALS.md): 40 questions over the frozen snapshot in evals/snapshot/, scored
+# against SQL gold answers; exits non-zero when a threshold fails. Needs OPENAI_API_KEY (real model,
+# cost printed and capped by --max-cost); `make evals EVALS_ARGS=--fake` runs the scripted model.
+EVALS_ARGS ?=
+evals:
+	uv run python -m evals.run $(EVALS_ARGS)
 
 # Forecast evaluation (ml/ has its own environment; `uv run --project ml` syncs it from ml/uv.lock,
 # so a clean clone needs nothing else).
