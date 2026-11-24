@@ -25,3 +25,8 @@ output "transform_repository_url" {
 output "gold_url" {
   value = "https://${aws_s3_bucket.public.bucket_regional_domain_name}/${local.gold_prefix}"
 }
+
+output "train_function_name" {
+  description = "The weekly forecast training Lambda (empty unless enable_r3)."
+  value       = one(aws_lambda_function.train[*].function_name)
+}

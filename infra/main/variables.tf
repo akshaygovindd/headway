@@ -63,3 +63,14 @@ variable "enable_r3" {
     error_message = "enable_r3 reads Release 2 models: set enable_r2 = true as well."
   }
 }
+
+variable "train_image_uri" {
+  description = "ECR image URI for the weekly forecast training Lambda (printed by `make images-push`). Needed when enable_r3 = true."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = !var.enable_r3 || var.train_image_uri != ""
+    error_message = "enable_r3 deploys the training Lambda: set train_image_uri (make images-push prints it)."
+  }
+}

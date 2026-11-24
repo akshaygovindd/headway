@@ -97,7 +97,8 @@ transform)
     # Release 2 end to end on S3 (moto), under the same constraints: run state append and load,
     # the SLO models built over that state, history write and its immutability (a second write
     # changes nothing), the SLO models read back from that history, and the export of the whole
-    # R2 allowlist. Also under the same constraints: the run's embedded-metric lines in the
+    # R2 allowlist, and with Release 3 on, the closed-day forecast tables written once to the raw bucket
+    # (and not again). Also under the same constraints: the run's embedded-metric lines in the
     # container log, Elementary's history persisted and read back, and the edr report rendered and
     # uploaded (no network, read-only root, /tmp only).
     curl -s -o /dev/null -XPUT "localhost:$moto_port/smoke-raw" \
@@ -113,10 +114,12 @@ transform)
          and r['elementary_persisted']['data_monitoring_metrics'] > 0 \
          and r['elementary_restored'] == r['elementary_persisted'] \
          and r['report_key'] == 'public/boston/observability/index.html' and r['report_is_html'] \
-         and r['report_bytes'] > 100000 and r['report_content_type'].startswith('text/html')" \
+         and r['report_bytes'] > 100000 and r['report_content_type'].startswith('text/html') \
+         and r['forecast_state_written'] > 0 and r['forecast_state_rewritten'] == 0 \
+         and r['forecast_state_existing_on_rewrite'] == r['forecast_state_written']" \
         --add-host=host.docker.internal:host-gateway \
         -v "$smoke/curated:/fixture/curated:ro" \
-        -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true \
+        -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R3=true \
         -e RAW_BUCKET=smoke-raw \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
         -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public/public/boston/gold \

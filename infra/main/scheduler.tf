@@ -17,12 +17,15 @@ resource "aws_iam_role" "scheduler" {
 data "aws_iam_policy_document" "scheduler_invoke" {
   statement {
     actions = ["lambda:InvokeFunction"]
-    resources = [
-      aws_lambda_function.ingest.arn,
-      aws_lambda_function.curate.arn,
-      aws_lambda_function.static.arn,
-      aws_lambda_function.transform.arn,
-    ]
+    resources = concat(
+      [
+        aws_lambda_function.ingest.arn,
+        aws_lambda_function.curate.arn,
+        aws_lambda_function.static.arn,
+        aws_lambda_function.transform.arn,
+      ],
+      aws_lambda_function.train[*].arn,
+    )
   }
 }
 

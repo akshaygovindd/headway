@@ -23,17 +23,22 @@ def main() -> None:
     parser.add_argument("--endpoint", required=True)
     parser.add_argument("--bucket", required=True)
     parser.add_argument("--gate-days", type=int, required=True)
+    parser.add_argument("--weeks", type=int, default=3)
+    parser.add_argument("--lines", type=int, default=2)
+    parser.add_argument("--rep", type=int, default=1, help="repeat each day (sizing runs)")
     args = parser.parse_args()
     s3 = boto3.client(
         "s3", endpoint_url=args.endpoint, region_name="us-east-1",
         aws_access_key_id="smoke", aws_secret_access_key="smoke",
     )  # fmt: skip
     s3.create_bucket(Bucket=args.bucket)
-    examples = make_examples(weeks=3).drop(columns=["period_type"])
+    lines = ("Red", "Blue") if args.lines == 2 else tuple(f"L{i}" for i in range(args.lines))
+    examples = make_examples(weeks=args.weeks, lines=lines).drop(columns=["period_type"])
     con = duckdb.connect()
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "part.parquet"
         for i, (day, part) in enumerate(examples.groupby("service_date")):
+            part = pd.concat([part] * args.rep, ignore_index=True)
             con.register("part", part)
             con.execute(f"copy part to '{path}' (format parquet)")
             con.unregister("part")
@@ -41,7 +46,7 @@ def main() -> None:
             s3.upload_file(str(path), args.bucket, base % "forecast_examples")
             gate = pd.DataFrame(
                 {
-                    "line": ["Red", "Blue"],
+                    "line": list(lines),
                     "service_date": day,
                     "day_type": "weekend" if day.weekday() >= 5 else "weekday",
                     "meets_coverage": i < args.gate_days,

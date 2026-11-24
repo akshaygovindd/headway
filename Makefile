@@ -132,7 +132,8 @@ images-push: images-build
 	done; \
 	echo; \
 	echo "curate_image_uri    = \"$$registry/headway-curate:$(IMAGE_TAG)\""; \
-	echo "transform_image_uri = \"$$registry/headway-transform:$(IMAGE_TAG)\""
+	echo "transform_image_uri = \"$$registry/headway-transform:$(IMAGE_TAG)\""; \
+	echo "train_image_uri     = \"$$registry/headway-train:$(IMAGE_TAG)\"  # only with enable_r3"
 
 # Push the images, point terraform.tfvars at the new git short sha, plan and apply. Aborts before
 # the apply unless the plan destroys nothing. Needs AWS credentials and the ECR repositories.
@@ -144,6 +145,7 @@ deploy: images-push
 	sed -i.bak -E \
 		-e 's|^(curate_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-curate:)[^"]*"|\1$(IMAGE_TAG)"|' \
 		-e 's|^(transform_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-transform:)[^"]*"|\1$(IMAGE_TAG)"|' \
+		-e 's|^(train_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-train:)[^"]*"|\1$(IMAGE_TAG)"|' \
 		$(TFVARS); \
 	rm -f $(TFVARS).bak; \
 	grep -q 'headway-curate:$(IMAGE_TAG)"' $(TFVARS) && grep -q 'headway-transform:$(IMAGE_TAG)"' $(TFVARS) \

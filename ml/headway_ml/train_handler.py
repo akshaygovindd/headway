@@ -20,7 +20,7 @@ logger.setLevel(logging.INFO)
 
 WORKDIR = Path(os.environ.get("HEADWAY_TRAIN_WORKDIR", "/tmp/train"))  # noqa: S108
 DEFAULT_WINDOW_DAYS = 56  # eight weekly folds at most
-DEFAULT_MAX_ROWS_PER_DAY = 20000
+DEFAULT_MAX_ROWS_PER_DAY = 8000
 MLFLOW_PREFIX = "mlflow"
 
 

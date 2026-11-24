@@ -18,7 +18,13 @@ locals {
   # folders (elementary_test_results, elementary_data_monitoring_metrics), listed, read and appended
   # by the same state module as transform_runs.
   elementary_state_prefix = "state/elementary_*"
-  state_prefixes          = [local.state_prefix, local.elementary_state_prefix]
+  # Release 3: the closed-day forecast tables (forecast_examples, forecast_gate_days) are written
+  # once each by the transform and read by the training Lambda (dbt/headway_transform/forecast_state.py).
+  forecast_state_prefix = "state/forecast_*"
+  state_prefixes = concat(
+    [local.state_prefix, local.elementary_state_prefix],
+    var.enable_r3 ? [local.forecast_state_prefix] : [],
+  )
   raw_data_prefix = concat(
     ["curated/*", "manifests/*", "quarantine/*", local.lock_key],
     [for p in local.state_prefixes : "${p}/*"],
