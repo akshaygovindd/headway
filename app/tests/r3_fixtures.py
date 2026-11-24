@@ -170,3 +170,33 @@ def with_incidents(src: Path, dest: Path) -> Path:
     incidents_table().to_parquet(gold / "agg_incidents.parquet")
     alert_matching_table().to_parquet(gold / "agg_alert_matching_daily.parquet")
     return dest
+
+
+def weather_table(published: bool = True) -> pd.DataFrame:
+    """Snow published (9 vs 50 days), heavy rain withheld (3 days), extreme heat withheld (none)."""
+    cols = ["ci_lo_condition", "ci_hi_condition", "ci_lo_other", "ci_hi_other"]
+    rows = []
+    for cond, n_c, n_o in (("snow", 9, 50), ("heavy_rain", 3, 56), ("extreme_heat", 0, 59)):
+        for metric, (vc, vo) in (("on_time", (58.1, 80.6)), ("headway_within_band", (69.8, 69.9))):
+            ok = published and n_c >= 5
+            reason = None if ok else f"fewer than 5 {cond.replace('_', '-')} days"
+            bounds = (vc - 1.4, vc + 1.3, vo - 0.9, vo + 0.8) if ok else (None,) * 4
+            rows.append(
+                {
+                    "condition": cond, "metric": metric, "n_days_condition": n_c,
+                    "n_days_other": n_o, "withheld": not ok,
+                    "withheld_reason": reason,
+                    "value_condition": vc if ok else None, "value_other": vo if ok else None,
+                    **dict(zip(cols, bounds, strict=True)),
+                    "window_start": pd.Timestamp("2026-01-01") if n_c else pd.NaT,
+                    "window_end": pd.Timestamp("2026-03-01") if n_c else pd.NaT,
+                    "bootstrap_reps": 1000, "min_days": 5,
+                }
+            )  # fmt: skip
+    return pd.DataFrame(rows)
+
+
+def with_weather(src: Path, dest: Path) -> Path:
+    shutil.copytree(src, dest)
+    weather_table().to_parquet(dest / "gold" / "agg_weather_comparison.parquet")
+    return dest

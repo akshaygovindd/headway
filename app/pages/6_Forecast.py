@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 import ui
-from lib import forecast
+from lib import forecast, weather
 from lib.coverage import WITHHELD_TEXT, coverage_badge, is_withheld
 from lib.timefmt import format_local
 
@@ -118,4 +118,17 @@ for line in lines:
             + (f" · lowest coverage: {badge.label}" if badge else "")
             + ". Coverage is the share of scheduled trip stops in the slot that have a value."
         )
+wx = ui.gold_table_optional(base, "agg_weather_comparison")
+if wx is not None and not wx.empty:
+    st.subheader("Weather comparison")
+    if weather.has_no_days(wx):
+        st.caption("No daily weather in this export yet, so no weather comparison is shown.")
+    else:
+        window = weather.window_text(wx)
+        if window:
+            st.caption(window)
+        for item in weather.statements(wx):
+            st.markdown(f":gray[{item.text}]" if item.withheld else item.text)
+        st.caption(weather.NOTE)
+
 st.caption(ui.DISCLAIMER)
