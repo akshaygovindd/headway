@@ -190,8 +190,9 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
 ### Alarm: headway-gold-stale
 
 - **Meaning:** the transform ran, but replaced gold more than 90 minutes after the previous
-  export in two hourly periods in a row, or it stopped reporting `GoldAgeMinutes` (missing data
-  counts as breaching). The transform writes the metric as a CloudWatch embedded-metric log line
+  export in two hourly periods in a row. Missing data keeps the alarm's state (the first run
+  after a deploy has no previous export and emits nothing); a transform that stopped running is
+  `headway-transform-not-succeeded`. The transform writes the metric as a CloudWatch embedded-metric log line
   after each export: the age, in minutes, of the export it just replaced. Gold on the site is
   older than the hourly cadence promises; the gold-freshness objective spends budget.
 - **First 3 commands:**

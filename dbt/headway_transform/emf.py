@@ -4,8 +4,9 @@ Like ingest, the transform writes bare JSON lines to stdout and CloudWatch Logs 
 metrics, so the function needs no ``PutMetricData`` permission. Three metrics, each computed from
 the local DuckDB file after the build:
 
-- ``GoldAgeMinutes``: how old the previous gold export was when this run replaced it. A transform
-  that stops runs emits nothing, which the alarm treats as breaching.
+- ``GoldAgeMinutes``: how old the previous gold export was when this run replaced it. The first run
+  after a deploy has no previous export and emits nothing; the alarm keeps its state on missing
+  data, and a transform that stops is the job of the transform-not-succeeded alarm.
 - ``MissedRunsLastHour``: minutes without an ingest manifest in the 60 minutes ending at the newest
   curated minute (curation lags ingest, so the window follows the data, not the clock).
 - ``ArrivalCoveragePct`` (Release 2): share of the scheduled stop times of the last complete local

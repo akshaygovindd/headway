@@ -164,7 +164,7 @@ resource "aws_cloudwatch_metric_alarm" "feed_errors" {
 # (namespace Headway, no dimensions), so they need no PutMetricData permission.
 resource "aws_cloudwatch_metric_alarm" "gold_stale" {
   alarm_name          = "headway-gold-stale"
-  alarm_description   = "Gold was replaced more than 90 minutes after the previous export, two hours running, or the transform stopped reporting. Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-gold-stale"
+  alarm_description   = "Gold was replaced more than 90 minutes after the previous export, two hours running. Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-gold-stale"
   namespace           = "Headway"
   metric_name         = "GoldAgeMinutes"
   statistic           = "Maximum"
@@ -172,8 +172,11 @@ resource "aws_cloudwatch_metric_alarm" "gold_stale" {
   evaluation_periods  = 2
   comparison_operator = "GreaterThanThreshold"
   threshold           = 90
-  treat_missing_data  = "breaching"
-  alarm_actions       = [aws_sns_topic.alerts.arn]
+  # Missing data keeps the alarm's state. The first transform run after a deploy has no previous
+  # export to measure and emits nothing, so "breaching" would alarm a new alarm at creation; a
+  # transform that stops running is the job of headway-transform-not-succeeded.
+  treat_missing_data = "missing"
+  alarm_actions      = [aws_sns_topic.alerts.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "missed_minutes" {
