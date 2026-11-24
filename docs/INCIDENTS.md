@@ -143,6 +143,35 @@ and what now prevents a repeat. Newest last.
   conflict and the release; `test_cost_report_is_written_after_dbt_connections_are_released`
   pins the order.
 
+## Ingest Lambda memory underestimated
+
+- **Symptom:** after the 15 s polling deploy the ingest function's REPORT lines showed
+  `Max Memory Used: 114 MB` of 128 MB (89 %) on single-poll runs that took 4 to 6 s.
+- **Root cause:** the function was sized at 128 MB from ADR-014's local smoke, which measured
+  60 to 70 MB resident. That figure leaves out the Lambda runtime's own overhead, so it
+  understated what Lambda reports by roughly 45 MB.
+- **Fix:** within minutes the function went back to 256 MB. It now uses 127 to 128 MB (50 %) and
+  a run takes 2.5 s. ADR-014 and MEASUREMENTS.md carry the numbers.
+- **Guard:** `make ingest-smoke` now fails when the peak exceeds 50 % of the configured memory
+  (`--limit-mb` defaults to 128, half of the 256 MB function; the smoke runs under a 256 MB
+  container limit), so a measurement taken without runtime overhead cannot approve a size again.
+
+## Elementary history not persisted: S3 AccessDenied
+
+- **Symptom:** the transform logged `could not persist the Elementary history`:
+  `AccessDenied` for `s3:ListBucket` on `headway-raw-381232271655`, for the Elementary state
+  prefix. The run itself succeeded (the step never raises), but the anomaly test history was not
+  appended, so it would not have survived the container.
+- **Root cause:** the state module keeps its tables under `state/<folder>/` (`transform_runs`,
+  `elementary_test_results`, `elementary_data_monitoring_metrics`). The transform role only
+  listed, read and wrote `state/transform_runs/`; the Elementary folders were added later
+  without a matching policy change.
+- **Fix:** the transform policy takes one list of state prefixes (`transform_runs` and
+  `elementary_*`) and uses it for the `s3:ListBucket` prefix condition, `s3:GetObject` and
+  `s3:PutObject`. Terraform validates; it ships with the Release 2 deploy, not yet applied.
+- **Guard:** `tests/unit/test_transform_state_iam.py` checks that every folder of every persisted
+  state table is covered for list, get and put, and that the state module uses no other S3 action.
+
 ## Drills
 
 Failures caused on purpose with the chaos switch ([ADR-017](ARCHITECTURE_DECISIONS.md), how to
