@@ -1421,3 +1421,213 @@ models:
         description: "Training run that produced the row."
       - name: trained_at
         description: "When the run was made."
+  - name: fct_incidents
+    description: "Incidents per line and direction (Release 3): at least two consecutive breach hours, closed after one clear hour, with the evidence JSON a summary may use and its hash (the incident version)."
+    config:
+      meta:
+        grain: "line x direction_id x incident_start"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, incident_start]
+    columns:
+      - name: incident_id
+        description: "Stable id: hash of line, direction and incident_start."
+        data_tests:
+          - not_null
+      - name: evidence_hash
+        description: "Hash of evidence_json: the incident version."
+        data_tests:
+          - not_null
+      - name: incident_date
+        description: "Service date of the start."
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel (0 or 1)."
+      - name: incident_start
+        description: "Local start of the first breach hour."
+        data_tests:
+          - not_null
+      - name: incident_end
+        description: "Local end of the last breach hour."
+        data_tests:
+          - not_null
+      - name: n_hours
+        description: "Breach hours."
+        data_tests:
+          - not_null
+      - name: is_open
+        description: "True when no later evaluated hour closes the incident."
+        data_tests:
+          - not_null
+      - name: crossed_deviation
+        description: "The deviation rule was crossed in some hour."
+        data_tests:
+          - not_null
+      - name: crossed_gap
+        description: "The gap rule was crossed in some hour."
+        data_tests:
+          - not_null
+      - name: crossed_skipped
+        description: "The skipped rule was crossed in some hour."
+        data_tests:
+          - not_null
+      - name: crossed_alert
+        description: "A line-scope alert was active in some hour."
+        data_tests:
+          - not_null
+      - name: min_coverage_pct
+        description: "Lowest hourly arrival coverage (0-100)."
+      - name: mean_coverage_pct
+        description: "Mean hourly arrival coverage (0-100)."
+      - name: n_outage_hours_inside
+        description: "Data-outage hours inside the window, not judged."
+        data_tests:
+          - not_null
+      - name: incident_start_ts
+        description: "Start as a UTC instant."
+        data_tests:
+          - not_null
+      - name: incident_end_ts
+        description: "End as a UTC instant."
+        data_tests:
+          - not_null
+      - name: thresholds_crossed
+        description: "Comma-separated rules crossed."
+        data_tests:
+          - not_null
+      - name: evidence_json
+        description: "Everything a summary may state: hours, values, baselines, thresholds, alerts, coverage."
+        data_tests:
+          - not_null
+  - name: agg_incidents
+    description: "Incident list for the Incidents page (Release 3): the incident, thresholds crossed, evidence JSON, match status against alerts and the summary with its template and number-check state, filled by the transform. Exported with the R3 gold tables."
+    config:
+      meta:
+        grain: "incident_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [incident_id]
+    columns:
+      - name: incident_id
+        description: "Incident id."
+        data_tests:
+          - not_null
+      - name: evidence_hash
+        description: "Incident version."
+        data_tests:
+          - not_null
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel."
+      - name: incident_start_ts
+        description: "Start (UTC)."
+        data_tests:
+          - not_null
+      - name: incident_end_ts
+        description: "End of the last breach hour (UTC)."
+        data_tests:
+          - not_null
+      - name: n_hours
+        description: "Breach hours."
+        data_tests:
+          - not_null
+      - name: is_open
+        description: "Whether the incident is still open."
+        data_tests:
+          - not_null
+      - name: thresholds_crossed
+        description: "Comma-separated rules crossed."
+        data_tests:
+          - not_null
+      - name: min_coverage_pct
+        description: "Lowest hourly coverage (0-100)."
+      - name: mean_coverage_pct
+        description: "Mean hourly coverage (0-100)."
+      - name: n_outage_hours_inside
+        description: "Data-outage hours inside the window."
+      - name: evidence_json
+        description: "Evidence JSON."
+        data_tests:
+          - not_null
+      - name: match_status
+        description: "matched or unmatched_incident."
+        data_tests:
+          - not_null
+      - name: alert_lag_s
+        description: "Seconds from incident start to the first matching alert."
+      - name: first_alert_id
+        description: "First matching alert."
+      - name: matched_alert_ids
+        description: "Comma-separated matching alert ids."
+      - name: summary_text
+        description: "The summary shown; null until the transform fills it."
+      - name: template_used
+        description: "True when the deterministic template wrote the summary."
+      - name: number_check
+        description: "passed, rejected (LLM text refused, template used) or not_run (no LLM call)."
+      - name: rejection_reason
+        description: "Why the LLM text was refused."
+      - name: llm_model
+        description: "Model that wrote the summary, null for the template."
+      - name: summary_generated_at
+        description: "When the summary was generated."
+      - name: summary_evidence_hash
+        description: "Incident version the summary describes."
+      - name: summary_stale
+        description: "True when the summary describes an earlier version of an open incident."
+  - name: agg_alert_matching_daily
+    description: "Incidents and line-scope service-impacting alerts per line and service date with the counts that have a counterpart within the match window, and the median alert lag (Release 3, alert vs reality). Exported with the R3 gold tables."
+    config:
+      meta:
+        grain: "line x service_date"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, service_date]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: n_incidents
+        description: "Incidents starting that day."
+        data_tests:
+          - not_null
+      - name: n_incidents_matched
+        description: "Incidents with a matching alert."
+        data_tests:
+          - not_null
+      - name: n_incidents_unmatched
+        description: "Incidents with no matching alert."
+        data_tests:
+          - not_null
+      - name: n_alerts
+        description: "Alerts first captured that day."
+        data_tests:
+          - not_null
+      - name: n_alerts_matched
+        description: "Alerts with a matching incident."
+        data_tests:
+          - not_null
+      - name: n_alerts_unmatched
+        description: "Alerts with no matching incident."
+        data_tests:
+          - not_null
+      - name: median_alert_lag_s
+        description: "Median seconds from incident start to the first matching alert."
+      - name: n_with_lag
+        description: "Matched incidents behind the lag."
+        data_tests:
+          - not_null

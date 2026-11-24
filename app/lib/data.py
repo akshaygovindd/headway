@@ -50,7 +50,13 @@ R2_TABLES = (
 )
 # Release 3 forecast tables; present only when the deployment has enabled them. The backtest is
 # exported only once a line has passed the training gate.
-R3_TABLES = ("agg_forecast_next_hour", "agg_forecast_gate_status", "agg_forecast_backtest")
+R3_TABLES = (
+    "agg_forecast_next_hour",
+    "agg_forecast_gate_status",
+    "agg_forecast_backtest",
+    "agg_incidents",
+    "agg_alert_matching_daily",
+)
 
 
 class DataUnavailableError(RuntimeError):

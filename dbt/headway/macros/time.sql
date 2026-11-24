@@ -50,3 +50,10 @@ case
     else 'other'
 end
 {%- endmacro %}
+
+{#
+  Service date of a local (naive) timestamp: the date, minus one day before the cutoff hour.
+#}
+{% macro service_date_naive(ts) -%}
+cast(({{ ts }} - interval {{ var("service_day_cutoff_hour") }} hour) as date)
+{%- endmacro %}

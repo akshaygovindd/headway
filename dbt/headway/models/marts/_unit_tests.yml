@@ -855,3 +855,66 @@ unit_tests:
     expect:
       rows:
         - {trip_instance_key: A, horizon_min: 15, label_delay_s: 130, stop_position: 0.8, scheduled_headway_s: 480, hour_local: 9, day_type: weekend, rolling_median_delay_30m: 200, rolling_median_delay_60m: 300, headway_within_share: 0.5, active_disruption_alert: true, skipped_share_1h: 0.25}
+
+  - name: incidents_open_close_outage_and_minimum_hours
+    config:
+      tags: [r3]
+    description: >-
+      Red breaches at 08:00 and 09:00 and is clear at 10:00: one closed incident of two hours (a lone
+      breach at 12:00 is no incident). Blue breaches at 08:00 and 10:00 with a data outage between:
+      the outage is not evaluated, so the breaches are not consecutive and no incident opens.
+      Orange breaches at 08:00 and 09:00 with nothing observed after: open. Green-B crosses three
+      rules over three hours and closes at 11:00.
+    model: fct_incidents
+    given:
+      - input: ref('int_incident_hours')
+        rows:
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 8, hour_start: "2026-11-22 08:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: true, crossed_skipped: false, crossed_alert: false}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 9, hour_start: "2026-11-22 09:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: true, crossed_skipped: false, crossed_alert: false}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 10, hour_start: "2026-11-22 10:00:00", data_outage: false, breach: false, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: false, crossed_skipped: false, crossed_alert: false}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 12, hour_start: "2026-11-22 12:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: true, crossed_skipped: false, crossed_alert: false}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 13, hour_start: "2026-11-22 13:00:00", data_outage: false, breach: false, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: false, crossed_skipped: false, crossed_alert: false}
+          - {line: "Blue", direction_id: 0, service_date: "2026-11-22", hour_local: 8, hour_start: "2026-11-22 08:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: true, crossed_skipped: false, crossed_alert: false}
+          - {line: "Blue", direction_id: 0, service_date: "2026-11-22", hour_local: 9, hour_start: "2026-11-22 09:00:00", data_outage: true, breach: false, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: false, crossed_skipped: false, crossed_alert: false}
+          - {line: "Blue", direction_id: 0, service_date: "2026-11-22", hour_local: 10, hour_start: "2026-11-22 10:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: true, crossed_skipped: false, crossed_alert: false}
+          - {line: "Blue", direction_id: 0, service_date: "2026-11-22", hour_local: 11, hour_start: "2026-11-22 11:00:00", data_outage: false, breach: false, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: false, crossed_skipped: false, crossed_alert: false}
+          - {line: "Orange", direction_id: 0, service_date: "2026-11-22", hour_local: 8, hour_start: "2026-11-22 08:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: false, crossed_skipped: true, crossed_alert: false}
+          - {line: "Orange", direction_id: 0, service_date: "2026-11-22", hour_local: 9, hour_start: "2026-11-22 09:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: false, crossed_skipped: true, crossed_alert: false}
+          - {line: "Green-B", direction_id: 0, service_date: "2026-11-22", hour_local: 8, hour_start: "2026-11-22 08:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: true, crossed_gap: false, crossed_skipped: false, crossed_alert: false}
+          - {line: "Green-B", direction_id: 0, service_date: "2026-11-22", hour_local: 9, hour_start: "2026-11-22 09:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: true, crossed_gap: false, crossed_skipped: false, crossed_alert: false}
+          - {line: "Green-B", direction_id: 0, service_date: "2026-11-22", hour_local: 10, hour_start: "2026-11-22 10:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, alert_active: true, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: false, crossed_skipped: false, crossed_alert: true}
+          - {line: "Green-B", direction_id: 0, service_date: "2026-11-22", hour_local: 11, hour_start: "2026-11-22 11:00:00", data_outage: false, breach: false, baseline_enabled: true, baseline_days: 20, alert_active: false, coverage_pct: 80.0, crossed_deviation: false, crossed_gap: false, crossed_skipped: false, crossed_alert: false}
+      - input: ref('int_alert_scopes')
+        rows:
+          - {line: "Green-B", scope: "line", is_service_disruption: true, service_date: "2026-11-22", hour_local: 10, alert_id: "a1", effect: "DETOUR", header_text: "Shuttle buses replace trains"}
+    expect:
+      rows:
+        - {line: "Red", direction_id: 0, incident_start: "2026-11-22 08:00:00", incident_end: "2026-11-22 10:00:00", n_hours: 2, is_open: false, thresholds_crossed: "gap", n_outage_hours_inside: 0}
+        - {line: "Orange", direction_id: 0, incident_start: "2026-11-22 08:00:00", incident_end: "2026-11-22 10:00:00", n_hours: 2, is_open: true, thresholds_crossed: "skipped", n_outage_hours_inside: 0}
+        - {line: "Green-B", direction_id: 0, incident_start: "2026-11-22 08:00:00", incident_end: "2026-11-22 11:00:00", n_hours: 3, is_open: false, thresholds_crossed: "deviation,alert", n_outage_hours_inside: 0}
+
+  - name: alert_matching_within_30_minutes
+    config:
+      tags: [r3]
+    description: >-
+      The Red incident runs 14:00 to 16:00 UTC; Red alert a1 is first captured at 14:20, 20 minutes
+      (1200 s) after the start: matched, lag 1200. The Blue incident has no Blue alert: unmatched
+      incident. Blue alert b1 starts at 17:00, more than 30 minutes after the incident ended: unmatched
+      alert. A stop-scope alert on Red is not considered.
+    model: int_alert_matching
+    given:
+      - input: ref('fct_incidents')
+        rows:
+          - {incident_id: "i1", line: "Red", incident_start: "2026-11-22 09:00:00", incident_start_ts: "2026-11-22 14:00:00+00", incident_end_ts: "2026-11-22 16:00:00+00"}
+          - {incident_id: "i2", line: "Blue", incident_start: "2026-11-22 09:00:00", incident_start_ts: "2026-11-22 14:00:00+00", incident_end_ts: "2026-11-22 16:00:00+00"}
+      - input: ref('int_alert_scopes')
+        rows:
+          - {line: "Red", alert_id: "a1", effect: "DETOUR", header_text: "Shuttle buses", scope: "line", is_service_disruption: true, first_seen: "2026-11-22 14:20:00+00", last_seen: "2026-11-22 14:50:00+00"}
+          - {line: "Red", alert_id: "s1", effect: "NO_SERVICE", header_text: "Station closed", scope: "stop", is_service_disruption: true, first_seen: "2026-11-22 14:10:00+00", last_seen: "2026-11-22 14:50:00+00"}
+          - {line: "Blue", alert_id: "b1", effect: "DETOUR", header_text: "Shuttle buses", scope: "line", is_service_disruption: true, first_seen: "2026-11-22 17:00:00+00", last_seen: "2026-11-22 17:30:00+00"}
+    expect:
+      rows:
+        - {kind: "incident", item_id: "i1", line: "Red", match_status: "matched", n_counterparts: 1, alert_lag_s: 1200, first_alert_id: "a1"}
+        - {kind: "incident", item_id: "i2", line: "Blue", match_status: "unmatched_incident", n_counterparts: 0, alert_lag_s: null, first_alert_id: null}
+        - {kind: "alert", item_id: "a1", line: "Red", match_status: "matched", n_counterparts: 1, alert_lag_s: null, first_alert_id: null}
+        - {kind: "alert", item_id: "b1", line: "Blue", match_status: "unmatched_alert", n_counterparts: 0, alert_lag_s: null, first_alert_id: null}

@@ -34,9 +34,15 @@ R2_GOLD_TABLES = (
     "agg_slo_daily",
     "agg_slo_rollup",
 )
-# Release 3 (HEADWAY_ENABLE_R3=true, with R2): the next-hour forecasts and the gate status. The
+# Release 3 (HEADWAY_ENABLE_R3=true, with R2): the next-hour forecasts, the gate status, incidents and
+# alert matching. The
 # backtest summary joins them only once a line has passed the training gate (R3_OPTIONAL_TABLES).
-R3_GOLD_TABLES = ("agg_forecast_next_hour", "agg_forecast_gate_status")
+R3_GOLD_TABLES = (
+    "agg_forecast_next_hour",
+    "agg_forecast_gate_status",
+    "agg_incidents",
+    "agg_alert_matching_daily",
+)
 R3_OPTIONAL_TABLES = ("agg_forecast_backtest",)
 # cost_daily is written by cost.py, not dbt, so it is published only when it exists. The R3
 # backtest is exported by dbt only when it has rows.

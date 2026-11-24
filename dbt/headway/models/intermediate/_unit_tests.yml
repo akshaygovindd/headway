@@ -414,3 +414,97 @@ unit_tests:
       rows:
         - {line: Red, trip_instance_key: A, stop_sequence: 5, horizon_min: 15, label_delay_s: 130}
         - {line: Red, trip_instance_key: B, stop_sequence: 5, horizon_min: 30, label_delay_s: 120}
+
+  - name: incident_baseline_enabled_with_14_history_days
+    config:
+      tags: [r3]
+    description: >-
+      Red, hour 8, Friday 2026-11-20 has a median deviation of 400 s. History supplies 14 earlier weekdays at 20 s: the baseline (20 s) is enabled and the hour is 380 s above it, past the 180 s threshold.
+    model: int_incident_hours
+    given:
+      - input: ref('int_deviation_hour_history')
+        rows:
+          - {line: "Red", direction_id: 0, service_date: "2026-11-02", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-03", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-04", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-05", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-06", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-09", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-10", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-11", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-12", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-13", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-16", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-17", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-18", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-19", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-20", hour_local: 8, data_outage: false, median_deviation_s: 400, coverage_pct: 90.0}
+      - input: ref('agg_headway_adherence_hourly')
+        rows: []
+      - input: ref('agg_line_reliability_hourly')
+        rows: []
+      - input: ref('int_disrupted_line_hours')
+        rows: []
+    expect:
+      rows:
+        - {service_date: "2026-11-02", baseline_days: 0, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-03", baseline_days: 1, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-04", baseline_days: 2, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-05", baseline_days: 3, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-06", baseline_days: 4, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-09", baseline_days: 5, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-10", baseline_days: 6, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-11", baseline_days: 7, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-12", baseline_days: 8, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-13", baseline_days: 9, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-16", baseline_days: 10, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-17", baseline_days: 11, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-18", baseline_days: 12, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-19", baseline_days: 13, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-20", baseline_days: 14, baseline_enabled: true, crossed_deviation: true, breach: true}
+
+  - name: incident_baseline_disabled_with_13_history_days
+    config:
+      tags: [r3]
+    description: >-
+      The same Friday with only 13 earlier weekdays of history: the baseline rule is off (baseline_enabled false), so the 400 s deviation does not breach.
+    model: int_incident_hours
+    given:
+      - input: ref('int_deviation_hour_history')
+        rows:
+          - {line: "Red", direction_id: 0, service_date: "2026-11-03", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-04", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-05", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-06", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-09", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-10", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-11", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-12", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-13", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-16", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-17", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-18", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-19", hour_local: 8, data_outage: false, median_deviation_s: 20, coverage_pct: 90.0}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-20", hour_local: 8, data_outage: false, median_deviation_s: 400, coverage_pct: 90.0}
+      - input: ref('agg_headway_adherence_hourly')
+        rows: []
+      - input: ref('agg_line_reliability_hourly')
+        rows: []
+      - input: ref('int_disrupted_line_hours')
+        rows: []
+    expect:
+      rows:
+        - {service_date: "2026-11-03", baseline_days: 0, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-04", baseline_days: 1, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-05", baseline_days: 2, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-06", baseline_days: 3, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-09", baseline_days: 4, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-10", baseline_days: 5, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-11", baseline_days: 6, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-12", baseline_days: 7, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-13", baseline_days: 8, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-16", baseline_days: 9, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-17", baseline_days: 10, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-18", baseline_days: 11, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-19", baseline_days: 12, baseline_enabled: false, crossed_deviation: false, breach: false}
+        - {service_date: "2026-11-20", baseline_days: 13, baseline_enabled: false, crossed_deviation: false, breach: false}

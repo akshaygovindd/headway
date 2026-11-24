@@ -47,6 +47,8 @@ HISTORY_TABLES: dict[str, str] = {
     "agg_arrival_reconstruction_daily": "arrival_reconstruction",
     "agg_prediction_accuracy_daily": "prediction_accuracy",
     "agg_actual_deviation_daily": "actual_deviation",
+    # Hourly medians, for the Release 3 incident baseline (day type x hour over >= 14 days).
+    "agg_actual_deviation_hourly": "actual_deviation",
     "agg_headway_adherence_daily": "headway_adherence",
     "agg_ett_daily": "ett",
     "agg_stop_deviation_daily": "stop_deviation",

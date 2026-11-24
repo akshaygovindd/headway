@@ -17,6 +17,7 @@ with entities as (
         a.capture_id,
         a.effect,
         a.header_text,
+        a.fetched_at,
         a.stop_id,
         coalesce(s.parent_station, a.stop_id) as station_id,
         coalesce(p.stop_name, s.stop_name) as station_name
@@ -36,6 +37,9 @@ per_alert as (
         line,
         alert_id,
         any_value(effect) as effect,
+        any_value(header_text) as header_text,
+        min(fetched_at) as first_seen,
+        max(fetched_at) as last_seen,
         (
             any_value(effect) in ('DETOUR', 'NO_SERVICE', 'REDUCED_SERVICE', 'SIGNIFICANT_DELAYS', 'MODIFIED_SERVICE')
             or regexp_matches(coalesce(any_value(header_text), ''), 'shuttle|suspen', 'i')

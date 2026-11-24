@@ -370,6 +370,12 @@ models:
           - not_null
       - name: effect
         description: "GTFS-realtime alert effect."
+      - name: header_text
+        description: "Header text of the alert."
+      - name: first_seen
+        description: "First capture of the hour in which the alert was active (UTC)."
+      - name: last_seen
+        description: "Last capture of the hour in which the alert was active (UTC)."
       - name: is_service_disruption
         description: "True when the effect or header text makes the hour a service disruption."
       - name: route_level
@@ -957,3 +963,155 @@ models:
         description: "Always null in serving."
       - name: label_delay_s
         description: "Always null in serving."
+  - name: int_deviation_hour_history
+    description: "Hourly actual deviation of this build plus the closed days of immutable history (ADR-015, through history_union): the data the Release 3 incident baseline is computed from."
+    config:
+      meta:
+        grain: "line x direction_id x service_date x hour_local"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, service_date, hour_local]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel (0 or 1)."
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour (0-23)."
+        data_tests:
+          - not_null
+      - name: data_outage
+        description: "True when the hour is a data outage; statistics are empty."
+        data_tests:
+          - not_null
+      - name: median_deviation_s
+        description: "Median actual deviation in seconds; null for outage hours."
+      - name: coverage_pct
+        description: "Arrival coverage (0-100)."
+  - name: int_incident_hours
+    description: "Incident rules evaluated per line, direction, service date and hour (Release 3): the values, the day type x hour baseline and whether it is enabled, and which rules the hour crosses. Outage hours never breach."
+    config:
+      meta:
+        grain: "line x direction_id x service_date x hour_local"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, service_date, hour_local]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel (0 or 1)."
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour (0-23)."
+        data_tests:
+          - not_null
+      - name: hour_start
+        description: "Local start of the hour on the service day timeline (hours before the cutoff belong to the next calendar day)."
+        data_tests:
+          - not_null
+      - name: day_type
+        description: "weekday or weekend."
+        data_tests:
+          - not_null
+      - name: data_outage
+        description: "True when the hour is a data outage (not evaluated)."
+        data_tests:
+          - not_null
+      - name: median_deviation_s
+        description: "Median actual deviation in seconds."
+      - name: coverage_pct
+        description: "Arrival coverage (0-100)."
+      - name: baseline_days
+        description: "Earlier service days of the same day type behind the baseline."
+        data_tests:
+          - not_null
+      - name: baseline_median_s
+        description: "Median deviation of those days at this hour."
+      - name: baseline_enabled
+        description: "True when baseline_days reaches incidents.min_baseline_days; the deviation rule is off otherwise."
+        data_tests:
+          - not_null
+      - name: pct_gap
+        description: "Headway gap share (0-100)."
+      - name: skipped_pct
+        description: "Share of observable trip stops that were skipped (0-100)."
+      - name: alert_active
+        description: "True when a line-scope service-disruption alert was active."
+        data_tests:
+          - not_null
+      - name: crossed_deviation
+        description: "Median deviation at least the threshold above the baseline."
+        data_tests:
+          - not_null
+      - name: crossed_gap
+        description: "Gap share at or above the threshold."
+        data_tests:
+          - not_null
+      - name: crossed_skipped
+        description: "Skipped share at or above the threshold."
+        data_tests:
+          - not_null
+      - name: crossed_alert
+        description: "A line-scope service-disruption alert was active."
+        data_tests:
+          - not_null
+      - name: breach
+        description: "Any rule crossed in a non-outage hour."
+        data_tests:
+          - not_null
+  - name: int_alert_matching
+    description: "Incidents and line-scope service-impacting alerts, each with its counterparts within the match window (Release 3): matched, unmatched_incident or unmatched_alert, and the alert lag of matched incidents."
+    config:
+      meta:
+        grain: "kind x item_id x line"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [kind, item_id, line]
+    columns:
+      - name: kind
+        description: "incident or alert."
+        data_tests:
+          - not_null
+      - name: item_id
+        description: "incident_id or alert_id."
+        data_tests:
+          - not_null
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: event_ts
+        description: "Incident start or alert first capture (UTC)."
+      - name: service_date
+        description: "Service date of event_ts."
+        data_tests:
+          - not_null
+      - name: n_counterparts
+        description: "Number of matching alerts (for an incident) or incidents (for an alert)."
+        data_tests:
+          - not_null
+      - name: match_status
+        description: "matched, unmatched_incident or unmatched_alert."
+        data_tests:
+          - not_null
+      - name: alert_lag_s
+        description: "Seconds from incident start to the first matching alert's first capture; null for alerts and unmatched incidents."
+      - name: first_alert_id
+        description: "The first matching alert of an incident."
+      - name: counterpart_ids
+        description: "Comma-separated ids of the counterparts."

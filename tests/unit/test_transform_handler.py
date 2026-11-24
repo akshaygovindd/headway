@@ -604,9 +604,9 @@ def test_r3_forecast_tables_are_exported_only_with_r2_and_r3(
 ) -> None:
     monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
     monkeypatch.setenv("HEADWAY_ENABLE_R3", "false")
-    assert not {t for t in publish.gold_tables() if "forecast" in t}
+    assert not set(publish.R3_GOLD_TABLES) & set(publish.gold_tables())
     monkeypatch.setenv("HEADWAY_ENABLE_R3", "true")
-    assert {t for t in publish.gold_tables() if "forecast" in t} == set(publish.R3_GOLD_TABLES)
+    assert set(publish.R3_GOLD_TABLES) <= set(publish.gold_tables())
     # the backtest is conditional: never in the always-exported set
     assert not set(publish.R3_OPTIONAL_TABLES) & set(publish.gold_tables())
     monkeypatch.setenv("HEADWAY_ENABLE_R2", "false")

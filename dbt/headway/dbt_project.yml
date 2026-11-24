@@ -37,6 +37,19 @@ vars:
     min_coverage_pct: 70
     min_days: 21
     min_weekend_days: 3
+  # Release 3 incidents (docs/METRICS.md): an hour breaches when the median actual deviation is
+  # deviation_over_baseline_s above the day type x hour baseline (the rule is off until the baseline
+  # has min_baseline_days service days of that day type), the headway gap share reaches
+  # gap_share_pct, the skipped-stop share reaches skipped_share_pct, or a line-scope service
+  # disruption alert is active. An incident opens at min_hours consecutive breach hours and closes
+  # after one hour with none. match_window_min widens the alert/incident overlap in both directions.
+  incidents:
+    min_hours: 2
+    deviation_over_baseline_s: 180
+    gap_share_pct: 30
+    skipped_share_pct: 20
+    min_baseline_days: 14
+    match_window_min: 30
 
 models:
   headway:
@@ -82,6 +95,9 @@ models:
       int_forecast_serving_targets: *r3
       int_forecast_serving_line_features: *r3
       int_forecast_serving_features: *r3
+      int_deviation_hour_history: *r3
+      int_incident_hours: *r3
+      int_alert_matching: *r3
     marts:
       +materialized: table
       fct_reconstructed_arrivals: *r2
@@ -106,6 +122,9 @@ models:
       agg_forecast_gate_status: *r3
       agg_forecast_backtest: *r3
       agg_forecast_next_hour: *r3
+      fct_incidents: *r3
+      agg_incidents: *r3
+      agg_alert_matching_daily: *r3
 
 seeds:
   headway:
