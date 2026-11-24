@@ -10,11 +10,19 @@ locals {
   motherduck_arn = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.motherduck_ssm}"
   # The chaos switch (ADR-017) is created by hand when a drill needs it, never by Terraform; the
   # ingest and transform roles may read it, nothing may write it.
-  chaos_ssm       = "/headway/chaos"
-  chaos_arn       = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.chaos_ssm}"
-  lock_key        = "state/${var.city_id}/transform.lock"
-  state_prefix    = "state/transform_runs"
-  raw_data_prefix = ["curated/*", "manifests/*", "quarantine/*", local.lock_key, "${local.state_prefix}/*"]
+  chaos_ssm    = "/headway/chaos"
+  chaos_arn    = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.chaos_ssm}"
+  lock_key     = "state/${var.city_id}/transform.lock"
+  state_prefix = "state/transform_runs"
+  # The Elementary history (dbt/headway_transform/observability.py) is kept in state/elementary_*/
+  # folders (elementary_test_results, elementary_data_monitoring_metrics), listed, read and appended
+  # by the same state module as transform_runs.
+  elementary_state_prefix = "state/elementary_*"
+  state_prefixes          = [local.state_prefix, local.elementary_state_prefix]
+  raw_data_prefix = concat(
+    ["curated/*", "manifests/*", "quarantine/*", local.lock_key],
+    [for p in local.state_prefixes : "${p}/*"],
+  )
 }
 
 data "aws_region" "current" {}
@@ -170,7 +178,7 @@ data "aws_iam_policy_document" "transform" {
   statement {
     sid       = "WriteRunState"
     actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.raw.arn}/${local.state_prefix}/*"]
+    resources = [for p in local.state_prefixes : "${aws_s3_bucket.raw.arn}/${p}/*"]
   }
 
   statement {
