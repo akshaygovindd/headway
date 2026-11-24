@@ -1,0 +1,39 @@
+# Forecast evaluation (Release 3): baselines, backtest harness, MLflow. Own environment: MLflow
+# and LightGBM pull in numpy/scipy/sqlalchemy that the ingest runtime (and its Lambda zip) never
+# needs. Local only; never part of the Lambda zips or the images.
+[project]
+name = "headway-ml"
+version = "0.1.0"
+description = "Headway forecast backtest environment"
+requires-python = ">=3.12,<3.13"
+
+[dependency-groups]
+ml = [
+    # Keep in sync with the dbt environment (the examples are read from its DuckDB file).
+    "duckdb==1.5.6",
+    "lightgbm>=4.5",
+    "mlflow>=3.0",
+    "numpy>=2",
+    "pandas>=2.2",
+]
+dev = [
+    "mypy",
+    "pandas-stubs",
+    "pytest",
+]
+
+[tool.uv]
+package = false
+default-groups = ["ml", "dev"]
+
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["mlflow.*", "lightgbm.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+pythonpath = ["."]

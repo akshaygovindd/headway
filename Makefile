@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke ingest-smoke images-smoke deploy seed
+.PHONY: ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke ingest-smoke images-smoke deploy seed
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -15,6 +15,20 @@ check: dbt-deps
 	uv run ruff format --check .
 	uv run mypy src dbt/headway_transform
 	uv run pytest
+	$(MAKE) ml-test
+
+# Forecast evaluation (ml/ has its own environment; `uv run --project ml` syncs it from ml/uv.lock,
+# so a clean clone needs nothing else).
+ml-test:
+	cd ml && uv run mypy headway_ml tests
+	cd ml && uv run pytest -q
+
+# Backtest the forecast baselines on a DuckDB built with HEADWAY_ENABLE_R3=true (default: the
+# demo-r2 build). Results: .local/backtest/backtest.duckdb (agg_forecast_backtest), MLflow
+# .local/mlflow. Pass BACKTEST_ARGS="--db ... --out ...".
+BACKTEST_ARGS ?=
+backtest:
+	HEADWAY_ENABLE_R3=true PYTHONPATH=ml uv run --project ml python -m headway_ml.backtest $(BACKTEST_ARGS)
 
 lambda-zip:
 	rm -rf build/lambda build/ingest.zip build/requirements.txt

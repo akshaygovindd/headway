@@ -38,3 +38,4 @@ infra/main/terraform.tfvars
 tfplan
 tfplan.txt
 dbt/**/.user.yml
+ml/.venv/
