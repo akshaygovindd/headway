@@ -131,6 +131,10 @@ def build(root: Path, out: Path, city: str) -> Path:
 
 
 def main(argv: list[str]) -> int:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from dbt_deps import ensure
+
+    ensure()
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=ROOT / ".local" / "spike_root")
     parser.add_argument("--out", type=Path, default=ROOT / ".local" / "demo-r2")

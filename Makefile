@@ -1,12 +1,16 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke ingest-smoke images-smoke deploy seed
+.PHONY: dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke ingest-smoke images-smoke deploy seed
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
 
-check:
+# Install the pinned dbt packages (Elementary, dbt_utils) when dbt/headway/dbt_packages is missing.
+dbt-deps:
+	uv run python scripts/dbt_deps.py
+
+check: dbt-deps
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run mypy src dbt/headway_transform
@@ -31,7 +35,7 @@ tf-validate:
 
 # Build the dbt project against .local/replay (populate it first with
 # `uv run headway replay --source samples/boston --target .local/replay --city boston`).
-dbt:
+dbt: dbt-deps
 	mkdir -p .local
 	uv run --project dbt dbt build --project-dir dbt/headway --profiles-dir dbt/headway --target local
 	uv run --project dbt python scripts/check_dbt_docs.py

@@ -143,6 +143,10 @@ def add_vehicle_polls(source: Path) -> None:
 
 
 def main(argv: list[str]) -> int:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from dbt_deps import ensure
+
+    ensure()
     update = "--update" in argv
     with tempfile.TemporaryDirectory(prefix="headway-e2e-") as tmp:
         source = Path(tmp) / "source"

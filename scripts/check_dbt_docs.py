@@ -32,6 +32,8 @@ def check_manifest(manifest: dict[str, Any]) -> list[str]:
     for uid, node in sorted(nodes.items()):
         if node.get("resource_type") != "model":
             continue
+        if node.get("package_name", "headway") != "headway":
+            continue  # models of installed packages (Elementary) are not ours to document
         name = node.get("name", uid)
         if not str(node.get("description", "")).strip():
             problems.append(f"{name}: missing model description")

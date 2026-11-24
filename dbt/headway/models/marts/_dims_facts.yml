@@ -117,6 +117,15 @@ models:
       meta:
         grain: "trip_instance_key x stop_sequence x capture_id"
     data_tests:
+      # Elementary anomaly detection (ADR-018): warn only, never blocks an export.
+      - elementary.volume_anomalies:
+          config:
+            severity: warn
+      - elementary.freshness_anomalies:
+          arguments:
+            timestamp_column: collected_at
+          config:
+            severity: warn
       - unique_grain:
           arguments:
             columns: [trip_instance_key, stop_sequence, capture_id]
@@ -321,6 +330,15 @@ models:
       meta:
         grain: "trip_instance_key x segment x stop_sequence"
     data_tests:
+      # Elementary anomaly detection (ADR-018): warn only, never blocks an export.
+      - elementary.volume_anomalies:
+          config:
+            severity: warn
+      - elementary.freshness_anomalies:
+          arguments:
+            timestamp_column: arrival_ts
+          config:
+            severity: warn
       - unique_grain:
           arguments:
             columns: [trip_instance_key, segment, stop_sequence]

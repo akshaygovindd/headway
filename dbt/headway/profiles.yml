@@ -54,3 +54,19 @@ headway:
         TimeZone: UTC
       config_options:
         motherduck_token: "{{ env_var('MOTHERDUCK_TOKEN') }}"
+
+# The `edr report` CLI (Release 2.5, ADR-018) reads Elementary's result tables from the same
+# DuckDB file the build wrote, with no extensions and no S3.
+elementary:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: "{{ env_var('HEADWAY_DUCKDB_PATH', '.local/headway.duckdb') }}"
+      schema: main
+      threads: 1
+      config_options:
+        home_directory: /tmp
+        extension_directory: "{{ env_var('HEADWAY_DUCKDB_EXTENSIONS', '/tmp/duckdb_extensions') }}"
+      settings:
+        TimeZone: UTC

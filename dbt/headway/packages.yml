@@ -1,0 +1,4 @@
+packages:
+  # Release 2.5 observability (ADR-018). The same release as the `edr` CLI in dbt/pyproject.toml.
+  - package: elementary-data/elementary
+    version: 0.26.1

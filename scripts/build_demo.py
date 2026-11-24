@@ -58,6 +58,10 @@ def build(out: Path, source: str, city: str, enable_r2: bool = True) -> Path:
 
 
 def main(argv: list[str]) -> int:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from dbt_deps import ensure
+
+    ensure()
     parser = argparse.ArgumentParser()
     parser.add_argument("out", type=Path)
     parser.add_argument("--source", default="samples/boston")

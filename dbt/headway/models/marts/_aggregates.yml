@@ -7,6 +7,15 @@ models:
       meta:
         grain: "line x direction_id x service_date x hour_local"
     data_tests:
+      # Elementary anomaly detection (ADR-018): warn only, never blocks an export.
+      - elementary.volume_anomalies:
+          config:
+            severity: warn
+      - elementary.freshness_anomalies:
+          arguments:
+            timestamp_column: service_date
+          config:
+            severity: warn
       - unique_grain:
           arguments:
             columns: [line, direction_id, service_date, hour_local]
