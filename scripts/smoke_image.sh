@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Invoke a Lambda container image through the Runtime Interface Emulator under Lambda-like
 # constraints: read-only root filesystem, writable /tmp only, unprivileged user, HOME unset,
-# working dir /var/task, no /dev/shm (--ipc=none, as in real Lambda). Local fixtures only: no AWS access, no network use by the handlers.
+# working dir /var/task, no /dev/shm (--ipc=none, as in real Lambda). Local fixtures and a local moto
+# S3 only: no AWS access, no network use by the handlers.
 #
 #   smoke_image.sh transform|curate|ingest
 set -euo pipefail
@@ -76,6 +77,27 @@ transform)
         --add-host=host.docker.internal:host-gateway \
         -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 \
+        -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
+        -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public/public/boston/gold \
+        -e HEADWAY_DBT_TARGET=s3_test -e HEADWAY_S3_ENDPOINT="$endpoint" \
+        -e AWS_ENDPOINT_URL="http://$endpoint"
+
+    # Release 2 end to end on S3 (moto), under the same constraints: run state append and load,
+    # the SLO models built over that state, history write and its immutability (a second write
+    # changes nothing), the SLO models read back from that history, and the export of the whole
+    # R2 allowlist.
+    curl -s -o /dev/null -XPUT "localhost:$moto_port/smoke-raw" \
+        -H "Authorization: AWS4-HMAC-SHA256 Credential=smoke/20260101/us-east-1/s3/aws4_request"
+    invoke headway-transform:local headway_transform.handler.lambda_handler \
+        "r['smoke'] and r['r2_enabled'] and r['tests_failed'] == 0 and r['r2_tables_exported'] == 14 \
+         and r['history_written'] > 0 and r['history_rewritten'] == 0 \
+         and r['history_existing_on_rewrite'] == r['history_written'] and r['history_objects_unchanged'] \
+         and r['state_rows_loaded'] == 1 and r['slo_daily_rows'] > 0 and r['slo_rollup_rows'] > 0 \
+         and r['transform_success_events'] == [1, 1] and r['slo_rows_read_back_from_history']" \
+        --add-host=host.docker.internal:host-gateway \
+        -v "$smoke/curated:/fixture/curated:ro" \
+        -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true \
+        -e RAW_BUCKET=smoke-raw \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
         -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public/public/boston/gold \
         -e HEADWAY_DBT_TARGET=s3_test -e HEADWAY_S3_ENDPOINT="$endpoint" \

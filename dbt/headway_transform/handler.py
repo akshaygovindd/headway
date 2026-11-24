@@ -371,23 +371,113 @@ def _tables_to_publish(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
     return tables
 
 
+def _smoke_r2(
+    variables: dict[str, Any], s3: Any, public_bucket: str, db_path: str
+) -> dict[str, Any]:
+    """Release 2 smoke steps on the S3 target, in the order a run takes them: run-state append and
+    load, the SLO models built over that state, history write (and that it is immutable), and the
+    SLO models again, now reading the history they just wrote."""
+    import duckdb
+
+    raw_bucket = os.environ.get("RAW_BUCKET", "smoke-raw")
+    city = os.environ["CITY_ID"]
+    now = datetime(2026, 12, 1, tzinfo=UTC)  # after every sample service day has closed
+    lookback = int(variables["lookback_days"])
+    variables_json = json.dumps(variables)
+
+    def slo() -> dict[str, Any]:
+        outcome = run_dbt(
+            ["build", "--select", "stg_transform_runs", "agg_slo_daily", "agg_slo_rollup",
+             "--exclude", "resource_type:test", "resource_type:unit_test",
+             "--vars", variables_json]
+        )  # fmt: skip
+        if outcome.node_errors:
+            raise TransformError(f"smoke SLO rebuild failed: {', '.join(outcome.node_errors)}")
+        release_dbt_connections()
+        con = duckdb.connect(db_path, read_only=True)
+        try:
+            daily = con.execute("select count(*) from agg_slo_daily").fetchone()
+            rollup = con.execute("select count(*) from agg_slo_rollup").fetchone()
+            events = con.execute(
+                "select sum(good_events), sum(total_events) from agg_slo_daily "
+                "where slo_name = 'transform_success'"
+            ).fetchone()
+        finally:
+            con.close()
+        assert daily and rollup and events
+        return {
+            "daily": int(daily[0]),
+            "rollup": int(rollup[0]),
+            "events": [int(events[0] or 0), int(events[1] or 0)],
+        }
+
+    release_dbt_connections()
+    started = datetime(2026, 11, 22, 14, 20, tzinfo=UTC)
+    run = RunRecord(
+        "smoke-run", "scheduled", started, status="success", tests_passed=1, tests_failed=0,
+        rows_exported=1, gold_exported_at=started, gold_published=True,
+    )  # fmt: skip
+    finished = started + timedelta(minutes=2)
+    state.append(s3, raw_bucket, state.TRANSFORM_RUNS, [run.row(finished)], started)
+    loaded = state.load(s3, raw_bucket, db_path, state.TRANSFORM_RUNS, now)
+    built = slo()
+
+    first = history.write_closed_days(
+        s3, public_bucket, city, db_path, now, timezone=_timezone(), lookback_days=lookback
+    )
+    prefix = history.history_prefix(city)
+    keys = [
+        history.history_key(prefix, table, history.version_of(table), date.fromisoformat(day))
+        for table, days in first.written.items()
+        for day in days
+    ]
+    etags = {k: s3.head_object(Bucket=public_bucket, Key=k)["ETag"] for k in keys}
+    second = history.write_closed_days(
+        s3, public_bucket, city, db_path, now, timezone=_timezone(), lookback_days=lookback
+    )
+    unchanged = all(
+        s3.head_object(Bucket=public_bucket, Key=k)["ETag"] == v for k, v in etags.items()
+    )
+    from_history = slo()
+    return {
+        "state_rows_loaded": loaded,
+        "slo_daily_rows": built["daily"],
+        "slo_rollup_rows": built["rollup"],
+        "transform_success_events": built["events"],
+        "history_written": first.n_written,
+        "history_existing_on_rewrite": second.existing,
+        "history_rewritten": second.n_written,
+        "history_objects_unchanged": unchanged,
+        "slo_rows_read_back_from_history": from_history["daily"] == built["daily"]
+        and from_history["events"] == built["events"],
+    }
+
+
 def _smoke(started: float) -> dict[str, Any]:
-    """Image smoke test: dbt build + gold export on a local curated root; no AWS, no publish."""
+    """Image smoke test: dbt build + gold export on a local curated root; no AWS, no publish.
+
+    With Release 2 on and an S3 gold target it also runs the history, run-state and SLO steps."""
     root = os.environ["HEADWAY_SMOKE_CURATED_ROOT"]
     gold = os.environ["HEADWAY_SMOKE_GOLD_DIR"]
     s3_gold = gold.startswith("s3://")
     if not s3_gold:
         os.makedirs(gold, exist_ok=True)
-    variables = json.dumps(
-        {
-            "curated_root": root,
-            "city_prefix": os.environ["CITY_ID"],
-            "lookback_days": int(os.environ.get("LOOKBACK_DAYS", DEFAULT_LOOKBACK_DAYS)),
-        }
-    )
+    variables: dict[str, Any] = {
+        "curated_root": root,
+        "city_prefix": os.environ["CITY_ID"],
+        "lookback_days": int(os.environ.get("LOOKBACK_DAYS", DEFAULT_LOOKBACK_DAYS)),
+    }
+    r2_s3 = s3_gold and publish.r2_enabled()
+    if r2_s3:
+        bucket_name = gold.removeprefix("s3://").partition("/")[0]
+        variables["history_root"] = (
+            f"s3://{bucket_name}/{history.history_prefix(os.environ['CITY_ID'])}"
+        )
+        variables["metric_versions"] = history.table_versions()
+    variables_json = json.dumps(variables)
     steps: dict[str, int] = {}
-    build = _build_and_test(variables, steps)
-    run_dbt(["run-operation", "export_gold", "--vars", variables,
+    build = _build_and_test(variables_json, steps)
+    run_dbt(["run-operation", "export_gold", "--vars", variables_json,
              "--args", json.dumps({"target_dir": gold})])  # fmt: skip
     if s3_gold:
         bucket, _, prefix = gold.removeprefix("s3://").partition("/")
@@ -409,9 +499,19 @@ def _smoke(started: float) -> dict[str, Any]:
         "tests_passed": build.tests_passed,
         "rows_exported": sum(counts.values()),
         "tables_exported": len(counts),
+        "r2_tables_exported": len(set(counts) & set(publish.R2_GOLD_TABLES)),
         "step_ms": steps,
         "duration_ms": round((time.monotonic() - started) * 1000),
     }
+    if r2_s3:
+        summary.update(
+            _smoke_r2(
+                variables,
+                client,
+                bucket,
+                os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb"),  # noqa: S108
+            )
+        )
     logger.info(json.dumps(summary, sort_keys=True))
     return summary
 
