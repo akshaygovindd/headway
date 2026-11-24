@@ -345,13 +345,43 @@ models:
         description: "Value at which the check fails."
         data_tests:
           - not_null
+      - name: scheduled_trip_stops
+        description: "Scheduled subway trip-stops in the hour (from the timetable); decides no_service."
+        data_tests:
+          - not_null
       - name: status
-        description: "ok, warn, fail, no_baseline or no_data."
+        description: "ok, warn, fail, no_baseline, no_data or no_service (the hour has fewer scheduled subway trip-stops than no_service_min_trip_stops; content checks only)."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
-                values: [ok, warn, fail, no_baseline, no_data]
+                values: [ok, warn, fail, no_baseline, no_data, no_service]
+  - name: agg_quarantine_reasons
+    description: "Quarantined records per local date, source table and reason, so Pipeline health can name every reason. Small by construction (days x tables x reasons)."
+    config:
+      meta:
+        grain: "local_date x source_table x reason"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [local_date, source_table, reason]
+    columns:
+      - name: local_date
+        description: "Local date of the quarantined capture's scheduled run."
+        data_tests:
+          - not_null
+      - name: source_table
+        description: "Curated table the record was bound for."
+        data_tests:
+          - not_null
+      - name: reason
+        description: "Quarantine reason as written by curation."
+        data_tests:
+          - not_null
+      - name: n_records
+        description: "Quarantined records."
+        data_tests:
+          - not_null
   - name: agg_arrival_reconstruction_daily
     description: "Arrival reconstruction coverage per service date and line: trip stops by method and confidence, monotonic violations, and observed trips excluded for lack of a shape. Shares are percentages of reconstructed trip stops."
     config:

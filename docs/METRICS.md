@@ -132,6 +132,22 @@ a 03:00 service-day cutoff. A trip stop is one scheduled stop time of one trip i
   late_event_share 5/20 %, implausible_deviation_share 1/5 % (implausible picks over
   eligible plus implausible picks, per hour). `vehicle_count_drop` (25/50 %) is computed only when the same
   hour one week earlier was observed; otherwise its status is `no_baseline`.
+- **No service.** In an hour with fewer scheduled subway trip-stops than the dbt var
+  `no_service_min_trip_stops` (20, counted from the timetable in `int_scheduled_stop_times`, not
+  from a clock window), the content checks `prediction_coverage`, `schedule_join_coverage`,
+  `implausible_deviation_share`, `late_event_share`, `duplicate_share`,
+  `invalid_coordinate_share`, `missing_trip_id_share` and `vehicle_count_drop` get the status
+  `no_service` instead of warn or fail; the app shows "n/a: no service" with a tooltip. The
+  pipeline checks (`missed_runs`, `feed_gap_min`, `duplicate_deliveries`) keep their status in every
+  hour. A service date with no scheduled trip-stop at all (no timetable loaded) is never treated
+  as no service. `agg_quality_checks_hourly.scheduled_trip_stops` holds the count.
+- **Alerts repeat by design.** The alerts feed legitimately repeats unchanged content minute
+  to minute. `duplicate_share` is computed over `trip_updates` and `vehicle_positions` only; the
+  alerts duplicates are shown on Pipeline health as information, labelled "unchanged feed
+  (expected)", and never warn or fail.
+- **Quarantine reasons.** `agg_quarantine_reasons` (local_date x source_table x reason) counts
+  quarantined records per reason, so Pipeline health names every reason; `agg_pipeline_health`
+  keeps its fixed columns for the three common ones.
 
 ## 5. Reconstructed arrivals (Release 2)
 
