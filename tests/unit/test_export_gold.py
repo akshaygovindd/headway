@@ -81,7 +81,9 @@ def test_only_allowlisted_files_are_written(gold: Path) -> None:
 def test_release_2_and_3_tables_are_added_when_enabled(gold_r2: Path) -> None:
     everything = ALLOWLIST | R2_ALLOWLIST | R3_ALLOWLIST
     names = {p.name for p in gold_r2.rglob("*")}
-    assert names == {f"{t}.parquet" for t in everything} | {"manifest.json"}
+    # analyst_examples.json is written by build_demo (the transform does so on AWS), not by dbt
+    extra = {"manifest.json", "analyst_examples.json"}
+    assert names == {f"{t}.parquet" for t in everything} | extra
     manifest = json.loads((gold_r2 / "manifest.json").read_text())
     assert set(manifest["row_counts"]) == everything
 
