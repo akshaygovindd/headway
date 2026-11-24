@@ -595,6 +595,19 @@ def _smoke_observability(
     }
 
 
+def _smoke_analyst_examples(s3: Any, bucket: str, gold_prefix: str) -> dict[str, Any]:
+    """The analyst-examples export step as the run takes it, then the object read back: it must
+    exist, be JSON and hold as many examples as the step reported."""
+    out = _analyst_examples(s3, bucket, gold_prefix)
+    if "analyst_examples_error" in out:
+        return out
+    body = s3.get_object(Bucket=bucket, Key=f"{gold_prefix}/analyst_examples.json")["Body"].read()
+    doc = json.loads(body)
+    items = doc.get("examples", doc) if isinstance(doc, dict) else doc
+    out["analyst_examples_read_back"] = len(items)
+    return out
+
+
 def _smoke_db_path() -> str:
     return os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
 
@@ -664,6 +677,7 @@ def _smoke(started: float) -> dict[str, Any]:
     }
     summary.update(forecast)
     if r3_s3:
+        summary.update(_smoke_analyst_examples(client, bucket, prefix.rstrip("/")))
         cache = Path(os.environ.get("HEADWAY_FORECAST_MODEL_DIR", "/tmp/forecast_model"))  # noqa: S108
         summary["forecast_cache_files"] = sorted(p.name for p in cache.rglob("*") if p.is_file())
     if r2_s3:
