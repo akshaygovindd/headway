@@ -1,0 +1,19 @@
+{
+ "dbt_run_at": "2026-11-24T17:40:01Z",
+ "exported_at": "2026-11-24T17:40:01Z",
+ "metrics_as_of": "2026-11-23T20:00:00Z",
+ "row_counts": {
+  "agg_active_alerts": 608,
+  "agg_actual_deviation_daily": 32,
+  "agg_actual_deviation_hourly": 416,
+  "agg_actual_deviation_window": 16,
+  "agg_ett_daily": 116,
+  "agg_ett_window": 16,
+  "agg_headway_adherence_daily": 32,
+  "agg_headway_adherence_hourly": 415,
+  "agg_headway_window": 16,
+  "agg_line_reliability_hourly": 416,
+  "agg_line_reliability_window": 8,
+  "agg_pipeline_health": 1658
+ }
+}
