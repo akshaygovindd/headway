@@ -51,6 +51,7 @@ def build(out: Path, source: str, city: str, enable_r2: bool = True) -> Path:
     env = {
         "HEADWAY_DUCKDB_PATH": str(out / "headway.duckdb"),
         "HEADWAY_ENABLE_R2": "true" if enable_r2 else "false",
+        "HEADWAY_ENABLE_R3": "true" if enable_r2 else "false",
     }
     run_vars = f'{{"curated_root": "{replay_dir}"}}'
     run([*DBT, "build", *DBT_ARGS, "--vars", run_vars], **env)

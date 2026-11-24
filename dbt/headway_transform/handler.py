@@ -324,8 +324,15 @@ def set_gold_cache_control(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
 
 
 def r2_exclusions() -> list[str]:
-    """Selectors keeping Release 2 models (tag r2) out unless HEADWAY_ENABLE_R2=true."""
-    return [] if publish.r2_enabled() else ["tag:r2"]
+    """Selectors keeping Release 2 models (tag r2) out, and Release 3 (tag r3) unless enabled.
+
+    Release 2 selectors apply unless HEADWAY_ENABLE_R2=true; Release 3 models (internal, built on
+    the Release 2 ones) need HEADWAY_ENABLE_R3=true and Release 2 on.
+    """
+    out = [] if publish.r2_enabled() else ["tag:r2"]
+    if not (publish.r3_enabled() and publish.r2_enabled()):
+        out.append("tag:r3")
+    return out
 
 
 def _build_and_test(
@@ -539,7 +546,7 @@ def _smoke(started: float) -> dict[str, Any]:
             os.environ["HEADWAY_DUCKDB_EXTENSIONS"]
         ),
         "dbt_status": "success" if build.success else "tests_failed",
-        "r2_enabled": not r2_exclusions(),
+        "r2_enabled": publish.r2_enabled(),
         "tests_failed": build.tests_failed,
         "tests_passed": build.tests_passed,
         "rows_exported": sum(counts.values()),

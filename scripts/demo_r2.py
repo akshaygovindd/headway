@@ -5,7 +5,7 @@ Usage: python scripts/demo_r2.py [--root .local/spike_root] [--out .local/demo-r
 `--root` is the curated root assembled around the spike's 27 hours of vehicle_positions and
 trip_updates (`.local/spike`, see docs/spikes/2026-11-sampling.md): its `curated/<city>/` links the
 spike tables next to the static GTFS, manifests and alerts. dbt builds every model, Release 2
-included (HEADWAY_ENABLE_R2=true), without tests: the data is a research capture, not a pipeline
+included (HEADWAY_ENABLE_R2=true, HEADWAY_ENABLE_R3=true), without tests: the data is a research capture, not a pipeline
 run. Gold is exported to <out>/public/<city>/gold, the HEADWAY_DATA_URL root. The demo has no
 live feed, so live/vehicles_latest.json is written from the latest vehicle capture of the data.
 
@@ -112,7 +112,7 @@ def build(root: Path, out: Path, city: str) -> Path:
     live.mkdir(parents=True, exist_ok=True)
     db = out / "headway.duckdb"
     db.unlink(missing_ok=True)
-    env = _env(HEADWAY_DUCKDB_PATH=str(db), HEADWAY_ENABLE_R2="true")
+    env = _env(HEADWAY_DUCKDB_PATH=str(db), HEADWAY_ENABLE_R2="true", HEADWAY_ENABLE_R3="true")
     run_vars = json.dumps({"curated_root": str(root)})
     subprocess.run(
         [*DBT, "build", *DBT_ARGS, "--vars", run_vars,

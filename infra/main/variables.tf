@@ -52,3 +52,14 @@ variable "enable_r2" {
   type        = bool
   default     = false
 }
+
+variable "enable_r3" {
+  description = "Build the Release 3 dbt models (tag r3: forecast examples, training gate) in the transform Lambda. Needs enable_r2."
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = !var.enable_r3 || var.enable_r2
+    error_message = "enable_r3 reads Release 2 models: set enable_r2 = true as well."
+  }
+}

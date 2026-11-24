@@ -69,7 +69,7 @@ transform)
     invoke headway-transform:local headway_transform.handler.lambda_handler \
         "r['smoke'] and r['r2_enabled'] and r['tables_exported'] >= 8 and r['tests_failed'] == 0" \
         -v "$smoke/curated:/fixture/curated:ro" \
-        -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true \
+        -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R3=true \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated -e HEADWAY_SMOKE_GOLD_DIR=/tmp/gold
 
     # Same image, but export_gold writes to s3:// on a moto server (host process, reached via

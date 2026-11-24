@@ -582,7 +582,27 @@ def test_r2_exclusion_helper() -> None:
     import os
 
     os.environ.pop("HEADWAY_ENABLE_R2", None)
-    assert handler.r2_exclusions() == ["tag:r2"]
+    os.environ.pop("HEADWAY_ENABLE_R3", None)
+    assert handler.r2_exclusions() == ["tag:r2", "tag:r3"]
+
+
+def test_r3_models_are_built_only_when_enabled_with_r2(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
+    monkeypatch.delenv("HEADWAY_ENABLE_R3", raising=False)
+    assert handler.r2_exclusions() == ["tag:r3"]
+    monkeypatch.setenv("HEADWAY_ENABLE_R3", "true")
+    assert handler.r2_exclusions() == []
+    # R3 reads R2 models: without R2 both stay out
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "false")
+    assert handler.r2_exclusions() == ["tag:r2", "tag:r3"]
+
+
+def test_r3_tables_are_never_exported(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
+    monkeypatch.setenv("HEADWAY_ENABLE_R3", "true")
+    assert not {t for t in publish.gold_tables() if "forecast" in t}
 
 
 def test_gold_tables_include_release_2_only_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:

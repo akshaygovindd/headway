@@ -247,6 +247,14 @@ Switch-on, Phase 2.6, in this order:
    updating every 15 s. If memory is close to the limit, set `memory_size` to 256 and deploy again.
 4. Turning either back off is the same variable change; data already written stays valid.
 
+## Release 3 switch (off by default)
+
+`enable_r3 = true` (it requires `enable_r2 = true`, checked by a Terraform validation) sets
+`HEADWAY_ENABLE_R3=true` on the transform Lambda, which then also builds the dbt models tagged
+`r3`: the forecast examples and the training gate (`docs/METRICS.md`, ADR-019). They are internal:
+they are not exported or published. With the default the Lambda skips every `r3` model and test;
+local and CI builds always build them. Check the logged step times after switching it on, as for R2.
+
 ## Release 2 history, run state and SLOs
 
 With `enable_r2 = true` the transform Lambda also keeps two kinds of object, both written by its

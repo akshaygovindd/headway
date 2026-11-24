@@ -325,6 +325,8 @@ resource "aws_lambda_function" "transform" {
       LOOKBACK_DAYS = tostring(var.lookback_days)
       # Release 2 dbt models (tag r2) are skipped unless this is "true"; see docs/DEPLOY.md
       HEADWAY_ENABLE_R2 = tostring(var.enable_r2)
+      # Release 3 dbt models (tag r3) are skipped unless this is "true"; they need enable_r2
+      HEADWAY_ENABLE_R3 = tostring(var.enable_r3)
     }
   }
 

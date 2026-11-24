@@ -43,6 +43,11 @@ def r2_enabled() -> bool:
     return os.environ.get("HEADWAY_ENABLE_R2", "").lower() == "true"
 
 
+def r3_enabled() -> bool:
+    """Release 3 models (tag r3) are internal: they build only when set, and are never exported."""
+    return os.environ.get("HEADWAY_ENABLE_R3", "").lower() == "true"
+
+
 def gold_tables() -> tuple[str, ...]:
     """The gold tables this deployment exports: the base set, plus Release 2 when enabled."""
     return GOLD_TABLES + R2_GOLD_TABLES if r2_enabled() else GOLD_TABLES
