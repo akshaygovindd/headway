@@ -5,9 +5,10 @@ Usage: python scripts/demo_r2.py [--root .local/spike_root] [--out .local/demo-r
 `--root` is the curated root assembled around the spike's 27 hours of vehicle_positions and
 trip_updates (`.local/spike`, see docs/spikes/2026-11-sampling.md): its `curated/<city>/` links the
 spike tables next to the static GTFS, manifests and alerts. dbt builds every model, Release 2
-included (HEADWAY_ENABLE_R2=true, HEADWAY_ENABLE_R3=true), without tests: the data is a research capture, not a pipeline
-run. Gold is exported to <out>/public/<city>/gold, the HEADWAY_DATA_URL root. The demo has no
-live feed, so live/vehicles_latest.json is written from the latest vehicle capture of the data.
+included (HEADWAY_ENABLE_R2=true, HEADWAY_ENABLE_R3=true), without tests: the data is a research
+capture, not a pipeline run. Gold is exported to <out>/public/<city>/gold, the HEADWAY_DATA_URL
+root. The demo has no live feed, so live/vehicles_latest.json is written from the latest vehicle
+capture of the data.
 
 The alerts table of the root is empty unless `.local/spike/alerts` exists; it is linked in when it
 does (fetch it read-only, see docs/spikes/2026-11-sampling.md).

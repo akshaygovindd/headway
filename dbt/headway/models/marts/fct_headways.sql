@@ -11,12 +11,13 @@
 -- The neighbouring stops are the stops before and after the stop in B's run. A pair is proven
 -- when at least one neighbouring stop has both A and B, A first, and no other train between them.
 -- A train that was never reconstructed anywhere cannot be seen; see METRICS.md.
--- hour_local and service_date are those of B's scheduled arrival.
+-- hour_local and service_date are those of B's scheduled arrival. known_at is when both arrivals
+-- were known (fct_reconstructed_arrivals.known_at); features of a forecast at t use known_at <= t.
 with all_arrivals as (
     select
         line, direction_id, service_date, stop_id,
         trip_instance_key, segment, stop_sequence,
-        arrival_ts, confidence, scheduled_arrival_ts
+        arrival_ts, confidence, scheduled_arrival_ts, known_at
     from {{ ref('fct_reconstructed_arrivals') }}
     where arrival_ts is not null
 ),
@@ -40,7 +41,8 @@ paired as (
         *,
         lag(trip_instance_key) over w as a_trip,
         lag(segment) over w as a_segment,
-        lag(arrival_ts) over w as a_arrival_ts
+        lag(arrival_ts) over w as a_arrival_ts,
+        lag(known_at) over w as lag_known_at
     from ordered_all
     where confidence in ('high', 'medium')
     window w as (
@@ -56,6 +58,8 @@ pairs as (
         p.trip_instance_key as b_trip, p.segment as b_segment, p.stop_sequence as b_stop_sequence,
         p.arrival_ts as b_arrival_ts,
         p.scheduled_arrival_ts as b_scheduled_arrival_ts,
+        p.known_at as b_known_at,
+        p.lag_known_at as a_known_at,
         not (p.prev_all_trip = p.a_trip and p.prev_all_segment = p.a_segment) as train_between_at_stop,
         n.prev_stop_id,
         n.next_stop_id
@@ -158,6 +162,9 @@ select
     cast(extract(hour from b_scheduled_arrival_ts at time zone '{{ var("timezone") }}') as integer) as hour_local,
     a_arrival_ts as from_arrival_ts,
     b_arrival_ts as to_arrival_ts,
+    -- known once the later train's arrival is known (the earlier train's is older); a train in
+    -- between or a neighbouring-stop proof can only be settled by captures up to then
+    greatest(b_known_at, a_known_at) as known_at,
     actual_headway_s,
     scheduled_headway_s,
     actual_headway_s / nullif(scheduled_headway_s, 0) as ratio,

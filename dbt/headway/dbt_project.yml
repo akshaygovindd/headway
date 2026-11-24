@@ -29,6 +29,12 @@ vars:
   # Release 2 history (ADR-015); set by the transform when HEADWAY_ENABLE_R2=true, null elsewhere.
   history_root: null
   metric_versions: {}
+  # Release 3 training gate (ADR-019): a line can be trained on once it has min_days service days with
+  # arrival coverage of at least min_coverage_pct, min_weekend_days of them weekend days.
+  forecast_gate:
+    min_coverage_pct: 70
+    min_days: 21
+    min_weekend_days: 3
 
 models:
   headway:
@@ -62,6 +68,14 @@ models:
       int_usable_arrivals: *r2
       int_window_hours: *r2
       int_scheduled_headways: *r2
+      # Release 3 models: tag r3, skipped by the transform Lambda unless HEADWAY_ENABLE_R3=true (they
+      # also need R2); local builds and CI build everything.
+      int_forecast_grid: &r3
+        +tags: ["r3"]
+      int_forecast_alert_captures: *r3
+      int_forecast_line_features: *r3
+      int_forecast_gate_days: *r3
+      int_forecast_targets: *r3
     marts:
       +materialized: table
       fct_reconstructed_arrivals: *r2
@@ -81,6 +95,8 @@ models:
       agg_headway_adherence_daily: *r2
       agg_slo_daily: *r2
       agg_slo_rollup: *r2
+      fct_forecast_examples: *r3
+      agg_forecast_gate: *r3
 
 seeds:
   headway:

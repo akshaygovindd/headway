@@ -394,3 +394,90 @@ models:
         description: "Metres along the shape of the stop."
       - name: scheduled_arrival_ts
         description: "Scheduled arrival (UTC), for comparison."
+      - name: known_at
+        description: "When the arrival was known (UTC): the fetched_at of the last capture its time, confidence and order flag rest on. A forecast at t may use the arrival only when known_at is at most t. Null when arrival_ts is null."
+  - name: fct_forecast_examples
+    description: "Training examples for arrival-delay forecasts (Release 3, internal): a trip stop scheduled to arrive in the 15-minute slot that starts a horizon (15, 30 or 60 minutes) after the prediction time t, with the delay of its reconstructed high or medium arrival as the label and only features known at t (known_at, collected_at or fetched_at at most t)."
+    config:
+      meta:
+        grain: "line x direction_id x stop_id x prediction_ts x horizon_min x trip_instance_key x segment"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, stop_id, prediction_ts, horizon_min, trip_instance_key, segment]
+    columns:
+      - name: line
+        description: "Reporting line (feature)."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel (feature)."
+      - name: stop_id
+        description: "Stop of the target arrival."
+        data_tests:
+          - not_null
+      - name: prediction_ts
+        description: "Prediction time t (UTC), on the quarter hour."
+        data_tests:
+          - not_null
+      - name: horizon_min
+        description: "Minutes from t to the start of the target slot: 15, 30 or 60."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [15, 30, 60]
+      - name: trip_instance_key
+        description: "Trip instance of the target arrival."
+        data_tests:
+          - not_null
+      - name: segment
+        description: "Run of the trip id (0 for the first)."
+        data_tests:
+          - not_null
+      - name: stop_sequence
+        description: "Stop sequence of the target stop on the trip."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date of the prediction time."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour of t (feature)."
+        data_tests:
+          - not_null
+      - name: day_type
+        description: "weekday or weekend (feature)."
+        data_tests:
+          - not_null
+      - name: stop_position
+        description: "Distance of the stop along the trip's shape as a share of the trip (0-1) (feature); null without a shape position."
+      - name: scheduled_headway_s
+        description: "Seconds since the previous scheduled train at the stop (feature); null for the first of the day."
+      - name: last_upstream_delay_s
+        description: "Delay in seconds of the same run at its latest earlier stop known at t (feature); null when none."
+      - name: rolling_median_delay_30m
+        description: "Median delay of the line's arrivals known at t over the previous 30 minutes (feature)."
+      - name: rolling_median_delay_60m
+        description: "Same over the previous 60 minutes (feature)."
+      - name: headway_within_share
+        description: "Share of the line's headways completed in the previous 60 minutes, known at t, that were within band (feature)."
+      - name: active_disruption_alert
+        description: "True when a line-scope service disruption was active on the line in the latest alerts capture at or before t (feature)."
+      - name: skipped_share_1h
+        description: "Share of the line's snapshots of the hour before t that were SKIPPED (feature)."
+      - name: mbta_predicted_deviation_s
+        description: "MBTA's predicted deviation for the trip stop from the latest snapshot collected at or before t (feature, and the reference line of a forecast report, not a baseline)."
+      - name: scheduled_arrival_ts
+        description: "Scheduled arrival of the target (UTC); in [t + horizon, t + horizon + 15 min)."
+        data_tests:
+          - not_null
+      - name: target_arrival_ts
+        description: "Reconstructed arrival of the target (UTC): after t, label side."
+        data_tests:
+          - not_null
+      - name: label_delay_s
+        description: "Label: reconstructed arrival minus scheduled arrival in seconds (positive is late)."
+        data_tests:
+          - not_null

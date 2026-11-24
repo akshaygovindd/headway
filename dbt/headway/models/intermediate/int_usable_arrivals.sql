@@ -1,7 +1,7 @@
 -- High and medium confidence reconstructed arrivals that match a scheduled stop: the only
 -- arrivals the Release 2 metrics use. Several runs of a reused trip id can reach one trip stop;
 -- is_nearest_segment marks the run whose arrival is closest to the schedule, the one metrics
--- 6, 7 and 9 use. Flags are those of the local hour of the arrival.
+-- 6, 7 and 9 use. known_at is when the arrival was known (fct_reconstructed_arrivals). Flags are those of the local hour of the arrival.
 with usable as (
     select
         r.trip_instance_key,
@@ -17,6 +17,7 @@ with usable as (
         r.method,
         r.confidence,
         r.scheduled_arrival_ts,
+        r.known_at,
         {{ service_date_from_ts('r.arrival_ts') }} as arrival_service_date,
         cast(extract(hour from r.arrival_ts at time zone '{{ var("timezone") }}') as integer) as arrival_hour_local,
         cast(extract(hour from r.scheduled_arrival_ts at time zone '{{ var("timezone") }}') as integer) as sched_hour_local,

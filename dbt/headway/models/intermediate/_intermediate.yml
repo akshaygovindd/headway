@@ -480,6 +480,8 @@ models:
                 values: [high, medium]
       - name: scheduled_arrival_ts
         description: "Scheduled arrival (UTC)."
+      - name: known_at
+        description: "When the arrival was known (UTC): fct_reconstructed_arrivals.known_at."
       - name: arrival_service_date
         description: "Service date of the arrival time."
       - name: arrival_hour_local
@@ -551,5 +553,195 @@ models:
           - not_null
       - name: scheduled_headways
         description: "Scheduled headways in the hour."
+        data_tests:
+          - not_null
+  - name: int_forecast_grid
+    description: "Prediction times of the Release 3 forecast examples: every quarter hour of the service hours (05:00 to 01:00 local) per line with scheduled service that day, in hours that are not a data outage."
+    config:
+      meta:
+        grain: "line x prediction_ts"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, prediction_ts]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date of the prediction time."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour of the prediction time."
+        data_tests:
+          - not_null
+      - name: prediction_ts
+        description: "Prediction time t (UTC), on the quarter hour."
+        data_tests:
+          - not_null
+      - name: day_type
+        description: "weekday or weekend, from the service date."
+        data_tests:
+          - not_null
+  - name: int_forecast_alert_captures
+    description: "One row per successful alerts capture with the lines under an active line-scope service disruption in it: the per-capture form of int_alert_scopes, read by the forecast features at the latest capture at or before t."
+    config:
+      meta:
+        grain: "capture_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [capture_id]
+    columns:
+      - name: capture_id
+        description: "Alerts capture."
+        data_tests:
+          - not_null
+      - name: fetched_at
+        description: "When the capture was fetched (UTC)."
+        data_tests:
+          - not_null
+      - name: disrupted_lines
+        description: "Lines with an active line-scope service disruption in the capture (empty list when none)."
+  - name: int_forecast_line_features
+    description: "Line-level forecast features per line and prediction time t, from inputs known at t only (known_at, collected_at or fetched_at at most t): rolling median delay over 30 and 60 minutes, headway adherence, active disruption alert, skipped share of the last hour."
+    config:
+      meta:
+        grain: "line x prediction_ts"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, prediction_ts]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: prediction_ts
+        description: "Prediction time t (UTC)."
+        data_tests:
+          - not_null
+      - name: rolling_median_delay_30m
+        description: "Median delay in seconds of the line's usable arrivals in the 30 minutes up to t, known at t; null without arrivals."
+      - name: n_arrivals_30m
+        description: "Arrivals behind rolling_median_delay_30m."
+        data_tests:
+          - not_null
+      - name: rolling_median_delay_60m
+        description: "Median delay in seconds of the line's usable arrivals in the 60 minutes up to t, known at t; null without arrivals."
+      - name: n_arrivals_60m
+        description: "Arrivals behind rolling_median_delay_60m."
+        data_tests:
+          - not_null
+      - name: headway_within_share
+        description: "Share (0-1) of the valid headways completed in the 60 minutes up to t, known at t, within 0.5 to 1.5 times the scheduled headway; null without headways."
+      - name: n_headways_60m
+        description: "Headways behind headway_within_share."
+        data_tests:
+          - not_null
+      - name: active_disruption_alert
+        description: "True when the latest alerts capture at or before t, at most 15 minutes old, has a line-scope service disruption on the line; null when there is no such capture."
+      - name: skipped_share_1h
+        description: "Share (0-1) of the line's trip update snapshots collected in the hour up to t whose stop is SKIPPED; null without snapshots."
+      - name: n_snapshots_1h
+        description: "Snapshots behind skipped_share_1h."
+        data_tests:
+          - not_null
+  - name: int_forecast_gate_days
+    description: "Service days per line with their arrival coverage (usable arrivals over scheduled trip stops of non-outage hours, as the arrival_coverage SLO) and whether the day meets the forecast gate's coverage threshold."
+    config:
+      meta:
+        grain: "line x service_date"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, service_date]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date."
+        data_tests:
+          - not_null
+      - name: day_type
+        description: "weekday or weekend."
+        data_tests:
+          - not_null
+      - name: n_arrivals
+        description: "Usable arrivals of the day in non-outage hours."
+      - name: n_scheduled_trip_stops
+        description: "Scheduled trip stops of the day in non-outage hours."
+      - name: coverage_pct
+        description: "100 times n_arrivals over n_scheduled_trip_stops; null without scheduled trip stops."
+      - name: meets_coverage
+        description: "True when coverage_pct reaches forecast_gate.min_coverage_pct."
+        data_tests:
+          - not_null
+  - name: int_forecast_targets
+    description: "Target trip stops of the forecast examples: for each prediction time t and horizon (15, 30 or 60 minutes), the usable arrivals scheduled in the 15-minute slot that starts a horizon after t, with the delay label. Hours of t or of the arrival that are a data outage are left out. Only the label and target_arrival_ts come from after t."
+    config:
+      meta:
+        grain: "line x prediction_ts x horizon_min x trip_instance_key x segment x stop_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, prediction_ts, horizon_min, trip_instance_key, segment, stop_sequence]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: prediction_ts
+        description: "Prediction time t (UTC)."
+        data_tests:
+          - not_null
+      - name: prediction_service_date
+        description: "Service date of t."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour of t."
+        data_tests:
+          - not_null
+      - name: day_type
+        description: "weekday or weekend."
+        data_tests:
+          - not_null
+      - name: horizon_min
+        description: "Minutes from t to the start of the target slot: 15, 30 or 60."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel."
+      - name: stop_id
+        description: "Stop of the target arrival."
+        data_tests:
+          - not_null
+      - name: trip_instance_key
+        description: "Trip instance of the target arrival."
+        data_tests:
+          - not_null
+      - name: segment
+        description: "Run of the trip id."
+        data_tests:
+          - not_null
+      - name: stop_sequence
+        description: "Stop sequence of the target stop."
+        data_tests:
+          - not_null
+      - name: scheduled_arrival_ts
+        description: "Scheduled arrival of the target (UTC)."
+        data_tests:
+          - not_null
+      - name: target_arrival_ts
+        description: "Reconstructed arrival of the target (UTC)."
+        data_tests:
+          - not_null
+      - name: label_delay_s
+        description: "Label: reconstructed minus scheduled arrival in seconds (positive is late)."
         data_tests:
           - not_null

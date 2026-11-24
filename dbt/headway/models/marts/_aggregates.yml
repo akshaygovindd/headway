@@ -700,6 +700,8 @@ models:
         description: "Arrival of A (UTC)."
       - name: to_arrival_ts
         description: "Arrival of B (UTC)."
+      - name: known_at
+        description: "When the headway was known (UTC): the later of the two arrivals' known_at. A forecast at t may use it only when known_at is at most t."
       - name: actual_headway_s
         description: "Seconds between A and B."
       - name: scheduled_headway_s
@@ -1203,5 +1205,51 @@ models:
           - not_null
       - name: counts_toward_slo
         description: "False for the informational arrival_coverage_disrupted row."
+        data_tests:
+          - not_null
+  - name: agg_forecast_gate
+    description: "Training gate per line for the Release 3 forecast: counting service days (arrival coverage at or above the threshold), weekend days among them, and whether the gate is passed (at least 21 days including 3 weekend days). Internal, not exported."
+    config:
+      meta:
+        grain: "line"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: n_service_days_seen
+        description: "Service days of the line with data."
+        data_tests:
+          - not_null
+      - name: n_days
+        description: "Service days whose arrival coverage meets the threshold."
+        data_tests:
+          - not_null
+      - name: n_weekend_days
+        description: "Counting days that are Saturdays or Sundays."
+        data_tests:
+          - not_null
+      - name: first_day
+        description: "First counting day."
+      - name: last_day
+        description: "Last counting day."
+      - name: min_days
+        description: "Counting days the gate needs."
+        data_tests:
+          - not_null
+      - name: min_weekend_days
+        description: "Counting weekend days the gate needs."
+        data_tests:
+          - not_null
+      - name: min_coverage_pct
+        description: "Arrival coverage a day needs to count (percent)."
+        data_tests:
+          - not_null
+      - name: gate_passed
+        description: "True when n_days and n_weekend_days reach their minimums."
         data_tests:
           - not_null

@@ -19,6 +19,11 @@
 -- segment: a reused trip id gives several runs (see int_vehicle_stop_events); each run is
 -- reconstructed on its own and there is no cross-run comparison.
 --
+-- known_at: the fetched_at of the last capture that the arrival, its confidence and its order flag
+-- rest on (the capture of the first STOPPED_AT for an observed stop, the later of the two anchors
+-- for a bracketed one, and the neighbouring reconstructed stops). A forecast made at t may use the
+-- arrival only when known_at <= t, not when arrival_ts <= t (ADR-019).
+--
 -- monotonic_ok: arrival times must not decrease along stop_sequence. Bracketed stops satisfy this
 -- by construction; a row that still disagrees with the previous or next reconstructed stop of its
 -- run (two observed midpoints out of order) is flagged false, both are set to low confidence, and
@@ -51,6 +56,7 @@ ev as (
             partition by u.trip_instance_key, u.segment order by u.event_ts, u.capture_id
         ) as n,
         u.event_ts,
+        u.fetched_at,
         u.dist_m,
         u.current_status,
         u.current_stop_sequence
@@ -119,7 +125,8 @@ estimated as (
         end as method,
         -- observed interval: previous capture to first STOPPED_AT
         pv.event_ts as interval_start_ts,
-        st.event_ts as interval_end_ts
+        st.event_ts as interval_end_ts,
+        st.fetched_at as interval_end_fetched_at
     from stops s
     join located l
         on l.trip_instance_key = s.trip_instance_key
@@ -150,30 +157,35 @@ anchors as (
         dist_m,
         prio,
         ts,
-        max(ts) over (
-            partition by trip_instance_key, segment order by dist_m, prio, ts
-            rows between unbounded preceding and current row
-        ) as ts_mono
+        max(ts) over w as ts_mono,
+        max(fetched_at) over w as known_mono
     from (
-        select trip_instance_key, segment, eff_dist_m as dist_m, 0 as prio, observed_ts as ts from observed
+        select trip_instance_key, segment, eff_dist_m as dist_m, 0 as prio, observed_ts as ts,
+            interval_end_fetched_at as fetched_at
+        from observed
         union all
-        select trip_instance_key, segment, dist_m, 1 as prio, event_ts as ts from ev
+        select trip_instance_key, segment, dist_m, 1 as prio, event_ts as ts, fetched_at from ev
+    )
+    window w as (
+        partition by trip_instance_key, segment order by dist_m, prio, ts
+        rows between unbounded preceding and current row
     )
 ),
 
 bracketed as (
     select e.trip_instance_key, e.segment, e.stop_sequence, lo.ts_mono as lo_ts, lo.dist_m as lo_dist_m,
-        up.ts_mono as up_ts, up.dist_m as up_dist_m
+        up.ts_mono as up_ts, up.dist_m as up_dist_m,
+        greatest(lo.known_mono, up.known_mono) as known_at
     from estimated e
     join lateral (
-        select a.ts_mono, a.dist_m
+        select a.ts_mono, a.known_mono, a.dist_m
         from anchors a
         where a.trip_instance_key = e.trip_instance_key and a.segment = e.segment and a.dist_m < e.eff_dist_m
         order by a.dist_m desc, a.prio desc, a.ts desc
         limit 1
     ) lo on true
     join lateral (
-        select a.ts_mono, a.dist_m
+        select a.ts_mono, a.known_mono, a.dist_m
         from anchors a
         where a.trip_instance_key = e.trip_instance_key and a.segment = e.segment and a.dist_m >= e.eff_dist_m
         order by a.dist_m, a.prio, a.ts
@@ -192,6 +204,7 @@ timed as (
                     / (b.up_dist_m - b.lo_dist_m)
             ) as bigint))
         end as arrival_ts,
+        case e.method when 'observed' then e.interval_end_fetched_at when 'bracketed' then b.known_at end as own_known_at,
         case when e.method = 'observed' then epoch(e.interval_end_ts) - epoch(e.interval_start_ts) end as interval_width_s,
         case when e.method = 'bracketed' then epoch(b.up_ts) - epoch(b.lo_ts) end as bracket_gap_s
     from estimated e
@@ -206,7 +219,14 @@ checked as (
     select
         *,
         arrival_ts < lag(arrival_ts ignore nulls) over w
-            or arrival_ts > lead(arrival_ts ignore nulls) over w as is_out_of_order
+            or arrival_ts > lead(arrival_ts ignore nulls) over w as is_out_of_order,
+        -- the order flag and the confidence also depend on the neighbouring reconstructed stops of
+        -- the run, so the row is known only once those are
+        greatest(
+            own_known_at,
+            lag(own_known_at ignore nulls) over w,
+            lead(own_known_at ignore nulls) over w
+        ) as known_at
     from timed
     window w as (partition by trip_instance_key, segment order by stop_sequence)
 )
@@ -235,5 +255,6 @@ select
     bracket_gap_s,
     not coalesce(is_out_of_order, false) as monotonic_ok,
     dist_m,
-    scheduled_arrival_ts
+    scheduled_arrival_ts,
+    case when arrival_ts is not null then known_at end as known_at
 from checked
