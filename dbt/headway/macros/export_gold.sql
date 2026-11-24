@@ -6,7 +6,8 @@
   target_dir must already exist when it is a local path; an s3:// prefix works once
   the httpfs extension and credentials are available. Only the tables in the
   allowlist below are written; nothing else leaves the warehouse. The Release 2 aggregates
-  (gold_r2_allowlist) are added only when HEADWAY_ENABLE_R2=true.
+  (gold_r2_allowlist) are added only when HEADWAY_ENABLE_R2=true, the Release 3 forecast tables
+  (gold_r3_allowlist) only with HEADWAY_ENABLE_R3=true as well.
 
   agg_pipeline_health is limited to the 30 days before its latest run.
   dbt_run_at is the start time of this dbt invocation (run the export right after
@@ -32,6 +33,26 @@
 }) }}
 {%- endmacro %}
 
+{#
+  Release 3 forecast tables (HEADWAY_ENABLE_R3=true, with R2): the next-hour forecasts and the gate
+  status always; the backtest summary only when it has rows, i.e. when at least one line has passed
+  the training gate (agg_forecast_backtest keeps only gate-passed lines). A deployment whose gate
+  never passed exports the gate status and no backtest.
+#}
+{% macro gold_r3_allowlist() -%}
+{% set tables = {
+    'agg_forecast_next_hour': "select * from " ~ ref('agg_forecast_next_hour'),
+    'agg_forecast_gate_status': "select * from " ~ ref('agg_forecast_gate_status'),
+} %}
+{% if execute %}
+{% set n = run_query("select count(*) from " ~ ref('agg_forecast_backtest')).columns[0].values()[0] %}
+{% if n > 0 %}
+{% do tables.update({'agg_forecast_backtest': "select * from " ~ ref('agg_forecast_backtest')}) %}
+{% endif %}
+{% endif %}
+{{ return(tables) }}
+{%- endmacro %}
+
 {% macro gold_allowlist() -%}
 {% set tables = {
     'agg_line_reliability_hourly': "select * from " ~ ref('agg_line_reliability_hourly'),
@@ -47,6 +68,9 @@
 {# Release 2 aggregates only exist when their models were built (HEADWAY_ENABLE_R2=true) #}
 {% if env_var('HEADWAY_ENABLE_R2', 'false') | lower == 'true' %}
 {% do tables.update(gold_r2_allowlist()) %}
+{% if env_var('HEADWAY_ENABLE_R3', 'false') | lower == 'true' %}
+{% do tables.update(gold_r3_allowlist()) %}
+{% endif %}
 {% endif %}
 {{ return(tables) }}
 {%- endmacro %}

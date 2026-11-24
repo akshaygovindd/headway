@@ -16,6 +16,11 @@ dbt = [
     # Elementary: the `edr` report CLI. Its dbt package version (headway/packages.yml) is the same
     # release, so the two never drift. It pins networkx<3, which dbt-core allows (ADR-018).
     "elementary-data[duckdb]==0.26.1",
+    # Forecast serving (Release 3, ADR-019): the transform scores the next hour with the registered
+    # LightGBM model, through the same headway_ml code the training uses.
+    "lightgbm>=4.5",
+    "numpy>=2",
+    "pandas>=2.2",
 ]
 
 [tool.uv]

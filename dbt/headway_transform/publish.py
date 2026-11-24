@@ -34,8 +34,13 @@ R2_GOLD_TABLES = (
     "agg_slo_daily",
     "agg_slo_rollup",
 )
-# cost_daily is written by cost.py, not dbt, so it is published only when it exists.
-OPTIONAL_TABLES = ("cost_daily",)
+# Release 3 (HEADWAY_ENABLE_R3=true, with R2): the next-hour forecasts and the gate status. The
+# backtest summary joins them only once a line has passed the training gate (R3_OPTIONAL_TABLES).
+R3_GOLD_TABLES = ("agg_forecast_next_hour", "agg_forecast_gate_status")
+R3_OPTIONAL_TABLES = ("agg_forecast_backtest",)
+# cost_daily is written by cost.py, not dbt, so it is published only when it exists. The R3
+# backtest is exported by dbt only when it has rows.
+OPTIONAL_TABLES = ("cost_daily", *R3_OPTIONAL_TABLES)
 DATABASE = "headway"
 
 
@@ -44,13 +49,15 @@ def r2_enabled() -> bool:
 
 
 def r3_enabled() -> bool:
-    """Release 3 models (tag r3) are internal: they build only when set, and are never exported."""
+    """Release 3 models (tag r3) build only when set (with R2); the forecast tables are exported."""
     return os.environ.get("HEADWAY_ENABLE_R3", "").lower() == "true"
 
 
 def gold_tables() -> tuple[str, ...]:
-    """The gold tables this deployment exports: the base set, plus Release 2 when enabled."""
-    return GOLD_TABLES + R2_GOLD_TABLES if r2_enabled() else GOLD_TABLES
+    """The gold tables this deployment always exports: the base set, plus Release 2 when enabled,
+    plus the Release 3 forecast tables when enabled with it."""
+    tables = GOLD_TABLES + R2_GOLD_TABLES if r2_enabled() else GOLD_TABLES
+    return tables + R3_GOLD_TABLES if r2_enabled() and r3_enabled() else tables
 
 
 def _connect(token: str) -> Any:

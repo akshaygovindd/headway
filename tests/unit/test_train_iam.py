@@ -59,6 +59,20 @@ def test_the_transform_role_covers_the_forecast_state_only_with_release_3() -> N
         assert fnmatch.fnmatch(key, "state/forecast_*/*"), key
 
 
+def test_the_transform_role_reads_the_model_registry_only_with_release_3() -> None:
+    assert "var.enable_r3 ? [local.forecast_model_prefix] : []" in PIPELINE
+    assert 'forecast_model_prefix = "models/forecast/*"' in PIPELINE
+    for key in (
+        "models/forecast/latest.json",
+        "models/forecast/v2/model.txt",
+        "models/forecast/reports/backtest.parquet",
+    ):
+        assert fnmatch.fnmatch(key, "models/forecast/*"), key
+    # read and list only: the transform never writes the registry
+    writes = re.findall(r'sid\s*=\s*"WriteRunState".*?resources[^\n]*\n', PIPELINE, re.S)
+    assert writes and "forecast_model_prefix" not in writes[0]
+
+
 def test_every_train_resource_is_behind_enable_r3() -> None:
     resources = re.findall(r'^(resource|data) "[^"]+" "[^"]+" \{\n(.*?)\n\}', TRAIN_TF, re.M | re.S)
     assert resources

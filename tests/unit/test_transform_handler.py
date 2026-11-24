@@ -599,9 +599,17 @@ def test_r3_models_are_built_only_when_enabled_with_r2(
     assert handler.r2_exclusions() == ["tag:r2", "tag:r3"]
 
 
-def test_r3_tables_are_never_exported(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_r3_forecast_tables_are_exported_only_with_r2_and_r3(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
+    monkeypatch.setenv("HEADWAY_ENABLE_R3", "false")
+    assert not {t for t in publish.gold_tables() if "forecast" in t}
     monkeypatch.setenv("HEADWAY_ENABLE_R3", "true")
+    assert {t for t in publish.gold_tables() if "forecast" in t} == set(publish.R3_GOLD_TABLES)
+    # the backtest is conditional: never in the always-exported set
+    assert not set(publish.R3_OPTIONAL_TABLES) & set(publish.gold_tables())
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "false")
     assert not {t for t in publish.gold_tables() if "forecast" in t}
 
 

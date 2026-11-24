@@ -11,6 +11,7 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import boto3
@@ -19,6 +20,7 @@ from headway_transform import (
     chaos,
     cost,
     emf,
+    forecast_serving,
     forecast_state,
     history,
     observability,
@@ -290,6 +292,29 @@ def _dbt_log_tail(lines: int = 25) -> str:
         return "(dbt log unavailable)"
 
 
+def _exists(s3: Any, bucket: str, key: str) -> bool:
+    try:
+        s3.head_object(Bucket=bucket, Key=key)
+    except s3.exceptions.ClientError:
+        return False
+    return True
+
+
+def drop_stale_r3_tables(
+    s3: Any, bucket: str, gold_prefix: str, exported: dict[str, Any]
+) -> list[str]:
+    """The backtest is exported only while some line is past the gate: an object left from an
+    earlier run is removed when this export did not write it, so gold never keeps a result the
+    current gate would not allow."""
+    removed = []
+    for name in publish.R3_OPTIONAL_TABLES:
+        key = f"{gold_prefix}/{name}.parquet"
+        if name not in exported and _exists(s3, bucket, key):
+            s3.delete_object(Bucket=bucket, Key=key)
+            removed.append(key)
+    return removed
+
+
 def verify_export(s3: Any, bucket: str, gold_prefix: str) -> None:
     """Raise ExportError naming every expected gold object that is not in the bucket."""
     missing = []
@@ -320,6 +345,9 @@ def set_gold_cache_control(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
     keys = [f"{gold_prefix}/{t}.parquet" for t in publish.gold_tables()] + [
         f"{gold_prefix}/manifest.json"
     ]
+    for name in publish.R3_OPTIONAL_TABLES:
+        if _exists(s3, bucket, f"{gold_prefix}/{name}.parquet"):
+            keys.append(f"{gold_prefix}/{name}.parquet")
     for key in keys:
         s3.copy_object(
             Bucket=bucket,
@@ -531,6 +559,10 @@ def _smoke_observability(
     }
 
 
+def _smoke_db_path() -> str:
+    return os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
+
+
 def _smoke(started: float) -> dict[str, Any]:
     """Image smoke test: dbt build + gold export on a local curated root; no AWS, no publish.
 
@@ -555,7 +587,13 @@ def _smoke(started: float) -> dict[str, Any]:
         variables["metric_versions"] = history.table_versions()
     variables_json = json.dumps(variables)
     steps: dict[str, int] = {}
+    r3_s3 = r2_s3 and publish.r3_enabled()
+    forecast: dict[str, Any] = {}
+    if r3_s3:
+        forecast.update(_forecast_reports(boto3.client("s3"), _smoke_db_path()))
     build = _build_and_test(variables_json, steps)
+    if r3_s3:
+        forecast.update(_forecast_serving(boto3.client("s3"), _smoke_db_path()))
     run_dbt(["run-operation", "export_gold", "--vars", variables_json,
              "--args", json.dumps({"target_dir": gold})])  # fmt: skip
     if s3_gold:
@@ -579,11 +617,19 @@ def _smoke(started: float) -> dict[str, Any]:
         "rows_exported": sum(counts.values()),
         "tables_exported": len(counts),
         "r2_tables_exported": len(set(counts) & set(publish.R2_GOLD_TABLES)),
+        "r3_tables_exported": len(
+            set(counts) & {*publish.R3_GOLD_TABLES, *publish.R3_OPTIONAL_TABLES}
+        ),
+        "r3_backtest_exported": bool(set(counts) & set(publish.R3_OPTIONAL_TABLES)),
         "step_ms": steps,
         "duration_ms": round((time.monotonic() - started) * 1000),
     }
+    summary.update(forecast)
+    if r3_s3:
+        cache = Path(os.environ.get("HEADWAY_FORECAST_MODEL_DIR", "/tmp/forecast_model"))  # noqa: S108
+        summary["forecast_cache_files"] = sorted(p.name for p in cache.rglob("*") if p.is_file())
     if r2_s3:
-        db = os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
+        db = _smoke_db_path()
         summary.update(_smoke_r2(variables, client, bucket, db))
         if publish.r3_enabled():
             summary.update(
@@ -628,6 +674,38 @@ def _variables(lookback: int, now: datetime) -> str:
         # Curation runs every 15 minutes: the last half hour is incomplete, so the SLOs stop there.
         variables["slo_as_of"] = (now - SLO_LAG).strftime("%Y-%m-%dT%H:%M:%SZ")
     return json.dumps(variables)
+
+
+def _with_forecast_as_of(variables: str, now: datetime) -> str:
+    """The serving prediction time follows the clock: forecast_as_of is now (Release 3)."""
+    parsed = json.loads(variables)
+    parsed["forecast_as_of"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return json.dumps(parsed)
+
+
+def _forecast_reports(s3: Any, db_path: str) -> dict[str, Any]:
+    """Load the training job's reports before the build; a failure leaves the tables empty."""
+    try:
+        release_dbt_connections()
+        return {"forecast_reports": forecast_serving.load_reports(
+            s3, os.environ["RAW_BUCKET"], db_path
+        )}  # fmt: skip
+    except Exception as exc:
+        logger.exception("could not load the forecast reports")
+        return {"forecast_reports_error": f"{type(exc).__name__}: {exc}"}
+
+
+def _forecast_serving(s3: Any, db_path: str) -> dict[str, Any]:
+    """Score the next hour with the registered model; never fails the run (baselines only)."""
+    try:
+        release_dbt_connections()
+        return forecast_serving.serve(s3, os.environ["RAW_BUCKET"], db_path)
+    except Exception as exc:
+        logger.exception("forecast serving failed")
+        return {
+            "forecast_serving_status": "failed",
+            "forecast_serving_error": f"{type(exc).__name__}: {exc}",
+        }
 
 
 def _timezone() -> str:
@@ -701,10 +779,20 @@ def _transform(
         logger.exception("could not read the previous export time")
         previous_export = None
     variables = _variables(lookback, _now())
+    if publish.r2_enabled() and publish.r3_enabled():
+        variables = _with_forecast_as_of(variables, _now())
+        t0 = time.monotonic()
+        summary.update(_forecast_reports(s3, db_path))
+        timed("forecast_reports", t0)
     build = _build_and_test(variables, steps, lambda: _restore_observability(s3, db_path))
     run.tests_passed, run.tests_failed = build.tests_passed, build.tests_failed
     if build.tests_failed:
         logger.warning("dbt tests failed: %d (export continues)", build.tests_failed)
+
+    if publish.r2_enabled() and publish.r3_enabled():
+        t0 = time.monotonic()
+        summary.update(_forecast_serving(s3, db_path))
+        timed("forecast_serving", t0)
 
     t0 = time.monotonic()
     run_dbt(["run-operation", "export_gold", "--vars", variables,
@@ -717,6 +805,8 @@ def _transform(
         s3.get_object(Bucket=public_bucket, Key=f"{gold_prefix}/manifest.json")["Body"].read()
     )
     rows_exported = manifest["row_counts"]
+    if publish.r2_enabled() and publish.r3_enabled():
+        drop_stale_r3_tables(s3, public_bucket, gold_prefix, rows_exported)
     run.rows_exported = sum(rows_exported.values())
 
     cost_rows: int | None = None

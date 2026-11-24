@@ -62,3 +62,23 @@ def test_duckdb_is_pinned_to_the_motherduck_supported_version() -> None:
         f"duckdb.__version__ == '{PINNED_DUCKDB}'"
         in (ROOT / "docker" / "transform.Dockerfile").read_text()
     )
+
+
+def test_transform_image_carries_exactly_the_serving_modules_of_headway_ml() -> None:
+    """The transform loads headway_ml.serving; every headway_ml module it imports is copied."""
+    text = (ROOT / "docker" / "transform.Dockerfile").read_text()
+    copied = set(re.findall(r"ml/headway_ml/(\w+)\.py", text))
+    seen = {"__init__", "serving"}
+    todo = ["serving"]
+    while todo:
+        src = (ROOT / "ml" / "headway_ml" / f"{todo.pop()}.py").read_text()
+        for mod in re.findall(
+            r"^(?:from headway_ml import ([\w, ]+)|from headway_ml\.(\w+) import)", src, re.M
+        ):
+            for name in [n.strip() for n in (mod[0] or mod[1]).split(",") if n.strip()]:
+                if name not in seen:
+                    seen.add(name)
+                    todo.append(name)
+    assert seen <= copied, f"not copied into the transform image: {sorted(seen - copied)}"
+    assert not copied & {"train", "tracking", "backtest", "train_handler", "s3store"}
+    assert "libgomp" in text

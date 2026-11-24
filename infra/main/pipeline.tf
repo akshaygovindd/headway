@@ -25,9 +25,13 @@ locals {
     [local.state_prefix, local.elementary_state_prefix],
     var.enable_r3 ? [local.forecast_state_prefix] : [],
   )
+  # Release 3 serving: the transform reads the model registry (latest.json, the model files) and
+  # the training job's reports. Read and list only; the training role writes them (train.tf).
+  forecast_model_prefix = "models/forecast/*"
   raw_data_prefix = concat(
     ["curated/*", "manifests/*", "quarantine/*", local.lock_key],
     [for p in local.state_prefixes : "${p}/*"],
+    var.enable_r3 ? [local.forecast_model_prefix] : [],
   )
 }
 

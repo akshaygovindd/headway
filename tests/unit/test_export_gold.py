@@ -41,6 +41,9 @@ R2_ALLOWLIST = {
 }
 
 
+R3_ALLOWLIST = {"agg_forecast_next_hour", "agg_forecast_gate_status"}
+
+
 def _build(tmp_path_factory: pytest.TempPathFactory, enable_r2: bool) -> Path:
     if shutil.which("uv") is None:
         pytest.skip("uv is required to run dbt")
@@ -70,11 +73,22 @@ def test_only_allowlisted_files_are_written(gold: Path) -> None:
     assert names == {f"{t}.parquet" for t in ALLOWLIST} | {"manifest.json"}
 
 
-def test_release_2_aggregates_are_added_when_enabled(gold_r2: Path) -> None:
+def test_release_2_and_3_tables_are_added_when_enabled(gold_r2: Path) -> None:
+    everything = ALLOWLIST | R2_ALLOWLIST | R3_ALLOWLIST
     names = {p.name for p in gold_r2.rglob("*")}
-    assert names == {f"{t}.parquet" for t in ALLOWLIST | R2_ALLOWLIST} | {"manifest.json"}
+    assert names == {f"{t}.parquet" for t in everything} | {"manifest.json"}
     manifest = json.loads((gold_r2 / "manifest.json").read_text())
-    assert set(manifest["row_counts"]) == ALLOWLIST | R2_ALLOWLIST
+    assert set(manifest["row_counts"]) == everything
+
+
+def test_gate_never_passed_exports_the_gate_status_and_no_backtest(gold_r2: Path) -> None:
+    assert not (gold_r2 / "agg_forecast_backtest.parquet").exists()
+    gate = _table(gold_r2, "agg_forecast_gate_status")
+    assert gate and not any(r["gate_passed"] for r in gate)
+    assert {r["source"] for r in gate} == {"transform_build"}
+    nxt = _table(gold_r2, "agg_forecast_next_hour")
+    assert nxt and {r["forecast_status"] for r in nxt} == {"baselines_only"}
+    assert all(r["model_forecast_s"] is None for r in nxt)
 
 
 def _table(gold: Path, name: str) -> list[dict[str, object]]:
