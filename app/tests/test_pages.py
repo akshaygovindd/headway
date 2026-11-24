@@ -53,11 +53,12 @@ def test_about_page_links_the_docs(data_url: str) -> None:
         assert doc in text
 
 
-def test_overview_has_a_card_with_coverage_per_line(data_url: str) -> None:
+def test_overview_shows_coverage_once_per_card(data_url: str) -> None:
     at = AppTest.from_file(str(APP / "overview_page.py"), default_timeout=60).run()
     captions = [c.value for c in at.caption]
-    cards = [c for c in captions if re.match(r"Coverage (\d|n/a)", c)]
-    assert cards and not any("exported" in c for c in cards)  # freshness is shown once at the top
+    # the badge carries coverage; the card footer no longer repeats it
+    assert not [c for c in captions if re.match(r"Coverage (\d|n/a)", c)]
+    assert not any("exported" in c for c in captions)  # freshness is shown once at the top
 
 
 def test_live_map_renders_banner_for_an_old_snapshot(data_url: str) -> None:

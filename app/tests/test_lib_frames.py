@@ -168,3 +168,32 @@ def test_quarantine_falls_back_to_total_and_partial_hour_flag() -> None:
     df = pd.DataFrame({"run_id": [f"r{i}" for i in range(90)], "scheduled_at": times})
     now = pd.Timestamp("2026-11-22 15:10", tz="UTC").to_pydatetime()
     assert health.captures_per_hour(df, now)["partial"].tolist() == [False, True]
+
+
+def test_quarantine_lists_every_reason_by_name_when_the_table_exists() -> None:
+    p = pd.DataFrame({"quarantine_total": [9], "quarantine_other": [4]})
+    reasons = pd.DataFrame(
+        {
+            "local_date": ["2026-11-22"] * 3,
+            "source_table": ["trip_updates", "trip_updates", "vehicle_positions"],
+            "reason": ["missing_trip_id", "schema_mismatch", "missing_trip_id"],
+            "n_records": [3, 4, 2],
+        }
+    )
+    out = health.quarantine_by_reason(p, reasons)
+    assert out["reason"].tolist() == ["missing_trip_id", "schema_mismatch"]
+    assert out["records"].tolist() == [5, 4]
+
+
+def test_alerts_duplicates_are_labelled_expected_and_no_service_is_a_status() -> None:
+    p = pd.DataFrame(
+        {
+            f"{f}_{c}": v
+            for f in health.FEEDS
+            for c, v in (("status", ["ok", "ok"]), ("is_duplicate", [True, False]))
+        }
+    )
+    out = health.duplicates_by_feed(p).set_index("feed")["note"]
+    assert out["alerts"] == "unchanged feed (expected)"
+    assert out["trip_updates"] == ""
+    assert "no_service" in health.STATUS_ORDER

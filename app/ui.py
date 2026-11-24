@@ -125,10 +125,9 @@ def render_metric_card(
                     else _fmt_seconds(value, signed="revision" not in caption)
                 )
                 st.metric(caption, shown)
-        cov_text = (
-            "n/a" if coverage_pct is None or pd.isna(coverage_pct) else f"{coverage_pct:.0f}%"
-        )
-        st.caption(f"Coverage {cov_text}" + (f" · {freshness}" if freshness else ""))
+        # Coverage is shown once, by the badge above.
+        if freshness:
+            st.caption(freshness)
 
 
 def fmt_seconds(value: float | None, *, signed: bool = True) -> str:
