@@ -1253,3 +1253,171 @@ models:
         description: "True when n_days and n_weekend_days reach their minimums."
         data_tests:
           - not_null
+  - name: agg_forecast_next_hour
+    description: "Forecast of the arrival delay for the next hour (Release 3): per line, direction, stop, prediction time and horizon, the model forecast where one is approved, the three baselines and the MBTA reference, with the counts that give coverage and the age of the features. Exported with the R3 gold tables."
+    config:
+      meta:
+        grain: "line x direction_id x stop_id x prediction_ts x horizon_min"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, stop_id, prediction_ts, horizon_min]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel."
+      - name: stop_id
+        description: "Stop of the trip stops in the slot."
+        data_tests:
+          - not_null
+      - name: prediction_ts
+        description: "Prediction time t (UTC), on the quarter hour."
+        data_tests:
+          - not_null
+      - name: horizon_min
+        description: "Minutes from t to the start of the slot: 15, 30 or 60."
+        data_tests:
+          - not_null
+      - name: n_trips
+        description: "Scheduled trip stops in the slot [t + horizon, t + horizon + 15 min): the coverage denominator."
+        data_tests:
+          - not_null
+      - name: model_forecast_s
+        description: "Model forecast of the mean delay in the slot, seconds (positive is late); null unless the line has an approved model and a passed gate."
+      - name: n_model
+        description: "Trip stops of the slot with a model forecast."
+      - name: persistence
+        description: "Baseline: mean last known delay of the same trips upstream, seconds."
+      - name: n_persistence
+        description: "Trip stops with a persistence value."
+      - name: daytype_hour
+        description: "Baseline: mean delay of the line by day type and hour over the examples in the build, seconds."
+      - name: n_daytype_hour
+        description: "Trip stops with a daytype_hour value."
+      - name: rolling_median_60m
+        description: "Baseline: the line's median delay over the previous 60 minutes, seconds."
+      - name: n_rolling_median_60m
+        description: "Trip stops with a rolling-median value."
+      - name: mbta_reference
+        description: "MBTA's own predicted deviation, seconds: a labelled reference, not a baseline."
+      - name: n_mbta_reference
+        description: "Trip stops with an MBTA prediction."
+      - name: latest_arrival_known_at
+        description: "The latest arrival of the line that was known at t."
+      - name: feature_age_s
+        description: "Seconds from the latest known arrival to t."
+      - name: forecast_status
+        description: "model when model_forecast_s is set, else baselines_only."
+        data_tests:
+          - not_null
+      - name: status_reason
+        description: "Why a line has no model forecast, or the model version used."
+      - name: model_version
+        description: "Registry version of the model that produced model_forecast_s."
+  - name: agg_forecast_gate_status
+    description: "Training gate per line as the Forecast page shows it (Release 3): the training job's counts, or the build's own agg_forecast_gate for a line the job has not seen. Exported with the R3 gold tables."
+    config:
+      meta:
+        grain: "line"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: n_days
+        description: "Service days that meet the coverage threshold."
+        data_tests:
+          - not_null
+      - name: n_weekend_days
+        description: "Counting days that are weekend days."
+        data_tests:
+          - not_null
+      - name: min_days
+        description: "Counting days the gate needs."
+        data_tests:
+          - not_null
+      - name: min_weekend_days
+        description: "Counting weekend days the gate needs."
+        data_tests:
+          - not_null
+      - name: gate_passed
+        description: "True when the line may be trained and compared."
+        data_tests:
+          - not_null
+      - name: source
+        description: "training_job (all closed days) or transform_build (lookback window only)."
+        data_tests:
+          - not_null
+      - name: updated_at
+        description: "When the training job computed the row; null for transform_build."
+  - name: agg_forecast_backtest
+    description: "Backtest of the forecast model against the baselines (Release 3), pooled over weekly folds, for lines past the training gate only. Exported only when it has rows."
+    config:
+      meta:
+        grain: "line x horizon_min x period_type x view x method"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, horizon_min, period_type, view, method]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: horizon_min
+        description: "Horizon in minutes."
+      - name: period_type
+        description: "all, normal or alert_active."
+      - name: view
+        description: "strict (every method has a value) or full (documented fallback chain)."
+      - name: method
+        description: "lightgbm, persistence, daytype_hour, rolling_median_60m or mbta_reference."
+        data_tests:
+          - not_null
+      - name: n
+        description: "Examples scored."
+      - name: n_labelled
+        description: "Labelled examples of the line, horizon and period."
+      - name: coverage_pct
+        description: "n over n_labelled, percent."
+      - name: mae
+        description: "Mean absolute error, seconds."
+      - name: rmse
+        description: "Root mean squared error, seconds."
+      - name: within_60
+        description: "Share within 60 s, percent."
+      - name: within_120
+        description: "Share within 120 s, percent."
+      - name: ci_lo
+        description: "Lower end of the 95% cluster-bootstrap interval of the MAE."
+      - name: ci_hi
+        description: "Upper end of the interval."
+      - name: fold_mae_min
+        description: "Smallest per-fold MAE."
+      - name: fold_mae_max
+        description: "Largest per-fold MAE."
+      - name: fold_mae_std
+        description: "Standard deviation of the per-fold MAE."
+      - name: n_folds
+        description: "Weekly folds pooled."
+      - name: is_reference
+        description: "True for the MBTA reference."
+      - name: best_baseline
+        description: "Model rows (strict view): the baseline with the lowest MAE."
+      - name: diff_mae
+        description: "Model rows: MAE of the model minus that of the best baseline, seconds."
+      - name: diff_ci_lo
+        description: "Lower end of the paired 95% interval of diff_mae."
+      - name: diff_ci_hi
+        description: "Upper end of the paired interval."
+      - name: run_id
+        description: "Training run that produced the row."
+      - name: trained_at
+        description: "When the run was made."

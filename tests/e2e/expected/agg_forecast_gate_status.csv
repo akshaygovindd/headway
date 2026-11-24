@@ -1,0 +1,9 @@
+line,n_days,n_weekend_days,min_days,min_weekend_days,gate_passed,source,updated_at
+Blue,0,0,21,3,false,transform_build,
+Green-B,0,0,21,3,false,transform_build,
+Green-C,0,0,21,3,false,transform_build,
+Green-D,0,0,21,3,false,transform_build,
+Green-E,0,0,21,3,false,transform_build,
+Mattapan,0,0,21,3,false,transform_build,
+Orange,0,0,21,3,false,transform_build,
+Red,0,0,21,3,false,transform_build,

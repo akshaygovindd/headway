@@ -745,3 +745,215 @@ models:
         description: "Label: reconstructed minus scheduled arrival in seconds (positive is late)."
         data_tests:
           - not_null
+  - name: int_forecast_serving_grid
+    description: "Prediction time of the forecast served now (Release 3): the latest quarter hour at or before the as-of time, per line with scheduled service in the next hour. Same columns as int_forecast_grid, so the shared feature SQL reads it unchanged; outage hours are not dropped."
+    config:
+      meta:
+        grain: "line x prediction_ts"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, prediction_ts]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date of the prediction time."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour of the prediction time."
+        data_tests:
+          - not_null
+      - name: prediction_ts
+        description: "Prediction time t (UTC), on the quarter hour."
+        data_tests:
+          - not_null
+      - name: day_type
+        description: "weekday or weekend, from the service date."
+        data_tests:
+          - not_null
+      - name: as_of_ts
+        description: "The as-of time: the forecast_as_of var, or the latest successful capture."
+        data_tests:
+          - not_null
+  - name: int_forecast_serving_targets
+    description: "Trip stops to forecast now: for the serving prediction time t and each horizon (15, 30, 60 minutes), the trip stops scheduled in the 15-minute slot that starts a horizon after t. Columns as int_forecast_targets; the label columns are null."
+    config:
+      meta:
+        grain: "line x prediction_ts x horizon_min x trip_instance_key x stop_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, prediction_ts, horizon_min, trip_instance_key, stop_sequence]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: prediction_ts
+        description: "Prediction time t (UTC)."
+        data_tests:
+          - not_null
+      - name: prediction_service_date
+        description: "Service date of t."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour of t."
+        data_tests:
+          - not_null
+      - name: day_type
+        description: "weekday or weekend."
+        data_tests:
+          - not_null
+      - name: horizon_min
+        description: "Minutes from t to the start of the target slot: 15, 30 or 60."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel."
+      - name: stop_id
+        description: "Stop of the target arrival."
+        data_tests:
+          - not_null
+      - name: trip_instance_key
+        description: "Trip instance of the target arrival."
+        data_tests:
+          - not_null
+      - name: segment
+        description: "Run of the trip id."
+      - name: stop_sequence
+        description: "Stop sequence of the target stop."
+        data_tests:
+          - not_null
+      - name: scheduled_arrival_ts
+        description: "Scheduled arrival of the target (UTC)."
+        data_tests:
+          - not_null
+      - name: target_arrival_ts
+        description: "Always null: the arrival has not happened yet."
+      - name: label_delay_s
+        description: "Always null: the arrival has not happened yet."
+  - name: int_forecast_serving_line_features
+    description: "Line-level forecast features at the serving prediction time, from the same SQL as int_forecast_line_features (macros/forecast_features.sql): inputs known at t only."
+    config:
+      meta:
+        grain: "line x prediction_ts"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, prediction_ts]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: prediction_ts
+        description: "Prediction time t (UTC)."
+        data_tests:
+          - not_null
+      - name: rolling_median_delay_30m
+        description: "Median delay in seconds of the line's usable arrivals in the 30 minutes up to t, known at t; null without arrivals."
+      - name: n_arrivals_30m
+        description: "Arrivals behind rolling_median_delay_30m."
+        data_tests:
+          - not_null
+      - name: rolling_median_delay_60m
+        description: "Median delay in seconds of the line's usable arrivals in the 60 minutes up to t, known at t; null without arrivals."
+      - name: n_arrivals_60m
+        description: "Arrivals behind rolling_median_delay_60m."
+        data_tests:
+          - not_null
+      - name: headway_within_share
+        description: "Share (0-1) of the valid headways completed in the 60 minutes up to t, known at t, within 0.5 to 1.5 times the scheduled headway; null without headways."
+      - name: n_headways_60m
+        description: "Headways behind headway_within_share."
+        data_tests:
+          - not_null
+      - name: active_disruption_alert
+        description: "True when the latest alerts capture at or before t, at most 15 minutes old, has a line-scope service disruption on the line; null when there is no such capture."
+      - name: skipped_share_1h
+        description: "Share (0-1) of the line's trip update snapshots collected in the hour up to t whose stop is SKIPPED; null without snapshots."
+      - name: n_snapshots_1h
+        description: "Snapshots behind skipped_share_1h."
+        data_tests:
+          - not_null
+  - name: int_forecast_serving_features
+    description: "Features of the trip stops to forecast now, from the same SQL as fct_forecast_examples (macros/forecast_features.sql) over the serving targets: the model's and the baselines' inputs. Label columns are null."
+    config:
+      meta:
+        grain: "line x prediction_ts x horizon_min x trip_instance_key x stop_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, prediction_ts, horizon_min, trip_instance_key, stop_sequence]
+    columns:
+      - name: line
+        description: "Reporting line (feature)."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "Direction of travel (feature)."
+      - name: stop_id
+        description: "Stop of the target arrival."
+        data_tests:
+          - not_null
+      - name: prediction_ts
+        description: "Prediction time t (UTC), on the quarter hour."
+        data_tests:
+          - not_null
+      - name: horizon_min
+        description: "Minutes from t to the start of the target slot: 15, 30 or 60."
+        data_tests:
+          - not_null
+      - name: trip_instance_key
+        description: "Trip instance of the target arrival."
+        data_tests:
+          - not_null
+      - name: segment
+        description: "Run of the trip id (0 for the first)."
+      - name: stop_sequence
+        description: "Stop sequence of the target stop on the trip."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date of the prediction time."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local clock hour of t (feature)."
+        data_tests:
+          - not_null
+      - name: day_type
+        description: "weekday or weekend (feature)."
+        data_tests:
+          - not_null
+      - name: stop_position
+        description: "Distance of the stop along the trip's shape as a share of the trip (0-1) (feature); null without a shape position."
+      - name: scheduled_headway_s
+        description: "Seconds since the previous scheduled train at the stop (feature); null for the first of the day."
+      - name: last_upstream_delay_s
+        description: "Delay in seconds of the same run at its latest earlier stop known at t (feature); null when none."
+      - name: rolling_median_delay_30m
+        description: "Median delay of the line's arrivals known at t over the previous 30 minutes (feature)."
+      - name: rolling_median_delay_60m
+        description: "Same over the previous 60 minutes (feature)."
+      - name: headway_within_share
+        description: "Share of the line's headways completed in the previous 60 minutes, known at t, that were within band (feature)."
+      - name: active_disruption_alert
+        description: "True when a line-scope service disruption was active on the line in the latest alerts capture at or before t (feature)."
+      - name: skipped_share_1h
+        description: "Share of the line's snapshots of the hour before t that were SKIPPED (feature)."
+      - name: mbta_predicted_deviation_s
+        description: "MBTA's predicted deviation for the trip stop from the latest snapshot collected at or before t (feature, and the reference line of a forecast report, not a baseline)."
+      - name: scheduled_arrival_ts
+        description: "Scheduled arrival of the target (UTC); in [t + horizon, t + horizon + 15 min)."
+        data_tests:
+          - not_null
+      - name: target_arrival_ts
+        description: "Always null in serving."
+      - name: label_delay_s
+        description: "Always null in serving."

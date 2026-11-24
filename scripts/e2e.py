@@ -40,6 +40,8 @@ TABLES = [
     "agg_slo_daily",
     "agg_slo_rollup",
     "agg_forecast_gate",
+    "agg_forecast_gate_status",
+    "agg_forecast_next_hour",
 ]
 DBT = ["uv", "run", "--project", "dbt", "dbt"]
 DBT_ARGS = ["--project-dir", "dbt/headway", "--profiles-dir", "dbt/headway", "--target", "local"]
@@ -174,6 +176,14 @@ def main(argv: list[str]) -> int:
         subprocess.run(
             [
                 "uv", "run", "--project", "dbt", "python", "scripts/leakage_check.py", str(db),
+                "--vars", f'{{"curated_root": "{replay_dir}"}}', "--assume-complete",
+            ],  # fmt: skip
+            cwd=ROOT, env=env, check=True,
+        )  # fmt: skip
+        # serving (ADR-019): the served features equal the training features for the same t
+        subprocess.run(
+            [
+                "uv", "run", "--project", "dbt", "python", "scripts/serving_parity.py", str(db),
                 "--vars", f'{{"curated_root": "{replay_dir}"}}', "--assume-complete",
             ],  # fmt: skip
             cwd=ROOT, env=env, check=True,

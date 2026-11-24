@@ -31,6 +31,8 @@ vars:
   metric_versions: {}
   # Release 3 training gate (ADR-019): a line can be trained on once it has min_days service days with
   # arrival coverage of at least min_coverage_pct, min_weekend_days of them weekend days.
+  # Release 3 serving: the as-of time of the served forecast (ISO); null uses the latest successful capture.
+  forecast_as_of: null
   forecast_gate:
     min_coverage_pct: 70
     min_days: 21
@@ -76,6 +78,10 @@ models:
       int_forecast_line_features: *r3
       int_forecast_gate_days: *r3
       int_forecast_targets: *r3
+      int_forecast_serving_grid: *r3
+      int_forecast_serving_targets: *r3
+      int_forecast_serving_line_features: *r3
+      int_forecast_serving_features: *r3
     marts:
       +materialized: table
       fct_reconstructed_arrivals: *r2
@@ -97,6 +103,9 @@ models:
       agg_slo_rollup: *r2
       fct_forecast_examples: *r3
       agg_forecast_gate: *r3
+      agg_forecast_gate_status: *r3
+      agg_forecast_backtest: *r3
+      agg_forecast_next_hour: *r3
 
 seeds:
   headway:
