@@ -335,3 +335,20 @@ flowchart LR
 `agg_incidents` leaves the dbt build with empty summary columns; the transform fills them after the
 build (like the model forecast of `agg_forecast_next_hour`) and before the export. The summaries
 persist in the raw bucket so a version is written once and the daily call cap holds across runs.
+
+## Release 3: weather comparison
+
+Tagged `r3`. The static Lambda writes the daily weather (ADR-022); the model compares days, never
+causes.
+
+```mermaid
+flowchart LR
+    NCEI[(NOAA NCEI daily summary<br/>station USW00014739)] --> SH[static Lambda<br/>HEADWAY_ENABLE_R3]
+    SH --> CW[(curated table=weather_daily)]
+    CW --> SW[stg_weather_daily]
+    ADD[agg_actual_deviation_daily] --> WC[agg_weather_comparison<br/>seeded bootstrap over days]
+    AHD[agg_headway_adherence_daily] --> WC
+    SW --> WC
+    WC --> GOLD[(gold)]
+    GOLD --> APP[app: Forecast page]
+```

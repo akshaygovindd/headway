@@ -515,6 +515,30 @@ or `86 s early`; `86 s` alone reads as positive (ADR-008, change log).
 `make evals EVALS_ARGS="--fake --inject-faults"` must fail and name three questions (a wrong
 number, an invented number, a wrong direction); if it does not, the scorer is broken.
 
+## Alert classifier pilot
+
+A pilot (`docs/ALERT_CLASSIFIER.md`, once generated); nothing in production depends on it.
+
+**Label:** `uv run python scripts/export_alerts_for_labelling.py --local .local/replay` (or
+`--s3-bucket <raw bucket>`, read-only) writes about 50 distinct alerts to `evals/alert_labels.csv`
+with an empty `label` column and refuses to overwrite a file that already has labels (`--force`
+overrides). Fill `label` by hand with one of the six classes in `evals/ALERT_LABELLING.md`.
+
+**Report:** `make alert-classifier` (runs in `ml/`, needs no AWS) compares the rule baseline and TF-IDF
+with logistic regression on the same seeded stratified 5-fold split and writes
+`docs/ALERT_CLASSIFIER.md`. It exits 1 and names the rows while any label is empty or unknown.
+With `OPENAI_API_KEY` set it also runs the LLM zero-shot model (about 50 short calls, a fraction of
+a cent with the default `gpt-4o-mini`; `HEADWAY_ALERT_LLM_MODEL` changes it); without a key the
+report lists it as not run. Fifty rows is a small sample: read differences of a few points as noise.
+
+## Weather fetch
+
+With `enable_r3` the daily static Lambda also refetches the last 21 days of NOAA daily weather into
+`curated/<city>/table=weather_daily/` (ADR-022). A failure never fails the GTFS load: look for
+`"weather": {"status": "error", ...}` in the `headway-static` log line. The comparison keeps its
+earlier days and the weather table simply stops growing until the next successful run; the NCEI
+service has no SLA and trails real time by about a week.
+
 ## Live drills
 
 Two failures can be caused on purpose in the deployed pipeline with the chaos switch

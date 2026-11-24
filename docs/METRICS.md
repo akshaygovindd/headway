@@ -565,6 +565,33 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
   sample (at least 10 of each of the four kinds) for manual review; the outcome is recorded in
   `docs/MEASUREMENTS.md` and until then the page says the review is pending.
 
+## Weather comparison (Release 3)
+
+- **Business meaning:** how the on-time share and the headway share looked on snow, heavy-rain and
+  extreme-heat days compared with the other days of the same window. It describes two groups of
+  days. It never says the weather caused a difference, and the app words it that way ("on snow
+  days, the on-time share was X% vs Y% on other days"), under the rules of ADR-008.
+- **Weather source:** NOAA NCEI daily summary (GHCN-Daily) for Boston Logan, USW00014739, fetched
+  once a day by the static Lambda when `enable_r3` is on (ADR-022). Values trail real time by about
+  a week; one station stands for the whole network.
+- **Day classes** (`headway.curate.weather`, metric units): snow day, snowfall of at least 25.4 mm;
+  heavy-rain day, precipitation of at least 12.7 mm on a day that is not a snow day; extreme-heat
+  day, daily maximum of at least 32.2 C. A flag is null when its value is missing and that day is
+  left out of the comparison. A day of another class counts as an "other" day.
+- **Metrics** (`agg_weather_comparison`, one row per condition and metric): `on_time`, the share
+  of usable arrivals within -60 to +300 s of the timetable (`agg_actual_deviation_daily`), and
+  `headway_within_band`, the share of valid headways within 0.5 to 1.5 times the scheduled headway
+  (`agg_headway_adherence_daily`). Each is pooled over the days of its group, all lines and
+  directions together. Days with an outage keep the daily tables' own rules (outage hours are left
+  out and counted there). The latest service date is left out because it may still be open.
+- **Interval:** 95 % percentile interval of 1,000 bootstrap resamples of whole days, drawn with a
+  seeded hash so a rebuild gives the same numbers.
+- **Withheld:** when either group has fewer than 5 days the row has `withheld = true`, a
+  `withheld_reason` and no values; the app shows the reason instead. With no weather data at all
+  the app says so.
+- **Where:** the gold export with R3 on (`agg_weather_comparison`) and a section on the Forecast
+  page.
+
 ## AI analyst tools (Release 3)
 
 The analyst's `metric` values map to the sections above (`src/headway_mcp/catalog.py`): the

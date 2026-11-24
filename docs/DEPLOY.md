@@ -254,6 +254,9 @@ Switch-on, Phase 2.6, in this order:
 `r3`: the forecast examples and the training gate (`docs/METRICS.md`, ADR-019). They are internal:
 they are not exported or published. With the default the Lambda skips every `r3` model and test;
 local and CI builds always build them. Check the logged step times after switching it on, as for R2.
+The same switch sets `HEADWAY_ENABLE_R3` on the daily static Lambda, which then also fetches the
+NOAA daily weather (ADR-022, `docs/RUNBOOK.md`), and grants it write access to
+`curated/<city>/table=weather_daily/`. `agg_weather_comparison` is exported with the R3 gold tables.
 
 Switch-on, Phase 3.2 (nothing is deployed by the repository's tests; do this deliberately):
 

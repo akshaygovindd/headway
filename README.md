@@ -147,6 +147,14 @@ p90 latency is at most 10 s. The report is [docs/EVALS.md](docs/EVALS.md), regen
 real run. `make evals EVALS_ARGS=--fake` runs a scripted model instead (the scorer's own test in
 `make check`, no network).
 
+### Alert classifier pilot and weather comparison
+
+A pilot classifier sorts alert headers into six classes (`make alert-classifier`, labelling guide
+in `evals/ALERT_LABELLING.md`, report [docs/ALERT_CLASSIFIER.md](docs/ALERT_CLASSIFIER.md) once the
+labels are in); nothing in production depends on it. With R3 on, the Forecast page also compares
+on-time and headway shares on snow, heavy-rain and extreme-heat days with other days, descriptively
+and never causally ([docs/METRICS.md](docs/METRICS.md), weather source in ADR-022).
+
 ## Roadmap
 
 - **Release 1 (this):** capture, curate, four metrics, public Streamlit app, pipeline health.
