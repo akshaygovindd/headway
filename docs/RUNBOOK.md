@@ -450,6 +450,42 @@ earlier version, write `latest.json` again with that `version` and `path`
 | timeout or out-of-memory | more rows than sized for (memory 4096 MB, 300 s: sized on 448 k examples, 43 s, 2.3 GiB peak) | lower `TRAIN_MAX_ROWS_PER_DAY` or raise `train_memory_mb` / `train_timeout_s` in `infra/main/train.tf` |
 | the run failed after the lock was taken | the database is uploaded anyway (with the half-finished run) | read the log, fix, run again |
 
+## Incident summaries (LLM)
+
+The transform writes `agg_incidents.summary_text` after the build (Release 3; ADR-008). It uses a
+language model when it has a key and the daily cap allows, and the deterministic template otherwise.
+Nothing here pages anyone; look at it when the Incidents page shows many "template used" badges.
+
+**The key.** SSM SecureString `/headway/openai_api_key`, created by hand (it is not in Terraform):
+`aws ssm put-parameter --name /headway/openai_api_key --type SecureString --value '<key>' [--overwrite]`.
+Delete it (`aws ssm delete-parameter --name /headway/openai_api_key`) to switch the model off: the
+next run uses the template, nothing else changes. Rotate by `put-parameter --overwrite`; a warm
+container picks it up on its next run (the key is read on every run).
+
+**The cap.** `HEADWAY_INCIDENT_LLM_DAILY_CAP` model calls per UTC day (default 50), counted across
+runs from `state/incident_summaries/`. An exhausted cap shows as `rejection_reason =
+daily_cap_reached` on the template summaries and `incident_llm_capped` in the run summary.
+
+**The run summary** (transform log, `incident_*`): `incident_summaries_generated`, `_llm`,
+`_template`, `incident_llm_calls`, `incident_llm_rejections`, `incident_llm_errors`,
+`incident_llm_capped`. A summary exists once per incident version; an open incident is refreshed
+every 3 hours.
+
+**Rejections.** A model text that fails the number or causal check is dropped and the template is
+used (`number_check = rejected`, `rejection_reason` names the number or phrase). A few are normal.
+To read them: `aws s3 cp s3://<raw>/state/incident_summaries/dt=<day>/rows.parquet .` and filter
+`number_check = 'rejected'`. A sudden run of rejections with a plausible text usually means the
+evidence format changed (the dbt unit test `incident_evidence_json` and
+`tests/unit/test_incident_evidence_shape.py` pin it) or the check is too strict for a new wording:
+change the check or the instruction, never the stored text.
+
+| Symptom | Cause | What to do |
+| --- | --- | --- |
+| every summary says `no_api_key` | the parameter is absent, misnamed, or the role lacks `ssm:GetParameter` | create it; check the `ReadOpenAiKey` statement in `infra/main/pipeline.tf` |
+| `llm_error: LlmError` on many rows | provider outage, key revoked, quota | the template is in use meanwhile; fix the key or wait |
+| `incident_summary_status: failed` | the step raised (logged: "incident summaries failed") | read the log; the export and publish continue with empty summary columns |
+| cost higher than expected | the cap is per day, not per hour | lower `HEADWAY_INCIDENT_LLM_DAILY_CAP` |
+
 ## Live drills
 
 Two failures can be caused on purpose in the deployed pipeline with the chaos switch

@@ -304,3 +304,34 @@ The training job writes `models/forecast/reports/backtest.parquet` and `gate_sta
 every run. Before the build the transform loads them into the warehouse (empty when absent), after
 the build it scores the next hour, then exports. `agg_forecast_backtest` is exported only when a
 line has passed the gate.
+
+### Incidents, summaries and alert matching (Phase 3.4)
+
+```mermaid
+flowchart LR
+    ADH[agg_actual_deviation_hourly] -->|closed days, ADR-015| HIST[(history<br/>table=agg_actual_deviation_hourly)]
+    ADH --> DH[int_deviation_hour_history]
+    HIST -->|history_union| DH
+    DH --> IH[int_incident_hours]
+    HW[agg_headway_adherence_hourly] --> IH
+    LR[agg_line_reliability_hourly] --> IH
+    DIS[int_disrupted_line_hours] --> IH
+    IH --> INC[fct_incidents<br/>evidence_json, evidence_hash]
+    AS[int_alert_scopes] --> INC
+    INC --> M[int_alert_matching]
+    AS --> M
+    M --> DAILY[agg_alert_matching_daily]
+    INC --> AI[agg_incidents<br/>summary columns empty]
+    M --> AI
+    ST[(raw: state/incident_summaries)] <--> SUM[incident_summaries.summarize<br/>LLM or template, number check]
+    SSM[(SSM /headway/openai_api_key)] -.optional.-> SUM
+    AI --> SUM
+    SUM -->|summary_text, template_used, number_check| AI
+    AI --> GOLD[(gold)]
+    DAILY --> GOLD
+    GOLD --> APP[app: Incidents page]
+```
+
+`agg_incidents` leaves the dbt build with empty summary columns; the transform fills them after the
+build (like the model forecast of `agg_forecast_next_hour`) and before the export. The summaries
+persist in the raw bucket so a version is written once and the daily call cap holds across runs.

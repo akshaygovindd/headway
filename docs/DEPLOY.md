@@ -300,6 +300,30 @@ Switch-on, Phase 3.3 (forecast serving and the Forecast page; built and smoke-te
    first runs on real data check `Max Memory Used` and the duration of `headway-train` against
    `train_memory_mb` and `train_timeout_s` in `infra/main/train.tf` and raise them if needed.
 
+Switch-on, Phase 3.4 (incidents, summaries, alert vs reality; built and smoke-tested, not deployed):
+
+1. `make images-push` and `make deploy`: the transform role may now read
+   `/headway/openai_api_key` and write `state/incident_summaries/` (behind `enable_r3`; the plan
+   must destroy nothing). Nothing is created for the key.
+2. **Create the key by hand (optional)**, as a SecureString under the account's default key:
+   `aws ssm put-parameter --name /headway/openai_api_key --type SecureString --value '<key>'`.
+   Without it every summary is the deterministic template, which is a complete, supported mode.
+   The model name is `HEADWAY_INCIDENT_LLM_MODEL` (default `gpt-4o-mini`) and the daily call cap
+   `HEADWAY_INCIDENT_LLM_DAILY_CAP` (default 50); set them on the transform Lambda's environment
+   if you change them.
+3. The first deployed history of `agg_actual_deviation_hourly` starts when the switch goes on: the
+   transform writes each closed day of it once (`history_written` in the run summary,
+   `s3://<public>/public/boston/history/table=agg_actual_deviation_hourly/`). The deviation rule
+   of incidents needs 14 closed days of the same day type (7 weeks for weekends) and stays off, and
+   says so in each incident's evidence, until then. To start earlier, backfill with
+   `{"task":"rebuild_history","from":...,"to":...,"metric_version":2}` (at most 14 days per call),
+   as far back as the raw curated data goes.
+4. Check the run summary for `incident_summary_status` (`ok`), `incident_count`,
+   `incident_summaries_llm` / `incident_summaries_template`, `incident_llm_calls` and
+   `incident_llm_rejections`; the export lists `agg_incidents` and `agg_alert_matching_daily`, and
+   the Incidents page appears in the app. A failure of the step is logged and never fails the run.
+5. Once a few weeks of incidents exist, do the alert hand check: `docs/MEASUREMENTS.md`.
+
 ## Release 2 history, run state and SLOs
 
 With `enable_r2 = true` the transform Lambda also keeps two kinds of object, both written by its

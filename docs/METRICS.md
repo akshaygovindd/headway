@@ -503,3 +503,64 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
   mean of the examples inside the transform's lookback window, the backtest's is fitted on its
   training weeks.
 - **Label:** "Forecast. Headway approximation, not an official MBTA measure."
+
+
+## Incidents (Release 3)
+
+- **Business meaning:** the stretches of service where a line and direction were clearly off for
+  at least two hours, said in a few sentences a rider can read, each next to the evidence behind it.
+- **Hourly rules** (`int_incident_hours`, thresholds in the dbt var `incidents`): an hour *breaches*
+  when any of these holds, in a non-outage hour:
+  1. **deviation**: the median actual deviation of the hour (`agg_actual_deviation_hourly`) is at
+     least 180 s above the baseline, the median over earlier service days of the same line,
+     direction, day type (weekday or weekend) and hour;
+  2. **gap**: the headway gap share (`pct_gap`, `agg_headway_adherence_hourly`) is at least 30 %;
+  3. **skipped**: the skipped share of observable trip stops (`agg_line_reliability_hourly`) is at
+     least 20 %;
+  4. **alert**: a line-scope service-disruption alert is active (`int_disrupted_line_hours`).
+- **Baseline rule is off until it can be trusted:** it needs at least 14 earlier service days of
+  that day type at that hour (`baseline_days`); until then `baseline_enabled` is false, the
+  deviation rule never crosses, and the evidence says so ("disabled in some hours"). The days come
+  from `int_deviation_hour_history`: the build's hourly rows plus the closed days of immutable
+  history (`agg_actual_deviation_hourly` is in the `actual_deviation` history family, ADR-015), so
+  the rule can activate with a 7-day lookback once 14 weekdays (or 14 weekend days, 7 weeks) have
+  closed. A new deployment therefore has no deviation rule for its first weeks.
+- **Open and close** (`fct_incidents`, grain line x direction x `incident_start`): an incident
+  opens at the first of 2 or more consecutive breach hours and closes after one hour with no
+  breach. Consecutive means one hour apart among *evaluated* hours. **Data-outage hours are never
+  evaluated**: they cannot open an incident, they end a run of breaches (an incident cannot straddle
+  one), and those inside a window are counted in `n_outage_hours_inside`. An incident is `is_open`
+  while no later evaluated hour has been seen; its end is the end of its last breach hour.
+- **Evidence** (`evidence_json`, version `evidence_hash`): for each breach hour its values, the
+  baseline, the rules crossed and the coverage; the thresholds; the baseline rule's state; the
+  window; outage hours inside; and the line-scope alerts of the window with id, effect and header.
+  Summaries are written from this document alone (ADR-008).
+- **Summaries** (`agg_incidents.summary_text`): written when an incident closes or every 3 h while
+  it is open, once per version. `template_used` says whether the deterministic template wrote it,
+  `number_check` is `passed` (model text accepted), `rejected` (model text refused, template used)
+  or `not_run` (no model call: no key, cap reached or provider error; `rejection_reason` says
+  which). An open incident's summary may describe an earlier version (`summary_stale`).
+- **Coverage and freshness:** coverage of an incident is the lowest arrival coverage of its hours
+  (`min_coverage_pct`). The page withholds the summary and the values of any hour under 50 %. Freshness
+  is the export time at the top of the page.
+- **Limits:** the thresholds are fixed numbers, not tuned; an incident is a rule result, not a
+  verdict that something went wrong. Deviation is against the timetable and reconstructed arrivals
+  (15 to 120 s of error).
+- **Label:** "Headway approximation, not an official MBTA measure."
+
+### Alert vs reality (C13)
+
+- **Business meaning:** how often the MBTA's line-wide service alerts and Headway's incidents
+  coincide, and how long after an incident began the first matching alert appeared.
+- **Rule** (`int_alert_matching`): an incident and an alert match when they are on the same line
+  and their time ranges overlap after widening by 30 minutes each way. Alerts are line-scope
+  service-disruption alerts (`agg_active_alerts`); their range is their first to last capture in
+  the build's window, so an alert already active when the window starts begins at its first capture.
+- **Reported:** per incident `match_status` (`matched` or `unmatched_incident`), `alert_lag_s`
+  (first matching alert's first capture minus the incident start; negative when the alert came first)
+  and `first_alert_id`; per alert `matched` or `unmatched_alert`; per line and day
+  (`agg_alert_matching_daily`) the counts and the median lag. These words describe which side has a
+  counterpart; they never claim that an incident was missed or an alert was a phantom.
+- **Hand check:** whether the rule is right is a judgement. `scripts/alert_handcheck.py` exports a
+  sample (at least 10 of each of the four kinds) for manual review; the outcome is recorded in
+  `docs/MEASUREMENTS.md` and until then the page says the review is pending.

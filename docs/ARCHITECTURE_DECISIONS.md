@@ -12,7 +12,7 @@ stable: other documents and code comments cite them as `ADR-NNN`.
 | 005 | Duplicates and out-of-order events | Accepted |
 | 006 | Data outage versus transit disruption | Accepted |
 | 007 | Snapshot predictions are not arrivals | Accepted |
-| 008 | Preventing unsupported AI claims | Proposed (R3) |
+| 008 | Preventing unsupported AI claims | Accepted (R3, incident summaries); Proposed (assistant) |
 | 009 | Cached live map | Accepted |
 | 010 | Streamlit first, then Next.js + FastAPI | Accepted (Streamlit); Proposed (Next.js + FastAPI) |
 | 011 | FastAPI and MCP as separate interfaces | Proposed (R3/R4) |
@@ -141,16 +141,42 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 
 ### ADR-008: Preventing unsupported AI claims
 
-- **Status:** Proposed (Release 3)
-- **Context:** A natural-language layer over the metrics can state things the data does not
-  support: a number without coverage, a cause for a delay, or a comparison across unlike lines.
-- **Decision (proposed):** The assistant may only answer from tool results that carry coverage
-  and freshness, must quote them, must refuse causal claims, and every answer is checked against
-  the tool output before it is shown. The rules are tested with a fixed question set.
-- **Consequences:** Answers are narrower and sometimes decline to answer, in return for being
-  traceable to a gold row.
-- **Revisit when:** the design is implemented in R3, or evaluation shows the checks block
-  legitimate answers.
+- **Status:** Accepted for the incident summaries (R3, Phase 3.4); Proposed for the conversational
+  assistant, which is not built
+- **Context:** A language model that writes about the metrics can state things the data does not
+  support: a number that is not there, a cause nobody measured, a comparison across unlike lines.
+  Incident summaries are the first place Headway lets a model write text a rider reads.
+- **Decision:**
+  - The model sees only the evidence JSON of one incident (`fct_incidents.evidence_json`: the hours
+    with their values, baselines, thresholds, coverage, alert ids and headers) and a fixed
+    instruction: describe what changed, where and when, using only numbers in the evidence, no
+    causes unless quoting an alert header, say when coverage is low. It has no tools, no history
+    and no other table.
+  - **Blocking check** (`headway_transform/incident_numcheck.py`) on every text before it is stored:
+    every number (integers, decimals, percentages, clock times, ISO dates, durations such as
+    `3 min` or `2 hours`, ordinals, spelled-out numbers from two upward) must equal an evidence
+    value within display rounding or after a listed unit conversion (seconds to minutes and hours,
+    hours to minutes); a unit is not interchangeable (35 % is not 35 s). Causal wording (because,
+    due to, caused by, as a result of, owing to, on account of) is allowed only inside a double-quoted
+    segment that is a verbatim part of an alert header in the evidence. Any failure rejects the text.
+  - A rejected text, a provider error, a missing key or an exhausted daily cap all end in the same
+    place: the deterministic template (`template_summary`), written from the evidence alone and
+    itself checked in tests. The page says "template used"; the rejection is counted
+    (`incident_llm_rejections` in the run summary, `number_check` and `rejection_reason` on the row).
+  - Generation is idempotent per incident version (`evidence_hash`), persisted in the raw bucket, and
+    capped per day, so the cost has a ceiling and a re-run changes nothing.
+  - Low coverage is not an LLM judgement: the page withholds the summary when any hour of the
+    incident has under 50 % arrival coverage, as it withholds every other value.
+  - The check cannot prove a sentence true. It proves that every number in it is one the evidence
+    holds and that nothing is said about causes; wording such as "worsened" or "recovered" is not
+    verified against the sequence of hours.
+- **Consequences:** Summaries are plainer than a free-form model would write and sometimes fall
+  back to the template, in return for being traceable to the evidence shown under each one. The
+  provider sits behind an interface (`LlmClient`), so tests and the image smoke test run with fakes
+  and no network.
+- **Revisit when:** the assistant (R4) is designed, which needs the same rules over tool results,
+  or the rejection count shows the check blocking legitimate text (read `rejection_reason` in
+  `incident_summaries`).
 
 ### ADR-009: Cached live map
 

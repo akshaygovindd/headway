@@ -190,3 +190,23 @@ Conclusion: real late Blue departures and early Green-E running against the time
 stretch, not a defect of trip matching, so there is no code change or regression test. The
 timetable is the Fall 2026 version D static feed; a pattern that persists over more days is worth
 re-checking against the published schedule.
+
+## Alert vs reality: hand check
+
+*Pending: to be filled in by hand.* The matching of incidents to line-scope service alerts
+(`docs/METRICS.md`, "Alert vs reality") is a rule: same line, overlap within 30 minutes. Whether it
+agrees with a reader's judgement is measured here, not assumed.
+
+Procedure: after a few weeks of incidents, run
+`uv run python scripts/alert_handcheck.py --db <dbt duckdb of an R3 build> --out alert_handcheck.csv`
+(at least 10 rows of each kind), read each row against the alert text and the incident's evidence, and
+fill `reviewer_verdict` (`agree` / `disagree` / `unclear`) and `reviewer_note`.
+
+| Kind | Rows reviewed | Agree | Disagree | Unclear | Notes |
+| --- | --- | --- | --- | --- | --- |
+| matched incident | pending | | | | |
+| unmatched incident | pending | | | | |
+| matched alert | pending | | | | |
+| unmatched alert | pending | | | | |
+
+Reviewed on: pending. Period covered: pending. Reviewer: pending.
