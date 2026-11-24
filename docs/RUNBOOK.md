@@ -509,8 +509,8 @@ report says so). A model without a price in `evals/run.py` reports "cost unknown
 **Reading a failure:** the report lists each failed question verbatim with the gold values, the
 status, the shown text, the model's draft, the checker's problems and the tool results (rows and
 SQL). `could_not_verify` with a plausible draft means the check blocked it: fix the instruction or
-the check (ADR-008), never the gold. A number that is right but blocked usually means a negative
-value (the check reads figures without their sign): the questions avoid them for now.
+the check (ADR-008), never the gold. A right number that is blocked usually means a missing sign: write a negative value as `-86 s`
+or `86 s early`; `86 s` alone reads as positive (ADR-008, change log).
 
 `make evals EVALS_ARGS="--fake --inject-faults"` must fail and name three questions (a wrong
 number, an invented number, a wrong direction); if it does not, the scorer is broken.
