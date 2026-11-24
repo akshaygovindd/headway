@@ -52,7 +52,10 @@ def test_the_training_role_writes_only_mlflow_and_the_registry() -> None:
 
 
 def test_the_transform_role_covers_the_forecast_state_only_with_release_3() -> None:
-    assert "var.enable_r3 ? [local.forecast_state_prefix, local.incident_state_prefix] : []" in PIPELINE
+    assert (
+        "var.enable_r3 ? [local.forecast_state_prefix, local.incident_state_prefix] : []"
+        in PIPELINE
+    )
     assert 'forecast_state_prefix = "state/forecast_*"' in PIPELINE
     for name, version in forecast_state.TABLES.values():
         key = forecast_state.key_for(name, version, date(2026, 11, 22))
