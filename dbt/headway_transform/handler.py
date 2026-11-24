@@ -15,7 +15,16 @@ from typing import Any
 
 import boto3
 
-from headway_transform import chaos, cost, emf, history, observability, publish, state
+from headway_transform import (
+    chaos,
+    cost,
+    emf,
+    forecast_state,
+    history,
+    observability,
+    publish,
+    state,
+)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -469,6 +478,24 @@ def _smoke_r2(
     }
 
 
+def _smoke_forecast_state(s3: Any, raw_bucket: str, db_path: str, lookback: int) -> dict[str, Any]:
+    """Release 3: the closed-day forecast tables written once to the raw bucket (and not again)."""
+    release_dbt_connections()
+    now = datetime(2026, 12, 1, tzinfo=UTC)  # after every sample service day has closed
+    first = forecast_state.write_closed_days(
+        s3, raw_bucket, db_path, now, timezone=_timezone(), lookback_days=None
+    )
+    second = forecast_state.write_closed_days(
+        s3, raw_bucket, db_path, now, timezone=_timezone(), lookback_days=None
+    )
+    return {
+        "forecast_state_written": first.n_written,
+        "forecast_state_tables": sorted(first.written),
+        "forecast_state_rewritten": second.n_written,
+        "forecast_state_existing_on_rewrite": second.existing,
+    }
+
+
 def _smoke_observability(
     s3: Any, public_bucket: str, raw_bucket: str, db_path: str, city: str, started_at: datetime
 ) -> dict[str, Any]:
@@ -558,6 +585,13 @@ def _smoke(started: float) -> dict[str, Any]:
     if r2_s3:
         db = os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
         summary.update(_smoke_r2(variables, client, bucket, db))
+        if publish.r3_enabled():
+            summary.update(
+                _smoke_forecast_state(
+                    client, os.environ.get("RAW_BUCKET", "smoke-raw"), db,
+                    int(variables["lookback_days"]),
+                )
+            )  # fmt: skip
         summary.update(
             _smoke_observability(
                 client, bucket, os.environ.get("RAW_BUCKET", "smoke-raw"), db,
@@ -611,6 +645,10 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         if not publish.r2_enabled():
             raise TransformError("rebuild_history needs HEADWAY_ENABLE_R2=true")
         rebuild = history.validate_rebuild(event)
+    elif event.get("task") == "rebuild_forecast_examples":
+        if not (publish.r2_enabled() and publish.r3_enabled()):
+            raise TransformError("rebuild_forecast_examples needs HEADWAY_ENABLE_R2 and R3")
+        rebuild = forecast_state.validate_rebuild(event)
     elif event.get("task"):
         raise TransformError(f"unknown task {event['task']!r}")
     city = os.environ["CITY_ID"]
@@ -622,11 +660,14 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         summary: dict[str, Any] = {"skipped": "locked"}
         logger.info(json.dumps(summary, sort_keys=True))
         return summary
-    run = RunRecord(lock.run_id, "rebuild_history" if rebuild else "scheduled", _now())
+    task = event.get("task") or "scheduled"
+    run = RunRecord(lock.run_id, task, _now())
     db_path = os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
     try:
         release_dbt_connections()  # a warm container may still hold the file
         state.load(s3, os.environ["RAW_BUCKET"], db_path, state.TRANSFORM_RUNS, run.started_at)
+        if rebuild is not None and task == "rebuild_forecast_examples":
+            return _rebuild_forecast_examples(started, s3, run, *rebuild)
         if rebuild is not None:
             return _rebuild_history(started, s3, run, *rebuild, drill=drill)
         return _transform(started, s3, run, drill)
@@ -714,6 +755,23 @@ def _transform(
             summary["history_error"] = f"{type(exc).__name__}: {exc}"
         timed("history", t0)
 
+    forecast_error: Exception | None = None
+    if publish.r2_enabled() and publish.r3_enabled():
+        t0 = time.monotonic()
+        try:
+            release_dbt_connections()
+            fwritten = forecast_state.write_closed_days(
+                s3, os.environ["RAW_BUCKET"], db_path, _now(),
+                timezone=_timezone(), lookback_days=lookback,
+            )  # fmt: skip
+            summary["forecast_state_written"] = fwritten.n_written
+            summary["forecast_state_existing"] = fwritten.existing
+        except Exception as exc:
+            logger.exception("forecast state write failed")
+            forecast_error = exc
+            summary["forecast_state_error"] = f"{type(exc).__name__}: {exc}"
+        timed("forecast_state", t0)
+
     publish_error: Exception | None = None
     t0 = time.monotonic()
     try:
@@ -751,6 +809,8 @@ def _transform(
         raise publish_error
     if history_error is not None:
         raise history_error
+    if forecast_error is not None:
+        raise forecast_error
     run.status = "success" if build.success else "tests_failed"
     return summary
 
@@ -862,6 +922,35 @@ def _rebuild_history(
         publish.publish_motherduck(
             token, "", [], **_history_publish_args(public_bucket, city)
         )  # fmt: skip
+    logger.info(json.dumps(summary, sort_keys=True, default=str))
+    run.status = "success"
+    return summary
+
+
+def _rebuild_forecast_examples(
+    started: float, s3: Any, run: RunRecord, first: date, last: date, version: int
+) -> dict[str, Any]:
+    """Backfill the closed-day forecast tables for explicit days at `version`; never touches gold.
+
+    Builds the models over a lookback that reaches `first`, then writes the days of the range
+    that have no object yet. Existing days are left as they are."""
+    now = _now()
+    lookback = max((now.date() - first).days, DEFAULT_LOOKBACK_DAYS)
+    _build_and_test(_variables(lookback, now), run.steps)
+    release_dbt_connections()
+    days = [first + timedelta(days=i) for i in range((last - first).days + 1)]
+    db_path = os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
+    result = forecast_state.write_closed_days(
+        s3, os.environ["RAW_BUCKET"], db_path, now, timezone=_timezone(),
+        lookback_days=lookback, days=days, only_version=version,
+    )  # fmt: skip
+    summary: dict[str, Any] = {
+        "task": "rebuild_forecast_examples",
+        "metric_version": version,
+        "written": result.written,
+        "existing": result.existing,
+        "duration_ms": round((time.monotonic() - started) * 1000),
+    }
     logger.info(json.dumps(summary, sort_keys=True, default=str))
     run.status = "success"
     return summary
