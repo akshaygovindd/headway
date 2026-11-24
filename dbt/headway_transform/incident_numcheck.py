@@ -15,6 +15,13 @@ deterministic template is used in its place.
 A third rule covers direction words (improved, worsened, rose, fell, higher, slower, ...): each
 must agree with the sign of a related change in the evidence (deviation against its baseline, a
 current value against the previous one). Evidence without any change rejects every direction word.
+
+Signs. A figure written with a sign ("-86 s", "−86 s", "minus 86 s") must equal the signed
+evidence value within rounding. An unsigned figure is read as positive, unless its clause carries a
+sign word: early, ahead, faster, under schedule (a negative value) or late, behind, slower, over
+schedule (a positive one); then it matches the absolute value of an evidence value of that sign
+("86 s early" for -86, never "86 s late"). Those words themselves need a nonzero related value
+(seconds or a change) of the matching sign in the evidence.
 """
 
 import json
@@ -36,6 +43,9 @@ DIRECTION = re.compile(
     r"\b(" + "|".join(sorted(_UP | _DOWN | _WORSE | _BETTER)) + r")\b",
     re.IGNORECASE,
 )
+_NEG_WORDS = re.compile(r"\b(early|ahead|faster|under\s+schedule)\b", re.IGNORECASE)
+_POS_WORDS = re.compile(r"\b(late|behind|slower|over\s+schedule)\b", re.IGNORECASE)
+_CLAUSE_END = re.compile(r"[;!?]|\.(?!\d)|,(?!\d)|\b(?:and|but|while)\b", re.IGNORECASE)
 _HIGHER_IS_BETTER = ("on_time", "within_band", "coverage")
 _WORDS = {
     w: n
@@ -83,7 +93,7 @@ _TOKEN = re.compile(
     r"|(?P<clock>\b(?P<ch>\d{1,2}):(?P<cm>\d{2})(?:\s?(?P<cap>[ap])\.?m\.?)?(?![\d]))"
     r"|(?P<clock12>\b(?P<c12h>\d{1,2})\s?(?P<c12ap>[ap])\.?m\b\.?)"
     r"|(?P<ordinal>\b\d+(?:st|nd|rd|th)\b)"
-    rf"|(?P<num>(?<![\w.])(?P<value>\d+(?:,\d{{3}})*(?:\.\d+)?)\s?(?P<unit>{_UNIT})?)"
+    rf"|(?P<num>(?<![\w.])(?P<sign>[-\u2212\u2013+]|minus\s+)?(?P<value>\d+(?:,\d{{3}})*(?:\.\d+)?)\s?(?P<unit>{_UNIT})?)"
     rf"|(?P<word>\b(?P<w>{_WORD_ALT})\b(?:\s+(?P<wunit>{_UNIT}))?)",
     re.IGNORECASE,
 )
@@ -98,6 +108,8 @@ class Token:
     value: float | int | str  # number: the value; clock: minutes of day; date: ISO text
     unit: str | None = None  # pct, s, min, h, days or None
     decimals: int = 0
+    sign: int = 0  # -1 written with a minus, +1 with a plus, 0 unsigned
+    start: int = 0  # offset in the text
 
 
 def extract(text: str) -> list[Token]:
@@ -125,6 +137,8 @@ def extract(text: str) -> list[Token]:
             raw = m.group("value").replace(",", "")
             decimals = len(raw.split(".")[1]) if "." in raw else 0
             unit = m.group("unit")
+            mark = (m.group("sign") or "").strip().lower()
+            sign = 0 if not mark else (1 if mark == "+" else -1)
             out.append(
                 Token(
                     m.group(0),
@@ -132,6 +146,8 @@ def extract(text: str) -> list[Token]:
                     float(raw),
                     _UNITS[unit.lower()] if unit else None,
                     decimals,
+                    sign,
+                    m.start(),
                 )  # fmt: skip
             )
         else:
@@ -170,6 +186,8 @@ class Allowed:
     headers: list[str] = field(default_factory=list)
     # related changes: (signed change, True when a higher value is worse)
     changes: list[tuple[float, bool]] = field(default_factory=list)
+    # nonzero seconds values and changes: what "early" and "late" must rest on
+    signed: list[float] = field(default_factory=list)
 
 
 def _change_kind(key: str) -> bool | None:
@@ -202,6 +220,8 @@ def allowed_from(evidence: dict[str, Any]) -> Allowed:
             worse_when_higher = _change_kind(key)
             if worse_when_higher is not None and node != 0:
                 allowed.changes.append((float(node), worse_when_higher))
+            if node != 0 and (_unit_of(key) == "s" or worse_when_higher is not None):
+                allowed.signed.append(float(node))
         elif isinstance(node, str):
             if key == "header":
                 add_text(node, header=True)
@@ -227,22 +247,50 @@ def _close(x: float, y: float, decimals: int) -> bool:
     return bool(abs(x - y) <= 0.5 * 10 ** (-decimals) + 1e-9)
 
 
-def _number_matches(tok: Token, allowed: Allowed) -> bool:
+def _clause(text: str, pos: int) -> str:
+    """The clause of the text that holds offset `pos`."""
+    start = 0
+    for m in _CLAUSE_END.finditer(text):
+        if m.end() <= pos:
+            start = m.end()
+        elif m.start() >= pos:
+            return text[start : m.start()]
+    return text[start:]
+
+
+def _value_ok(tok: Token, x: float, v: float, unit: str | None, clause: str) -> bool:
+    """x (the figure as written) is the evidence value v, read with the sign rules."""
+    if tok.sign:
+        return _close(tok.sign * x, v, tok.decimals)
+    if not _close(x, abs(v), tok.decimals):
+        return False
+    neg_word = bool(_NEG_WORDS.search(clause))
+    pos_word = bool(_POS_WORDS.search(clause))
+    if v < 0:
+        return neg_word  # unsigned reads positive: a negative value needs its sign word
+    return not (v > 0 and unit == "s" and neg_word and not pos_word)  # "86 s early" is not +86
+
+
+def _number_matches(tok: Token, allowed: Allowed, text: str = "") -> bool:
     x = float(tok.value)
+    clause = _clause(text, tok.start)
     for value, unit, any_unit in allowed.numbers:
         if any_unit or tok.unit is None:
-            if _close(x, value, tok.decimals):
+            if any_unit:  # a number quoted in an alert header: no sign to read
+                if _close(x, value, tok.decimals):
+                    return True
+            elif _value_ok(tok, x, value, unit, clause):
                 return True
             continue
-        if tok.unit == unit and _close(x, value, tok.decimals):
+        if tok.unit == unit and _value_ok(tok, x, value, unit, clause):
             return True
         # listed conversions: evidence in seconds, shown in minutes or hours
-        if unit == "s" and tok.unit == "min" and _close(x, value / 60, tok.decimals):
+        if unit == "s" and tok.unit == "min" and _value_ok(tok, x, value / 60, unit, clause):
             return True
-        if unit == "s" and tok.unit == "h" and _close(x, value / 3600, tok.decimals):
+        if unit == "s" and tok.unit == "h" and _value_ok(tok, x, value / 3600, unit, clause):
             return True
         # evidence in hours shown in minutes or seconds
-        if unit == "h" and tok.unit == "min" and _close(x, value * 60, tok.decimals):
+        if unit == "h" and tok.unit == "min" and _value_ok(tok, x, value * 60, unit, clause):
             return True
     return False
 
@@ -263,6 +311,12 @@ def _direction_ok(word: str, allowed: Allowed) -> bool:
         if good:
             return True
     return False
+
+
+def _sign_word_ok(word: str, allowed: Allowed) -> bool:
+    """early, ahead, faster, under schedule need a negative related value; the others a positive."""
+    negative = bool(_NEG_WORDS.fullmatch(word))
+    return any((v < 0) == negative for v in allowed.signed)
 
 
 @dataclass(frozen=True)
@@ -297,7 +351,7 @@ def check(text: str, evidence: dict[str, Any] | str) -> CheckResult:
         elif tok.kind == "date":
             good = str(tok.value) in allowed.dates
         else:
-            good = _number_matches(tok, allowed)
+            good = _number_matches(tok, allowed, text)
         if not good:
             problems.append(f"number not in evidence: {tok.text.strip()!r}")
     spans = _quoted_headers(text, allowed.headers)
@@ -307,4 +361,10 @@ def check(text: str, evidence: dict[str, Any] | str) -> CheckResult:
     for m in DIRECTION.finditer(text):
         if not _direction_ok(m.group(0), allowed):
             problems.append(f"direction not supported by a change in the evidence: {m.group(0)!r}")
+    for m in list(_NEG_WORDS.finditer(text)) + list(_POS_WORDS.finditer(text)):
+        if not _sign_word_ok(m.group(0), allowed):
+            problems.append(
+                f"direction not supported by the sign of a related value in the evidence: "
+                f"{m.group(0)!r}"
+            )
     return CheckResult(not problems, tuple(problems))

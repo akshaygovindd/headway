@@ -176,3 +176,40 @@ def test_direction_of_a_current_against_previous_change() -> None:
     assert nc.check("The on-time share worsened.", doc).ok  # higher is better here
     assert not nc.check("On-time share improved.", doc).ok
     assert not nc.check("On-time share rose.", doc).ok
+
+
+@pytest.mark.parametrize(
+    ("text", "value", "accepted"),
+    [
+        ("Median deviation was -86 s.", -86.0, True),
+        ("Median deviation was −86 s.", -86.0, True),  # U+2212 minus
+        ("Median deviation was minus 86 s.", -86.0, True),
+        ("Median deviation was 86 s early.", -86.0, True),
+        ("The train ran 86 s ahead of schedule.", -86.0, True),
+        ("The train ran 1.4 min early.", -86.0, True),  # listed unit conversion keeps the sign
+        ("Median deviation was 86 s late.", -86.0, False),
+        ("Median deviation was 86 s.", -86.0, False),  # unsigned, no sign word: positive
+        ("Median deviation was -86 s.", 86.0, False),
+        ("Median deviation was 86 s early.", 86.0, False),
+        ("Median deviation was 86 s late.", 86.0, True),
+        ("Median deviation was 86 s.", 86.0, True),
+        ("It was 50 s late and 86 s early.", -86.0, False),  # 50 is not in the evidence
+    ],
+)
+def test_signs_of_numbers(text: str, value: float, accepted: bool) -> None:
+    doc = {"line": "Green-E", "median_deviation_s": value}
+    assert nc.check(text, doc).ok is accepted, nc.check(text, doc).problems
+
+
+def test_sign_words_need_a_related_value_of_that_sign() -> None:
+    assert not nc.check("It ran early.", {"median_deviation_s": 86.0}).ok
+    assert nc.check("It ran early.", {"median_deviation_s": -86.0}).ok
+    assert not nc.check("It ran late.", {"median_deviation_s": -86.0}).ok
+    assert nc.check("It ran late.", {"median_deviation_s": 86.0}).ok
+    assert not nc.check("It ran behind schedule.", {"median_deviation_s": -86.0}).ok
+    assert nc.check("It ran under schedule.", {"median_deviation_s": -86.0}).ok
+
+
+def test_a_sign_word_does_not_gate_unrelated_counts() -> None:
+    doc = {"median_deviation_s": -86.0, "n_hours": 5}
+    assert nc.check("Green-E ran 86 s early across 5 hours.", doc).ok
