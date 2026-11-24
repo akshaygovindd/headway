@@ -41,7 +41,12 @@ R2_ALLOWLIST = {
 }
 
 
-R3_ALLOWLIST = {"agg_forecast_next_hour", "agg_forecast_gate_status"}
+R3_ALLOWLIST = {
+    "agg_forecast_next_hour",
+    "agg_forecast_gate_status",
+    "agg_incidents",
+    "agg_alert_matching_daily",
+}
 
 
 def _build(tmp_path_factory: pytest.TempPathFactory, enable_r2: bool) -> Path:
