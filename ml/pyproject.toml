@@ -10,6 +10,7 @@ requires-python = ">=3.12,<3.13"
 [dependency-groups]
 ml = [
     # Keep in sync with the dbt environment (the examples are read from its DuckDB file).
+    "boto3>=1.35",
     "duckdb==1.5.6",
     "lightgbm>=4.5",
     "mlflow>=3.0",
@@ -17,6 +18,8 @@ ml = [
     "pandas>=2.2",
 ]
 dev = [
+    "boto3-stubs[s3]",
+    "moto[s3]",
     "mypy",
     "pandas-stubs",
     "pytest",

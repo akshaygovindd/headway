@@ -239,10 +239,12 @@ def main(argv: list[str]) -> int:
         "seed": args.seed,
         "gate_passed_lines": sorted(set(examples["line"]) - set(bt.withheld)),
     }
-    uri = tracking.tracking_uri(ROOT / ".local" / "mlflow")
+    local = ROOT / ".local" / "mlflow"
+    uri = tracking.tracking_uri(local)
     run_id = tracking.log_run(
-        uri, params, {"git_sha": tracking.git_sha(ROOT), "mode": bt.mode}, data.FEATURES, bt.results
-    )
+        uri, params, {"git_sha": tracking.git_sha(ROOT), "mode": bt.mode}, data.FEATURES,
+        bt.results, artifacts=tracking.artifact_root(local),
+    )  # fmt: skip
     results.write_results(args.out / "backtest.duckdb", run_id, bt.results)
     print(report(bt))
     print(
