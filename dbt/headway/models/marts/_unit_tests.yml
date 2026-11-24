@@ -739,6 +739,30 @@ unit_tests:
         - {stop_sequence: 3, method: bracketed, known_at: "2026-11-22 13:04:05+00"}
         - {stop_sequence: 4, method: observed, known_at: "2026-11-22 13:04:05+00"}
 
+  - name: headway_known_at_includes_the_proof_arrivals
+    config:
+      tags: [r3]
+    description: >-
+      A and B reach s2 at 14:00 and 14:05 (known 14:01 and 14:06). The only neighbouring stop with
+      both is s1, where A's arrival (13:59) is known only at 14:30. The pair is proven by that
+      arrival, so the headway is not known before 14:30; the old rule said 14:06 and a forecast at
+      14:10 would have used a proof it could not have had.
+    model: fct_headways
+    given:
+      - input: ref('fct_reconstructed_arrivals')
+        rows:
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "A", stop_sequence: 2, stop_id: "s2", arrival_ts: "2026-11-22 14:00:00+00", confidence: "high", known_at: "2026-11-22 14:01:00+00"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "A", stop_sequence: 1, stop_id: "s1", arrival_ts: "2026-11-22 13:59:00+00", confidence: "low", known_at: "2026-11-22 14:30:00+00"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "B", stop_sequence: 2, stop_id: "s2", arrival_ts: "2026-11-22 14:05:00+00", confidence: "high", known_at: "2026-11-22 14:06:00+00"}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", segment: 0, trip_instance_key: "B", stop_sequence: 1, stop_id: "s1", arrival_ts: "2026-11-22 14:04:00+00", confidence: "low", known_at: "2026-11-22 14:05:00+00"}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {trip_instance_key: "A", stop_sequence: 2, stop_id: "s2", line: "Red", direction_id: 0, service_date: "2026-11-22", scheduled_arrival_ts: "2026-11-22 14:00:00+00"}
+          - {trip_instance_key: "B", stop_sequence: 2, stop_id: "s2", line: "Red", direction_id: 0, service_date: "2026-11-22", scheduled_arrival_ts: "2026-11-22 14:05:00+00"}
+    expect:
+      rows:
+        - {to_trip_instance_key: "B", status: "valid", known_at: "2026-11-22 14:30:00+00"}
+
   - name: forecast_last_upstream_delay_uses_only_known_arrivals
     config:
       tags: [r3]

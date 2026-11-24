@@ -12,7 +12,7 @@
 -- when at least one neighbouring stop has both A and B, A first, and no other train between them.
 -- A train that was never reconstructed anywhere cannot be seen; see METRICS.md.
 -- hour_local and service_date are those of B's scheduled arrival. known_at is when both arrivals
--- were known (fct_reconstructed_arrivals.known_at); features of a forecast at t use known_at <= t.
+-- and the arrivals that prove the order at the neighbouring stops were known; features of a forecast at t use known_at <= t.
 with all_arrivals as (
     select
         line, direction_id, service_date, stop_id,
@@ -88,6 +88,17 @@ neighbours as (
 proofs as (
     select
         n.line, n.direction_id, n.service_date, n.stop_id, n.b_trip, n.b_segment,
+        -- known once every arrival the proof reads is known: A and B there, and any train between
+        greatest(a.known_at, b.known_at, coalesce((
+            select max(x.known_at)
+            from all_arrivals x
+            where x.line = n.line
+                and x.direction_id = n.direction_id
+                and x.service_date = n.service_date
+                and x.stop_id = n.n_stop
+                and x.arrival_ts > a.arrival_ts
+                and x.arrival_ts < b.arrival_ts
+        ), a.known_at)) as proof_known_at,
         case
             when a.arrival_ts >= b.arrival_ts then 'unproven'
             when exists (
@@ -117,7 +128,8 @@ proof_summary as (
     select
         line, direction_id, service_date, stop_id, b_trip, b_segment,
         bool_or(proof = 'between') as train_between_at_neighbour,
-        bool_or(proof = 'proven') as is_proven
+        bool_or(proof = 'proven') as is_proven,
+        max(proof_known_at) as proof_known_at
     from proofs
     group by 1, 2, 3, 4, 5, 6
 ),
@@ -139,6 +151,7 @@ judged as (
         p.*,
         coalesce(s.train_between_at_neighbour, false) as train_between_at_neighbour,
         coalesce(s.is_proven, false) as is_proven,
+        s.proof_known_at,
         epoch(p.b_arrival_ts) - epoch(p.a_arrival_ts) as actual_headway_s,
         sc.scheduled_headway_s
     from pairs p
@@ -162,9 +175,9 @@ select
     cast(extract(hour from b_scheduled_arrival_ts at time zone '{{ var("timezone") }}') as integer) as hour_local,
     a_arrival_ts as from_arrival_ts,
     b_arrival_ts as to_arrival_ts,
-    -- known once the later train's arrival is known (the earlier train's is older); a train in
-    -- between or a neighbouring-stop proof can only be settled by captures up to then
-    greatest(b_known_at, a_known_at) as known_at,
+    -- known once both arrivals are known and every arrival that proves no train ran between them
+    -- (A, B and any train between, at the neighbouring stops) is known too
+    greatest(b_known_at, a_known_at, proof_known_at) as known_at,
     actual_headway_s,
     scheduled_headway_s,
     actual_headway_s / nullif(scheduled_headway_s, 0) as ratio,
