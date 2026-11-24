@@ -352,8 +352,8 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
 ## Forecast examples (Release 3, internal)
 
 - **Business meaning:** the training data of the arrival-delay forecast and the check of whether
-  there is enough of it. Not a metric and not published: the tables are not exported, and the app
-  does not show them.
+  there is enough of it. Not a metric: `fct_forecast_examples` is not exported. The gate status, the
+  next-hour forecasts and the backtest summary derived from it are (see the next sections).
 - **Target (label):** `label_delay_s`, the reconstructed arrival minus the scheduled arrival in
   seconds (positive is late), of a trip stop scheduled to arrive in the 15-minute slot
   `[t + horizon, t + horizon + 15 min)`. Horizons: 15, 30 and 60 minutes. Prediction times `t`:
@@ -452,3 +452,54 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
 - Subway routes only; added trips are excluded from schedule-based metrics.
 - These are Headway approximations from public feeds, not official MBTA performance
   measures.
+
+## Forecast serving and comparison (Release 3)
+
+- **Business meaning:** the delay a rider can expect at a stop in the next hour, from a model that
+  is shown only where it has earned it, always next to the simple rules it has to beat and MBTA's
+  own prediction.
+- **Serving:** each transform run (with `HEADWAY_ENABLE_R3=true`) takes the prediction time
+  `t` = the latest quarter hour at or before now and, for horizons 15, 30 and 60 minutes, every
+  trip stop scheduled in `[t + horizon, t + horizon + 15 min)`. Their features come from the same
+  SQL as the training examples (`macros/forecast_features.sql`; `scripts/serving_parity.py`, run by
+  `make e2e`, requires identical features for the same `t`). Features use only what was known at
+  `t`, so on a live run the newest minutes of capture may not have been curated yet; the page shows
+  the age of the latest arrival the features could use (`feature_age_s`).
+- **Table:** `agg_forecast_next_hour`, grain line x direction_id x stop_id x prediction_ts x
+  horizon_min: the mean over the trip stops of the slot, in seconds (positive is late), of
+  `model_forecast_s`, the baselines `persistence`, `daytype_hour`, `rolling_median_60m` and the
+  reference `mbta_reference`. `n_trips` is the scheduled trip stops of the slot and `n_<method>`
+  those with a value; **coverage = n_<method> / n_trips**.
+- **Model rows:** `model_forecast_s` is set only when the line is in the approved model
+  (`models/forecast/latest.json`) and past the training gate. Otherwise `forecast_status` is
+  `baselines_only` and `status_reason` says why (no model yet, gate not passed, line not in the
+  model, model unavailable). A model that cannot be read never fails the run and never produces a
+  forecast.
+- **Gate status:** `agg_forecast_gate_status`, per line: counting service days, weekend days among
+  them, the thresholds (21 days incl. 3 weekend days) and `gate_passed`. `source` is `training_job`
+  (all closed days) or `transform_build` (a line the job has not seen; the build counts only its
+  lookback window). The page says "comparison unlocks after 21 service days incl. 3 weekends;
+  currently X days".
+- **Comparison:** `agg_forecast_backtest` (pooled over the weekly test folds, per method x line x
+  horizon x period_type x view) holds, with every method's MAE and its own 95 % cluster-bootstrap
+  interval and the spread of the per-fold MAE, the paired difference on the model's rows of the
+  strict view: **MAE(model) - MAE(best baseline)**, with its 95 % interval from a bootstrap that
+  resamples the same prediction-time clusters for both methods. The best baseline is the one with
+  the lowest MAE of the three baselines, never the MBTA reference. Test weeks are scored in full;
+  only the rows the model is fitted on are capped (stratified by line and horizon).
+  - interval entirely below 0: "model better by X s [interval]";
+  - interval entirely above 0: "model worse by X s [interval]";
+  - otherwise: "no significant difference".
+- **When it exists:** the backtest table is exported only for lines past the gate, and only when at
+  least one line has passed it; a deployment whose gate never passed exports the gate status and
+  the baselines-only next-hour table, and the page shows no comparison.
+- **Coverage and freshness:** coverage of the next-hour values is as above; of the comparison it is
+  the examples scored over the labelled examples. A value from a slice under 50 % coverage is
+  withheld on the page, as everywhere. Freshness: the age of the latest known arrival, and the
+  export time at the top of the page.
+- **Limitations:** errors are measured against reconstructed arrivals (15 to 120 s of error), so
+  they include that error and cannot be smaller than it. The next-hour forecast averages the trip
+  stops of a slot; a single trip's forecast is not published. `daytype_hour` in serving is the
+  mean of the examples inside the transform's lookback window, the backtest's is fitted on its
+  training weeks.
+- **Label:** "Forecast. Headway approximation, not an official MBTA measure."

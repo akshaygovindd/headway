@@ -278,6 +278,28 @@ Switch-on, Phase 3.2 (nothing is deployed by the repository's tests; do this del
 5. Turning it off is `enable_r3 = false`: the function and schedule are destroyed (the data under
    `state/forecast_*`, `mlflow/` and `models/` stays).
 
+Switch-on, Phase 3.3 (forecast serving and the Forecast page; built and smoke-tested, not deployed):
+
+1. `make images-push` also rebuilds the transform image, which now carries LightGBM (libgomp) and
+   the serving modules of `headway_ml`: it is larger than before, so check its size and the cold
+   start in the first logs. `make deploy` applies the transform role's read access to
+   `models/forecast/*` (behind `enable_r3`; the plan must destroy nothing).
+2. Nothing else to configure: with `enable_r3` each transform run loads the training job's reports,
+   scores the next hour and exports `agg_forecast_next_hour` and `agg_forecast_gate_status`
+   (`agg_forecast_backtest` only once a line has passed the gate). Check the run summary for
+   `forecast_serving_status` (`baselines_only` until a model exists), `forecast_model_rows`,
+   `forecast_reports` and the `forecast_reports` and `forecast_serving` step times; a failure
+   there is logged and never fails the run.
+3. Check the export: `aws s3 ls s3://<public>/public/boston/gold/ | grep forecast` lists the two
+   tables; the Forecast page appears in the app once they exist. Until a line has 21 service days
+   with 3 weekend days it shows the gate status and baselines only.
+4. Rolling back a model is writing `models/forecast/latest.json` for an earlier version (see
+   ADR-019); the next transform run serves it. Turning serving off is `enable_r3 = false`.
+5. The training job now keeps the whole test weeks in memory (only the rows a model is fitted on
+   are capped, 8000 per day by `TRAIN_MAX_ROWS_PER_DAY`, stratified by line and horizon): after the
+   first runs on real data check `Max Memory Used` and the duration of `headway-train` against
+   `train_memory_mb` and `train_timeout_s` in `infra/main/train.tf` and raise them if needed.
+
 ## Release 2 history, run state and SLOs
 
 With `enable_r2 = true` the transform Lambda also keeps two kinds of object, both written by its

@@ -237,8 +237,8 @@ flowchart LR
 
 ## Release 3: forecast examples (internal)
 
-Tagged `r3`; the transform Lambda builds them only with `HEADWAY_ENABLE_R3=true` (and R2). They
-are not exported. `fct_reconstructed_arrivals` and `fct_headways` carry `known_at` (ADR-019).
+Tagged `r3`; the transform Lambda builds them only with `HEADWAY_ENABLE_R3=true` (and R2). The
+examples are not exported; the serving and report tables below are. `fct_reconstructed_arrivals` and `fct_headways` carry `known_at` (ADR-019).
 
 ```mermaid
 flowchart LR
@@ -267,3 +267,40 @@ With `enable_r3` the transform also writes each closed service day of `fct_forec
 `int_forecast_gate_days` once to `s3://<raw>/state/forecast_examples/` and `.../forecast_gate_days/`
 (`metric_version=1`, immutable Parquet). The weekly training job reads those partitions, recomputes
 the gate from the gate days, and writes `models/forecast/v<N>/` and `latest.json` (ADR-019).
+
+### Serving and reports (Phase 3.3)
+
+```mermaid
+flowchart LR
+    MAC[[forecast_features macros]] -.same SQL.-> LF
+    MAC -.same SQL.-> FE
+    SST[int_scheduled_stop_times] --> SG[int_forecast_serving_grid]
+    CAP[int_captures] --> SG
+    SG --> STG[int_forecast_serving_targets]
+    SST --> STG
+    SG --> SLF[int_forecast_serving_line_features]
+    STG --> SF[int_forecast_serving_features]
+    SLF --> SF
+    MAC -.-> SLF
+    MAC -.-> SF
+    SF --> NH[agg_forecast_next_hour]
+    FE[fct_forecast_examples] --> NH
+    REG[(s3 raw: models/forecast/latest.json + v N)] --> SRV[forecast_serving.serve<br/>LightGBM in the transform]
+    SF --> SRV
+    GS --> SRV
+    SRV -->|model_forecast_s| NH
+    TRN[headway-train] -->|reports/*.parquet| RAW[raw_forecast_backtest<br/>raw_forecast_gate_status]
+    RAW --> GS[agg_forecast_gate_status]
+    GATE[agg_forecast_gate] --> GS
+    RAW --> BT[agg_forecast_backtest<br/>gate-passed lines only]
+    GS --> BT
+    NH --> GOLD[(gold)]
+    GS --> GOLD
+    BT -->|only when it has rows| GOLD
+    GOLD --> APP[app: Forecast page]
+```
+
+The training job writes `models/forecast/reports/backtest.parquet` and `gate_status.parquet` on
+every run. Before the build the transform loads them into the warehouse (empty when absent), after
+the build it scores the next hour, then exports. `agg_forecast_backtest` is exported only when a
+line has passed the gate.

@@ -418,8 +418,8 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 
 ### ADR-019: Forecasting design: target, horizons, leakage rule, gate, baselines
 
-- **Status:** Accepted for the model, gate and registry (R3, Phase 3.2); the forecast report and
-  its publication stay proposed
+- **Status:** Accepted for the model, gate and registry (R3, Phase 3.2) and for serving and the
+  Forecast page (Phase 3.3)
 - **Context:** Release 3 forecasts arrival delay. The only observed delay Headway has is the
   reconstructed arrival (ADR-016), known to within 15 to 120 s, and only after the captures that
   determine it exist. A forecast that is evaluated against data it could not have had at the time
@@ -480,11 +480,31 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   (immutable, conditional put, like the history), because a seven-day dbt lookback can never show
   21 days and a rebuild of weeks of examples would not fit the transform's 900 s. The weekly
   training Lambda (`headway-train`, container, arm64, Monday 06:00 UTC, no retry, behind
-  `enable_r3`) reads those partitions (the last 56 days, at most 8000 rows per day, a
-  reproducible sample), runs the backtest and the training, and logs to MLflow. MLflow uses a
+  `enable_r3`) reads those partitions (the last 56 days), runs the backtest and the training, and logs to
+  MLflow. Only the rows a model is fitted on are capped (8000 per service day, stratified by line x
+  horizon with the leftover of small lines given to large ones, seeded; per-line row counts are
+  logged to MLflow). Every test week is scored in full, so the model, the baselines and the MBTA
+  reference are scored on the same examples. MLflow uses a
   SQLite backend store: the database is downloaded from `s3://<raw>/mlflow/mlflow.db` at the
   start, used in `/tmp`, uploaded at the end, under a conditional-put lock (one weekly writer);
   artifacts go to `s3://<raw>/mlflow/artifacts/`.
+- **Serving (Phase 3.3):** with `enable_r3` the hourly transform scores the next hour. The feature
+  SQL is one macro (`forecast_features.sql`) used by the training examples and the serving models,
+  and a parity check in `make e2e` requires identical features at the same `t`. The transform
+  loads `models/forecast/latest.json` and its model once per cold start (cached in `/tmp`; the
+  image carries LightGBM and only the serving modules of `headway_ml`, so the feature encoding is
+  the training's own) and scores trip stops of the slots `[t + h, t + h + 15)` for h in 15, 30, 60.
+  A line gets a model forecast only if it is in the approved model and past the gate now; any
+  other line, a missing `latest.json` or an unreadable model gives baselines and the reason. The
+  step never fails a run. `agg_forecast_next_hour` and `agg_forecast_gate_status` are exported
+  with the other gold tables; the backtest summary from the training job
+  (`models/forecast/reports/`) is exported as `agg_forecast_backtest` only for lines past the gate
+  and only when one has passed, so a deployment whose gate never passed publishes no comparison.
+- **Comparison rule:** the model is compared with the best of the three baselines on the strict
+  view (every method has a value), by the paired cluster bootstrap of the MAE difference
+  (prediction times resampled together for both methods). The page says "better" or "worse" only
+  when the 95 % interval excludes 0 and "no significant difference" otherwise; the MBTA prediction
+  is a labelled reference, never the baseline. Coverage under 50 % withholds a value.
 - **Consequences:** The examples table is large (about 100 thousand rows per 27 hours for the whole
   network), so it is built only with `enable_r3`, which needs `enable_r2`, and is not published.
   `known_at` delays features by up to a few minutes compared with the arrival time, which is the
