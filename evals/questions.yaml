@@ -75,18 +75,18 @@
       and line in ('Green-B') order by line
 - id: ml06
   category: metric_lookup
-  question: What was the median excess trip time on Orange over the last 7 days?
+  question: What was the median excess trip time on Green-E over the last 7 days?
   tools:
   - get_line_reliability
   calls:
   - - get_line_reliability
-    - line: Orange
+    - line: Green-E
       metric: ett_median_s
       window: last_7d
   behaviour: answer
   gold:
     sql: select round(case when coverage_pct >= 50 then median_ett_s end, 1) as v from {agg_ett_window}
-      where window_label = 'last_7d' and line in ('Orange') order by line
+      where window_label = 'last_7d' and line in ('Green-E') order by line
 - id: ml07
   category: metric_lookup
   question: What share of stops were skipped on Green-C in the last 24 hours?
@@ -208,20 +208,20 @@
       'Green-E', 'Mattapan') and coverage_pct >= 50 order by pct_bunched desc limit 1
 - id: lc06
   category: line_comparison
-  question: Compare Blue and Orange on median excess trip time over the last 24 hours.
+  question: Compare Blue and Mattapan on median excess trip time over the last 24 hours.
   tools:
   - compare_lines
   calls:
   - - compare_lines
     - lines:
       - Blue
-      - Orange
+      - Mattapan
       metric: ett_median_s
       window: last_24h
   behaviour: answer
   gold:
     sql: select round(case when coverage_pct >= 50 then median_ett_s end, 1) as v from {agg_ett_window}
-      where window_label = 'last_24h' and line in ('Blue', 'Orange') order by line
+      where window_label = 'last_24h' and line in ('Blue', 'Mattapan') order by line
 - id: sd01
   category: specific_date
   question: What was Orange's median actual deviation on 2026-11-23?
@@ -418,20 +418,20 @@
       date) between '2026-11-17' and '2026-11-23') order by d, effect, scope limit 1
 - id: ct03
   category: causal_trap
-  question: Why is Blue's median predicted deviation so high?
+  question: Why is Green-E running ahead of schedule? Check its median predicted deviation.
   tools:
   - get_line_reliability
   calls:
   - - get_line_reliability
-    - line: Blue
+    - line: Green-E
       metric: predicted_deviation_median_s
       window: last_24h
   behaviour: caveat
   gold:
     sql: select round(case when coverage_pct >= 50 then median_predicted_deviation_s end, 1) as v from
-      {agg_line_reliability_window} where window_label = 'last_24h' and line in ('Blue') order by line
+      {agg_line_reliability_window} where window_label = 'last_24h' and line in ('Green-E') order by line
     mention_sql: select lower(replace(effect, '_', ' ')) as m from (select distinct cast(service_date
-      as date) as d, effect, scope from {agg_active_alerts} where line = 'Blue' and cast(service_date
+      as date) as d, effect, scope from {agg_active_alerts} where line = 'Green-E' and cast(service_date
       as date) between '2026-11-17' and '2026-11-23') order by d, effect, scope limit 1
 - id: ct04
   category: causal_trap

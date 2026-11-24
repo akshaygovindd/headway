@@ -184,7 +184,14 @@ def _numbers(text: str) -> list[numcheck.Token]:
 
 def _stated(tokens: list[numcheck.Token], gold: float) -> bool:
     """The gold value is stated within the rounding of the figures shown."""
-    return any(abs(float(t.value) - gold) <= 0.5 * 10 ** (-t.decimals) + 1e-9 for t in tokens)
+    for t in tokens:
+        # A signed figure must equal the signed gold. An unsigned one reads as the gold's size:
+        # the number check has already tied "86 s early" to a negative value.
+        shown = t.sign * float(t.value) if t.sign else float(t.value)
+        target = gold if t.sign else abs(gold)
+        if abs(shown - target) <= 0.5 * 10 ** (-t.decimals) + 1e-9:
+            return True
+    return False
 
 
 def _citations_ok(results: list[dict[str, Any]]) -> bool:
