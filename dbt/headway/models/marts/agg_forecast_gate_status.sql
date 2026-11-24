@@ -1,3 +1,4 @@
+-- depends_on: {{ ref('agg_forecast_gate') }}
 -- Training gate per line as the Forecast page shows it (Release 3, ADR-019). The training job's
 -- table (all closed service days, raw_forecast_gate_status) wins per line; a line it has not seen
 -- falls back to the build's agg_forecast_gate, which counts the lookback window only. `source`

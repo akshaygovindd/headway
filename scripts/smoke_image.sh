@@ -137,6 +137,9 @@ transform)
     # model forecast, the reports reach the warehouse and the backtest is exported (a line passed).
     (cd "$root" && uv run --project ml python scripts/smoke_serve_seed.py \
         --endpoint "http://localhost:$moto_port" --bucket smoke-raw-model)
+    # a fresh public bucket: this run starts without the history the runs above wrote
+    curl -s -o /dev/null -XPUT "localhost:$moto_port/smoke-public-model" \
+        -H "Authorization: AWS4-HMAC-SHA256 Credential=smoke/20260101/us-east-1/s3/aws4_request"
     invoke headway-transform:local headway_transform.handler.lambda_handler \
         "r['smoke'] and r['tests_failed'] == 0 and r['forecast_serving_status'] == 'model' \
          and r['forecast_model_rows'] > 0 and r['forecast_model_version'] == 1 \
@@ -152,7 +155,7 @@ transform)
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R3=true \
         -e RAW_BUCKET=smoke-raw-model \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
-        -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public/public/boston/gold \
+        -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public-model/public/boston/gold \
         -e HEADWAY_DBT_TARGET=s3_test -e HEADWAY_S3_ENDPOINT="$endpoint" \
         -e AWS_ENDPOINT_URL="http://$endpoint"
     ;;

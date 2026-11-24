@@ -1,3 +1,4 @@
+-- depends_on: {{ ref('agg_forecast_gate_status') }}
 -- Backtest summary of the forecast model against the baselines (Release 3, ADR-019), pooled over
 -- the weekly folds: per method x line x horizon x period_type x view, with the 95% cluster
 -- bootstrap interval of the MAE, the spread of the per-fold MAE and, on the strict view's model
