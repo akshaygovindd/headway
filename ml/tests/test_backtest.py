@@ -226,3 +226,44 @@ def test_gate_status_reasons() -> None:
 def test_fold_ranges_use_dates() -> None:
     assert folds.make_folds(pd.Series([date(2026, 11, 2)])) == []
     assert folds.make_folds(pd.Series([], dtype=object)) == []
+
+
+class _Spy:
+    """Records the frames it is fitted and asked about; predicts the training mean."""
+
+    fits: list[pd.DataFrame] = []
+    preds: list[pd.DataFrame] = []
+
+    def fit(self, train: pd.DataFrame) -> None:
+        _Spy.fits.append(train)
+        self.mean = float(train["label_delay_s"].mean())
+
+    def predict(self, test: pd.DataFrame) -> np.ndarray:
+        _Spy.preds.append(test)
+        return np.full(len(test), self.mean)
+
+
+def test_only_training_folds_are_sampled_scoring_uses_the_full_test_week() -> None:
+    df = make_examples()
+    _Spy.fits, _Spy.preds = [], []
+    capped = backtest.run_backtest(
+        df, make_gate(passed=("Red", "Blue")), reps=20, forecaster=_Spy, train_cap_per_day=40
+    )
+    full = backtest.run_backtest(df, make_gate(passed=("Red", "Blue")), reps=20, forecaster=_Spy)
+    assert _Spy.fits
+    assert all(f.groupby("service_date").size().max() <= 40 + 6 for f in _Spy.fits[:2])
+    fl = folds.make_folds(df["service_date"])
+    for f, test in zip(fl, _Spy.preds[:2], strict=True):
+        assert len(test) == len(folds.split(df, f)[1])  # the whole test week, unsampled
+    for view in ("strict", "full"):
+        a = capped.results[(capped.results["fold"] == "all") & (capped.results["view"] == view)]
+        b = full.results[(full.results["fold"] == "all") & (full.results["view"] == view)]
+        for m in (baselines.PERSISTENCE, baselines.ROLLING, baselines.MBTA, "lightgbm"):
+            na = a[(a["method"] == m)].set_index(["line", "horizon_min", "period_type"])["n"]
+            nb = b[(b["method"] == m)].set_index(["line", "horizon_min", "period_type"])["n"]
+            pd.testing.assert_series_equal(na, nb)  # identical examples scored
+    # every baseline and the reference are scored identically with or without the cap
+    for m in (baselines.PERSISTENCE, baselines.DAYTYPE_HOUR, baselines.ROLLING, baselines.MBTA):
+        p = capped.results[(capped.results["method"] == m)]["mae"].to_numpy()
+        q = full.results[(full.results["method"] == m)]["mae"].to_numpy()
+        assert np.allclose(p, q)

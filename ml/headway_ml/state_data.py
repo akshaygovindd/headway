@@ -35,16 +35,15 @@ def _partitions(s3: Any, bucket: str, name: str, version: int) -> dict[date, str
     return found
 
 
-SAMPLE_SEED = 7
+EXAMPLE_COLUMNS = ["prediction_ts", "service_date", *data.FEATURES, "label_delay_s"]
 
 
 def _read_partitions(
-    s3: Any, bucket: str, keys: list[str], workdir: Path, max_rows: int | None
+    s3: Any, bucket: str, keys: list[str], workdir: Path, columns: list[str] | None = None
 ) -> pd.DataFrame:
-    """Read the partitions one at a time (each file is removed after it is read). `max_rows` keeps
-    at most that many rows per partition, a reproducible reservoir sample: the examples of one day
-    are strongly correlated (every trip stop of every slot), and the job's memory and time grow
-    with the rows."""
+    """Read the partitions one at a time (each file is removed after it is read), only `columns`
+    when given. Nothing is sampled here: scoring needs every row of a test week, and the training
+    cap is applied later, to training frames only (sampling.py)."""
     con = duckdb.connect()
     con.execute("set TimeZone = 'UTC'")
     frames = []
@@ -52,9 +51,8 @@ def _read_partitions(
         for i, key in enumerate(keys):
             path = workdir / f"{i:05d}.parquet"
             s3.download_file(bucket, key, str(path))
-            query = "select * from read_parquet(?)"
-            if max_rows is not None:
-                query += f" using sample reservoir({int(max_rows)} rows) repeatable ({SAMPLE_SEED})"
+            select = ", ".join(columns) if columns else "*"
+            query = f"select {select} from read_parquet(?)"  # noqa: S608
             frames.append(con.execute(query, [str(path)]).df())
             path.unlink()
     finally:
@@ -63,7 +61,7 @@ def _read_partitions(
 
 
 def load(
-    s3: Any, bucket: str, workdir: Path, window_days: int, max_rows_per_day: int | None = None
+    s3: Any, bucket: str, workdir: Path, window_days: int
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """(examples of the last `window_days` days before the newest partition, gate days of all
     partitions). Either may be empty."""
@@ -73,7 +71,7 @@ def load(
     if ex:
         newest = max(ex)
         keep = [ex[d] for d in sorted(ex) if d > newest - timedelta(days=window_days)]
-        examples = _read_partitions(s3, bucket, keep, workdir, max_rows_per_day)
+        examples = _read_partitions(s3, bucket, keep, workdir, EXAMPLE_COLUMNS)
         examples = examples[examples["label_delay_s"].notna()].reset_index(drop=True)
         examples["service_date"] = pd.to_datetime(examples["service_date"]).dt.date
         examples["active_disruption_alert"] = (
@@ -82,5 +80,5 @@ def load(
         examples = data.add_period(examples)
     else:
         examples = pd.DataFrame()
-    gate_days = _read_partitions(s3, bucket, [gd[d] for d in sorted(gd)], workdir, None)
+    gate_days = _read_partitions(s3, bucket, [gd[d] for d in sorted(gd)], workdir)
     return examples, gate_days

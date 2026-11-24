@@ -51,23 +51,19 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
 def _train(s3: Any, bucket: str, db: Path, state_dir: Path, started: float) -> dict[str, Any]:
     import mlflow
 
-    from headway_ml import data, registry, state_data, tracking, train
+    from headway_ml import data, registry, sampling, state_data, tracking, train
 
     window = int(os.environ.get("TRAIN_WINDOW_DAYS", DEFAULT_WINDOW_DAYS))
-    examples, gate_days = state_data.load(
-        s3,
-        bucket,
-        state_dir,
-        window,
-        int(os.environ.get("TRAIN_MAX_ROWS_PER_DAY", DEFAULT_MAX_ROWS_PER_DAY)),
-    )
+    cap = int(os.environ.get("TRAIN_MAX_ROWS_PER_DAY", DEFAULT_MAX_ROWS_PER_DAY))
+    examples, gate_days = state_data.load(s3, bucket, state_dir, window)
     if examples.empty or gate_days.empty:
         return {"status": "no_data", "examples": len(examples), "gate_days": len(gate_days)}
     gate = data.gate_from_days(gate_days)
     sha = os.environ.get("HEADWAY_GIT_SHA") or "unknown"
     result = train.run_training(
-        examples, gate, git_sha=sha, reps=int(os.environ.get("BOOTSTRAP_REPS", "300"))
-    )
+        examples, gate, git_sha=sha, reps=int(os.environ.get("BOOTSTRAP_REPS", "300")),
+        train_cap_per_day=cap,
+    )  # fmt: skip
     version: int | None = None
     if result.artifact is not None:
         version = registry.write_model(s3, bucket, result.artifact, gate)
@@ -82,6 +78,8 @@ def _train(s3: Any, bucket: str, db: Path, state_dir: Path, started: float) -> d
             "gate_passed_lines": result.passed,
             "model_version": version if version is not None else "none",
             "model_params": result.artifact.params if result.artifact else "none",
+            "train_cap_per_day": cap,
+            "sample_seed": 7,
             **{f"gate_reason.{ln}": why for ln, why in result.reasons.items()},
         },
         {"git_sha": sha, "model_written": str(version is not None).lower()},
@@ -91,7 +89,9 @@ def _train(s3: Any, bucket: str, db: Path, state_dir: Path, started: float) -> d
         files={
             "gate_reasons.json": json.dumps(result.reasons, indent=2),
             "notes.json": json.dumps(result.notes, indent=2),
+            "sampling.json": result.sampled.to_json(orient="records", indent=2),
         },
+        extra_metrics=tracking.sampling_metrics(result.sampled),
     )
     mlflow.set_tracking_uri(uri)
     runs = mlflow.search_runs(experiment_names=[tracking.EXPERIMENT])
@@ -106,5 +106,6 @@ def _train(s3: Any, bucket: str, db: Path, state_dir: Path, started: float) -> d
         "notes": result.notes,
         "model_objects": sorted(o["Key"] for o in listing.get("Contents", [])),
         "examples": len(examples),
+        "train_rows_by_line": sampling.rows_by_line(result.sampled),
         "duration_ms": round((time.monotonic() - started) * 1000),
     }

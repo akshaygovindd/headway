@@ -54,6 +54,7 @@ def log_run(
     *,
     artifacts: str | None = None,
     files: dict[str, str] | None = None,
+    extra_metrics: dict[str, float] | None = None,
 ) -> str:
     """One run: params, tags (git sha, feature list), a feature artifact and the pooled
     per line x horizon metrics of every method and view. Returns the run id."""
@@ -82,5 +83,20 @@ def log_run(
                     metrics[metric_name(r.view, r.method, r.line, f"h{r.horizon_min}", key)] = (
                         float(value)
                     )
+        metrics.update(extra_metrics or {})
         mlflow.log_metrics(metrics)
         return str(run.info.run_id)
+
+
+def sampling_metrics(stats: pd.DataFrame) -> dict[str, float]:
+    """Training rows per line (and per line x horizon) before and after the stratified cap."""
+    out: dict[str, float] = {}
+    for line, h, before, after in zip(
+        stats["line"], stats["horizon_min"], stats["n_before"], stats["n_after"], strict=True
+    ):
+        out[metric_name("train_rows", line, f"h{h}")] = float(int(after))
+        out[metric_name("train_rows_before", line, f"h{h}")] = float(int(before))
+    for line, g in stats.groupby("line"):
+        out[metric_name("train_rows", line)] = float(g["n_after"].sum())
+        out[metric_name("train_rows_before", line)] = float(g["n_before"].sum())
+    return out

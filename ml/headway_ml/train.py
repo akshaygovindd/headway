@@ -11,7 +11,7 @@ from typing import Any
 
 import pandas as pd
 
-from headway_ml import backtest, model, registry
+from headway_ml import backtest, model, registry, sampling
 
 
 @dataclass
@@ -21,6 +21,9 @@ class TrainResult:
     reasons: dict[str, str]
     artifact: registry.ModelArtifact | None = None
     notes: list[str] = field(default_factory=list)
+    sampled: pd.DataFrame = field(
+        default_factory=lambda: pd.DataFrame(columns=sampling.STATS_COLUMNS)
+    )
 
 
 def pooled_metrics(res: pd.DataFrame) -> list[dict[str, Any]]:
@@ -49,16 +52,21 @@ def run_training(
     reps: int = 1000,
     seed: int = 7,
     min_train_weeks: int = 1,
+    train_cap_per_day: int | None = None,
 ) -> TrainResult:
+    """The cap applies to training frames only (the folds' and the final fit's); the backtest
+    scores every full test week."""
     bt = backtest.run_backtest(
-        examples, gate, min_train_weeks=min_train_weeks, reps=reps, seed=seed
-    )
+        examples, gate, min_train_weeks=min_train_weeks, reps=reps, seed=seed,
+        train_cap_per_day=train_cap_per_day,
+    )  # fmt: skip
     passed, reasons = backtest.gate_status(gate, sorted(examples["line"].unique()))
     result = TrainResult(bt, sorted(passed), reasons, notes=list(bt.notes))
     if not passed:
         result.notes.append("no line passed the training gate: baselines only, no model written")
         return result
-    rows = examples[examples["line"].isin(passed)]
+    available = examples[examples["line"].isin(passed)]
+    rows, result.sampled = sampling.stratified_cap(available, train_cap_per_day, seed)
     fc = model.LightGBMForecaster()
     fc.fit(rows)
     with tempfile.TemporaryDirectory() as tmp:
@@ -73,6 +81,8 @@ def run_training(
             "train_start": str(rows["service_date"].min()),
             "train_end": str(rows["service_date"].max()),
             "n_examples": len(rows),
+            "n_examples_available": len(available),
+            "train_cap_per_day": train_cap_per_day,
             "backtest_mode": bt.mode,
             "n_folds": len(bt.folds),
         },

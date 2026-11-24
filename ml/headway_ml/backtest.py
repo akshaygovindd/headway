@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 
 from headway_ml import baselines as bl
-from headway_ml import data, folds, metrics, model, results, tracking
+from headway_ml import data, folds, metrics, model, results, sampling, tracking
 
 ROOT = Path(__file__).resolve().parents[2]
 GROUP = ["line", "horizon_min", "period_type", "fold", "view", "method"]
@@ -139,7 +139,12 @@ def run_backtest(
     reps: int = 1000,
     seed: int = 7,
     forecaster: Callable[[], model.Forecaster] = model.LightGBMForecaster,
+    train_cap_per_day: int | None = None,
 ) -> Backtest:
+    """`train_cap_per_day` caps the rows the model is fitted on (stratified by line x horizon,
+    sampling.py); the daytype_hour table is a cheap group mean and uses the whole training weeks.
+    The test week of every fold is always scored in full, so every method and the MBTA reference
+    are scored on the same, unsampled examples."""
     fl = folds.make_folds(examples["service_date"], min_train_weeks)
     lines = sorted(examples["line"].unique())
     passed, reasons = gate_status(gate, lines)
@@ -170,7 +175,8 @@ def run_backtest(
             test_gate = test["line"].isin(passed)
             if in_gate.any() and test_gate.any():  # one model for all lines past the gate
                 fc = forecaster()
-                fc.fit(train[in_gate])
+                fit_rows, _ = sampling.stratified_cap(train[in_gate], train_cap_per_day, seed)
+                fc.fit(fit_rows)
                 model_pred.loc[test.index[test_gate]] = fc.predict(test[test_gate])
             long_parts.append(_long(test, raw, methods, str(f.index), model_pred))
             lab_parts.append(test[keys].assign(fold=str(f.index)))

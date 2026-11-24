@@ -91,9 +91,18 @@ def test_no_data_is_reported_not_trained(s3: Any) -> None:
     assert train_handler.lambda_handler({}, None)["status"] == "no_data"
 
 
-def test_per_day_row_cap_is_reproducible(s3: Any, tmp_path: Path) -> None:
+def test_loading_samples_nothing(s3: Any, tmp_path: Path) -> None:
     seed(s3, tmp_path, gate_days=21)
-    a, _ = state_data.load(s3, BUCKET, tmp_path / "a", 56, max_rows_per_day=100)
-    b, _ = state_data.load(s3, BUCKET, tmp_path / "b", 56, max_rows_per_day=100)
-    assert a.groupby("service_date").size().max() == 100
-    pd.testing.assert_frame_equal(a, b)
+    ex, _ = state_data.load(s3, BUCKET, tmp_path / "a", 56)
+    assert len(ex) == len(make_examples(weeks=3))
+
+
+def test_handler_caps_training_and_logs_rows_per_line(
+    s3: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seed(s3, tmp_path, gate_days=21)
+    monkeypatch.setenv("TRAIN_MAX_ROWS_PER_DAY", "60")
+    out = train_handler.lambda_handler({}, None)
+    assert out["status"] == "trained"
+    assert set(out["train_rows_by_line"]) == {"Blue", "Red"}
+    assert all(0 < n <= 60 * 21 for n in out["train_rows_by_line"].values())
