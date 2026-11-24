@@ -379,8 +379,9 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
 - **Known time:** an arrival is known only when the capture that determines it exists:
   `known_at` on `fct_reconstructed_arrivals` is the `fetched_at` of the first STOPPED_AT capture
   (observed), of the later anchor (bracketed), or of a neighbouring reconstructed stop that its
-  confidence depends on, whichever is last. `fct_headways.known_at` is the later of its two
-  arrivals. Features use `known_at <= t`, not `arrival_ts <= t`.
+  confidence depends on, whichever is last. `fct_headways.known_at` is the latest `known_at` of its
+  two arrivals and of every arrival that proves no train ran between them (A, B and any train
+  between, at the neighbouring stops). Features use `known_at <= t`, not `arrival_ts <= t`.
 - **Inclusion:** high and medium confidence arrivals of the nearest run, within an hour of the
   schedule.
 - **Exclusion:** low and missing arrivals, outage hours (the hour of t and the hour of the target
@@ -400,9 +401,36 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
 - **Limitations:** the label is a reconstructed arrival with an error of 15 to 120 s, so no
   forecast can be better than that. Examples exist only for observed trip stops. `known_at` of a
   bracketed arrival includes its neighbours, so some arrivals become known a few minutes after they
-  happened; this is deliberate. The proof that no train ran between two trains of a headway may rest
-  on arrivals that are known later; the headway's `known_at` does not include them.
+  happened; this is deliberate.
 - **Label:** "Forecast examples. Internal training data, not an official MBTA measure."
+
+## Forecast baselines and backtest (Release 3, internal)
+
+- **Business meaning:** how well simple rules forecast the delay of a trip stop 15, 30 and 60
+  minutes ahead, which any model has to beat. Not published.
+- **Run:** `make backtest` (needs `HEADWAY_ENABLE_R3=true`, set by the target; reads a DuckDB built
+  with the R3 models, default `.local/demo-r2/headway.duckdb`). The code is in `ml/` (own uv
+  environment). Results go to `agg_forecast_backtest` in `.local/backtest/backtest.duckdb` (not
+  exported) and to MLflow (file store `.local/mlflow`; `HEADWAY_MLFLOW_URI` and
+  `HEADWAY_MLFLOW_ARTIFACT_ROOT` for S3 later). Each run logs the data window, folds, git sha, the
+  feature list and the pooled metrics per line x horizon.
+- **Folds:** expanding window, 7-day blocks counted from the first service date; fold k trains on
+  blocks before k and tests on block k (later in time, never random). The pooled row (`fold = all`)
+  carries the cluster-bootstrap 95 % interval of the MAE (clusters: prediction times) and the
+  min, max and standard deviation of the per-fold MAE. With fewer than two weeks there is no fold:
+  the baselines that need no training are scored over the whole window and labelled descriptive.
+- **Methods:** `persistence` (the same trip's `last_upstream_delay_s`); `daytype_hour` (mean delay
+  of the line by day type and hour, computed from the training weeks of the fold only);
+  `rolling_median_60m` (the line's 60-minute median); `mbta_reference` (MBTA's predicted
+  deviation: a reference line, not a baseline). A model (`lightgbm`) is compared only for lines
+  past the training gate; for the others the harness prints why and reports the baselines.
+- **Views:** strict = rows where every method has a value; full = every labelled row, a missing
+  value taken from the method's chain (persistence, then the rolling median, then day type x hour;
+  the reference falls back to persistence first). `fallback_share` is the share of rows replaced;
+  a row where all methods are empty is left out (`n_labelled - n` says how many).
+- **Metrics:** MAE, RMSE, share within 60 s and within 120 s, per line x horizon x fold x
+  `period_type` (`alert_active` when a line-scope disruption alert is active at t, else `normal`,
+  and `all`). Errors are against reconstructed arrivals (15 to 120 s), so they include that error.
 
 ## Known limitations
 

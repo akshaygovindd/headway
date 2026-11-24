@@ -434,7 +434,7 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 - **Leakage rule:** every feature uses only what was known at `t`. An arrival is known when the
   capture that determines it exists (`known_at` on `fct_reconstructed_arrivals`: the capture of the
   first STOPPED_AT for an observed stop, the later anchor for a bracketed one, and the neighbouring
-  reconstructed stops that its confidence rests on), a headway when both arrivals are, a snapshot
+  reconstructed stops that its confidence rests on), a headway when both arrivals and the arrivals that prove the order at the neighbouring stops are, a snapshot
   at `collected_at`, an alerts capture at `fetched_at`. Features: line, direction, stop position,
   hour, day type, scheduled headway, the last known delay of the same run upstream, rolling median
   delay of the line over 30 and 60 minutes, headway adherence, active line-scope disruption,
@@ -447,7 +447,7 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   at least 70 % (the arrival coverage of the SLO), at least 3 of them weekend days
   (`agg_forecast_gate`). Below the gate nothing is trained and nothing is reported as a forecast.
   The 27 hours of the sampling spike pass for no line.
-- **Baselines, to be implemented before any model:** (1) persistence: the last known delay of the
+- **Baselines (implemented in `ml/`, Phase 3.1; `make backtest`):** (1) persistence: the last known delay of the
   same trip (`last_upstream_delay_s`); (2) the average delay of the same day type and hour over the
   training weeks; (3) the rolling 60-minute median delay of the line. A model is reported only
   against all three, per line and horizon, on days after the training days. MBTA's predicted

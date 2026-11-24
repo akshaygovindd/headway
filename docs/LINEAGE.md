@@ -258,3 +258,7 @@ flowchart LR
     ADD[agg_actual_deviation_daily] --> GD[int_forecast_gate_days]
     GD --> GATE[agg_forecast_gate]
 ```
+
+`make backtest` (`ml/`, local only) reads `fct_forecast_examples` and `agg_forecast_gate` from the
+built DuckDB and writes `agg_forecast_backtest` to `.local/backtest/backtest.duckdb` and a run to
+MLflow; neither is a dbt model or exported.
