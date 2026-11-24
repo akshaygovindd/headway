@@ -76,7 +76,9 @@ Twelve incidents found while bringing the pipeline up in AWS, each with root cau
 test that now guards it, are in [docs/INCIDENTS.md](docs/INCIDENTS.md). Examples: the scheduler
 placeholder that was never substituted, asynchronous retries that duplicated runs, a DuckDB
 version MotherDuck did not support, and at-least-once scheduling that delivered the same minute
-twice.
+twice. What to do when an alarm fires, and how to rehearse the failures (six replay
+simulations in `tests/simulations/`, two live drills through a chaos switch), is in
+[docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 ## Measured numbers
 

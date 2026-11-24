@@ -1,0 +1,365 @@
+# Runbook
+
+What to do when an alarm fires or a quality check or objective goes red, and how to rehearse the
+failures on purpose. One section per CloudWatch alarm, then one per simulated failure (the six
+replay simulations in `tests/simulations/` and, for two of them, a live drill).
+
+Conventions. Commands are read-only unless a **Fix** says otherwise. Run them from the repository
+root with credentials for the account. Alarms notify the `headway-alerts` SNS topic by email.
+
+```sh
+RAW=$(terraform -chdir=infra/main output -raw raw_bucket)
+PUBLIC=$(terraform -chdir=infra/main output -raw public_bucket)
+```
+
+Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design background in
+[ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) and the objectives in [SLO.md](SLO.md).
+
+- [Alarms](#alarms)
+- [Simulations](#simulations)
+- [Live drills](#live-drills)
+
+## Alarms
+
+### Alarm: headway-ingest-rt-errors
+
+- **Meaning:** the ingest Lambda (once a minute) failed 3 or more times in 15 minutes. A failed
+  *fetch* is not a Lambda error (it is recorded as an `error` capture, see
+  [Feed down](#simulation-feed-down)); this alarm means the function itself raised: a storage
+  write, the live snapshot write, or a crash. Every failed minute is a missing or partial
+  manifest.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-ingest-rt --since 30m --filter-pattern '?ERROR ?Traceback ?Exception'
+  aws cloudwatch get-metric-statistics --namespace AWS/Lambda --metric-name Errors --dimensions Name=FunctionName,Value=headway-ingest-rt --start-time $(date -u -v-1H +%FT%TZ) --end-time $(date -u +%FT%TZ) --period 300 --statistics Sum
+  aws s3 ls "s3://$RAW/manifests/boston/dt=$(date -u +%F)/" --recursive | tail -5
+  ```
+- **Likely causes:** the S3 write was refused (IAM or a deleted bucket), the live snapshot write
+  failed (the manifest is still written, then the error is raised so it alarms), a bad deploy of
+  the zip, or the scheduler delivering the placeholder text
+  ([Scheduler input placeholder](INCIDENTS.md#scheduler-input-placeholder-not-substituted),
+  [Lambda asynchronous retries](INCIDENTS.md#lambda-asynchronous-retries)).
+- **Fix:** read the traceback. A permissions or bucket problem: restore it with `terraform apply`
+  (review the plan first). A bad zip: redeploy the previous one (`make lambda-zip`, `make
+  deploy`). Nothing needs replaying: the next scheduled minute captures current data, and the lost
+  minutes show as missed runs ([Missed invocations](#simulation-missed-invocations)).
+- **Recovery:** `aws logs tail /aws/lambda/headway-ingest-rt --since 5m` shows one summary line
+  per minute with `statuses` all `ok`; the alarm returns to OK within 15 minutes; the Pipeline
+  health page shows no new missed runs.
+
+### Alarm: headway-ingest-rt-invocations-low
+
+- **Meaning:** the ingest Lambda ran fewer than 10 times in 15 minutes (about 15 expected). The
+  schedule is not firing, or the function is throttled or disabled. Missing data (no metric at
+  all) also breaches. Minutes that never run are never captured: they are missed runs, and 3 in
+  an hour make the hour a data outage.
+- **First 3 commands:**
+  ```sh
+  aws scheduler get-schedule --name headway-ingest-rt-every-minute --query '{State:State,Expr:ScheduleExpression}'
+  aws lambda get-function --function-name headway-ingest-rt --query 'Configuration.{State:State,LastUpdate:LastUpdateStatus,Concurrency:Concurrency}'
+  aws cloudwatch get-metric-statistics --namespace AWS/Lambda --metric-name Throttles --dimensions Name=FunctionName,Value=headway-ingest-rt --start-time $(date -u -v-1H +%FT%TZ) --end-time $(date -u +%FT%TZ) --period 300 --statistics Sum
+  ```
+- **Likely causes:** the schedule was disabled or deleted, the scheduler role lost its permission
+  to invoke, the function is being updated or throttled by the account concurrency limit, or an
+  AWS-side event. See [Lambda asynchronous retries](INCIDENTS.md#lambda-asynchronous-retries) for
+  why a failed minute is never retried.
+- **Fix:** if the schedule is `DISABLED` or missing, `terraform apply` restores it. If the role
+  is wrong, the same. Do not invoke the function by hand in a loop to fill the gap: a manual
+  invoke stamps the current minute, not the lost ones.
+- **Recovery:** invocations return to about 15 per 15 minutes; the new manifests appear in
+  `aws s3 ls "s3://$RAW/manifests/boston/dt=$(date -u +%F)/" --recursive | tail`; the gap stays
+  in the data as `missed_runs` and, if 3 or more fell in an hour, as a `data_outage` hour.
+
+### Alarm: headway-curate-errors
+
+- **Meaning:** the curate Lambda (every 15 minutes, plus hourly compaction) failed at least once
+  in 15 minutes. Curation turns raw captures into the Parquet the transform reads, so a stuck
+  curate means gold stops advancing, while capture continues safely in the raw bucket.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-curate --since 1h --filter-pattern '?ERROR ?Traceback ?Exception'
+  aws lambda get-function-configuration --function-name headway-curate --query '{Image:CodeSha256,Timeout:Timeout,Memory:MemorySize,Env:Environment.Variables}'
+  aws s3 ls "s3://$RAW/curated/boston/" --recursive | tail -5
+  ```
+- **Likely causes:** a malformed capture the parser cannot quarantine, a timeout on a large
+  backlog, a read-only or full `/tmp`, a deploy that changed the schema. A corrupt single feed
+  object is normally quarantined rather than failing the run
+  ([Duplicate deliveries](INCIDENTS.md#duplicate-deliveries) for what a duplicate record looks
+  like to curation).
+- **Fix:** curation is incremental and idempotent (a watermark moves only after a group is
+  written), so the fix is to correct the cause and let the next run, or an explicit
+  `aws lambda invoke --function-name headway-curate --cli-binary-format raw-in-base64-out
+  --payload '{}' /dev/stdout`, catch up. To rebuild the manifest tables from raw JSON use the
+  `backfill_manifests` task in [DEPLOY.md](DEPLOY.md#operations).
+- **Recovery:** the next curate summary line reports `batches` and no error; new files appear
+  under `curated/boston/`; the alarm clears at the next 15-minute window.
+
+### Alarm: headway-static-errors
+
+- **Meaning:** the static GTFS Lambda (daily at 09:00 UTC) failed in the last day. The schedule
+  the metrics compare against may be out of date; nothing is lost, the previous feed version
+  stays in use.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-static --since 26h --filter-pattern '?ERROR ?Traceback ?Exception'
+  aws s3 ls "s3://$RAW/curated/boston/static/table=feed_info/" --recursive
+  aws lambda get-function-configuration --function-name headway-static --query '{Timeout:Timeout,Memory:MemorySize,Env:Environment.Variables}'
+  ```
+- **Likely causes:** the MBTA GTFS download failed or changed shape, a timeout
+  ([Static GTFS load timeout](INCIDENTS.md#static-gtfs-load-timeout)), or a feed whose
+  `feed_info.txt` has no `feed_version`. A new feed version that changes trip ids is a
+  [GTFS static update](#simulation-gtfs-static-update) and is safe by design.
+- **Fix:** re-invoke after the cause is gone: `aws lambda invoke --function-name headway-static
+  --cli-read-timeout 330 --cli-binary-format raw-in-base64-out --payload '{}' /dev/stdout`
+  (an already loaded version is skipped).
+- **Recovery:** the summary shows the loaded `feed_version` (or `skipped`), a new
+  `feed_version=` folder exists when the MBTA published one, and `schedule_join_coverage` stays
+  at or above 90% in the hourly checks.
+
+### Alarm: headway-transform-errors
+
+- **Meaning:** the transform Lambda (hourly at :20) failed at least once in the hour. The run
+  builds the models, exports gold to S3 and publishes to MotherDuck; a failure at any step is an
+  error. The step that failed is in the summary line.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-transform --since 2h --filter-pattern '?ERROR ?Traceback ?publish_error ?TransformError'
+  aws s3 ls "s3://$PUBLIC/public/boston/gold/" --recursive | head -30
+  aws s3 cp "s3://$PUBLIC/public/boston/gold/manifest.json" - | head -c 400
+  ```
+- **Likely causes:** MotherDuck unavailable or the token rotated (gold is still exported first:
+  [MotherDuck unavailable](#simulation-motherduck-unavailable)); a model error after a deploy; a
+  timeout (900 s) on a large backlog; a stale lock after a crash
+  ([Transform scaling](INCIDENTS.md#transform-scaling-over-s3-views-and-overlapping-runs),
+  [Cost report connection conflict](INCIDENTS.md#cost-report-connection-conflict),
+  [DuckDB version not supported by MotherDuck](INCIDENTS.md#duckdb-version-not-supported-by-motherduck)).
+- **Fix:** a publish error needs no replay: the next run exports and publishes again. A model
+  error: fix and redeploy. A lock held by a dead run replaces itself after 15 minutes. To run now:
+  `aws lambda invoke --function-name headway-transform --cli-read-timeout 930
+  --cli-binary-format raw-in-base64-out --payload '{}' /dev/stdout`.
+- **Recovery:** the next summary line has `dbt_status` and no `publish_error`; `gold_published`
+  is true in the run state, so the slot counts good for the transform-success objective (the
+  failed slot stays bad in the history of that day); the alarm clears after the next successful
+  hour.
+
+### Alarm: headway-transform-not-succeeded
+
+- **Meaning:** no transform run completed successfully in 2 hours (successful runs =
+  invocations minus errors, missing data counts as breaching). Gold is stale: the app's "gold
+  tables exported" line grows, the gold-freshness objective starts spending budget, and the
+  alarm is the escalation of a transform-errors alarm that was not fixed, or of a schedule that
+  stopped.
+- **First 3 commands:**
+  ```sh
+  aws scheduler get-schedule --name headway-transform --query '{State:State,Expr:ScheduleExpression}'
+  aws logs tail /aws/lambda/headway-transform --since 3h --filter-pattern '?ERROR ?skipped ?Traceback'
+  aws s3 ls "s3://$RAW/state/boston/"
+  ```
+- **Likely causes:** repeated failures of the cause behind
+  [headway-transform-errors](#alarm-headway-transform-errors); a schedule that is disabled; a
+  lock that every run finds fresh (look for `{"skipped": "locked"}` lines).
+- **Fix:** as for the errors alarm; if only `skipped: locked` lines appear, wait 15 minutes for
+  the stale-lock rule or delete `state/boston/transform.lock` once you are sure no run is active
+  (`aws s3 rm "s3://$RAW/state/boston/transform.lock"` changes the account: confirm first).
+- **Recovery:** one successful scheduled run; `manifest.json` in the gold folder has a fresh
+  `exported_at`; the next hour start counts as good for gold freshness (an hour is good when the
+  newest export is at most 90 minutes old).
+
+## Simulations
+
+Each of the six failures below is replayed in CI by `tests/simulations/` against the real ingest,
+curation and dbt code (no AWS): it asserts that the failure is detected, that the affected hours
+are labelled and kept out of the metrics, and that the pipeline recovers. The sections say what
+the drill means in production and how to confirm recovery there. Where a failure can be caused
+on purpose in the deployed pipeline, the section links to its [live drill](#live-drills).
+
+### Simulation: feed down
+
+- **Replay:** `tests/simulations/test_feed_down.py`: 5 minutes down (freshness warns, hour still
+  counts) and 10 minutes down (freshness fails, the hour is a data outage), then recovery.
+- **Meaning:** the MBTA feeds are unreachable. Ingest still runs, claims each minute and records
+  every feed as `status = error`. No CloudWatch alarm fires, by design: the Lambda succeeded.
+  Detection is in the data: `feed_gap_min` (warn at 5, fail at 10 minutes of an hour without
+  fresh trip updates and vehicle positions), `agg_pipeline_health` error statuses, and the
+  capture-completeness objective. An hour with fewer than 55 capture minutes is labelled
+  `data_outage`, excluded from every metric and counted in `n_excluded_outage`.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-ingest-rt --since 15m --filter-pattern '?error ?CHAOS'
+  curl -s -o /dev/null -w '%{http_code}\n' https://cdn.mbta.com/realtime/VehiclePositions.pb
+  aws s3 cp "s3://$PUBLIC/public/boston/live/vehicles_latest.json" - | head -c 200
+  ```
+- **Likely causes:** the MBTA API or the network is down, the URL or key changed, or a live drill
+  is running ([start and stop](#live-drills)). Compare with [SLO.md](SLO.md) before calling it an
+  incident.
+- **Fix:** none on our side if the feed is down; if the URL changed, update
+  `config/cities/boston.yaml` and redeploy. If a drill is running, stop it.
+- **Recovery:** the ingest summary lines show `statuses` all `ok` again; `feed_gap_min` of the
+  next hour is 0; the outage hours stay labelled `data_outage` (history is not rewritten);
+  capture completeness returns to 100% for new minutes.
+
+### Simulation: missed invocations
+
+- **Replay:** `tests/simulations/test_missed_runs.py`: three scheduled minutes never invoked.
+- **Meaning:** the scheduler (or the function) skipped minutes. They leave no manifest. Three
+  missed runs in an hour make it a `data_outage` hour even though the capture window is
+  complete (57 of 60 minutes), and each missed minute spends capture-completeness budget (3 of
+  180 minutes in the replay is 2.5 times the budget).
+- **First 3 commands:**
+  ```sh
+  aws cloudwatch describe-alarms --alarm-names headway-ingest-rt-invocations-low --query 'MetricAlarms[].StateValue'
+  aws scheduler get-schedule --name headway-ingest-rt-every-minute --query State
+  aws s3 ls "s3://$RAW/manifests/boston/dt=$(date -u +%F)/hour=$(date -u +%H)/" | wc -l
+  ```
+- **Likely causes:** see [headway-ingest-rt-invocations-low](#alarm-headway-ingest-rt-invocations-low).
+- **Fix:** restore the schedule; lost minutes cannot be recaptured (the feed is live only).
+- **Recovery:** every new minute has a manifest; `missed_runs` is 0 for the next hour; the
+  objective recovers as clean minutes dilute the day (see the error budget in
+  [SLO.md](SLO.md#error-budget)).
+
+### Simulation: duplicate delivery
+
+- **Replay:** `tests/simulations/test_duplicate_delivery.py`: one minute delivered twice.
+- **Meaning:** EventBridge delivers at least once, so a minute can reach ingest twice. The first
+  delivery claims the minute with a conditional create and owns its manifest; the second writes a
+  duplicate record under `manifests/boston/duplicates/` and does nothing else. Nothing is counted
+  twice. One duplicate warns (`duplicate_deliveries`, warn 1, fail 5 per hour); it is not an outage.
+- **First 3 commands:**
+  ```sh
+  aws s3 ls "s3://$RAW/manifests/boston/duplicates/dt=$(date -u +%F)/" --recursive | tail -5
+  aws logs tail /aws/lambda/headway-ingest-rt --since 1h --filter-pattern 'duplicate delivery'
+  aws cloudwatch get-metric-statistics --namespace AWS/Lambda --metric-name Invocations --dimensions Name=FunctionName,Value=headway-ingest-rt --start-time $(date -u -v-1H +%FT%TZ) --end-time $(date -u +%FT%TZ) --period 3600 --statistics Sum
+  ```
+- **Likely causes:** normal at-least-once delivery; five or more in an hour suggests a scheduler
+  or a retry setting problem ([Duplicate deliveries](INCIDENTS.md#duplicate-deliveries),
+  [Lambda asynchronous retries](INCIDENTS.md#lambda-asynchronous-retries)).
+- **Fix:** none for isolated duplicates. If many, check the schedules and function configs still
+  have `maximum_retry_attempts = 0` (`tests/unit/test_scheduler_config.py` guards it in code).
+- **Recovery:** `duplicate_deliveries` returns to 0 for the next hour; grain tests on
+  `stg_manifests` and `int_captures` stay green.
+
+### Simulation: invalid coordinates
+
+- **Replay:** `tests/simulations/test_invalid_coordinates.py`: 50 vehicles with impossible
+  positions in one capture (warn), then 250 over five captures (fail).
+- **Meaning:** vehicles outside the service area are quarantined with their reason, never
+  dropped silently, and the valid vehicles of the same capture are still used.
+  `invalid_coordinate_share` warns at 0.5% and fails at 5% of the hour's vehicle rows. It is a
+  data-quality signal, not an outage.
+- **First 3 commands:**
+  ```sh
+  aws s3 ls "s3://$RAW/quarantine/boston/" --recursive | tail -5
+  aws logs tail /aws/lambda/headway-curate --since 1h --filter-pattern 'invalid_coordinates'
+  aws s3 cp "s3://$PUBLIC/public/boston/gold/agg_quality_checks_hourly.parquet" /tmp/quality.parquet && echo downloaded
+  ```
+- **Likely causes:** an upstream bug in the vehicle feed, a bounding-box change in
+  `config/cities/boston.yaml`, or a parser change.
+- **Fix:** if the feed is wrong, nothing; if the box is wrong, correct it and redeploy. Quarantined
+  rows are kept for inspection and can be reprocessed from raw.
+- **Recovery:** the share returns to under 0.5% in the next hour; the quarantine table stops
+  growing for that reason.
+
+### Simulation: GTFS static update
+
+- **Replay:** `tests/simulations/test_static_update.py`: a second feed version, effective on the
+  day it is loaded, next to the first.
+- **Meaning:** the MBTA publishes a new schedule. Each service date joins exactly one feed
+  version (the latest whose start date has passed), so a mid-day load switches the schedule per
+  service date without doubling trip stops. `schedule_join_coverage` (warn under 90%, fail under
+  70%) shows whether the realtime trips still match the schedule.
+- **First 3 commands:**
+  ```sh
+  aws s3 ls "s3://$RAW/curated/boston/static/table=feed_info/"
+  aws logs tail /aws/lambda/headway-static --since 26h
+  aws s3 cp "s3://$PUBLIC/public/boston/gold/agg_quality_checks_hourly.parquet" /tmp/quality.parquet && echo downloaded
+  ```
+- **Likely causes:** a routine MBTA update (expected a few times a year); a coverage drop right
+  after one means the new feed renumbered trips the realtime feed still reports the old way.
+- **Fix:** none for a normal switch. A persistent drop under 90% is a matching problem to
+  investigate; the previous version stays loaded and can still be read.
+- **Recovery:** `schedule_join_coverage` is at or above 90% for the hours after the effective
+  date; the previous service dates keep their old version in the history.
+
+### Simulation: MotherDuck unavailable
+
+- **Replay:** `tests/simulations/test_md_down.py`: three transform runs, the middle one with the
+  `md_down` drill active.
+- **Meaning:** the publish step fails, but gold is exported to S3 first, so the app (which reads
+  S3) is unaffected and only MotherDuck consumers are stale. The run raises (the errors alarm
+  fires), logs `publish_error`, is recorded as `failed` with `gold_exported_at` set and
+  `gold_published` false, and counts as a bad slot for the transform-success objective. Gold
+  freshness is not affected.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-transform --since 2h --filter-pattern '?publish_error ?"MotherDuck publish failed" ?CHAOS'
+  aws s3 cp "s3://$PUBLIC/public/boston/gold/manifest.json" - | head -c 300
+  aws ssm get-parameter --name /headway/chaos --query Parameter.Value --output text
+  ```
+- **Likely causes:** a MotherDuck outage, a rotated or expired token in
+  `/headway/motherduck_token`, a DuckDB/extension version mismatch
+  ([DuckDB version not supported by MotherDuck](INCIDENTS.md#duckdb-version-not-supported-by-motherduck),
+  [MotherDuck extension directory was read-only](INCIDENTS.md#motherduck-extension-directory-was-read-only)),
+  or a live drill (the last command shows an active switch).
+- **Fix:** restore access or the token (`aws ssm put-parameter --name /headway/motherduck_token
+  --type SecureString --overwrite --value ...` changes the account: confirm first). No replay is
+  needed: the next run publishes everything again.
+- **Recovery:** the next scheduled run logs no `publish_error`, `gold_published` is true, and
+  `SHOW TABLES FROM headway;` in MotherDuck shows fresh tables; the failed slot stays in that
+  day's transform-success numbers.
+
+## Live drills
+
+Two failures can be caused on purpose in the deployed pipeline with the chaos switch
+([ADR-017](ARCHITECTURE_DECISIONS.md#adr-017-chaos-switch-for-failure-drills)): `feed_down`
+(ingest) and `md_down` (transform). The other four simulations are replay-only.
+
+The switch is the SSM parameter `/headway/chaos`. Terraform does not create it; the first
+`put-parameter` does. It holds `{"mode": "feed_down" | "md_down" | "off", "until": "<UTC ISO>"}`
+and stops by itself at `until`. A drill is real: hours become `data_outage`, objective budgets are
+spent and alarms notify. Announce it, and record it in [INCIDENTS.md](INCIDENTS.md#drills).
+
+**Start `feed_down` for 15 minutes** (macOS `date`; on Linux use `date -u -d '+15 minutes'`):
+
+```sh
+UNTIL=$(date -u -v+15M +%Y-%m-%dT%H:%M:%SZ)
+aws ssm put-parameter --name /headway/chaos --type String --overwrite \
+  --value "{\"mode\":\"feed_down\",\"until\":\"$UNTIL\"}"
+```
+
+**Start `md_down` for 15 minutes** (the hourly run is at `:20`, so start between `:06` and `:19`
+and the window covers it):
+
+```sh
+UNTIL=$(date -u -v+15M +%Y-%m-%dT%H:%M:%SZ)
+aws ssm put-parameter --name /headway/chaos --type String --overwrite \
+  --value "{\"mode\":\"md_down\",\"until\":\"$UNTIL\"}"
+```
+
+**Stop early** (otherwise it ends at `until`):
+
+```sh
+aws ssm put-parameter --name /headway/chaos --type String --overwrite \
+  --value "{\"mode\":\"off\",\"until\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+```
+
+**Check it is off** (or never set): a missing parameter, an `off` mode and a past `until` all
+mean no drill.
+
+```sh
+aws ssm get-parameter --name /headway/chaos --query Parameter.Value --output text
+aws logs tail /aws/lambda/headway-ingest-rt --since 3m --filter-pattern CHAOS
+aws logs tail /aws/lambda/headway-transform --since 70m --filter-pattern CHAOS
+```
+
+While a drill is active every invocation logs `CHAOS ACTIVE mode=... until=...`.
+
+What to expect:
+
+| Drill | You should see | Not expected |
+| --- | --- | --- |
+| `feed_down` 15 min | ingest summary lines with `statuses` all `error`; `feed_gap_min` fail for the hour; the hour labelled `data_outage`; capture completeness spends about 15 minutes of budget | any CloudWatch alarm (the function does not fail) |
+| `md_down` over a `:20` run | one transform run with `publish_error` and `ChaosError`; `headway-transform-errors` alarm; gold `exported_at` still advances; that slot bad for transform success | gold freshness failing |
+
+After the window: confirm recovery with the section of the drill
+([Feed down](#simulation-feed-down), [MotherDuck unavailable](#simulation-motherduck-unavailable)),
+and add a drill entry to [INCIDENTS.md](INCIDENTS.md#drills).

@@ -272,7 +272,7 @@ family's current version; existing days are left as they are and gold is not tou
 ```
 aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
   --cli-binary-format raw-in-base64-out \
-  --payload '{"task":"rebuild_history","from":"2026-11-16","to":"2026-11-22","metric_version":1}' out.json
+  --payload '{"task":"rebuild_history","from":"2026-11-16","to":"2026-11-22","metric_version":2}' out.json
 ```
 
 A backfill reads as many days of curated data as separate it from today, inside the 900 s limit of

@@ -142,3 +142,27 @@ and what now prevents a repeat. Newest last.
 - **Guard:** `test_cost_reads_the_database_dbt_still_holds_open_after_release` reproduces the
   conflict and the release; `test_cost_report_is_written_after_dbt_connections_are_released`
   pins the order.
+
+## Drills
+
+Failures caused on purpose with the chaos switch ([ADR-017](ARCHITECTURE_DECISIONS.md), how to
+start and stop one in [RUNBOOK.md](RUNBOOK.md#live-drills)). A drill is written up here so it is
+never mistaken for an incident: every entry is titled `DRILL`, and a real incident never is.
+The numbers a drill leaves in the data (data-outage hours, spent error budget, a failed transform
+slot) are real and stay in the history; this section is how to tell them apart.
+
+Format, one entry per drill, newest last:
+
+```
+### DRILL YYYY-MM-DD: <mode> for <minutes> min
+
+- **Window:** start and end in UTC (the `until` that was set), who ran it.
+- **Mode and why:** `feed_down` or `md_down`, and what it was meant to prove.
+- **Expected:** what should fire or change (alarms, quality check status, labelled hours).
+- **Observed:** what did, with the times; note anything that did not fire or fired late.
+- **Recovery:** when the first clean minute or run was seen, and how it was confirmed.
+- **Follow-ups:** changes to alarms, thresholds or this runbook, or `none`.
+```
+
+No drill has been run yet.
+
