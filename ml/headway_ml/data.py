@@ -39,3 +39,25 @@ def load_gate(db: Path) -> pd.DataFrame:
     gate = con.execute("select * from agg_forecast_gate").df()
     con.close()
     return gate
+
+
+# The gate of agg_forecast_gate, from the per line x day rows the transform keeps in S3
+# (int_forecast_gate_days). Pinned to dbt_project.yml (forecast_gate) by a test.
+GATE_MIN_DAYS = 21
+GATE_MIN_WEEKEND_DAYS = 3
+GATE_MIN_COVERAGE_PCT = 70
+
+
+def gate_from_days(days: pd.DataFrame) -> pd.DataFrame:
+    """Same columns and rule as agg_forecast_gate: enough counting days, enough of them weekend."""
+    ok = days[days["meets_coverage"].astype(bool)]
+    out = pd.DataFrame({"line": sorted(days["line"].unique())}).set_index("line")
+    out["n_days"] = ok.groupby("line").size().reindex(out.index, fill_value=0)
+    weekend = ok[ok["day_type"] == "weekend"]
+    out["n_weekend_days"] = weekend.groupby("line").size().reindex(out.index, fill_value=0)
+    out["min_days"] = GATE_MIN_DAYS
+    out["min_weekend_days"] = GATE_MIN_WEEKEND_DAYS
+    out["gate_passed"] = (out["n_days"] >= GATE_MIN_DAYS) & (
+        out["n_weekend_days"] >= GATE_MIN_WEEKEND_DAYS
+    )
+    return out.reset_index()
