@@ -1,0 +1,7 @@
+condition,metric,n_days_condition,n_days_other,withheld,withheld_reason,value_condition,value_other,ci_lo_condition,ci_hi_condition,ci_lo_other,ci_hi_other,window_start,window_end,bootstrap_reps,min_days
+extreme_heat,headway_within_band,0,0,true,fewer than 5 days of either kind,,,,,,,,,1000,5
+extreme_heat,on_time,0,0,true,fewer than 5 days of either kind,,,,,,,,,1000,5
+heavy_rain,headway_within_band,0,0,true,fewer than 5 days of either kind,,,,,,,,,1000,5
+heavy_rain,on_time,0,0,true,fewer than 5 days of either kind,,,,,,,,,1000,5
+snow,headway_within_band,0,0,true,fewer than 5 days of either kind,,,,,,,,,1000,5
+snow,on_time,0,0,true,fewer than 5 days of either kind,,,,,,,,,1000,5

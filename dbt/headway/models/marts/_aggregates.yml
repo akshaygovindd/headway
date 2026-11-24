@@ -1631,3 +1631,61 @@ models:
         description: "Matched incidents behind the lag."
         data_tests:
           - not_null
+  - name: agg_weather_comparison
+    description: "On-time and headway-within-band shares on snow, heavy-rain and extreme-heat days against the other days of the same window, with seeded bootstrap 95 % intervals over days (Release 3, ADR-022). Descriptive only: it compares groups of days and never says the weather caused a difference. Withheld when either group has fewer than 5 days. Exported with the R3 gold tables."
+    config:
+      meta:
+        grain: "condition x metric"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [condition, metric]
+    columns:
+      - name: condition
+        description: "Day class: snow, heavy_rain or extreme_heat (thresholds in docs/METRICS.md)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [snow, heavy_rain, extreme_heat]
+      - name: metric
+        description: "on_time (share of arrivals within -60 to +300 s) or headway_within_band (share of valid headways within 0.5 to 1.5 times scheduled)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [on_time, headway_within_band]
+      - name: n_days_condition
+        description: "Days of the condition with a value in the window."
+        data_tests:
+          - not_null
+      - name: n_days_other
+        description: "Other days (flag false) with a value in the window."
+        data_tests:
+          - not_null
+      - name: withheld
+        description: "True when either group has fewer than min_days days; the values are then null."
+        data_tests:
+          - not_null
+      - name: withheld_reason
+        description: "Why the row is withheld; null when it is not."
+      - name: value_condition
+        description: "Pooled percentage (0-100) over the condition's days."
+      - name: value_other
+        description: "Pooled percentage (0-100) over the other days."
+      - name: ci_lo_condition
+        description: "Lower end of the 95 % bootstrap interval of value_condition."
+      - name: ci_hi_condition
+        description: "Upper end of the 95 % bootstrap interval of value_condition."
+      - name: ci_lo_other
+        description: "Lower end of the 95 % bootstrap interval of value_other."
+      - name: ci_hi_other
+        description: "Upper end of the 95 % bootstrap interval of value_other."
+      - name: window_start
+        description: "First service date used; null when nothing was compared."
+      - name: window_end
+        description: "Last service date used; null when nothing was compared."
+      - name: bootstrap_reps
+        description: "Bootstrap resamples behind the intervals."
+      - name: min_days
+        description: "Fewest days per group before the row is published."

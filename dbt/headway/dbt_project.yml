@@ -63,6 +63,9 @@ models:
         +tags: ["s3_load"]
       stg_manifests: *s3_load
       stg_quarantine: *s3_load
+      # Release 3 (ADR-022); skipped by the transform unless HEADWAY_ENABLE_R3=true.
+      stg_weather_daily:
+        +tags: ["r3"]
       stg_service_alerts: *s3_load
       stg_trip_updates: *s3_load
       stg_vehicle_positions: *s3_load
@@ -125,6 +128,7 @@ models:
       fct_incidents: *r3
       agg_incidents: *r3
       agg_alert_matching_daily: *r3
+      agg_weather_comparison: *r3
 
 seeds:
   headway:

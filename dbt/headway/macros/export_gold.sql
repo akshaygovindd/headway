@@ -7,7 +7,7 @@
   the httpfs extension and credentials are available. Only the tables in the
   allowlist below are written; nothing else leaves the warehouse. The Release 2 aggregates
   (gold_r2_allowlist) are added only when HEADWAY_ENABLE_R2=true, the Release 3 forecast tables
-  (gold_r3_allowlist: forecasts, incidents, alert matching) only with HEADWAY_ENABLE_R3=true as well.
+  (gold_r3_allowlist: forecasts, incidents, alert matching, weather comparison) only with HEADWAY_ENABLE_R3=true as well.
 
   agg_pipeline_health is limited to the 30 days before its latest run.
   dbt_run_at is the start time of this dbt invocation (run the export right after
@@ -45,6 +45,7 @@
     'agg_forecast_gate_status': "select * from " ~ ref('agg_forecast_gate_status'),
     'agg_incidents': "select * from " ~ ref('agg_incidents'),
     'agg_alert_matching_daily': "select * from " ~ ref('agg_alert_matching_daily'),
+    'agg_weather_comparison': "select * from " ~ ref('agg_weather_comparison'),
 } %}
 {% if execute %}
 {% set n = run_query("select count(*) from " ~ ref('agg_forecast_backtest')).columns[0].values()[0] %}

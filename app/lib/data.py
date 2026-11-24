@@ -56,6 +56,7 @@ R3_TABLES = (
     "agg_forecast_backtest",
     "agg_incidents",
     "agg_alert_matching_daily",
+    "agg_weather_comparison",
 )
 
 

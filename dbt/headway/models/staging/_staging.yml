@@ -766,3 +766,29 @@ models:
         description: "JSON object of milliseconds per step."
       - name: error
         description: "Exception text of a failed run."
+  - name: stg_weather_daily
+    description: "Daily weather for the city's weather station, one row per local date (Release 3, ADR-022). Empty until the first weather fetch."
+    config:
+      meta:
+        grain: "weather_date"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [weather_date]
+    columns:
+      - name: weather_date
+        description: "Local calendar date."
+      - name: snow_flag
+        description: "Snowfall of at least 25.4 mm; null when snowfall is missing."
+      - name: heavy_rain_flag
+        description: "Precipitation of at least 12.7 mm on a day that is not a snow day; null when either value is missing."
+      - name: extreme_heat_flag
+        description: "Daily maximum of at least 32.2 C; null when it is missing."
+      - name: snowfall_mm
+        description: "Snowfall in millimetres."
+      - name: precip_mm
+        description: "Precipitation in millimetres."
+      - name: tmax_c
+        description: "Daily maximum temperature in degrees Celsius."
+      - name: source
+        description: "Weather source identifier."

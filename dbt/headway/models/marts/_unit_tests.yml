@@ -940,3 +940,118 @@ unit_tests:
     expect:
       rows:
         - {line: "Red", evidence_json: '{"line":"Red","direction_id":0,"date":"2026-11-22","start":"08:00","end":"10:00","is_open":false,"n_hours":2,"hours":[{"hour":"08:00","date":"2026-11-22","median_deviation_s":100.0,"baseline_median_s":40.0,"deviation_over_baseline_s":60.0,"gap_share_pct":35.0,"skipped_share_pct":2.0,"coverage_pct":80.0,"alert_active":true,"crossed":["gap","alert"]},{"hour":"09:00","date":"2026-11-22","median_deviation_s":420.0,"baseline_median_s":40.0,"deviation_over_baseline_s":380.0,"gap_share_pct":10.0,"skipped_share_pct":0.0,"coverage_pct":90.0,"alert_active":false,"crossed":["deviation"]}],"thresholds":{"deviation_over_baseline_s":180,"gap_share_pct":30,"skipped_share_pct":20,"min_hours":2},"baseline_rule":"enabled","baseline_days":20,"min_coverage_pct":80.0,"mean_coverage_pct":85.0,"data_outage_hours_inside":0,"alerts":[{"alert_id":"a1","effect":"DETOUR","header":"Shuttle buses replace trains"}]}'}
+
+  - name: weather_comparison_five_snow_days_published
+    config:
+      tags: [r3]
+    description: >-
+      Five snow days at 50 % on time and 60 % within the headway band, six other days at 80 % and 90 %, and
+      the latest service date (30 January, possibly open, left out). Both groups have 5 or more days, so
+      the values are published as pooled shares. Heavy-rain and extreme-heat have no such day and are withheld.
+    model: agg_weather_comparison
+    given:
+      - input: ref('agg_actual_deviation_daily')
+        rows:
+          - {service_date: "2026-01-01", line: Red, direction_id: 0, pct_on_time_window: 50, n_arrivals: 100}
+          - {service_date: "2026-01-02", line: Red, direction_id: 0, pct_on_time_window: 50, n_arrivals: 100}
+          - {service_date: "2026-01-03", line: Red, direction_id: 0, pct_on_time_window: 50, n_arrivals: 100}
+          - {service_date: "2026-01-04", line: Red, direction_id: 0, pct_on_time_window: 50, n_arrivals: 100}
+          - {service_date: "2026-01-05", line: Red, direction_id: 0, pct_on_time_window: 50, n_arrivals: 100}
+          - {service_date: "2026-01-11", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-12", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-13", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-14", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-15", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-16", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-30", line: Red, direction_id: 0, pct_on_time_window: 10, n_arrivals: 100}
+      - input: ref('agg_headway_adherence_daily')
+        rows:
+          - {service_date: "2026-01-01", line: Red, direction_id: 0, pct_within_band: 60, n_headways: 50}
+          - {service_date: "2026-01-02", line: Red, direction_id: 0, pct_within_band: 60, n_headways: 50}
+          - {service_date: "2026-01-03", line: Red, direction_id: 0, pct_within_band: 60, n_headways: 50}
+          - {service_date: "2026-01-04", line: Red, direction_id: 0, pct_within_band: 60, n_headways: 50}
+          - {service_date: "2026-01-05", line: Red, direction_id: 0, pct_within_band: 60, n_headways: 50}
+          - {service_date: "2026-01-11", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-12", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-13", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-14", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-15", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-16", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-30", line: Red, direction_id: 0, pct_within_band: 10, n_headways: 50}
+      - input: ref('stg_weather_daily')
+        rows:
+          - {weather_date: "2026-01-01", snow_flag: true, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-02", snow_flag: true, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-03", snow_flag: true, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-04", snow_flag: true, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-05", snow_flag: true, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-11", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-12", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-13", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-14", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-15", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-16", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-30", snow_flag: true, heavy_rain_flag: false, extreme_heat_flag: false}
+    expect:
+      rows:
+        - {condition: snow, metric: on_time, n_days_condition: 5, n_days_other: 6, withheld: false, withheld_reason: null, value_condition: 50.0, value_other: 80.0}
+        - {condition: snow, metric: headway_within_band, n_days_condition: 5, n_days_other: 6, withheld: false, withheld_reason: null, value_condition: 60.0, value_other: 90.0}
+        - {condition: heavy_rain, metric: on_time, n_days_condition: 0, n_days_other: 11, withheld: true, withheld_reason: "fewer than 5 heavy-rain days", value_condition: null, value_other: null}
+        - {condition: heavy_rain, metric: headway_within_band, n_days_condition: 0, n_days_other: 11, withheld: true, withheld_reason: "fewer than 5 heavy-rain days", value_condition: null, value_other: null}
+        - {condition: extreme_heat, metric: on_time, n_days_condition: 0, n_days_other: 11, withheld: true, withheld_reason: "fewer than 5 extreme-heat days", value_condition: null, value_other: null}
+        - {condition: extreme_heat, metric: headway_within_band, n_days_condition: 0, n_days_other: 11, withheld: true, withheld_reason: "fewer than 5 extreme-heat days", value_condition: null, value_other: null}
+
+  - name: weather_comparison_four_snow_days_withheld
+    config:
+      tags: [r3]
+    description: >-
+      Four snow days is under the 5-day minimum: the snow rows are withheld with a reason and no values.
+    model: agg_weather_comparison
+    given:
+      - input: ref('agg_actual_deviation_daily')
+        rows:
+          - {service_date: "2026-01-01", line: Red, direction_id: 0, pct_on_time_window: 50, n_arrivals: 100}
+          - {service_date: "2026-01-02", line: Red, direction_id: 0, pct_on_time_window: 50, n_arrivals: 100}
+          - {service_date: "2026-01-03", line: Red, direction_id: 0, pct_on_time_window: 50, n_arrivals: 100}
+          - {service_date: "2026-01-04", line: Red, direction_id: 0, pct_on_time_window: 50, n_arrivals: 100}
+          - {service_date: "2026-01-11", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-12", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-13", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-14", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-15", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-16", line: Red, direction_id: 0, pct_on_time_window: 80, n_arrivals: 100}
+          - {service_date: "2026-01-30", line: Red, direction_id: 0, pct_on_time_window: 10, n_arrivals: 100}
+      - input: ref('agg_headway_adherence_daily')
+        rows:
+          - {service_date: "2026-01-01", line: Red, direction_id: 0, pct_within_band: 60, n_headways: 50}
+          - {service_date: "2026-01-02", line: Red, direction_id: 0, pct_within_band: 60, n_headways: 50}
+          - {service_date: "2026-01-03", line: Red, direction_id: 0, pct_within_band: 60, n_headways: 50}
+          - {service_date: "2026-01-04", line: Red, direction_id: 0, pct_within_band: 60, n_headways: 50}
+          - {service_date: "2026-01-11", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-12", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-13", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-14", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-15", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-16", line: Red, direction_id: 0, pct_within_band: 90, n_headways: 50}
+          - {service_date: "2026-01-30", line: Red, direction_id: 0, pct_within_band: 10, n_headways: 50}
+      - input: ref('stg_weather_daily')
+        rows:
+          - {weather_date: "2026-01-01", snow_flag: true, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-02", snow_flag: true, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-03", snow_flag: true, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-04", snow_flag: true, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-11", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-12", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-13", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-14", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-15", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-16", snow_flag: false, heavy_rain_flag: false, extreme_heat_flag: false}
+          - {weather_date: "2026-01-30", snow_flag: true, heavy_rain_flag: false, extreme_heat_flag: false}
+    expect:
+      rows:
+        - {condition: snow, metric: on_time, n_days_condition: 4, n_days_other: 6, withheld: true, withheld_reason: "fewer than 5 snow days", value_condition: null, value_other: null}
+        - {condition: snow, metric: headway_within_band, n_days_condition: 4, n_days_other: 6, withheld: true, withheld_reason: "fewer than 5 snow days", value_condition: null, value_other: null}
+        - {condition: heavy_rain, metric: on_time, n_days_condition: 0, n_days_other: 10, withheld: true, withheld_reason: "fewer than 5 heavy-rain days", value_condition: null, value_other: null}
+        - {condition: heavy_rain, metric: headway_within_band, n_days_condition: 0, n_days_other: 10, withheld: true, withheld_reason: "fewer than 5 heavy-rain days", value_condition: null, value_other: null}
+        - {condition: extreme_heat, metric: on_time, n_days_condition: 0, n_days_other: 10, withheld: true, withheld_reason: "fewer than 5 extreme-heat days", value_condition: null, value_other: null}
+        - {condition: extreme_heat, metric: headway_within_band, n_days_condition: 0, n_days_other: 10, withheld: true, withheld_reason: "fewer than 5 extreme-heat days", value_condition: null, value_other: null}

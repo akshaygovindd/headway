@@ -44,6 +44,7 @@ TABLES = [
     "agg_forecast_next_hour",
     "agg_incidents",
     "agg_alert_matching_daily",
+    "agg_weather_comparison",
 ]
 DBT = ["uv", "run", "--project", "dbt", "dbt"]
 DBT_ARGS = ["--project-dir", "dbt/headway", "--profiles-dir", "dbt/headway", "--target", "local"]
