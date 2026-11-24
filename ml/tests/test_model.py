@@ -37,9 +37,10 @@ def test_tuning_and_fit_never_see_the_test_week() -> None:
     train, test = _split()
     a = model.LightGBMForecaster()
     a.fit(train)
-    scrambled = test.assign(label_delay_s=test["label_delay_s"].sample(frac=1, random_state=0).to_numpy())
+    shuffled = test["label_delay_s"].sample(frac=1, random_state=0).to_numpy()
+    scrambled = test.assign(label_delay_s=shuffled)
     b = model.LightGBMForecaster()
-    b.fit(train)  # the test frame is not an input of fit; predictions cannot depend on its labels
+    b.fit(train)  # the test frame is not an input of fit; predictions cannot use its labels
     np.testing.assert_array_equal(a.predict(scrambled), b.predict(test))
     inner, hold = model.split_holdout(train)
     assert inner["service_date"].max() < hold["service_date"].min()
