@@ -39,6 +39,7 @@ TABLES = [
     "agg_headway_adherence_daily",
     "agg_slo_daily",
     "agg_slo_rollup",
+    "agg_forecast_gate",
 ]
 DBT = ["uv", "run", "--project", "dbt", "dbt"]
 DBT_ARGS = ["--project-dir", "dbt/headway", "--profiles-dir", "dbt/headway", "--target", "local"]
@@ -169,6 +170,14 @@ def main(argv: list[str]) -> int:
             cwd=ROOT, env=env, check=True,
         )  # fmt: skip
         subprocess.run([sys.executable, "scripts/check_dbt_docs.py"], cwd=ROOT, env=env, check=True)
+        # C1 (ADR-019): features rebuilt from inputs cut at t equal those of the full build
+        subprocess.run(
+            [
+                "uv", "run", "--project", "dbt", "python", "scripts/leakage_check.py", str(db),
+                "--vars", f'{{"curated_root": "{replay_dir}"}}', "--assume-complete",
+            ],  # fmt: skip
+            cwd=ROOT, env=env, check=True,
+        )  # fmt: skip
         failed = False
         for table in TABLES:
             actual = export(db, table)

@@ -228,3 +228,189 @@ unit_tests:
     expect:
       rows:
         - {line: "Green-E", service_date: "2026-11-22", hour_local: 8, station_id: "place-symph"}
+
+  # ---- Release 3 leakage tests (ADR-019): each feature has a row that counts and rows from after t,
+  # or known only after t, that must not change the value. t is 2026-11-22 14:00:00+00.
+  - name: forecast_rolling_median_30m_uses_only_known_arrivals
+    config:
+      tags: [r3]
+    description: >-
+      Arrivals of Red in the 30 minutes up to t, known by t: 100 s late at 13:50 and 300 s at 13:40
+      (median 200 s, two arrivals). Left out: 900 s at 13:20 (outside 30 minutes), 5000 s at 14:05
+      (after t), 7000 s at 13:55 but known only at 14:02 (arrival_ts at or before t, known_at after
+      t), a run that is not the nearest, and an arrival of another line.
+    model: int_forecast_line_features
+    given: &r3_line_inputs
+      - input: ref('int_forecast_grid')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, prediction_ts: "2026-11-22 14:00:00+00", day_type: weekend}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {line: Red, trip_instance_key: a1, segment: 0, stop_sequence: 1, arrival_ts: "2026-11-22 13:50:00+00", known_at: "2026-11-22 13:51:00+00", deviation_s: 100, is_nearest_segment: true}
+          - {line: Red, trip_instance_key: a2, segment: 0, stop_sequence: 1, arrival_ts: "2026-11-22 13:40:00+00", known_at: "2026-11-22 13:41:00+00", deviation_s: 300, is_nearest_segment: true}
+          - {line: Red, trip_instance_key: a3, segment: 0, stop_sequence: 1, arrival_ts: "2026-11-22 13:20:00+00", known_at: "2026-11-22 13:21:00+00", deviation_s: 900, is_nearest_segment: true}
+          - {line: Red, trip_instance_key: a4, segment: 0, stop_sequence: 1, arrival_ts: "2026-11-22 14:05:00+00", known_at: "2026-11-22 14:06:00+00", deviation_s: 5000, is_nearest_segment: true}
+          - {line: Red, trip_instance_key: a5, segment: 0, stop_sequence: 1, arrival_ts: "2026-11-22 13:55:00+00", known_at: "2026-11-22 14:02:00+00", deviation_s: 7000, is_nearest_segment: true}
+          - {line: Red, trip_instance_key: a6, segment: 1, stop_sequence: 1, arrival_ts: "2026-11-22 13:45:00+00", known_at: "2026-11-22 13:46:00+00", deviation_s: 8000, is_nearest_segment: false}
+          - {line: Orange, trip_instance_key: a7, segment: 0, stop_sequence: 1, arrival_ts: "2026-11-22 13:45:00+00", known_at: "2026-11-22 13:46:00+00", deviation_s: 9000, is_nearest_segment: true}
+      - input: ref('fct_headways')
+        rows: []
+      - input: ref('int_forecast_alert_captures')
+        rows: []
+      - input: ref('fct_stop_predictions')
+        rows: []
+    expect:
+      rows:
+        - {line: Red, rolling_median_delay_30m: 200, n_arrivals_30m: 2}
+
+  - name: forecast_rolling_median_60m_uses_only_known_arrivals
+    config:
+      tags: [r3]
+    description: >-
+      Same arrivals as the 30-minute test: the 60 minutes up to t hold 100, 300 and 900 s known by
+      t (median 300 s, three arrivals); the arrival after t and the one known only after t stay out.
+    model: int_forecast_line_features
+    given: *r3_line_inputs
+    expect:
+      rows:
+        - {line: Red, rolling_median_delay_60m: 300, n_arrivals_60m: 3}
+
+  - name: forecast_headway_share_uses_only_known_headways
+    config:
+      tags: [r3]
+    description: >-
+      Valid headways completed in the 60 minutes up to t and known by t: within at 13:50, gap at
+      13:40, within at 13:30 (two thirds within). Left out: a headway that is not valid, one
+      completed at 14:05, and one completed at 13:55 but known only at 14:02, a gap that would
+      change the share.
+    model: int_forecast_line_features
+    given:
+      - input: ref('int_forecast_grid')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, prediction_ts: "2026-11-22 14:00:00+00", day_type: weekend}
+      - input: ref('int_usable_arrivals')
+        rows: []
+      - input: ref('fct_headways')
+        rows:
+          - {line: Red, status: valid, band: within, to_arrival_ts: "2026-11-22 13:50:00+00", known_at: "2026-11-22 13:51:00+00"}
+          - {line: Red, status: valid, band: gap, to_arrival_ts: "2026-11-22 13:40:00+00", known_at: "2026-11-22 13:41:00+00"}
+          - {line: Red, status: valid, band: within, to_arrival_ts: "2026-11-22 13:30:00+00", known_at: "2026-11-22 13:31:00+00"}
+          - {line: Red, status: train_between, band: null, to_arrival_ts: "2026-11-22 13:45:00+00", known_at: "2026-11-22 13:46:00+00"}
+          - {line: Red, status: valid, band: gap, to_arrival_ts: "2026-11-22 14:05:00+00", known_at: "2026-11-22 14:06:00+00"}
+          - {line: Red, status: valid, band: gap, to_arrival_ts: "2026-11-22 13:55:00+00", known_at: "2026-11-22 14:02:00+00"}
+      - input: ref('int_forecast_alert_captures')
+        rows: []
+      - input: ref('fct_stop_predictions')
+        rows: []
+    expect:
+      rows:
+        - {line: Red, headway_within_share: 0.6666666666666666, n_headways_60m: 3}
+
+  - name: forecast_alert_flag_reads_latest_capture_up_to_t
+    config:
+      tags: [r3]
+    description: >-
+      The latest alerts capture at or before t (13:58) has a disruption on Red: the flag is true.
+      A capture at 14:01, after t, has none and must not switch it off.
+    model: int_forecast_line_features
+    given:
+      - input: ref('int_forecast_grid')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, prediction_ts: "2026-11-22 14:00:00+00", day_type: weekend}
+      - input: ref('int_usable_arrivals')
+        rows: []
+      - input: ref('fct_headways')
+        rows: []
+      - input: ref('int_forecast_alert_captures')
+        format: sql
+        rows: |
+          select 'k1' as capture_id, timestamptz '2026-11-22 13:58:00+00' as fetched_at, ['Red']::varchar[] as disrupted_lines
+          union all select 'k2', timestamptz '2026-11-22 14:01:00+00', []::varchar[]
+      - input: ref('fct_stop_predictions')
+        rows: []
+    expect:
+      rows:
+        - {line: Red, active_disruption_alert: true}
+
+  - name: forecast_alert_flag_is_null_without_a_recent_capture
+    config:
+      tags: [r3]
+    description: >-
+      The only capture at or before t is 30 minutes old, so the flag is unknown; a capture after t
+      with a disruption does not fill it in.
+    model: int_forecast_line_features
+    given:
+      - input: ref('int_forecast_grid')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, prediction_ts: "2026-11-22 14:00:00+00", day_type: weekend}
+      - input: ref('int_usable_arrivals')
+        rows: []
+      - input: ref('fct_headways')
+        rows: []
+      - input: ref('int_forecast_alert_captures')
+        format: sql
+        rows: |
+          select 'k1' as capture_id, timestamptz '2026-11-22 13:30:00+00' as fetched_at, []::varchar[] as disrupted_lines
+          union all select 'k2', timestamptz '2026-11-22 14:01:00+00', ['Red']::varchar[]
+      - input: ref('fct_stop_predictions')
+        rows: []
+    expect:
+      rows:
+        - {line: Red, active_disruption_alert: null}
+
+  - name: forecast_skipped_share_uses_only_snapshots_up_to_t
+    config:
+      tags: [r3]
+    description: >-
+      Snapshots of Red collected in the hour up to t: capture p1 (13:50) has two SCHEDULED stops and
+      p2 (13:55) one SKIPPED and one SCHEDULED (one in four skipped). Left out: a SKIPPED capture at
+      12:50 (older than an hour), at 14:05 (after t), a duplicate capture and an unmatched stop.
+    model: int_forecast_line_features
+    given:
+      - input: ref('int_forecast_grid')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, prediction_ts: "2026-11-22 14:00:00+00", day_type: weekend}
+      - input: ref('int_usable_arrivals')
+        rows: []
+      - input: ref('fct_headways')
+        rows: []
+      - input: ref('int_forecast_alert_captures')
+        rows: []
+      - input: ref('fct_stop_predictions')
+        rows:
+          - {line: Red, capture_id: p1, collected_at: "2026-11-22 13:50:00+00", schedule_relationship: SCHEDULED, is_duplicate_capture: false, schedule_matched: true}
+          - {line: Red, capture_id: p1, collected_at: "2026-11-22 13:50:00+00", schedule_relationship: SCHEDULED, is_duplicate_capture: false, schedule_matched: true}
+          - {line: Red, capture_id: p2, collected_at: "2026-11-22 13:55:00+00", schedule_relationship: SKIPPED, is_duplicate_capture: false, schedule_matched: true}
+          - {line: Red, capture_id: p2, collected_at: "2026-11-22 13:55:00+00", schedule_relationship: SCHEDULED, is_duplicate_capture: false, schedule_matched: true}
+          - {line: Red, capture_id: p0, collected_at: "2026-11-22 12:50:00+00", schedule_relationship: SKIPPED, is_duplicate_capture: false, schedule_matched: true}
+          - {line: Red, capture_id: p3, collected_at: "2026-11-22 14:05:00+00", schedule_relationship: SKIPPED, is_duplicate_capture: false, schedule_matched: true}
+          - {line: Red, capture_id: p4, collected_at: "2026-11-22 13:52:00+00", schedule_relationship: SKIPPED, is_duplicate_capture: true, schedule_matched: true}
+          - {line: Red, capture_id: p5, collected_at: "2026-11-22 13:53:00+00", schedule_relationship: SKIPPED, is_duplicate_capture: false, schedule_matched: false}
+    expect:
+      rows:
+        - {line: Red, skipped_share_1h: 0.25, n_snapshots_1h: 4}
+
+  - name: forecast_targets_label_and_slot
+    config:
+      tags: [r3]
+    description: >-
+      Prediction time t on Red. Trip A stop 5 is scheduled at 14:20, inside the slot [14:15, 14:30) of
+      the 15-minute horizon, and arrived 130 s late: label 130. Trip B stop 5 is scheduled at 14:31,
+      inside the 30-minute slot [14:30, 14:45) only. Left out: a stop in an outage hour, a run that is
+      not the nearest and an arrival of another line.
+    model: int_forecast_targets
+    given:
+      - input: ref('int_forecast_grid')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, prediction_ts: "2026-11-22 14:00:00+00", day_type: weekend}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {line: Red, direction_id: 0, stop_id: s5, trip_instance_key: A, segment: 0, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:20:00+00", arrival_ts: "2026-11-22 14:22:10+00", known_at: "2026-11-22 14:22:20+00", deviation_s: 130, is_nearest_segment: true, data_outage: false}
+          - {line: Red, direction_id: 0, stop_id: s5, trip_instance_key: B, segment: 0, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:31:00+00", arrival_ts: "2026-11-22 14:33:00+00", known_at: "2026-11-22 14:33:05+00", deviation_s: 120, is_nearest_segment: true, data_outage: false}
+          - {line: Red, direction_id: 0, stop_id: s5, trip_instance_key: C, segment: 0, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:25:00+00", arrival_ts: "2026-11-22 14:26:00+00", known_at: "2026-11-22 14:26:05+00", deviation_s: 60, is_nearest_segment: true, data_outage: true}
+          - {line: Red, direction_id: 0, stop_id: s5, trip_instance_key: A, segment: 1, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:20:00+00", arrival_ts: "2026-11-22 14:50:00+00", known_at: "2026-11-22 14:50:05+00", deviation_s: 1800, is_nearest_segment: false, data_outage: false}
+          - {line: Orange, direction_id: 0, stop_id: o5, trip_instance_key: D, segment: 0, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:20:00+00", arrival_ts: "2026-11-22 14:21:00+00", known_at: "2026-11-22 14:21:05+00", deviation_s: 60, is_nearest_segment: true, data_outage: false}
+    expect:
+      rows:
+        - {line: Red, trip_instance_key: A, stop_sequence: 5, horizon_min: 15, label_delay_s: 130}
+        - {line: Red, trip_instance_key: B, stop_sequence: 5, horizon_min: 30, label_delay_s: 120}

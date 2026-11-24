@@ -706,3 +706,128 @@ unit_tests:
         - {service_date: "2026-11-22", hour_local: 10, check_name: missed_runs, scheduled_trip_stops: 1, status: fail}
         - {service_date: "2026-11-22", hour_local: 9, check_name: prediction_coverage, scheduled_trip_stops: 3, status: ok}
         - {service_date: "2026-11-22", hour_local: 10, check_name: prediction_coverage, scheduled_trip_stops: 1, status: no_service}
+
+  # ---- Release 3 (ADR-019): arrival known_at and the forecast example features. t is
+  # 2026-11-22 14:00:00+00; the target is a trip stop scheduled in [t + 15 min, t + 30 min).
+  - name: reconstructed_arrivals_known_at
+    config:
+      tags: [r3]
+    description: >-
+      Stops at 0, 1000, 2000 and 3000 m. Stop 2 is observed (first STOPPED_AT fetched 13:02:05);
+      stop 3 is bracketed between the 13:03:25 capture and the observed stop 4 (fetched 13:04:05), so
+      it is known at 13:04:05; stop 4 is observed and known at 13:04:05. Stop 2 also depends on its
+      reconstructed neighbours (order flag, confidence), so it is known at 13:04:05 too.
+    model: fct_reconstructed_arrivals
+    given:
+      - input: ref('int_trip_stop_distances')
+        rows:
+          - {trip_instance_key: "K|2026-11-22|08:00:00", stop_sequence: 1, stop_id: s1, dist_m: 0}
+          - {trip_instance_key: "K|2026-11-22|08:00:00", stop_sequence: 2, stop_id: s2, dist_m: 1000}
+          - {trip_instance_key: "K|2026-11-22|08:00:00", stop_sequence: 3, stop_id: s3, dist_m: 2000}
+          - {trip_instance_key: "K|2026-11-22|08:00:00", stop_sequence: 4, stop_id: s4, dist_m: 3000}
+      - input: ref('int_vehicle_stop_events')
+        rows:
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "K|2026-11-22|08:00:00", capture_id: c1, event_ts: "2026-11-22 13:00:00+00", fetched_at: "2026-11-22 13:00:05+00", dist_m: 0, current_status: STOPPED_AT, current_stop_sequence: 1}
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "K|2026-11-22|08:00:00", capture_id: c2, event_ts: "2026-11-22 13:01:40+00", fetched_at: "2026-11-22 13:01:45+00", dist_m: 700, current_status: IN_TRANSIT_TO, current_stop_sequence: 2}
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "K|2026-11-22|08:00:00", capture_id: c3, event_ts: "2026-11-22 13:02:00+00", fetched_at: "2026-11-22 13:02:05+00", dist_m: 1000, current_status: STOPPED_AT, current_stop_sequence: 2}
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "K|2026-11-22|08:00:00", capture_id: c4, event_ts: "2026-11-22 13:03:20+00", fetched_at: "2026-11-22 13:03:25+00", dist_m: 1800, current_status: IN_TRANSIT_TO, current_stop_sequence: 3}
+          - {vehicle_id: v1, segment: 0, trip_instance_key: "K|2026-11-22|08:00:00", capture_id: c5, event_ts: "2026-11-22 13:04:00+00", fetched_at: "2026-11-22 13:04:05+00", dist_m: 3000, current_status: STOPPED_AT, current_stop_sequence: 4}
+    expect:
+      rows:
+        - {stop_sequence: 1, method: missing, known_at: null}
+        - {stop_sequence: 2, method: observed, known_at: "2026-11-22 13:04:05+00"}
+        - {stop_sequence: 3, method: bracketed, known_at: "2026-11-22 13:04:05+00"}
+        - {stop_sequence: 4, method: observed, known_at: "2026-11-22 13:04:05+00"}
+
+  - name: forecast_last_upstream_delay_uses_only_known_arrivals
+    config:
+      tags: [r3]
+    description: >-
+      Trip A's earlier stops: stop 2 known at 13:50 (60 s late), stop 3 known at 13:58 (120 s late).
+      Stop 4 arrived at 13:59 but was known only at 14:03, after t, with a delay of 999 s that must not
+      be read. The last upstream delay is 120 s, from stop 3.
+    model: fct_forecast_examples
+    given:
+      - input: ref('int_forecast_targets')
+        rows:
+          - {line: Red, direction_id: 0, stop_id: s5, prediction_ts: "2026-11-22 14:00:00+00", prediction_service_date: "2026-11-22", hour_local: 9, day_type: weekend, horizon_min: 15, trip_instance_key: A, segment: 0, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:20:00+00", target_arrival_ts: "2026-11-22 14:22:10+00", label_delay_s: 130}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {line: Red, direction_id: 0, stop_id: s5, trip_instance_key: A, segment: 0, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:20:00+00", arrival_ts: "2026-11-22 14:22:10+00", known_at: "2026-11-22 14:22:20+00", deviation_s: 130, is_nearest_segment: true, data_outage: false}
+          - {line: Red, direction_id: 0, stop_id: s2, trip_instance_key: A, segment: 0, stop_sequence: 2, scheduled_arrival_ts: "2026-11-22 13:48:00+00", arrival_ts: "2026-11-22 13:49:00+00", known_at: "2026-11-22 13:50:00+00", deviation_s: 60, is_nearest_segment: true, data_outage: false}
+          - {line: Red, direction_id: 0, stop_id: s3, trip_instance_key: A, segment: 0, stop_sequence: 3, scheduled_arrival_ts: "2026-11-22 13:54:00+00", arrival_ts: "2026-11-22 13:56:00+00", known_at: "2026-11-22 13:58:00+00", deviation_s: 120, is_nearest_segment: true, data_outage: false}
+          - {line: Red, direction_id: 0, stop_id: s4, trip_instance_key: A, segment: 0, stop_sequence: 4, scheduled_arrival_ts: "2026-11-22 13:42:00+00", arrival_ts: "2026-11-22 13:59:00+00", known_at: "2026-11-22 14:03:00+00", deviation_s: 999, is_nearest_segment: true, data_outage: false}
+      - input: ref('int_trip_stop_distances')
+        rows: []
+      - input: ref('int_scheduled_stop_times')
+        rows: []
+      - input: ref('fct_stop_predictions')
+        rows: []
+      - input: ref('int_forecast_line_features')
+        rows: []
+    expect:
+      rows:
+        - {trip_instance_key: A, stop_sequence: 5, horizon_min: 15, last_upstream_delay_s: 120}
+
+  - name: forecast_mbta_prediction_uses_only_snapshots_up_to_t
+    config:
+      tags: [r3]
+    description: >-
+      Snapshots of trip A stop 5: +30 s collected at 13:50, +45 s at 13:59, and +600 s at 14:02,
+      after t. The feature is the latest at or before t: 45 s. A duplicate capture at 13:59:30
+      with +90 s is not used.
+    model: fct_forecast_examples
+    given:
+      - input: ref('int_forecast_targets')
+        rows:
+          - {line: Red, direction_id: 0, stop_id: s5, prediction_ts: "2026-11-22 14:00:00+00", prediction_service_date: "2026-11-22", hour_local: 9, day_type: weekend, horizon_min: 15, trip_instance_key: A, segment: 0, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:20:00+00", target_arrival_ts: "2026-11-22 14:22:10+00", label_delay_s: 130}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {line: Red, direction_id: 0, stop_id: s5, trip_instance_key: A, segment: 0, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:20:00+00", arrival_ts: "2026-11-22 14:22:10+00", known_at: "2026-11-22 14:22:20+00", deviation_s: 130, is_nearest_segment: true, data_outage: false}
+      - input: ref('int_trip_stop_distances')
+        rows: []
+      - input: ref('int_scheduled_stop_times')
+        rows: []
+      - input: ref('fct_stop_predictions')
+        rows:
+          - {trip_instance_key: A, stop_sequence: 5, collected_at: "2026-11-22 13:50:00+00", predicted_deviation_s: 30, is_duplicate_capture: false, schedule_matched: true}
+          - {trip_instance_key: A, stop_sequence: 5, collected_at: "2026-11-22 13:59:00+00", predicted_deviation_s: 45, is_duplicate_capture: false, schedule_matched: true}
+          - {trip_instance_key: A, stop_sequence: 5, collected_at: "2026-11-22 13:59:30+00", predicted_deviation_s: 90, is_duplicate_capture: true, schedule_matched: true}
+          - {trip_instance_key: A, stop_sequence: 5, collected_at: "2026-11-22 14:02:00+00", predicted_deviation_s: 600, is_duplicate_capture: false, schedule_matched: true}
+      - input: ref('int_forecast_line_features')
+        rows: []
+    expect:
+      rows:
+        - {trip_instance_key: A, stop_sequence: 5, horizon_min: 15, mbta_predicted_deviation_s: 45}
+
+  - name: forecast_example_static_features
+    config:
+      tags: [r3]
+    description: >-
+      Trip A stop 5 sits 800 m along a 1000 m trip (stop_position 0.8) and is scheduled 8 minutes
+      after the previous scheduled train at the stop (scheduled_headway_s 480). The label and the
+      line features come through from the target and the line features of t.
+    model: fct_forecast_examples
+    given:
+      - input: ref('int_forecast_targets')
+        rows:
+          - {line: Red, direction_id: 0, stop_id: s5, prediction_ts: "2026-11-22 14:00:00+00", prediction_service_date: "2026-11-22", hour_local: 9, day_type: weekend, horizon_min: 15, trip_instance_key: A, segment: 0, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:20:00+00", target_arrival_ts: "2026-11-22 14:22:10+00", label_delay_s: 130}
+      - input: ref('int_usable_arrivals')
+        rows: []
+      - input: ref('int_trip_stop_distances')
+        rows:
+          - {trip_instance_key: A, stop_sequence: 1, dist_m: 0}
+          - {trip_instance_key: A, stop_sequence: 5, dist_m: 800}
+          - {trip_instance_key: A, stop_sequence: 9, dist_m: 1000}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {trip_instance_key: A, line: Red, direction_id: 0, service_date: "2026-11-22", stop_id: s5, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:20:00+00"}
+          - {trip_instance_key: P, line: Red, direction_id: 0, service_date: "2026-11-22", stop_id: s5, stop_sequence: 5, scheduled_arrival_ts: "2026-11-22 14:12:00+00"}
+      - input: ref('fct_stop_predictions')
+        rows: []
+      - input: ref('int_forecast_line_features')
+        rows:
+          - {line: Red, prediction_ts: "2026-11-22 14:00:00+00", rolling_median_delay_30m: 200, rolling_median_delay_60m: 300, headway_within_share: 0.5, active_disruption_alert: true, skipped_share_1h: 0.25}
+    expect:
+      rows:
+        - {trip_instance_key: A, horizon_min: 15, label_delay_s: 130, stop_position: 0.8, scheduled_headway_s: 480, hour_local: 9, day_type: weekend, rolling_median_delay_30m: 200, rolling_median_delay_60m: 300, headway_within_share: 0.5, active_disruption_alert: true, skipped_share_1h: 0.25}

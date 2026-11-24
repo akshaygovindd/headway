@@ -1,0 +1,9 @@
+line,n_service_days_seen,n_days,n_weekend_days,first_day,last_day,min_days,min_weekend_days,min_coverage_pct,gate_passed
+Blue,1,0,0,,,21,3,70,false
+Green-B,1,0,0,,,21,3,70,false
+Green-C,1,0,0,,,21,3,70,false
+Green-D,1,0,0,,,21,3,70,false
+Green-E,1,0,0,,,21,3,70,false
+Mattapan,1,0,0,,,21,3,70,false
+Orange,1,0,0,,,21,3,70,false
+Red,1,0,0,,,21,3,70,false
