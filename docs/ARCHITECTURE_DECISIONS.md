@@ -192,6 +192,10 @@ Template: Status, Context, Decision, Consequences, Revisit when.
     under schedule need a negative related value (seconds or a change) in the evidence; late,
     behind, slower, over schedule a positive one. `86 s early` is accepted for -86, `86 s late` and
     `-86 s` for +86 are rejected. Found by the analyst evals (`docs/EVALS.md`).
+  - Weather comparison (Phase 3.7, ADR-022). The comparison is descriptive: "on snow days, on-time
+    share was X% vs Y%" with the day counts and an interval. Causal wording is never used and the
+    figures are withheld under 5 days of either kind. The classifier pilot (C12) is separate and
+    nothing in production depends on it.
 - **Revisit when:** the assistant (R4) is designed, which needs the same rules over tool results,
   or the rejection count shows the check blocking legitimate text (read `rejection_reason` in
   `incident_summaries`).
@@ -596,3 +600,36 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   per app instance and best effort on a read-only or ephemeral disk; a second instance has its own.
 - **Revisit when:** the page runs on more than one instance (move the counter to shared storage)
   or the budget is hit on most days.
+
+### ADR-022: Weather source for the weather comparison
+
+- **Status:** Accepted (R3, Phase 3.7)
+- **Context:** The weather comparison (`agg_weather_comparison`, `docs/METRICS.md`) needs one
+  daily value of snowfall, precipitation and maximum temperature for Boston, from a free source
+  without a key. Checked on 2026-11-24 with plain `curl`:
+  - **NWS `api.weather.gov` observations, station KBOS.** No key; a User-Agent is required.
+    Public-domain US government data. It returns about 118 observations a day, near real time,
+    but precipitation is sparse (`precipitationLastHour` was absent and
+    `precipitationLast3Hours` null in the sampled day) and there is no daily snowfall, so a day
+    would have to be assembled from partial hourly values.
+  - **NOAA NCEI Access Data Service, dataset `daily-summaries` (GHCN-Daily), station USW00014739
+    (Boston Logan, the KBOS airport station).** No key and no token; public-domain data; JSON,
+    metric units on request. Daily `PRCP` (mm), `SNOW` (mm) and `TMAX` (C) as NOAA's own daily
+    summary, for the same airport. Values trail real time by about a week (the latest value on
+    the check date was 2026-11-15) and recent days can be corrected.
+- **Decision:** Use NCEI `daily-summaries` for station USW00014739. The static Lambda
+  (daily, only with `enable_r3`) refetches the last 21 days and rewrites one Parquet part per
+  date in `curated/<prefix>/table=weather_daily/` (idempotent), so a late or corrected value
+  replaces the old one. The station id is in the city config (`weather_station`). A failed fetch
+  is logged and reported in the run summary; it never fails the GTFS load. The request carries
+  no personal information. Day classes, with metric thresholds: snow day, snowfall of at least
+  25.4 mm; heavy-rain day, precipitation of at least 12.7 mm on a day that is not a snow day;
+  extreme-heat day, TMAX of at least 32.2 C. A flag is null when its value is missing, and that day
+  is left out of the comparison instead of counted as an ordinary day.
+- **Consequences:** The latest week has no weather, so the comparison covers days up to about a
+  week old and says so. One station stands for the whole network (Logan is at the coast, so inland
+  snowfall can differ), and the thresholds are descriptive conventions, not service rules. Both
+  limits are stated with the figures. A dependency on one public endpoint, which has no SLA; when
+  it is down the table stops growing and the comparison keeps its last days.
+- **Revisit when:** the lag matters (add NWS observations for the newest days) or the endpoint
+  changes its terms or shape.

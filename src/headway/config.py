@@ -47,6 +47,8 @@ class CityConfig(_Frozen):
     storage_prefix: str
     lines: list[str]
     bbox: BBox
+    # GHCN-Daily station for the weather comparison (Release 3); none: no weather fetched.
+    weather_station: str | None = None
 
     @field_validator("timezone")
     @classmethod

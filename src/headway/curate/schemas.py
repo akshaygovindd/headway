@@ -256,6 +256,21 @@ STATIC_SCHEMAS: dict[str, pa.Schema] = {
     ),
 }
 
+# Daily weather (Release 3, ADR-022): one row per local date, one part per date. A flag is null when
+# the value it needs is missing; such a day is left out of that comparison.
+WEATHER_SCHEMA = pa.schema(
+    [
+        pa.field("date", pa.date32(), nullable=False),
+        pa.field("snow_flag", pa.bool_()),
+        pa.field("heavy_rain_flag", pa.bool_()),
+        pa.field("extreme_heat_flag", pa.bool_()),
+        pa.field("snowfall_mm", pa.float64()),
+        pa.field("precip_mm", pa.float64()),
+        pa.field("tmax_c", pa.float64()),
+        pa.field("source", pa.string(), nullable=False),
+    ]
+)
+
 SCHEMAS: dict[str, pa.Schema] = {**REALTIME_SCHEMAS, **STATIC_SCHEMAS}
 
 

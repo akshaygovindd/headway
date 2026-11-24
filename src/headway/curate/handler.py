@@ -17,6 +17,7 @@ from headway.curate.meta import backfill_manifests
 from headway.curate.pipeline import curate_new
 from headway.curate.schemas import COMPACTABLE_SCHEMAS
 from headway.curate.static import load_static
+from headway.curate.weather import update_weather
 from headway.parse.gtfs_static import GtfsSource
 from headway.storage import LocalStorage, S3Storage, Storage
 
@@ -104,6 +105,9 @@ def static_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         path = Path(tmp) / "gtfs.zip"
         path.write_bytes(body)
         result = load_static(storage, config, GtfsSource(path))
+    weather: dict[str, Any] | None = None
+    if os.environ.get("HEADWAY_ENABLE_R3", "false").lower() == "true":
+        weather = update_weather(storage, config, httpx.Client(follow_redirects=True), now.date())
     summary = {
         "task": "static",
         "raw_key": raw_key,
@@ -112,4 +116,6 @@ def static_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         "skipped": result.skipped,
         "rows": result.rows,
     }
+    if weather is not None:
+        summary["weather"] = weather
     return _log(summary, started)

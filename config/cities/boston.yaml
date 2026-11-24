@@ -9,6 +9,7 @@ feeds:
   alerts: https://cdn.mbta.com/realtime/Alerts.pb
   gtfs_static: https://cdn.mbta.com/MBTA_GTFS.zip
 storage_prefix: boston
+weather_station: USW00014739  # Boston Logan (KBOS), NOAA GHCN-Daily
 lines: [Red, Orange, Blue, Green-B, Green-C, Green-D, Green-E, Mattapan]
 bbox:
   lat_min: 41.0
