@@ -159,3 +159,54 @@ resource "aws_cloudwatch_metric_alarm" "feed_errors" {
     }
   }
 }
+
+# The transform writes these as embedded-metric-format log lines at the end of each hourly run
+# (namespace Headway, no dimensions), so they need no PutMetricData permission.
+resource "aws_cloudwatch_metric_alarm" "gold_stale" {
+  alarm_name          = "headway-gold-stale"
+  alarm_description   = "Gold was replaced more than 90 minutes after the previous export, two hours running, or the transform stopped reporting. Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-gold-stale"
+  namespace           = "Headway"
+  metric_name         = "GoldAgeMinutes"
+  statistic           = "Maximum"
+  period              = 3600
+  evaluation_periods  = 2
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = 90
+  treat_missing_data  = "breaching"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "missed_minutes" {
+  alarm_name          = "headway-missed-minutes"
+  alarm_description   = "Ingest missed 5 or more of the last 60 minutes. Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-missed-minutes"
+  namespace           = "Headway"
+  metric_name         = "MissedRunsLastHour"
+  statistic           = "Maximum"
+  period              = 3600
+  evaluation_periods  = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  threshold           = 5
+  # A transform that stops reporting is the job of headway-transform-not-succeeded and
+  # headway-gold-stale; this alarm only judges hours the transform did measure.
+  treat_missing_data = "notBreaching"
+  alarm_actions      = [aws_sns_topic.alerts.arn]
+}
+
+# Release 2 only: the metric exists only with enable_r2, and only in service hours (05:00 to 01:00
+# local), so the quiet night hours keep the alarm in its current state instead of breaching.
+resource "aws_cloudwatch_metric_alarm" "arrival_coverage_low" {
+  count = var.enable_r2 ? 1 : 0
+
+  alarm_name          = "headway-arrival-coverage-low"
+  alarm_description   = "Fewer than 70% of scheduled stops had a usable reconstructed arrival for 3 hours in a row. Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-arrival-coverage-low"
+  namespace           = "Headway"
+  metric_name         = "ArrivalCoveragePct"
+  statistic           = "Minimum"
+  period              = 3600
+  evaluation_periods  = 3
+  datapoints_to_alarm = 3
+  comparison_operator = "LessThanThreshold"
+  threshold           = 70
+  treat_missing_data  = var.enable_r2 ? "missing" : "notBreaching"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+}

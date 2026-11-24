@@ -22,4 +22,14 @@ resource "aws_budgets_budget" "monthly" {
       subscriber_email_addresses = [var.budget_email]
     }
   }
+
+  # Forecast: AWS projects the month's total from spend so far and mails before the actual
+  # threshold is crossed.
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 15
+    threshold_type             = "ABSOLUTE_VALUE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = [var.budget_email]
+  }
 }

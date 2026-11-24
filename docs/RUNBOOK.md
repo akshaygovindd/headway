@@ -187,6 +187,92 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
   `exported_at`; the next hour start counts as good for gold freshness (an hour is good when the
   newest export is at most 90 minutes old).
 
+### Alarm: headway-gold-stale
+
+- **Meaning:** the transform ran, but replaced gold more than 90 minutes after the previous
+  export in two hourly periods in a row, or it stopped reporting `GoldAgeMinutes` (missing data
+  counts as breaching). The transform writes the metric as a CloudWatch embedded-metric log line
+  after each export: the age, in minutes, of the export it just replaced. Gold on the site is
+  older than the hourly cadence promises; the gold-freshness objective spends budget.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-transform --since 3h --filter-pattern '?GoldAgeMinutes ?ERROR ?skipped'
+  aws s3 cp "s3://$PUBLIC/public/boston/gold/manifest.json" - | head -c 300
+  aws scheduler get-schedule --name headway-transform --query '{State:State,Expr:ScheduleExpression}'
+  ```
+- **Likely causes:** the transform failed or timed out for a few hours
+  ([headway-transform-errors](#alarm-headway-transform-errors)), the schedule is disabled, every
+  run found a fresh lock, or the export step is the one that fails (look for `ExportError`).
+- **Fix:** as for [headway-transform-not-succeeded](#alarm-headway-transform-not-succeeded):
+  find the failing step in the logs and fix it. Nothing needs replaying; the next run exports
+  everything again.
+- **Recovery:** one successful scheduled run; `exported_at` in the gold `manifest.json` is
+  fresh; the next two `GoldAgeMinutes` values are at most 90 (about 60 when on schedule).
+
+### Alarm: headway-missed-minutes
+
+- **Meaning:** 5 or more of the 60 minutes ending at the newest curated minute have no ingest
+  manifest. The transform counts them from the curated manifests and writes
+  `MissedRunsLastHour` as an embedded-metric log line. Gaps this size cost capture completeness
+  and, past 5 minutes without fresh data, label the hour a data outage. Missing data does not
+  breach: a transform that stopped is covered by the two gold alarms.
+- **First 3 commands:**
+  ```sh
+  aws cloudwatch get-metric-statistics --namespace AWS/Lambda --metric-name Invocations --dimensions Name=FunctionName,Value=headway-ingest-rt --start-time $(date -u -v-2H +%FT%TZ) --end-time $(date -u +%FT%TZ) --period 300 --statistics Sum
+  aws scheduler get-schedule --name headway-ingest-rt --query '{State:State,Expr:ScheduleExpression}'
+  aws logs tail /aws/lambda/headway-ingest-rt --since 1h --filter-pattern '?ERROR ?Task timed out ?Throttl'
+  ```
+- **Likely causes:** the ingest schedule was disabled or throttled, an ingest deploy broke the
+  function ([headway-ingest-rt-errors](#alarm-headway-ingest-rt-errors)), or a scheduler outage
+  ([Missed invocations](#simulation-missed-invocations)). Curation lag does not count: the window
+  follows the newest curated minute.
+- **Fix:** restore the schedule or the function (`terraform apply` after reviewing the plan; it
+  changes the account, so confirm first). Lost minutes cannot be recovered; they stay in that
+  hour's `missed_runs`.
+- **Recovery:** the Invocations count is back to about 5 per 5 minutes; after the next curation
+  and transform run `MissedRunsLastHour` drops below 5 as the gap leaves the 60-minute window.
+
+### Alarm: headway-arrival-coverage-low
+
+- **Meaning:** Release 2 only (`enable_r2`). Fewer than 70% of the scheduled stops of the last
+  complete local hour had a usable (high or medium confidence) reconstructed arrival, three
+  hours in a row. The transform writes `ArrivalCoveragePct` as an embedded-metric log line in
+  service hours (05:00 to 01:00 local); outside them there is no data and the alarm keeps its
+  state. Release 2 metrics built on arrivals are thin for these hours.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-transform --since 4h --filter-pattern ArrivalCoveragePct
+  aws s3 cp "s3://$PUBLIC/public/boston/gold/manifest.json" - | head -c 300
+  aws logs tail /aws/lambda/headway-ingest-rt --since 15m --filter-pattern '?VehiclePollsCompleted ?CHAOS'
+  ```
+- **Likely causes:** vehicle positions sampled less often (`VEHICLE_POLLS` back at 1, see
+  [ADR-014](ARCHITECTURE_DECISIONS.md#adr-014-vehicle-positions-sampled-every-15-s)), a feed
+  outage that covered the hours ([Feed down](#simulation-feed-down)), a GTFS static update that
+  changed trips ([GTFS static update](#simulation-gtfs-static-update)), or a service disruption.
+- **Fix:** restore the sampling or the feed; for a static update make sure the new feed was
+  curated. Past hours are not recomputed, only history for closed days can be rebuilt
+  (`rebuild_history`).
+- **Recovery:** the next `ArrivalCoveragePct` values are 70 or more and the alarm returns to OK
+  after the first good hour.
+
+### Budget forecast alert
+
+AWS Budgets also mails `budget_email` when the month's **forecast** passes USD 15, besides the
+actual-spend alerts at USD 8 and 15. It is not a CloudWatch alarm (no SNS, no runbook anchor of
+its own); the steps are these. **Meaning:** at the current rate the month will cost more than
+USD 15. **First 3 commands:**
+
+```sh
+aws ce get-cost-and-usage --time-period Start=$(date -u +%Y-%m-01),End=$(date -u +%F) --granularity DAILY --metrics UnblendedCost --group-by Type=DIMENSION,Key=SERVICE
+aws s3 cp "s3://$PUBLIC/public/boston/gold/cost_daily.parquet" /tmp/cost_daily.parquet
+aws budgets describe-budget --account-id $(aws sts get-caller-identity --query Account --output text) --budget-name headway-monthly
+```
+
+**Likely causes:** a Lambda in a retry loop, `VEHICLE_POLLS=4` with a larger memory size, a
+growing log group, or a drill left on. **Fix:** remove the cause; if it is the design, raise
+`budget_limit_usd` with a note in [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md).
+**Recovery:** the forecast drops under USD 15 after a few days at the lower rate.
+
 ## Simulations
 
 Each of the six failures below is replayed in CI by `tests/simulations/` against the real ingest,

@@ -31,7 +31,7 @@ def alarms() -> list[tuple[str, str]]:
     found = re.findall(
         r'alarm_name\s*=\s*"([^"]+)".*?alarm_description\s*=\s*"([^"]+)"', text, re.S
     )
-    assert len(found) == 7
+    assert len(found) == 10
     return found
 
 
@@ -49,7 +49,8 @@ def test_every_alarm_has_exactly_one_section_named_after_it() -> None:
     names = {
         "headway-ingest-rt-errors", "headway-ingest-rt-invocations-low", "headway-curate-errors",
         "headway-static-errors", "headway-transform-errors", "headway-transform-not-succeeded",
-        "headway-feed-errors",
+        "headway-feed-errors", "headway-gold-stale", "headway-missed-minutes",
+        "headway-arrival-coverage-low",
     }  # fmt: skip
     assert {slug(f"Alarm: {n}") for n in names} <= known
     resolved = {
@@ -92,3 +93,19 @@ def test_links_between_the_docs_resolve() -> None:
         for target, anchor in re.findall(r"\]\(([\w./-]*\.md)?#([\w-]+)\)", text):
             file = DOCS / target if target else path
             assert anchor in anchors(file), f"{path.name}: {target or ''}#{anchor}"
+
+
+def test_the_cost_forecast_alert_is_in_terraform_and_the_runbook() -> None:
+    budget = (ROOT / "infra/main/budget.tf").read_text()
+    assert (
+        'notification_type          = "FORECASTED"' in budget
+        and "threshold                  = 15" in budget
+    )
+    assert "### Budget forecast alert" in (DOCS / "RUNBOOK.md").read_text()
+
+
+def test_the_coverage_alarm_exists_only_with_release_2() -> None:
+    text = (ROOT / "infra/main/alerts.tf").read_text()
+    block = text.split('resource "aws_cloudwatch_metric_alarm" "arrival_coverage_low"')[1]
+    assert "count = var.enable_r2 ? 1 : 0" in block
+    assert 'treat_missing_data  = var.enable_r2 ? "missing" : "notBreaching"' in block
