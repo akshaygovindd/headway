@@ -666,6 +666,7 @@ ml = [
     { name = "mlflow" },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "scikit-learn" },
 ]
 
 [package.metadata]
@@ -685,6 +686,7 @@ ml = [
     { name = "mlflow", specifier = ">=3.0" },
     { name = "numpy", specifier = ">=2" },
     { name = "pandas", specifier = ">=2.2" },
+    { name = "scikit-learn", specifier = ">=1.9.1" },
 ]
 
 [[package]]
