@@ -10,7 +10,7 @@ from lib.coverage import LOW_MIN, WITHHELD_TEXT
 # Columns that describe the row or the count behind it; every other column is a value.
 IDENTIFIER_COLUMNS = {
     "Line", "Minutes ahead", "Time band", "Coverage", "n", "Trips",
-    "of which service disruption", "Horizon", "Method",
+    "of which service disruption", "Horizon", "Method", "Hour",
 }  # fmt: skip
 
 

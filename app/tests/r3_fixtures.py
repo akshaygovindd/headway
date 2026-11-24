@@ -94,3 +94,79 @@ def with_r3(src: Path, dest: Path, state: str | None) -> Path:
     if state:
         backtest_table(state).to_parquet(gold / "agg_forecast_backtest.parquet")
     return dest
+
+
+def _evidence(line: str, cov: float, header: str | None = None) -> str:
+    import json
+
+    hours = [
+        {"hour": "15:00", "date": "2026-11-22", "median_deviation_s": 420.0,
+         "baseline_median_s": 40.0, "deviation_over_baseline_s": 380.0, "gap_share_pct": 35.0,
+         "skipped_share_pct": 2.0, "coverage_pct": cov, "alert_active": header is not None,
+         "crossed": ["deviation", "gap"]},
+        {"hour": "16:00", "date": "2026-11-22", "median_deviation_s": 300.0,
+         "baseline_median_s": 40.0, "deviation_over_baseline_s": 260.0, "gap_share_pct": 12.0,
+         "skipped_share_pct": 1.0, "coverage_pct": 90.0, "alert_active": False,
+         "crossed": ["deviation"]},
+    ]  # fmt: skip
+    alerts = [{"alert_id": "a1", "effect": "DETOUR", "header": header}] if header else []
+    return json.dumps(
+        {"line": line, "direction_id": 0, "start": "15:00", "end": "17:00", "n_hours": 2,
+         "is_open": False, "hours": hours, "baseline_rule": "enabled", "baseline_days": 20,
+         "data_outage_hours_inside": 0, "alerts": alerts}
+    )  # fmt: skip
+
+
+def incidents_table() -> pd.DataFrame:
+    """Four incidents: LLM summary and matched alert (Red), template after a rejected text
+    (Orange), no summary yet and unmatched (Blue), and a low-coverage one (Mattapan)."""
+    base = {
+        "evidence_hash": "h", "direction_id": 0, "n_hours": 2, "is_open": False,
+        "thresholds_crossed": "deviation,gap", "mean_coverage_pct": 85.0,
+        "n_outage_hours_inside": 0, "matched_alert_ids": None, "first_alert_id": None,
+        "summary_generated_at": pd.Timestamp(T), "summary_evidence_hash": "h",
+        "summary_stale": False, "rejection_reason": None, "llm_model": None,
+        "incident_start_ts": pd.Timestamp("2026-11-22 20:00:00+00:00"),
+        "incident_end_ts": pd.Timestamp("2026-11-22 22:00:00+00:00"),
+    }  # fmt: skip
+    rows = [
+        {**base, "incident_id": "i1", "line": "Red", "min_coverage_pct": 88.0,
+         "evidence_json": _evidence("Red", 88.0, "Shuttle buses replace trains"),
+         "match_status": "matched", "alert_lag_s": 1200.0, "first_alert_id": "a1",
+         "matched_alert_ids": "a1", "summary_text": "Red was late: deviation reached 420 s.",
+         "template_used": False, "number_check": "passed", "llm_model": "m"},
+        {**base, "incident_id": "i2", "line": "Orange", "min_coverage_pct": 75.0,
+         "evidence_json": _evidence("Orange", 75.0), "match_status": "unmatched_incident",
+         "alert_lag_s": None, "summary_text": "Orange (direction 0): template text.",
+         "template_used": True, "number_check": "rejected",
+         "rejection_reason": "number not in evidence: '99999 s'", "llm_model": "m"},
+        {**base, "incident_id": "i3", "line": "Blue", "min_coverage_pct": 90.0,
+         "evidence_json": _evidence("Blue", 90.0), "match_status": "unmatched_incident",
+         "alert_lag_s": None, "summary_text": None, "template_used": None,
+         "number_check": None, "summary_generated_at": None, "summary_evidence_hash": None,
+         "summary_stale": None},
+        {**base, "incident_id": "i4", "line": "Mattapan", "min_coverage_pct": 30.0,
+         "evidence_json": _evidence("Mattapan", 30.0), "match_status": "unmatched_incident",
+         "alert_lag_s": None, "summary_text": "Mattapan summary.", "template_used": True,
+         "number_check": "not_run", "rejection_reason": "no_api_key"},
+    ]  # fmt: skip
+    return pd.DataFrame(rows)
+
+
+def alert_matching_table() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "line": ["Red", "Orange"], "service_date": [pd.Timestamp("2026-11-22")] * 2,
+            "n_incidents": [2, 2], "n_incidents_matched": [1, 0], "n_incidents_unmatched": [1, 2],
+            "n_alerts": [3, 0], "n_alerts_matched": [1, 0], "n_alerts_unmatched": [2, 0],
+            "median_alert_lag_s": [1200.0, None], "n_with_lag": [1, 0],
+        }
+    )  # fmt: skip
+
+
+def with_incidents(src: Path, dest: Path) -> Path:
+    shutil.copytree(src, dest)
+    gold = dest / "gold"
+    incidents_table().to_parquet(gold / "agg_incidents.parquet")
+    alert_matching_table().to_parquet(gold / "agg_alert_matching_daily.parquet")
+    return dest

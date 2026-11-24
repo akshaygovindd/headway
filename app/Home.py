@@ -9,6 +9,7 @@ pages = [
     st.Page("pages/3_Pipeline_health.py", title="Pipeline health", url_path="pipeline-health"),
     st.Page("pages/5_Accuracy.py", title="Accuracy", url_path="accuracy"),
     st.Page("pages/6_Forecast.py", title="Forecast", url_path="forecast"),
+    st.Page("pages/7_Incidents.py", title="Incidents", url_path="incidents"),
     st.Page("pages/4_About.py", title="About", url_path="about"),
 ]
 st.navigation(pages).run()
