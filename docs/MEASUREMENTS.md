@@ -23,6 +23,33 @@ Per step of the 54 s Lambda run (2026-11-23, `step_ms`):
 | `publish` (MotherDuck) | 3 |
 | `cost` | 0.5 (failed that run, see INCIDENTS.md) |
 
+### Transform run on 2026-11-24 (16:20 UTC slot)
+
+| Step | 23 Nov | 24 Nov |
+| --- | --- | --- |
+| Total | 46 s | 137 s |
+| `s3_load` | | 47 s |
+| `dbt_build` | | 43 s |
+| `dbt_test` | | 31 s |
+| `export_gold` | | 3 s |
+| `publish` | | 3 s |
+
+The 23 Nov total is the manual run's; the 24 Nov run is the scheduled one with the 300 s
+incremental trigger in effect, so the run covers more data per slot. Both are far below the 900 s
+timeout.
+
+## Ingest memory and duration
+
+Source: Lambda REPORT lines of `headway-ingest` after the 15 s polling deploy.
+
+| Memory | Max memory used | Duration (single-poll run) |
+| --- | --- | --- |
+| 128 MB | 114 MB (89 %) | 4 to 6 s |
+| 256 MB | 127 to 128 MB (50 %) | 2.5 s |
+
+The local smoke (`make ingest-smoke`) measured 60 to 70 MB for the same handler because it
+excludes the Lambda runtime's overhead.
+
 ## Volume
 
 Measured 2026-11-23 from the curated Parquet in the raw bucket (`dt=2026-11-23`, the 18 complete
