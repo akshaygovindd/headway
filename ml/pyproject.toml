@@ -39,4 +39,5 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+filterwarnings = ["ignore:The inplace keyword in DataFrame.drop"]  # duckdb .df() on pandas 3.1
 pythonpath = ["."]

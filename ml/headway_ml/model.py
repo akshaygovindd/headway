@@ -2,6 +2,7 @@
 gate, `line` a categorical feature. Compared only for those lines."""
 
 import itertools
+import os
 from typing import Any, Protocol
 
 import numpy as np
@@ -42,7 +43,8 @@ def _regressor(params: dict[str, Any]) -> Any:
 
     return lgb.LGBMRegressor(
         n_estimators=N_TREES, learning_rate=0.05, random_state=SEED, verbose=-1,
-        deterministic=True, force_row_wise=True, n_jobs=1, **params,
+        deterministic=True, force_row_wise=True,
+        n_jobs=int(os.environ.get("HEADWAY_LGBM_THREADS", "1")), **params,
     )  # fmt: skip
 
 

@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke ingest-smoke images-smoke deploy seed
+.PHONY: ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -88,12 +88,13 @@ demo-r2:
 # Container images for the curate/static and transform Lambdas (linux/arm64).
 IMAGE_TAG ?= $(shell git rev-parse --short HEAD)
 AWS_REGION ?= us-east-1
-IMAGES := curate transform
+IMAGES := curate transform train
 
 images-build:
 	@set -e; for name in $(IMAGES); do \
+		args=; if [ $$name = train ]; then args="--build-arg GIT_SHA=$(IMAGE_TAG)"; fi; \
 		docker buildx build --platform linux/arm64 --provenance=false --sbom=false --load -f docker/$$name.Dockerfile \
-			-t headway-$$name:$(IMAGE_TAG) -t headway-$$name:local .; \
+			$$args -t headway-$$name:$(IMAGE_TAG) -t headway-$$name:local .; \
 	done
 	@for name in $(IMAGES); do \
 		docker image inspect headway-$$name:local --format "headway-$$name:$(IMAGE_TAG) {{.Size}}" \
@@ -108,11 +109,14 @@ transform-smoke:
 curate-smoke:
 	scripts/smoke_image.sh curate
 
+train-smoke:
+	scripts/smoke_image.sh train
+
 # Ingest is a zip function: this runs the built package on the Lambda Python image at 128 MB.
 ingest-smoke: lambda-zip
 	scripts/smoke_image.sh ingest
 
-images-smoke: curate-smoke transform-smoke ingest-smoke
+images-smoke: curate-smoke transform-smoke train-smoke ingest-smoke
 
 # Logs in to ECR, tags with the git short sha and pushes. The ECR repositories must already exist
 # (see docs/DEPLOY.md). Prints the image URIs to put in terraform.tfvars.

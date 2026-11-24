@@ -4,10 +4,10 @@
 # working dir /var/task, no /dev/shm (--ipc=none, as in real Lambda). Local fixtures and a local moto
 # S3 only: no AWS access, no network use by the handlers.
 #
-#   smoke_image.sh transform|curate|ingest
+#   smoke_image.sh transform|curate|ingest|train
 set -euo pipefail
 
-kind=${1:?usage: smoke_image.sh transform|curate|ingest}
+kind=${1:?usage: smoke_image.sh transform|curate|ingest|train}
 root=$(cd "$(dirname "$0")/.." && pwd)
 smoke="$root/.local/smoke"
 port=$((9200 + RANDOM % 500))
@@ -152,6 +152,39 @@ ingest)
             --entrypoint /var/lang/bin/python3.12 public.ecr.aws/lambda/python:3.12 \
             /smoke/smoke_ingest.py --out "/out/polls$polls" --polls "$polls" | tee "$smoke/ingest/result-$polls.json"
     done
+    ;;
+train)
+    # The training image against a moto S3 on the host: synthetic closed-day partitions, then the
+    # handler's three paths. Gate not passed: baselines logged, no model, no latest.json. Gate
+    # passed: model files and latest.json at v1. A second run on the same bucket downloads the
+    # MLflow database from S3 again: two runs in it, model v2.
+    moto_port=$((9800 + RANDOM % 150))
+    (cd "$root" && uv run python -m moto.server -H 0.0.0.0 -p "$moto_port" >/dev/null 2>&1) &
+    moto_pid=$!
+    for _ in $(seq 1 40); do
+        curl -s -o /dev/null "localhost:$moto_port/" && break
+        sleep 0.5
+    done
+    (cd "$root" && uv run --project ml python scripts/smoke_train_seed.py \
+        --endpoint "http://localhost:$moto_port" --bucket smoke-train-closed --gate-days 5)
+    (cd "$root" && uv run --project ml python scripts/smoke_train_seed.py \
+        --endpoint "http://localhost:$moto_port" --bucket smoke-train-open --gate-days 21)
+    endpoint="host.docker.internal:$moto_port"
+    train_env=(--add-host=host.docker.internal:host-gateway -e AWS_ENDPOINT_URL="http://$endpoint")
+    invoke headway-train:local headway_ml.train_handler.lambda_handler \
+        "r['status'] == 'baselines_only' and r['model_version'] is None and r['mlflow_runs'] == 1 \
+         and r['gate_passed_lines'] == [] and sorted(r['gate_reasons']) == ['Blue', 'Red'] \
+         and r['model_objects'] == [] and any('no line passed the training gate' in n for n in r['notes'])" \
+        "${train_env[@]}" -e RAW_BUCKET=smoke-train-closed
+    invoke headway-train:local headway_ml.train_handler.lambda_handler \
+        "r['status'] == 'trained' and r['model_version'] == 1 and r['mlflow_runs'] == 1 \
+         and r['gate_passed_lines'] == ['Blue', 'Red'] \
+         and r['model_objects'] == ['models/forecast/latest.json'] + ['models/forecast/v1/' + n for n in \
+             ['features.json', 'lines.json', 'meta.json', 'metrics.json', 'model.txt', 'window.json']]" \
+        "${train_env[@]}" -e RAW_BUCKET=smoke-train-open
+    invoke headway-train:local headway_ml.train_handler.lambda_handler \
+        "r['status'] == 'trained' and r['model_version'] == 2 and r['mlflow_runs'] == 2" \
+        "${train_env[@]}" -e RAW_BUCKET=smoke-train-open
     ;;
 *) echo "unknown image: $kind" >&2; exit 2 ;;
 esac

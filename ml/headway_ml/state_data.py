@@ -35,26 +35,35 @@ def _partitions(s3: Any, bucket: str, name: str, version: int) -> dict[date, str
     return found
 
 
-def _download(s3: Any, bucket: str, keys: list[str], workdir: Path) -> list[str]:
-    paths = []
-    for i, key in enumerate(keys):
-        path = workdir / f"{i:05d}.parquet"
-        s3.download_file(bucket, key, str(path))
-        paths.append(str(path))
-    return paths
+SAMPLE_SEED = 7
 
 
-def _read(paths: list[str]) -> pd.DataFrame:
+def _read_partitions(
+    s3: Any, bucket: str, keys: list[str], workdir: Path, max_rows: int | None
+) -> pd.DataFrame:
+    """Read the partitions one at a time (each file is removed after it is read). `max_rows` keeps
+    at most that many rows per partition, a reproducible reservoir sample: the examples of one day
+    are strongly correlated (every trip stop of every slot), and the job's memory and time grow
+    with the rows."""
     con = duckdb.connect()
     con.execute("set TimeZone = 'UTC'")
+    frames = []
     try:
-        return con.execute("select * from read_parquet(?)", [paths]).df()
+        for i, key in enumerate(keys):
+            path = workdir / f"{i:05d}.parquet"
+            s3.download_file(bucket, key, str(path))
+            query = "select * from read_parquet(?)"
+            if max_rows is not None:
+                query += f" using sample reservoir({int(max_rows)} rows) repeatable ({SAMPLE_SEED})"
+            frames.append(con.execute(query, [str(path)]).df())
+            path.unlink()
     finally:
         con.close()
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
 
 def load(
-    s3: Any, bucket: str, workdir: Path, window_days: int
+    s3: Any, bucket: str, workdir: Path, window_days: int, max_rows_per_day: int | None = None
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """(examples of the last `window_days` days before the newest partition, gate days of all
     partitions). Either may be empty."""
@@ -64,7 +73,7 @@ def load(
     if ex:
         newest = max(ex)
         keep = [ex[d] for d in sorted(ex) if d > newest - timedelta(days=window_days)]
-        examples = _read(_download(s3, bucket, keep, workdir))
+        examples = _read_partitions(s3, bucket, keep, workdir, max_rows_per_day)
         examples = examples[examples["label_delay_s"].notna()].reset_index(drop=True)
         examples["service_date"] = pd.to_datetime(examples["service_date"]).dt.date
         examples["active_disruption_alert"] = (
@@ -73,7 +82,5 @@ def load(
         examples = data.add_period(examples)
     else:
         examples = pd.DataFrame()
-    gate_days = (
-        _read(_download(s3, bucket, [gd[d] for d in sorted(gd)], workdir)) if gd else pd.DataFrame()
-    )
+    gate_days = _read_partitions(s3, bucket, [gd[d] for d in sorted(gd)], workdir, None)
     return examples, gate_days

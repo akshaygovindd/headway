@@ -19,7 +19,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 WORKDIR = Path(os.environ.get("HEADWAY_TRAIN_WORKDIR", "/tmp/train"))  # noqa: S108
-DEFAULT_WINDOW_DAYS = 90
+DEFAULT_WINDOW_DAYS = 56  # eight weekly folds at most
+DEFAULT_MAX_ROWS_PER_DAY = 20000
 MLFLOW_PREFIX = "mlflow"
 
 
@@ -53,7 +54,13 @@ def _train(s3: Any, bucket: str, db: Path, state_dir: Path, started: float) -> d
     from headway_ml import data, registry, state_data, tracking, train
 
     window = int(os.environ.get("TRAIN_WINDOW_DAYS", DEFAULT_WINDOW_DAYS))
-    examples, gate_days = state_data.load(s3, bucket, state_dir, window)
+    examples, gate_days = state_data.load(
+        s3,
+        bucket,
+        state_dir,
+        window,
+        int(os.environ.get("TRAIN_MAX_ROWS_PER_DAY", DEFAULT_MAX_ROWS_PER_DAY)),
+    )
     if examples.empty or gate_days.empty:
         return {"status": "no_data", "examples": len(examples), "gate_days": len(gate_days)}
     gate = data.gate_from_days(gate_days)

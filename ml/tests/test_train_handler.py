@@ -89,3 +89,11 @@ def test_gate_passed_writes_the_model_and_the_db_round_trips(s3: Any, tmp_path: 
 
 def test_no_data_is_reported_not_trained(s3: Any) -> None:
     assert train_handler.lambda_handler({}, None)["status"] == "no_data"
+
+
+def test_per_day_row_cap_is_reproducible(s3: Any, tmp_path: Path) -> None:
+    seed(s3, tmp_path, gate_days=21)
+    a, _ = state_data.load(s3, BUCKET, tmp_path / "a", 56, max_rows_per_day=100)
+    b, _ = state_data.load(s3, BUCKET, tmp_path / "b", 56, max_rows_per_day=100)
+    assert a.groupby("service_date").size().max() == 100
+    pd.testing.assert_frame_equal(a, b)
