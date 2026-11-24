@@ -166,13 +166,12 @@ def run_backtest(
                 continue
             raw = bl.raw_predictions(test, bl.fit_daytype_hour(train))
             model_pred = pd.Series(np.nan, index=test.index)
-            for line in passed:
-                tr, te = train[train["line"] == line], test[test["line"] == line]
-                if tr.empty or te.empty:
-                    continue
+            in_gate = train["line"].isin(passed)
+            test_gate = test["line"].isin(passed)
+            if in_gate.any() and test_gate.any():  # one model for all lines past the gate
                 fc = forecaster()
-                fc.fit(tr)
-                model_pred.loc[te.index] = fc.predict(te)
+                fc.fit(train[in_gate])
+                model_pred.loc[test.index[test_gate]] = fc.predict(test[test_gate])
             long_parts.append(_long(test, raw, methods, str(f.index), model_pred))
             lab_parts.append(test[keys].assign(fold=str(f.index)))
     withheld = {line: why for line, why in reasons.items()}
