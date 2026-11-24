@@ -6,7 +6,7 @@ import pandas as pd
 
 from lib.timefmt import date_label, hour_label, local_date, to_local
 
-STATUS_ORDER = ("fail", "warn", "no_baseline", "no_data", "ok")
+STATUS_ORDER = ("fail", "warn", "no_baseline", "no_data", "no_service", "ok")
 FEEDS = ("trip_updates", "vehicle_positions", "alerts")
 QUARANTINE_REASONS = ("missing_trip_id", "invalid_coordinates", "protobuf_parse_error", "other")
 
@@ -69,12 +69,21 @@ def captures_per_hour(pipeline: pd.DataFrame, now: datetime | None = None) -> pd
     return frame[cols]
 
 
-def quarantine_by_reason(pipeline: pd.DataFrame) -> pd.DataFrame:
+def quarantine_by_reason(
+    pipeline: pd.DataFrame, reasons: pd.DataFrame | None = None
+) -> pd.DataFrame:
     """Quarantined record counts by reason over all runs.
 
     Uses the per-reason columns the gold has. When the gold only carries a total (or fewer
-    reasons than expected), the remainder is shown as "not itemised in this export".
+    reasons than expected), the remainder is shown as "not itemised in this export". When the
+    export has `agg_quarantine_reasons`, every reason is listed by name from it instead.
     """
+    if reasons is not None and not reasons.empty:
+        named = reasons.groupby("reason", as_index=False)["n_records"].sum()
+        named = named.rename(columns={"n_records": "records"}).sort_values(
+            "records", ascending=False, kind="stable"
+        )
+        return named.reset_index(drop=True).astype({"records": int})
     present = [r for r in QUARANTINE_REASONS if f"quarantine_{r}" in pipeline.columns]
     rows = [{"reason": r, "records": int(pipeline[f"quarantine_{r}"].sum())} for r in present]
     if "quarantine_total" in pipeline.columns:
@@ -84,13 +93,21 @@ def quarantine_by_reason(pipeline: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["reason", "records"])
 
 
+UNCHANGED_FEED = "unchanged feed (expected)"
+
+
 def duplicates_by_feed(pipeline: pd.DataFrame) -> pd.DataFrame:
-    """Duplicate captures per feed (payload identical to the previous capture)."""
+    """Duplicate captures per feed (payload identical to the previous capture).
+
+    The alerts feed repeats unchanged content minute to minute, so its duplicates are expected
+    and labelled as such; only trip_updates and vehicle_positions duplicates are judged.
+    """
     rows = [
         {
             "feed": feed,
             "captures": int(pipeline[f"{feed}_status"].notna().sum()),
             "duplicates": int(pipeline[f"{feed}_is_duplicate"].sum()),
+            "note": UNCHANGED_FEED if feed == "alerts" else "",
         }
         for feed in FEEDS
     ]

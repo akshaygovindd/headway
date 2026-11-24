@@ -18,6 +18,8 @@ vars:
   service_day_cutoff_hour: 3
   # GTFS route_type values treated as subway (0 light rail, 1 subway) for scheduled stop times.
   subway_route_types: [0, 1]
+  # An hour with fewer scheduled subway trip-stops than this has no service: content checks read no_service.
+  no_service_min_trip_stops: 20
   # Days of realtime history read by staging models (partition `dt`); null reads everything.
   lookback_days: null
   # Upper end of the SLO measurement, as an ISO timestamp; null uses the latest captured minute (local

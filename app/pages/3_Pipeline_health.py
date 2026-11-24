@@ -20,6 +20,7 @@ ICONS = {
     "fail": "❌ fail",
     "no_baseline": "➖ no_baseline",
     "no_data": "➖ no_data",
+    "no_service": "🌙 n/a: no service",
 }
 
 st.subheader("Quality checks")
@@ -30,7 +31,11 @@ st.dataframe(
     grid.apply(lambda col: col.map(lambda s: ICONS.get(s, "—") if isinstance(s, str) else "—")),
     width="stretch",
     column_config={
-        c: st.column_config.TextColumn(c, help="— means no result for this check in that hour.")
+        c: st.column_config.TextColumn(
+            c,
+            help="— means no result for this check in that hour. n/a: no service means the "
+            "timetable has (almost) no subway service in that hour, so the check does not apply.",
+        )
         for c in grid.columns
     },
 )
@@ -69,7 +74,9 @@ with left:
     st.dataframe(health.duplicates_by_feed(pipeline), hide_index=True, width="stretch")
 with right:
     st.subheader("Quarantine by reason")
-    reasons = health.quarantine_by_reason(pipeline)
+    reasons = health.quarantine_by_reason(
+        pipeline, ui.gold_table_optional(base, "agg_quarantine_reasons")
+    )
     if reasons.empty:
         st.info("This gold export has no quarantine data.")
     else:

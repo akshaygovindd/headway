@@ -651,3 +651,58 @@ unit_tests:
       rows:
         - {slo_name: capture_completeness, window_label: last_7d, target_pct: 99, good_events: 10045, total_events: 10080, met: true, days_covered: 7, counts_toward_slo: true}
         - {slo_name: capture_completeness, window_label: last_30d, target_pct: 99, good_events: 14315, total_events: 14400, met: true, days_covered: 10, counts_toward_slo: true}
+
+  - name: quality_checks_no_service_by_timetable
+    description: >-
+      Hour 9 has 3 scheduled trip-stops and hour 10 has 1, with the no-service bound set to 2.
+      A content check (prediction_coverage) in the hour below the bound is no_service, whatever
+      its value; in the busier hour it keeps its warn/fail status. A pipeline check
+      (missed_runs) keeps its status in both hours.
+    model: agg_quality_checks_hourly
+    overrides:
+      vars:
+        no_service_min_trip_stops: 2
+    given:
+      - input: ref('int_captures')
+        rows:
+          - {capture_id: "c9", run_id: "r9", service_date: "2026-11-22", hour_local: 9, capture_minute: "2026-11-22 14:00:00+00", status: "ok", feed: "trip_updates", poll_index: 0, is_duplicate_capture: false}
+          - {capture_id: "c10", run_id: "r10", service_date: "2026-11-22", hour_local: 10, capture_minute: "2026-11-22 15:00:00+00", status: "ok", feed: "trip_updates", poll_index: 0, is_duplicate_capture: false}
+      - input: ref('stg_manifests')
+        rows:
+          - {scheduled_at: "2026-11-22 14:00:00+00"}
+          - {scheduled_at: "2026-11-22 15:59:00+00"}
+      - input: ref('agg_pipeline_health')
+        rows:
+          - {scheduled_at: "2026-11-22 14:00:00+00", duplicate_delivery_count: 0}
+      - input: ref('stg_vehicle_positions')
+        rows:
+          - {capture_id: "c9", vehicle_id: "v1", fetched_at: "2026-11-22 14:00:05+00", event_ts: "2026-11-22 14:00:00+00"}
+      - input: ref('stg_trip_updates')
+        rows:
+          - {capture_id: "c9", fetched_at: "2026-11-22 14:00:05+00", event_ts: "2026-11-22 14:00:00+00"}
+      - input: ref('stg_quarantine')
+        rows:
+          - {capture_id: "c9", reason: "missing_trip_id"}
+      - input: ref('agg_line_reliability_hourly')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 9, coverage_numerator: 90, coverage_denominator: 100, implausible_deviation_count: 0, n_eligible: 90}
+          - {service_date: "2026-11-22", hour_local: 10, coverage_numerator: 0, coverage_denominator: 1, implausible_deviation_count: 0, n_eligible: 0}
+      - input: ref('fct_stop_predictions')
+        rows:
+          - {capture_id: "c9", schedule_matched: true, is_added_trip: false, is_duplicate_capture: false, collected_at: "2026-11-22 14:00:05+00", scheduled_arrival_ts: "2026-11-22 14:10:00+00", predicted_arrival_ts: "2026-11-22 14:10:00+00"}
+      - input: ref('quality_thresholds')
+        rows:
+          - {check_name: missed_runs, direction: above, warn: 3, fail: 10}
+          - {check_name: prediction_coverage, direction: below, warn: 80, fail: 50}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 9}
+          - {service_date: "2026-11-22", hour_local: 9}
+          - {service_date: "2026-11-22", hour_local: 9}
+          - {service_date: "2026-11-22", hour_local: 10}
+    expect:
+      rows:
+        - {service_date: "2026-11-22", hour_local: 9, check_name: missed_runs, scheduled_trip_stops: 3, status: fail}
+        - {service_date: "2026-11-22", hour_local: 10, check_name: missed_runs, scheduled_trip_stops: 1, status: fail}
+        - {service_date: "2026-11-22", hour_local: 9, check_name: prediction_coverage, scheduled_trip_stops: 3, status: ok}
+        - {service_date: "2026-11-22", hour_local: 10, check_name: prediction_coverage, scheduled_trip_stops: 1, status: no_service}

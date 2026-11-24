@@ -4,6 +4,11 @@
 -- earlier and is reported as 'no_baseline' when that hour was not observed. feed_gap_min is the
 -- longest run of minutes in the hour without a successful poll 0 of both trip_updates and
 -- vehicle_positions (a feed that is down, or a run that never happened): the freshness of the data.
+-- Checks that judge the content of the feeds against the timetable get status 'no_service' in hours
+-- with fewer than var('no_service_min_trip_stops') scheduled subway trip-stops (read from the
+-- timetable, not a clock window); pipeline checks (missed_runs, feed_gap_min, duplicate_deliveries)
+-- always keep their status. A service date without any scheduled trip-stop (timetable missing) is
+-- never treated as no service.
 with hours as (
     select distinct service_date, hour_local from {{ ref('int_captures') }}
 ),
@@ -243,6 +248,19 @@ vehicle_count_drop as (
         on base.service_date = cur.service_date - 7 and base.hour_local = cur.hour_local
 ),
 
+-- scheduled subway trip-stops per service date and local hour
+scheduled_hours as (
+    select service_date, hour_local, count(*) as scheduled_trip_stops
+    from {{ ref('int_scheduled_stop_times') }}
+    group by 1, 2
+),
+
+scheduled_days as (
+    select service_date, sum(scheduled_trip_stops) as day_trip_stops
+    from scheduled_hours
+    group by 1
+),
+
 all_checks as (
     select * from missed_runs
     union all select * from feed_gap_min
@@ -265,7 +283,14 @@ select
     t.direction,
     t.warn as warn_threshold,
     t.fail as fail_threshold,
+    coalesce(sh.scheduled_trip_stops, 0) as scheduled_trip_stops,
     case
+        when a.check_name in ('prediction_coverage', 'schedule_join_coverage', 'implausible_deviation_share',
+            'late_event_share', 'duplicate_share', 'invalid_coordinate_share', 'missing_trip_id_share',
+            'vehicle_count_drop')
+            and coalesce(sd.day_trip_stops, 0) > 0
+            and coalesce(sh.scheduled_trip_stops, 0) < {{ var('no_service_min_trip_stops') }}
+            then 'no_service'
         when a.value is null and a.check_name = 'vehicle_count_drop' then 'no_baseline'
         when a.value is null then 'no_data'
         when t.direction = 'above' and a.value >= t.fail then 'fail'
@@ -276,4 +301,6 @@ select
     end as status
 from all_checks a
 join {{ ref('quality_thresholds') }} t on t.check_name = a.check_name
+left join scheduled_hours sh on sh.service_date = a.service_date and sh.hour_local = a.hour_local
+left join scheduled_days sd on sd.service_date = a.service_date
 join hours h on h.service_date = a.service_date and h.hour_local = a.hour_local
