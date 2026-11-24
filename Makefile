@@ -41,7 +41,7 @@ dbt: dbt-deps
 	uv run --project dbt python scripts/check_dbt_docs.py
 
 # Replay samples/boston into a temp dir, build dbt against it and compare key tables.
-e2e:
+e2e: dbt-deps
 	uv run --project dbt python scripts/e2e.py
 
 # Release 1 acceptance report (PASS/FAIL/MANUAL per A1-A12) from the repo, the public gold and
@@ -50,7 +50,7 @@ acceptance:
 	uv run python scripts/acceptance.py
 
 # Streamlit app tests (own dependency group; not part of `make check`).
-app-test:
+app-test: dbt-deps
 	uv run --group app pytest app/tests -q
 
 # Replay the sample, build dbt, export gold and write the live snapshot into .local/demo.
