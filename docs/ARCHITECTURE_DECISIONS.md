@@ -23,6 +23,7 @@ stable: other documents and code comments cite them as `ADR-NNN`.
 | 016 | Confidence levels: only high and medium arrivals feed metrics | Accepted (R2) |
 | 017 | Chaos switch for failure drills | Accepted (R2) |
 | 018 | Elementary on dbt-duckdb: anomaly tests, persisted history, daily report | Accepted (R2) |
+| 019 | Forecasting design: target, horizons, leakage rule, gate, baselines | Proposed |
 
 Template: Status, Context, Decision, Consequences, Revisit when.
 
@@ -414,3 +415,51 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   daily rebuild, or anomaly warnings are trusted enough to alarm. The alternative if it breaks:
   the dbt test results and run history are already persisted (`agg_transform_runs`); a small HTML
   test-history page rendered from that table would replace the report.
+
+### ADR-019: Forecasting design: target, horizons, leakage rule, gate, baselines
+
+- **Status:** Proposed (R3, Phase 3.0 builds the data; no model exists yet)
+- **Context:** Release 3 forecasts arrival delay. The only observed delay Headway has is the
+  reconstructed arrival (ADR-016), known to within 15 to 120 s, and only after the captures that
+  determine it exist. A forecast that is evaluated against data it could not have had at the time
+  looks better than it is, so the design fixes what may be used before any model is chosen.
+- **Target:** the delay (reconstructed arrival minus scheduled arrival, seconds) of a trip stop
+  scheduled to arrive in the 15-minute slot starting at `t + horizon`, for horizons of 15, 30 and
+  60 minutes, from high and medium confidence arrivals only. Prediction times `t` fall every 15
+  minutes in the service hours (05:00 to 01:00 local). Examples in data-outage hours are dropped,
+  for the hour of `t` and the hour of the target (`fct_forecast_examples`, internal, never exported).
+  Only trip stops that were reconstructed become examples: a trip stop never observed has no label,
+  so the examples describe the observed part of the service and the label coverage is reported
+  with every result.
+- **Leakage rule:** every feature uses only what was known at `t`. An arrival is known when the
+  capture that determines it exists (`known_at` on `fct_reconstructed_arrivals`: the capture of the
+  first STOPPED_AT for an observed stop, the later anchor for a bracketed one, and the neighbouring
+  reconstructed stops that its confidence rests on), a headway when both arrivals are, a snapshot
+  at `collected_at`, an alerts capture at `fetched_at`. Features: line, direction, stop position,
+  hour, day type, scheduled headway, the last known delay of the same run upstream, rolling median
+  delay of the line over 30 and 60 minutes, headway adherence, active line-scope disruption,
+  skipped share of the last hour and MBTA's own predicted deviation. The outage filter selects rows
+  by looking at whole hours; it is a choice of training rows, not a feature. Two tests hold the
+  rule: a unit test per feature with rows from after `t` (and one known only after `t`) that must
+  not count, and a truncation check (`scripts/leakage_check.py`, run by `make e2e`) that cuts every
+  input at `t`, rebuilds and requires the same features.
+- **Gate:** a line is trained on only when it has at least 21 service days with arrival coverage of
+  at least 70 % (the arrival coverage of the SLO), at least 3 of them weekend days
+  (`agg_forecast_gate`). Below the gate nothing is trained and nothing is reported as a forecast.
+  The 27 hours of the sampling spike pass for no line.
+- **Baselines, to be implemented before any model:** (1) persistence: the last known delay of the
+  same trip (`last_upstream_delay_s`); (2) the average delay of the same day type and hour over the
+  training weeks; (3) the rolling 60-minute median delay of the line. A model is reported only
+  against all three, per line and horizon, on days after the training days. MBTA's predicted
+  deviation is a labelled reference line in every report, not a baseline: it is the thing a rider
+  can already read, and it is a feature of the models.
+- **Honest reporting:** errors are measured against reconstructed arrivals, so they include the
+  reconstruction error (15 to 120 s) and cannot be better than it; the report says so. Coverage
+  (examples over scheduled trip stops of the slot) is shown with every number, a value from a slice
+  with under 50 % coverage is withheld (ADR-016), and a line below the gate has no forecast.
+- **Consequences:** The examples table is large (about 100 thousand rows per 27 hours for the whole
+  network), so it is built only with `enable_r3`, which needs `enable_r2`, and is not published.
+  `known_at` delays features by up to a few minutes compared with the arrival time, which is the
+  honest cost of reconstructing arrivals from sampled positions.
+- **Revisit when:** the gate is passed for a line, when the baselines show that the horizons or
+  the slot width are wrong, or when the label coverage differs much between lines.

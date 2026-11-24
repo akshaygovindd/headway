@@ -349,6 +349,61 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
 - **Label:** "ETT approximation, adapted from the excess trip time idea. Not an official
   MBTA measure."
 
+## Forecast examples (Release 3, internal)
+
+- **Business meaning:** the training data of the arrival-delay forecast and the check of whether
+  there is enough of it. Not a metric and not published: the tables are not exported, and the app
+  does not show them.
+- **Target (label):** `label_delay_s`, the reconstructed arrival minus the scheduled arrival in
+  seconds (positive is late), of a trip stop scheduled to arrive in the 15-minute slot
+  `[t + horizon, t + horizon + 15 min)`. Horizons: 15, 30 and 60 minutes. Prediction times `t`:
+  every 15 minutes (:00, :15, :30, :45) of the service hours, 05:00 to 01:00 local.
+- **Grain:** `fct_forecast_examples`: line x direction_id x stop_id x prediction_ts x horizon_min x
+  trip_instance_key x segment.
+- **Features, each known at t:**
+  - line, direction, `stop_position` (share of the trip's shape length), `hour_local`, `day_type`,
+    `scheduled_headway_s`: schedule only;
+  - `last_upstream_delay_s`: the delay of the same run at its latest earlier stop with
+    `known_at <= t`;
+  - `rolling_median_delay_30m`, `rolling_median_delay_60m`: the line's usable arrivals with
+    `arrival_ts` in the previous 30 or 60 minutes and `known_at <= t`;
+  - `headway_within_share`: share of the valid headways completed in the previous 60 minutes,
+    known at t, that were within 0.5 to 1.5 of the schedule;
+  - `active_disruption_alert`: a line-scope service disruption (as in `agg_active_alerts`) on the
+    line in the latest alerts capture at or before t, if at most 15 minutes old;
+  - `skipped_share_1h`: share of the line's non-duplicate trip update snapshots collected in the
+    hour up to t that are SKIPPED;
+  - `mbta_predicted_deviation_s`: MBTA's predicted deviation for the trip stop from the latest
+    snapshot with `collected_at <= t`. A feature, never the label; reports show it as a reference
+    line, not a baseline.
+- **Known time:** an arrival is known only when the capture that determines it exists:
+  `known_at` on `fct_reconstructed_arrivals` is the `fetched_at` of the first STOPPED_AT capture
+  (observed), of the later anchor (bracketed), or of a neighbouring reconstructed stop that its
+  confidence depends on, whichever is last. `fct_headways.known_at` is the later of its two
+  arrivals. Features use `known_at <= t`, not `arrival_ts <= t`.
+- **Inclusion:** high and medium confidence arrivals of the nearest run, within an hour of the
+  schedule.
+- **Exclusion:** low and missing arrivals, outage hours (the hour of t and the hour of the target
+  arrival), hours outside 05:00 to 01:00, and trip stops never reconstructed. The last means that
+  the examples describe the observed part of the service, which favours well-observed lines.
+- **Leakage tests:** a unit test per feature in the dbt project (rows after t, and a row with
+  `arrival_ts <= t` but `known_at > t`, must not count) and `scripts/leakage_check.py` (run by
+  `make e2e`): for a sample of prediction times it deletes every input row not known at t, rebuilds
+  the features and requires them to equal those of the full build.
+- **Training gate:** `agg_forecast_gate`, per line: `n_days`, the service days with arrival
+  coverage of at least 70 % (`int_forecast_gate_days`, the coverage of the arrival_coverage SLO);
+  `n_weekend_days` among them; `gate_passed` when `n_days >= 21` and `n_weekend_days >= 3`
+  (thresholds: the `forecast_gate` var).
+- **Source models:** `int_forecast_grid`, `int_forecast_targets`, `int_forecast_line_features`,
+  `int_forecast_alert_captures`, `fct_reconstructed_arrivals`, `fct_headways`,
+  `fct_stop_predictions`, `int_scheduled_stop_times`, `int_trip_stop_distances`.
+- **Limitations:** the label is a reconstructed arrival with an error of 15 to 120 s, so no
+  forecast can be better than that. Examples exist only for observed trip stops. `known_at` of a
+  bracketed arrival includes its neighbours, so some arrivals become known a few minutes after they
+  happened; this is deliberate. The proof that no train ran between two trains of a headway may rest
+  on arrivals that are known later; the headway's `known_at` does not include them.
+- **Label:** "Forecast examples. Internal training data, not an official MBTA measure."
+
 ## Known limitations
 
 - Trip updates are sampled once a minute. A prediction can change between samples, so the

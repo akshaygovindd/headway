@@ -234,3 +234,27 @@ flowchart LR
   (`stg_transform_runs`) and the hourly actual-deviation coverage, and its closed days are kept
   in history; `agg_slo_rollup` sums them over 7 and 30 service dates. `make slo-report` reads the
   published tables over HTTPS and writes `docs/SLO_REPORT.md` (definitions in `docs/SLO.md`).
+
+## Release 3: forecast examples (internal)
+
+Tagged `r3`; the transform Lambda builds them only with `HEADWAY_ENABLE_R3=true` (and R2). They
+are not exported. `fct_reconstructed_arrivals` and `fct_headways` carry `known_at` (ADR-019).
+
+```mermaid
+flowchart LR
+    FRA[fct_reconstructed_arrivals<br/>known_at] --> IUA[int_usable_arrivals]
+    IUA --> TGT[int_forecast_targets]
+    IUA --> LF[int_forecast_line_features]
+    FH[fct_headways<br/>known_at] --> LF
+    SP[fct_stop_predictions] --> LF
+    AC[int_forecast_alert_captures] --> LF
+    HF[int_hour_flags] --> GRID[int_forecast_grid]
+    GRID --> TGT
+    GRID --> LF
+    TGT --> FE[fct_forecast_examples]
+    LF --> FE
+    IUA --> FE
+    SP --> FE
+    ADD[agg_actual_deviation_daily] --> GD[int_forecast_gate_days]
+    GD --> GATE[agg_forecast_gate]
+```
