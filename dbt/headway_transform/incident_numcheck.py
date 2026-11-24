@@ -11,6 +11,10 @@ Numbers are integers, decimals, percentages, clock times (14:05, 2 PM), ISO date
 (``3 min``, ``210 s``, ``2 hours``), ordinals and spelled-out numbers from two upward (``one`` is
 too common in prose to read as a number). A summary that fails either rule is rejected and the
 deterministic template is used in its place.
+
+A third rule covers direction words (improved, worsened, rose, fell, higher, slower, ...): each
+must agree with the sign of a related change in the evidence (deviation against its baseline, a
+current value against the previous one). Evidence without any change rejects every direction word.
 """
 
 import json
@@ -22,6 +26,17 @@ CAUSAL = re.compile(
     r"\b(because|due\s+to|caused\s+by|as\s+a\s+result\s+of|owing\s+to|on\s+account\s+of)\b",
     re.IGNORECASE,
 )
+# Direction words: +1 = the value went up, -1 = it went down; "bad" words carry the judgement
+# (worse/slower/worsened = a delay-like value went up; better/faster/improved = it went down).
+_UP = {"increased", "rose", "risen", "higher", "grew", "climbed", "up"}
+_DOWN = {"decreased", "fell", "fallen", "dropped", "lower", "declined", "down"}
+_WORSE = {"worsened", "worse", "slower", "deteriorated"}
+_BETTER = {"improved", "better", "faster", "recovered"}
+DIRECTION = re.compile(
+    r"\b(" + "|".join(sorted(_UP | _DOWN | _WORSE | _BETTER)) + r")\b",
+    re.IGNORECASE,
+)
+_HIGHER_IS_BETTER = ("on_time", "within_band", "coverage")
 _WORDS = {
     w: n
     for n, w in enumerate(
@@ -153,6 +168,15 @@ class Allowed:
     clocks: set[int] = field(default_factory=set)
     dates: set[str] = field(default_factory=set)
     headers: list[str] = field(default_factory=list)
+    # related changes: (signed change, True when a higher value is worse)
+    changes: list[tuple[float, bool]] = field(default_factory=list)
+
+
+def _change_kind(key: str) -> bool | None:
+    """None when the key is not a change; else True when a higher value is worse."""
+    if key == "deviation_over_baseline_s" or "change" in key or "delta" in key:
+        return not any(m in key for m in _HIGHER_IS_BETTER)
+    return None
 
 
 def allowed_from(evidence: dict[str, Any]) -> Allowed:
@@ -175,6 +199,9 @@ def allowed_from(evidence: dict[str, Any]) -> Allowed:
             return
         if isinstance(node, int | float):
             allowed.numbers.append((float(node), _unit_of(key), False))
+            worse_when_higher = _change_kind(key)
+            if worse_when_higher is not None and node != 0:
+                allowed.changes.append((float(node), worse_when_higher))
         elif isinstance(node, str):
             if key == "header":
                 add_text(node, header=True)
@@ -220,6 +247,24 @@ def _number_matches(tok: Token, allowed: Allowed) -> bool:
     return False
 
 
+def _direction_ok(word: str, allowed: Allowed) -> bool:
+    """The word agrees with the sign of at least one related change of the evidence."""
+    w = word.lower()
+    for delta, worse_when_higher in allowed.changes:
+        up = delta > 0
+        if w in _UP:
+            good = up
+        elif w in _DOWN:
+            good = not up
+        elif w in _WORSE:
+            good = up == worse_when_higher
+        else:  # better
+            good = up != worse_when_higher
+        if good:
+            return True
+    return False
+
+
 @dataclass(frozen=True)
 class CheckResult:
     ok: bool
@@ -259,4 +304,7 @@ def check(text: str, evidence: dict[str, Any] | str) -> CheckResult:
     for m in CAUSAL.finditer(text):
         if not any(a <= m.start() and m.end() <= b for a, b in spans):
             problems.append(f"causal wording outside a quoted alert header: {m.group(0)!r}")
+    for m in DIRECTION.finditer(text):
+        if not _direction_ok(m.group(0), allowed):
+            problems.append(f"direction not supported by a change in the evidence: {m.group(0)!r}")
     return CheckResult(not problems, tuple(problems))

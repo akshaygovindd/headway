@@ -135,3 +135,44 @@ def test_extract_forms() -> None:
         ("number", 3.0, "min"), ("number", 210.0, "s"), ("number", 2.0, "h"),
     ]  # fmt: skip
     assert [t.value for t in nc.extract("Line Green-B had 1,200 riders")] == [1200.0]
+
+
+def test_direction_agreeing_with_the_evidence_passes() -> None:
+    # the evidence has deviation 380 s above its baseline (a positive change, higher is worse)
+    for text in (
+        "Delays rose to 420 s.",
+        "Deviation was higher than usual, 380 s above the baseline of 40 s.",
+        "Service worsened and was slower.",
+    ):
+        assert ok(text), nc.check(text, evidence()).problems
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Service improved to 420 s.",
+        "Delays fell.",
+        "Trains were faster than usual.",
+        "The deviation decreased.",
+        "Things got better.",
+    ],
+)
+def test_direction_against_the_evidence_is_rejected(text: str) -> None:
+    result = nc.check(text, evidence())
+    assert not result.ok
+    assert any("direction" in p for p in result.problems)
+
+
+def test_direction_without_a_change_in_the_evidence_is_rejected() -> None:
+    doc = {"line": "Red", "median": 12.0, "hours": [{"hour": "15:00", "median_deviation_s": 12.0}]}
+    for text in ("Delays rose.", "It improved.", "It was lower."):
+        assert not nc.check(text, doc).ok
+    assert nc.check("The median was 12 s.", doc).ok  # no direction word, nothing to check
+
+
+def test_direction_of_a_current_against_previous_change() -> None:
+    doc = {"on_time_change": -4.0, "on_time_pct": 71.0}  # on time fell by 4 points
+    assert nc.check("On-time share fell to 71%.", doc).ok
+    assert nc.check("The on-time share worsened.", doc).ok  # higher is better here
+    assert not nc.check("On-time share improved.", doc).ok
+    assert not nc.check("On-time share rose.", doc).ok
