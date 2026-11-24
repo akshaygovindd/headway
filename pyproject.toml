@@ -23,6 +23,7 @@ headway = "headway.cli:main"
 dev = [
     "boto3-stubs[s3]",
     "duckdb==1.5.6",
+    "mcp>=1.2,<2",
     "moto[s3,server]",
     "mypy",
     "pytest",
@@ -33,6 +34,8 @@ dev = [
 
 # Streamlit app (app/); not part of the default sync or the Lambda zip.
 app = [
+    "duckdb==1.5.6",
+    "mcp>=1.2,<2",
     "pandas>=2.2",
     "plotly>=5.24",
     "pydeck>=0.9",
