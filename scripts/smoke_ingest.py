@@ -11,6 +11,8 @@ Prints one JSON line with the peak resident memory of the process; exits 1 when 
 """
 
 import argparse
+import contextlib
+import io
 import json
 import resource
 import sys
@@ -127,6 +129,21 @@ def cgroup_peak_mb() -> float | None:
     return None
 
 
+def emf_summary(docs: list[dict[str, object]]) -> dict[str, object]:
+    """What the embedded-metric lines of the run say: per feed errors, vehicle polls completed."""
+    feed_errors: dict[str, list[object]] = {}
+    for d in docs:
+        if "FeedErrorCount" in d:
+            feed_errors.setdefault(str(d["Feed"]), []).append(d["FeedErrorCount"])
+    return {
+        "lines": len(docs),
+        "feed_errors": feed_errors,
+        "vehicle_polls_completed": [
+            d["VehiclePollsCompleted"] for d in docs if "VehiclePollsCompleted" in d
+        ],
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", type=Path, required=True, help="directory standing in for S3")
@@ -145,6 +162,7 @@ def main() -> int:
     }
     baseline = peak_mb()
     per_minute = []
+    emf_lines: list[dict[str, object]] = []
     sizes: dict[str, int] = {}
     for minute in range(args.minutes):
         scheduled = SCHEDULED + timedelta(minutes=minute)
@@ -164,17 +182,24 @@ def main() -> int:
             sizes[feed] = max(sizes.get(feed, 0), len(body))
             return FetchResult("ok", 200, body, ft.now, None)
 
-        summary = handler.run_minute(
-            config,
-            raw,
-            public,
-            scheduled,
-            fetcher=fetch,
-            poll_fetcher=fetch,
-            clock=lambda ft=ft: ft.now,
-            sleep=ft.sleep,
-            polls=args.polls,
-        )
+        captured = io.StringIO()
+        with contextlib.redirect_stdout(captured):
+            summary = handler.run_minute(
+                config,
+                raw,
+                public,
+                scheduled,
+                fetcher=fetch,
+                poll_fetcher=fetch,
+                clock=lambda ft=ft: ft.now,
+                sleep=ft.sleep,
+                polls=args.polls,
+            )
+        print(captured.getvalue(), end="")  # the embedded-metric lines stay in the function's log
+        emf_lines.extend(
+            doc for line in captured.getvalue().splitlines() if '"_aws"' in line
+            for doc in [json.loads(line)]
+        )  # fmt: skip
         per_minute.append(
             {
                 "minute": minute,
@@ -194,10 +219,14 @@ def main() -> int:
         "raw_objects": len(raw.list_keys("raw/")),
         "manifests": len(raw.list_keys("manifests/")),
         "minutes": per_minute,
+        "emf": emf_summary(emf_lines),
     }
     print(json.dumps(result))
-    ok = result["peak_rss_mb"] <= args.limit_mb and all(
-        m["vehicle_polls"] == ["ok"] * args.polls for m in per_minute
+    ok = (
+        result["peak_rss_mb"] <= args.limit_mb
+        and all(m["vehicle_polls"] == ["ok"] * args.polls for m in per_minute)
+        and result["emf"]["feed_errors"] == {f: [0] * args.minutes for f in urls.values()}
+        and result["emf"]["vehicle_polls_completed"] == [args.polls] * args.minutes
     )
     return 0 if ok else 1
 

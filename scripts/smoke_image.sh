@@ -16,6 +16,9 @@ moto_pid=
 trap 'docker rm -f "$name" >/dev/null 2>&1 || true; [ -z "$moto_pid" ] || kill "$moto_pid" 2>/dev/null || true' EXIT
 
 # invoke <image> <handler> <expected-python-expression-on-result> [docker args...]
+# EXPECT_LOG (space-separated grep patterns) must each appear in the container log, which is where
+# the embedded-metric lines go; it is reset after every invocation.
+EXPECT_LOG=
 invoke() {
     local image=$1 handler=$2 check=$3
     shift 3
@@ -38,6 +41,15 @@ sys.exit(0 if 'errorMessage' not in r and ($check) else 1)"; then
         docker logs "$name" 2>&1 | tail -40 >&2
         exit 1
     fi
+    local pattern
+    for pattern in $EXPECT_LOG; do
+        if ! docker logs "$name" 2>&1 | grep -E "^\{\"_aws\".*$pattern" >/dev/null; then
+            echo "FAIL $handler: no embedded-metric line for $pattern in the container log" >&2
+            docker logs "$name" 2>&1 | tail -40 >&2
+            exit 1
+        fi
+    done
+    EXPECT_LOG=
     echo "ok   $handler: $out" | cut -c1-300
     docker rm -f "$name" >/dev/null
 }
@@ -85,15 +97,23 @@ transform)
     # Release 2 end to end on S3 (moto), under the same constraints: run state append and load,
     # the SLO models built over that state, history write and its immutability (a second write
     # changes nothing), the SLO models read back from that history, and the export of the whole
-    # R2 allowlist.
+    # R2 allowlist. Also under the same constraints: the run's embedded-metric lines in the
+    # container log, Elementary's history persisted and read back, and the edr report rendered and
+    # uploaded (no network, read-only root, /tmp only).
     curl -s -o /dev/null -XPUT "localhost:$moto_port/smoke-raw" \
         -H "Authorization: AWS4-HMAC-SHA256 Credential=smoke/20260101/us-east-1/s3/aws4_request"
+    EXPECT_LOG="GoldAgeMinutes MissedRunsLastHour ArrivalCoveragePct"
     invoke headway-transform:local headway_transform.handler.lambda_handler \
         "r['smoke'] and r['r2_enabled'] and r['tests_failed'] == 0 and r['r2_tables_exported'] == 14 \
          and r['history_written'] > 0 and r['history_rewritten'] == 0 \
          and r['history_existing_on_rewrite'] == r['history_written'] and r['history_objects_unchanged'] \
          and r['state_rows_loaded'] == 1 and r['slo_daily_rows'] > 0 and r['slo_rollup_rows'] > 0 \
-         and r['transform_success_events'] == [1, 1] and r['slo_rows_read_back_from_history']" \
+         and r['transform_success_events'] == [1, 1] and r['slo_rows_read_back_from_history'] \
+         and r['emf_metrics'] == ['ArrivalCoveragePct', 'GoldAgeMinutes', 'MissedRunsLastHour'] \
+         and r['elementary_persisted']['data_monitoring_metrics'] > 0 \
+         and r['elementary_restored'] == r['elementary_persisted'] \
+         and r['report_key'] == 'public/boston/observability/index.html' and r['report_is_html'] \
+         and r['report_bytes'] > 100000 and r['report_content_type'].startswith('text/html')" \
         --add-host=host.docker.internal:host-gateway \
         -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true \
