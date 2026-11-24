@@ -46,6 +46,7 @@ R3_ALLOWLIST = {
     "agg_forecast_gate_status",
     "agg_incidents",
     "agg_alert_matching_daily",
+    "agg_weather_comparison",
 }
 
 
