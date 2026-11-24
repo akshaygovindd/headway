@@ -31,7 +31,7 @@ def alarms() -> list[tuple[str, str]]:
     found = re.findall(
         r'alarm_name\s*=\s*"([^"]+)".*?alarm_description\s*=\s*"([^"]+)"', text, re.S
     )
-    assert len(found) == 6
+    assert len(found) == 7
     return found
 
 
@@ -49,6 +49,7 @@ def test_every_alarm_has_exactly_one_section_named_after_it() -> None:
     names = {
         "headway-ingest-rt-errors", "headway-ingest-rt-invocations-low", "headway-curate-errors",
         "headway-static-errors", "headway-transform-errors", "headway-transform-not-succeeded",
+        "headway-feed-errors",
     }  # fmt: skip
     assert {slug(f"Alarm: {n}") for n in names} <= known
     resolved = {

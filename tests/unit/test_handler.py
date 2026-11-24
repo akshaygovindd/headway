@@ -269,3 +269,46 @@ def test_chaos_after_until_is_ignored(aws: Any, monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(handler, "_fetch", _fake_fetch())
     result = handler.lambda_handler({"scheduled_at": "2026-06-01T12:00:00Z"}, None)
     assert set(result["statuses"].values()) == {"ok"}
+
+
+def _emf_lines(out: str) -> list[dict[str, Any]]:
+    return [json.loads(x) for x in out.splitlines() if x.startswith("{") and '"_aws"' in x]
+
+
+def test_emf_shape_for_a_healthy_minute(
+    aws: Any, monkeypatch: pytest.MonkeyPatch, capsys: Any
+) -> None:
+    monkeypatch.setattr(handler, "_fetch", _fake_fetch())
+    handler.lambda_handler({"scheduled_at": "2026-06-01T12:00:00Z"}, None)
+    docs = _emf_lines(capsys.readouterr().out)
+    errors = {d["Feed"]: d for d in docs if "FeedErrorCount" in d}
+    assert set(errors) == {"trip_updates", "vehicle_positions", "alerts"}
+    for doc in errors.values():
+        block = doc["_aws"]["CloudWatchMetrics"][0]
+        assert block == {
+            "Namespace": "Headway",
+            "Dimensions": [["Feed"]],
+            "Metrics": [{"Name": "FeedErrorCount", "Unit": "Count"}],
+        }
+        assert doc["FeedErrorCount"] == 0
+        assert isinstance(doc["_aws"]["Timestamp"], int)
+    (polls,) = (d for d in docs if "VehiclePollsCompleted" in d)
+    assert polls["VehiclePollsCompleted"] == 4
+    assert polls["_aws"]["CloudWatchMetrics"][0]["Dimensions"] == [[]]
+
+
+def test_emf_counts_an_error_per_feed_during_feed_down(
+    aws: Any, monkeypatch: pytest.MonkeyPatch, capsys: Any
+) -> None:
+    until = (NOW + timedelta(minutes=15)).isoformat()
+    boto3.client("ssm").put_parameter(
+        Name="/headway/chaos",
+        Type="String",
+        Value=json.dumps({"mode": "feed_down", "until": until}),
+    )
+    handler.lambda_handler({"scheduled_at": "2026-06-01T12:00:00Z"}, None)
+    docs = _emf_lines(capsys.readouterr().out)
+    assert {d["Feed"]: d["FeedErrorCount"] for d in docs if "FeedErrorCount" in d} == {
+        "trip_updates": 1, "vehicle_positions": 1, "alerts": 1,
+    }  # fmt: skip
+    assert next(d for d in docs if "VehiclePollsCompleted" in d)["VehiclePollsCompleted"] == 0

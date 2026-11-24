@@ -123,3 +123,39 @@ resource "aws_cloudwatch_metric_alarm" "transform_stale" {
     }
   }
 }
+
+# Ingest writes FeedErrorCount as an embedded-metric-format log line (namespace Headway, dimension
+# Feed): a failed fetch is not a Lambda error, so the Errors alarm never sees a feed outage.
+resource "aws_cloudwatch_metric_alarm" "feed_errors" {
+  alarm_name          = "headway-feed-errors"
+  alarm_description   = "A realtime feed failed in at least 5 of the last 10 minutes. Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-feed-errors"
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = 0
+  evaluation_periods  = 10
+  datapoints_to_alarm = 5
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+
+  metric_query {
+    id          = "worst"
+    expression  = "MAX([FILL(trip_updates, 0), FILL(vehicle_positions, 0), FILL(alerts, 0)])"
+    label       = "Worst feed errors per minute"
+    return_data = true
+  }
+
+  dynamic "metric_query" {
+    for_each = ["trip_updates", "vehicle_positions", "alerts"]
+
+    content {
+      id = metric_query.value
+
+      metric {
+        namespace   = "Headway"
+        metric_name = "FeedErrorCount"
+        dimensions  = { Feed = metric_query.value }
+        period      = 60
+        stat        = "Sum"
+      }
+    }
+  }
+}

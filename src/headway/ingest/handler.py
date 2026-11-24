@@ -11,6 +11,7 @@ import httpx
 
 from headway import chaos
 from headway.config import CityConfig, load_city_config
+from headway.ingest import emf
 from headway.ingest.capture import POLL_OFFSETS_S, Clock, FeedCapture, Fetcher, Sleeper, capture_run
 from headway.ingest.fetch import FetchResult, fetch_feed
 from headway.ingest.live import (
@@ -138,6 +139,13 @@ def run_minute(
 
     first = {c.entry.feed: c.entry.status for c in captures if c.entry.poll_index == 0}
     vehicle_polls = [c.entry.status for c in captures if c.entry.feed == "vehicle_positions"]
+    emf.emit(
+        emf.run_metrics(
+            clock(),
+            {feed: int(status == "error") for feed, status in first.items()},
+            sum(1 for status in vehicle_polls if status == "ok"),
+        )
+    )
     summary = {
         "run_id": run_id,
         "scheduled_at": scheduled_at.isoformat(),

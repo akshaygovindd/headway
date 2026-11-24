@@ -47,6 +47,28 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
   per minute with `statuses` all `ok`; the alarm returns to OK within 15 minutes; the Pipeline
   health page shows no new missed runs.
 
+### Alarm: headway-feed-errors
+
+- **Meaning:** at least one realtime feed (trip updates, vehicle positions or alerts) failed to
+  fetch in 5 or more of the last 10 minutes. Ingest writes `FeedErrorCount` per feed per run as a
+  CloudWatch embedded-metric log line (namespace `Headway`, dimension `Feed`; 1 when the minute's
+  first fetch of that feed failed). A failed fetch is not a Lambda error, so this is the only
+  alarm that sees a feed outage ([Feed down](#simulation-feed-down)). Missing data does not
+  breach: a silent ingest is [headway-ingest-rt-invocations-low](#alarm-headway-ingest-rt-invocations-low).
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-ingest-rt --since 15m --filter-pattern '{ $.FeedErrorCount > 0 }'
+  curl -s -o /dev/null -w '%{http_code}\n' https://cdn.mbta.com/realtime/VehiclePositions.pb
+  aws ssm get-parameter --name /headway/chaos --query Parameter.Value --output text
+  ```
+- **Likely causes:** the MBTA feed or the network is down, the feed URL or an API key changed, or
+  a live `feed_down` [drill](#live-drills) is running (the last command shows an active switch).
+- **Fix:** nothing on our side if the feed is down; if the URL changed, update
+  `config/cities/boston.yaml` and redeploy. If a drill is running, stop it.
+- **Recovery:** the `FeedErrorCount` lines are 0 again, the alarm returns to OK once fewer than 5
+  of the last 10 minutes had errors, and the ingest summary lines show `statuses` all `ok`. Hours
+  without enough captures stay labelled `data_outage`.
+
 ### Alarm: headway-ingest-rt-invocations-low
 
 - **Meaning:** the ingest Lambda ran fewer than 10 times in 15 minutes (about 15 expected). The
@@ -178,8 +200,9 @@ on purpose in the deployed pipeline, the section links to its [live drill](#live
 - **Replay:** `tests/simulations/test_feed_down.py`: 5 minutes down (freshness warns, hour still
   counts) and 10 minutes down (freshness fails, the hour is a data outage), then recovery.
 - **Meaning:** the MBTA feeds are unreachable. Ingest still runs, claims each minute and records
-  every feed as `status = error`. No CloudWatch alarm fires, by design: the Lambda succeeded.
-  Detection is in the data: `feed_gap_min` (warn at 5, fail at 10 minutes of an hour without
+  every feed as `status = error`. The Lambda succeeds, so the Errors alarms stay quiet; the
+  `headway-feed-errors` alarm fires after 5 minutes of errors
+  ([alarm](#alarm-headway-feed-errors)). The data shows it too: `feed_gap_min` (warn at 5, fail at 10 minutes of an hour without
   fresh trip updates and vehicle positions), `agg_pipeline_health` error statuses, and the
   capture-completeness objective. An hour with fewer than 55 capture minutes is labelled
   `data_outage`, excluded from every metric and counted in `n_excluded_outage`.
@@ -357,7 +380,7 @@ What to expect:
 
 | Drill | You should see | Not expected |
 | --- | --- | --- |
-| `feed_down` 15 min | ingest summary lines with `statuses` all `error`; `feed_gap_min` fail for the hour; the hour labelled `data_outage`; capture completeness spends about 15 minutes of budget | any CloudWatch alarm (the function does not fail) |
+| `feed_down` 15 min | ingest summary lines with `statuses` all `error`; `feed_gap_min` fail for the hour; the hour labelled `data_outage`; capture completeness spends about 15 minutes of budget; the `headway-feed-errors` alarm after about 5 minutes (5 of 10 minutes with errors) | a Lambda `Errors` alarm (the function does not fail) |
 | `md_down` over a `:20` run | one transform run with `publish_error` and `ChaosError`; `headway-transform-errors` alarm; gold `exported_at` still advances; that slot bad for transform success | gold freshness failing |
 
 After the window: confirm recovery with the section of the drill
