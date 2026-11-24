@@ -23,6 +23,7 @@ from headway_transform import (
     forecast_serving,
     forecast_state,
     history,
+    incident_summaries,
     observability,
     publish,
     state,
@@ -594,6 +595,8 @@ def _smoke(started: float) -> dict[str, Any]:
     build = _build_and_test(variables_json, steps)
     if r3_s3:
         forecast.update(_forecast_serving(boto3.client("s3"), _smoke_db_path()))
+    if r3_s3:
+        forecast.update(_incident_summaries(boto3.client("s3"), _smoke_db_path(), smoke=True))
     run_dbt(["run-operation", "export_gold", "--vars", variables_json,
              "--args", json.dumps({"target_dir": gold})])  # fmt: skip
     if s3_gold:
@@ -695,6 +698,38 @@ def _forecast_reports(s3: Any, db_path: str) -> dict[str, Any]:
         return {"forecast_reports_error": f"{type(exc).__name__}: {exc}"}
 
 
+def _incident_summaries(s3: Any, db_path: str, *, smoke: bool = False) -> dict[str, Any]:
+    """Write the incident summaries (LLM with the number check, else the template); never fails
+    the run. In the image smoke test only: HEADWAY_SMOKE_SEED_INCIDENTS seeds two incidents and
+    HEADWAY_SMOKE_FAKE_LLM replaces the provider with a fake whose first answer must be rejected."""
+    try:
+        release_dbt_connections()
+        out: dict[str, Any] = {}
+        client: incident_summaries.LlmClient | None
+        if smoke and os.environ.get("HEADWAY_SMOKE_SEED_INCIDENTS"):
+            out["incident_seeded"] = incident_summaries.seed_smoke_incidents(db_path)
+        if smoke and os.environ.get("HEADWAY_SMOKE_FAKE_LLM"):
+            client = incident_summaries.SmokeLlm()
+        else:
+            try:
+                client = incident_summaries.build_client(boto3.client("ssm"))
+            except Exception:  # no SSM client (no region, no endpoint): the template is the fallback
+                logger.exception("could not read the incident LLM key")
+                client = None
+        out.update(
+            incident_summaries.summarize(
+                s3, os.environ["RAW_BUCKET"], db_path, _now(), client=client
+            )
+        )
+        return out
+    except Exception as exc:
+        logger.exception("incident summaries failed")
+        return {
+            "incident_summary_status": "failed",
+            "incident_summary_error": f"{type(exc).__name__}: {exc}",
+        }
+
+
 def _forecast_serving(s3: Any, db_path: str) -> dict[str, Any]:
     """Score the next hour with the registered model; never fails the run (baselines only)."""
     try:
@@ -793,6 +828,9 @@ def _transform(
         t0 = time.monotonic()
         summary.update(_forecast_serving(s3, db_path))
         timed("forecast_serving", t0)
+        t0 = time.monotonic()
+        summary.update(_incident_summaries(s3, db_path))
+        timed("incident_summaries", t0)
 
     t0 = time.monotonic()
     run_dbt(["run-operation", "export_gold", "--vars", variables,

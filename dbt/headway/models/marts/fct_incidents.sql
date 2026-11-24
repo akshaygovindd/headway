@@ -143,8 +143,8 @@ assembled as (
                     then 'disabled in some hours: fewer than {{ cfg['min_baseline_days'] }} earlier service days of this day type'
                 else 'enabled' end,
             'baseline_days', c.baseline_days,
-            'coverage_pct_min', round(c.min_coverage_pct, 1),
-            'coverage_pct_mean', round(c.mean_coverage_pct, 1),
+            'min_coverage_pct', round(c.min_coverage_pct, 1),
+            'mean_coverage_pct', round(c.mean_coverage_pct, 1),
             'data_outage_hours_inside', o.n_outage_hours_inside,
             'alerts', a.alerts_json
         ) as varchar) as evidence_json

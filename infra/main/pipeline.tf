@@ -8,6 +8,9 @@ locals {
   history_prefix = "public/${var.city_id}/history"
   motherduck_ssm = "/headway/motherduck_token"
   motherduck_arn = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.motherduck_ssm}"
+  # The incident-summary LLM key (Release 3): created by hand, never by Terraform.
+  openai_ssm = "/headway/openai_api_key"
+  openai_arn = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.openai_ssm}"
   # The chaos switch (ADR-017) is created by hand when a drill needs it, never by Terraform; the
   # ingest and transform roles may read it, nothing may write it.
   chaos_ssm    = "/headway/chaos"
@@ -21,9 +24,12 @@ locals {
   # Release 3: the closed-day forecast tables (forecast_examples, forecast_gate_days) are written
   # once each by the transform and read by the training Lambda (dbt/headway_transform/forecast_state.py).
   forecast_state_prefix = "state/forecast_*"
+  # Release 3: the incident summaries (state/incident_summaries), so a version is summarised once and
+  # the daily LLM call cap holds across runs (dbt/headway_transform/incident_summaries.py).
+  incident_state_prefix = "state/incident_summaries"
   state_prefixes = concat(
     [local.state_prefix, local.elementary_state_prefix],
-    var.enable_r3 ? [local.forecast_state_prefix] : [],
+    var.enable_r3 ? [local.forecast_state_prefix, local.incident_state_prefix] : [],
   )
   # Release 3 serving: the transform reads the model registry (latest.json, the model files) and
   # the training job's reports. Read and list only; the training role writes them (train.tf).
@@ -244,6 +250,14 @@ data "aws_iam_policy_document" "transform" {
     sid       = "ReadChaosSwitch"
     actions   = ["ssm:GetParameter"]
     resources = [local.chaos_arn]
+  }
+
+  # The incident-summary LLM key (Release 3). The parameter is created by hand, never by Terraform;
+  # without it the summaries use the deterministic template. SecureString under the default key.
+  statement {
+    sid       = "ReadOpenAiKey"
+    actions   = ["ssm:GetParameter"]
+    resources = [local.openai_arn]
   }
 
   # Cost Explorer has no resource-level permissions.

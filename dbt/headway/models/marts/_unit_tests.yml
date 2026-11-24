@@ -918,3 +918,25 @@ unit_tests:
         - {kind: "incident", item_id: "i2", line: "Blue", match_status: "unmatched_incident", n_counterparts: 0, alert_lag_s: null, first_alert_id: null}
         - {kind: "alert", item_id: "a1", line: "Red", match_status: "matched", n_counterparts: 1, alert_lag_s: null, first_alert_id: null}
         - {kind: "alert", item_id: "b1", line: "Blue", match_status: "unmatched_alert", n_counterparts: 0, alert_lag_s: null, first_alert_id: null}
+
+  - name: incident_evidence_json
+    config:
+      tags: [r3]
+    description: >-
+      The evidence document of one incident: Red direction 0 breaches at 08:00 (gap share 35%, a
+      line-wide alert) and 09:00 (deviation 380 s over a 40 s baseline), and is clear at 10:00. The
+      JSON carries the hours with their values and rules crossed, the thresholds, the baseline
+      state, coverage, outage hours and the alert with its header: everything a summary may state.
+    model: fct_incidents
+    given:
+      - input: ref('int_incident_hours')
+        rows:
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 8, hour_start: "2026-11-22 08:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, median_deviation_s: 100.0, baseline_median_s: 40.0, pct_gap: 35.0, skipped_pct: 2.0, coverage_pct: 80.0, alert_active: true, crossed_deviation: false, crossed_gap: true, crossed_skipped: false, crossed_alert: true}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 9, hour_start: "2026-11-22 09:00:00", data_outage: false, breach: true, baseline_enabled: true, baseline_days: 20, median_deviation_s: 420.0, baseline_median_s: 40.0, pct_gap: 10.0, skipped_pct: 0.0, coverage_pct: 90.0, alert_active: false, crossed_deviation: true, crossed_gap: false, crossed_skipped: false, crossed_alert: false}
+          - {line: "Red", direction_id: 0, service_date: "2026-11-22", hour_local: 10, hour_start: "2026-11-22 10:00:00", data_outage: false, breach: false, baseline_enabled: true, baseline_days: 20, median_deviation_s: 20.0, baseline_median_s: 40.0, pct_gap: 0.0, skipped_pct: 0.0, coverage_pct: 90.0, alert_active: false, crossed_deviation: false, crossed_gap: false, crossed_skipped: false, crossed_alert: false}
+      - input: ref('int_alert_scopes')
+        rows:
+          - {line: "Red", scope: "line", is_service_disruption: true, service_date: "2026-11-22", hour_local: 8, alert_id: "a1", effect: "DETOUR", header_text: "Shuttle buses replace trains"}
+    expect:
+      rows:
+        - {line: "Red", evidence_json: '{"line":"Red","direction_id":0,"date":"2026-11-22","start":"08:00","end":"10:00","is_open":false,"n_hours":2,"hours":[{"hour":"08:00","date":"2026-11-22","median_deviation_s":100.0,"baseline_median_s":40.0,"deviation_over_baseline_s":60.0,"gap_share_pct":35.0,"skipped_share_pct":2.0,"coverage_pct":80.0,"alert_active":true,"crossed":["gap","alert"]},{"hour":"09:00","date":"2026-11-22","median_deviation_s":420.0,"baseline_median_s":40.0,"deviation_over_baseline_s":380.0,"gap_share_pct":10.0,"skipped_share_pct":0.0,"coverage_pct":90.0,"alert_active":false,"crossed":["deviation"]}],"thresholds":{"deviation_over_baseline_s":180,"gap_share_pct":30,"skipped_share_pct":20,"min_hours":2},"baseline_rule":"enabled","baseline_days":20,"min_coverage_pct":80.0,"mean_coverage_pct":85.0,"data_outage_hours_inside":0,"alerts":[{"alert_id":"a1","effect":"DETOUR","header":"Shuttle buses replace trains"}]}'}
