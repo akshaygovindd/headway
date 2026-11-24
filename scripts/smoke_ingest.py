@@ -1,13 +1,15 @@
 """Peak-memory smoke test for the ingest handler: a time-compressed 4-poll cycle.
 
-Run inside the Lambda Python image under `docker run --memory=128m` (see `smoke_image.sh ingest`):
+Run inside the Lambda Python image under `docker run --memory=256m` (see `smoke_image.sh ingest`):
 the ingest package from build/lambda is mounted at /var/task. The handler's own `run_minute` runs
 for a few consecutive minutes against fake feeds sized like the real ones (the largest real
 bodies seen: trip updates 1.1 MB, alerts 260 KB, vehicle positions 90 KB), with an injected clock
 and sleep so a 60 s minute takes a fraction of a second, and local directories standing in for S3.
 
 Prints one JSON line with the peak resident memory of the process; exits 1 when it exceeds
---limit-mb (default 110, leaving headroom under a 128 MB function).
+MAX_PEAK_FRACTION (50 %) of --memory-mb, the function's configured memory (default 256). The
+fraction is that low because this process leaves out the Lambda runtime's own overhead: the
+smoke read 60-70 MB where Lambda reported 114 MB (see docs/INCIDENTS.md).
 """
 
 import argparse
@@ -30,6 +32,7 @@ from headway.storage import LocalStorage
 SCHEDULED = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
 START_DELAY_S = 17.6  # median real delay from the scheduled minute to the first fetch
 FETCH_S = 0.3
+MAX_PEAK_FRACTION = 0.5
 TARGET_BYTES = {"trip_updates": 1_150_000, "alerts": 260_000, "vehicle_positions": 90_000}
 
 
@@ -149,8 +152,9 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True, help="directory standing in for S3")
     ap.add_argument("--minutes", type=int, default=3)
     ap.add_argument("--polls", type=int, default=4, choices=[1, 4], help="VEHICLE_POLLS")
-    ap.add_argument("--limit-mb", type=float, default=110.0)
+    ap.add_argument("--memory-mb", type=float, default=256.0, help="configured function memory")
     args = ap.parse_args()
+    args.limit_mb = args.memory_mb * MAX_PEAK_FRACTION
 
     config = load_city_config("boston")
     raw = LocalStorage(args.out / "raw")

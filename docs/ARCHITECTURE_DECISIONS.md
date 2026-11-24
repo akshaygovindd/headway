@@ -266,30 +266,33 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   capture id; manifest entries carry `poll_index` 0-3 and all share the minute's `scheduled_at`, so
   a minute is still one manifest (claimed with the conditional create of ADR-013) and still counts
   as one capture minute in the observation window. The live snapshot is rewritten after every
-  vehicle poll. The ingest Lambda is sized at 128 MB with a 58 s timeout; if real runs approach the
-  limit it goes to 256 MB (twice the GB-seconds below). Budget alerts move from USD 5 / 10 to
+  vehicle poll. The ingest Lambda is sized at 256 MB with a 58 s timeout. It was first deployed at 128 MB
+  and Lambda reported 114 MB used (89 %), so it went to 256 MB (see INCIDENTS.md, "Ingest Lambda
+  memory underestimated"): 127 to 128 MB used (50 %), single-poll runs 2.5 s. Budget alerts move from USD 5 / 10 to
   USD 8 / 15.
 - **Cost:** per 30-day month, us-east-1 list prices, to be checked against the bill after deploy.
   - Lambda, the dominant item: the last poll is due 45 s after the scheduled time, so a run that
     starts on the minute lasts about 48 s (if the 17 s start delay measured in MEASUREMENTS.md is
     a delay before the invocation starts, it is about 30 s and the cost is a third lower). At
-    48 s and 0.125 GB that is about 6 GB-s per invocation and 259,200 GB-s a month. At USD 0.0000133334 per GB-s (arm64) that is about USD 3.46 before the
+    48 s and 0.25 GB that is about 12 GB-s per invocation and 518,400 GB-s a month. At USD 0.0000133334 per GB-s (arm64) that is about USD 6.91 before the
     free tier (400,000 GB-s a month for the whole account, which the other functions also use).
     Before, a run of an estimated 3-5 s at 256 MB was about 32,000-54,000 GB-s, USD 0.43-0.72
-    (the old duration was not measured). At 256 MB the new runs cost about USD 6.9.
+    (the old duration was not measured). At the former 128 MB size the new runs would have cost
+    about USD 3.5.
   - S3 PUTs at USD 0.005 per 1,000: raw vehicle captures 43,200 to 172,800 (+129,600), live
     snapshot PUTs to the public bucket 43,200 to 172,800 (+129,600); +259,200 PUTs, about
     USD 1.30. Curate reads 3 more small objects per minute, under USD 0.10.
   - Storage and rows: about 130,000 more raw objects a month (vehicle bodies are small, 49 KB
     average before gzip), and curated vehicle rows grow from about 98,000 to about 392,000 a day.
-  - Total: about USD 3-5 more a month, which is why the budget alerts move.
+  - Total: about USD 6-8 more a month at 256 MB, which is why the budget alerts move.
 - **Consequences:** One invocation now lasts most of a minute, so a delayed or duplicated
   scheduler delivery overlaps the next minute (ADR-013: a duplicate delivery still runs all four
   polls before it finds the minute claimed; claiming earlier is the open item there). Curated
   `vehicle_positions` has up to four captures a minute with the same position repeated until the
-  vehicle reports again; arrival models de-duplicate on vehicle and `event_ts`. The memory limit
-  was checked with `make ingest-smoke` (peak 60 MB resident in a time-compressed cycle), not in
-  Lambda itself. The confidence thresholds (30 s high, 120 s medium) stay as in the spike method.
+  vehicle reports again; arrival models de-duplicate on vehicle and `event_ts`. The local smoke
+  (`make ingest-smoke`) measured 60 to 70 MB resident, but that leaves out the Lambda runtime's
+  overhead; production showed 114 MB at 128 MB, hence 256 MB. The smoke now fails above 50 % of
+  the configured memory. The confidence thresholds (30 s high, 120 s medium) stay as in the spike method.
   The quarter-minute accuracy is expected from the interval width, not yet measured: see
   `docs/MEASUREMENTS.md` after the first days of 15 s data.
 - **Revisit when:** two full days of 15 s data allow the spike to be repeated, real Lambda

@@ -65,8 +65,8 @@ resource "aws_lambda_function" "ingest" {
   runtime       = "python3.12"
   architectures = ["arm64"]
   handler       = "headway.ingest.handler.lambda_handler"
-  # 128 MB is the target (the vehicle poll loop holds one feed at a time; `make images-smoke`
-  # checks peak memory under a 128 MB limit). Fall back to 256 if real runs get close. The
+  # 256 MB: at 128 MB Lambda reported 114 MB used (the local smoke excludes runtime overhead and
+  # read 60-70 MB). `make ingest-smoke` fails above 50 % of this size. The
   # timeout covers a run that waits for the 15 s polls: ~48 s typical, ended by 55 s at the latest.
   memory_size = 256
   timeout     = 58

@@ -139,11 +139,11 @@ curate)
     ;;
 ingest)
     # The ingest function is a zip, not an image: run it on the Lambda Python base image with the
-    # package built by `make lambda-zip` mounted at /var/task, under the function's 128 MB limit.
-    # A time-compressed 4-poll cycle with fake feeds; fails when peak RSS exceeds 110 MB.
+    # package built by `make lambda-zip` mounted at /var/task, under the function's 256 MB limit.
+    # A time-compressed 4-poll cycle with fake feeds; fails when peak RSS exceeds 50% of it (the smoke leaves out runtime overhead).
     rm -rf "$smoke/ingest" && mkdir -p "$smoke/ingest" && chmod a+rwx "$smoke/ingest"
     for polls in 1 4; do
-        docker run --rm --name "$name" --platform linux/arm64 --memory=128m --memory-swap=128m \
+        docker run --rm --name "$name" --platform linux/arm64 --memory=256m --memory-swap=256m \
             --read-only --ipc=none --tmpfs /tmp:exec --user 993:990 \
             -v "$root/build/lambda:/var/task:ro" -v "$root/scripts/smoke_ingest.py:/smoke/smoke_ingest.py:ro" \
             -v "$smoke/ingest:/out" \
