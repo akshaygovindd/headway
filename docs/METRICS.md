@@ -564,3 +564,12 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
 - **Hand check:** whether the rule is right is a judgement. `scripts/alert_handcheck.py` exports a
   sample (at least 10 of each of the four kinds) for manual review; the outcome is recorded in
   `docs/MEASUREMENTS.md` and until then the page says the review is pending.
+
+## AI analyst tools (Release 3)
+
+The analyst's `metric` values map to the sections above (`src/headway_mcp/catalog.py`): the
+predicted deviation, revision, coverage and skipped-share metrics to sections 1 to 3, actual
+deviation and on-time share to section 7, headway shares to section 8, excess trip time to
+section 9. Every tool result names its anchor, tables, comparison period, coverage, freshness and
+SQL (ADR-020). Values from hours under 50% coverage are withheld, and answers are checked against
+the tool results with the number, causal and direction rules of ADR-008.

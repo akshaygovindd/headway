@@ -119,6 +119,7 @@ to the public gold bucket. Deploying your own copy is described in [docs/DEPLOY.
 | `src/headway/` | ingest, parse, contracts, curate, export, CLI |
 | `dbt/headway/` | dbt project: staging, intermediate, marts, tests |
 | `dbt/headway_transform/` | transform Lambda: dbt run, gold export, publish, cost |
+| `src/headway_mcp/` | AI analyst: five read-only MCP tools over public gold, orchestration, budgets |
 | `app/` | Streamlit app (`Home.py` navigation, `overview_page.py`, `pages/`, `lib/`, tests) |
 | `infra/` | Terraform: `bootstrap/` (state bucket) and `main/` (stack) |
 | `docker/` | container images for curate and transform |
@@ -126,6 +127,13 @@ to the public gold bucket. Deploying your own copy is described in [docs/DEPLOY.
 | `samples/boston/` | one-hour sample with expected results |
 | `scripts/` | demo build, e2e, acceptance report, benchmarks |
 | `docs/` | metrics, decisions, lineage, deploy, incidents, measurements |
+
+## AI analyst
+
+The AI analyst page answers questions through five read-only tools that query only the public
+gold Parquet (ADR-020). Every answer is checked against the tool results (numbers, causes,
+direction words; ADR-008) and shows its SQL, definition, comparison period, coverage and freshness.
+Without an OpenAI key, or over the cost limits (ADR-021), it shows precomputed examples.
 
 ## Roadmap
 

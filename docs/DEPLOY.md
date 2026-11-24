@@ -324,6 +324,19 @@ Switch-on, Phase 3.4 (incidents, summaries, alert vs reality; built and smoke-te
    the Incidents page appears in the app. A failure of the step is logged and never fails the run.
 5. Once a few weeks of incidents exist, do the alert hand check: `docs/MEASUREMENTS.md`.
 
+### AI analyst (Phase 3.5; nothing is deployed by the repository's tests)
+
+1. The transform image now carries `headway_mcp`; rebuild and push it (`make images-build`,
+   `make images-push`) and deploy. With R3 on, each run writes `gold/analyst_examples.json`
+   (`analyst_examples` in the run summary; a failure is logged and never fails the run).
+2. Live questions are off until the Streamlit app has the secret. In the app's secrets
+   (Streamlit Community Cloud: Settings, Secrets) add `OPENAI_API_KEY = "sk-..."`. Optional
+   environment variables: `HEADWAY_ANALYST_DAILY_BUDGET` (default 100),
+   `HEADWAY_ANALYST_SESSION_LIMIT` (default 10), `HEADWAY_ANALYST_LLM_MODEL` (default gpt-4o-mini).
+   Without the secret the page shows the examples only.
+3. Check: open the AI analyst page, ask one question, and confirm the "verified" badge, the SQL
+   and the freshness line. The audit lines (`headway_mcp.audit`) are in the app log.
+
 ## Release 2 history, run state and SLOs
 
 With `enable_r2 = true` the transform Lambda also keeps two kinds of object, both written by its

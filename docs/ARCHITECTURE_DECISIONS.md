@@ -24,6 +24,8 @@ stable: other documents and code comments cite them as `ADR-NNN`.
 | 017 | Chaos switch for failure drills | Accepted (R2) |
 | 018 | Elementary on dbt-duckdb: anomaly tests, persisted history, daily report | Accepted (R2) |
 | 019 | Forecasting design: target, horizons, leakage rule, gate, baselines | Proposed |
+| 020 | Analyst data access through the public gold tables | Accepted (R3, Phase 3.5) |
+| 021 | LLM cost and abuse controls | Accepted (R3, Phase 3.5) |
 
 Template: Status, Context, Decision, Consequences, Revisit when.
 
@@ -141,8 +143,8 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 
 ### ADR-008: Preventing unsupported AI claims
 
-- **Status:** Accepted for the incident summaries (R3, Phase 3.4); Proposed for the conversational
-  assistant, which is not built
+- **Status:** Accepted for the incident summaries (R3, Phase 3.4) and for the AI analyst (R3,
+  Phase 3.5, ADR-020, ADR-021)
 - **Context:** A language model that writes about the metrics can state things the data does not
   support: a number that is not there, a cause nobody measured, a comparison across unlike lines.
   Incident summaries are the first place Headway lets a model write text a rider reads.
@@ -174,6 +176,13 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   back to the template, in return for being traceable to the evidence shown under each one. The
   provider sits behind an interface (`LlmClient`), so tests and the image smoke test run with fakes
   and no network.
+- **Phase 3.5 additions:** the same check applies to analyst answers, against the tool results
+  instead of an evidence JSON, and gains a **direction rule**: a direction word (improved, better,
+  worsened, worse, increased, rose, decreased, fell, dropped, higher, lower, faster, slower) must agree
+  with the sign of a related change in the evidence (`deviation_over_baseline_s`, or a `*_change` or
+  `delta_*` field such as the value minus the previous one); where the evidence has no change,
+  direction words are rejected. Whether higher is worse is read from the field name (on-time,
+  within-band and coverage: higher is better).
 - **Revisit when:** the assistant (R4) is designed, which needs the same rules over tool results,
   or the rejection count shows the check blocking legitimate text (read `rejection_reason` in
   `incident_summaries`).
@@ -537,3 +546,44 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   honest cost of reconstructing arrivals from sampled positions.
 - **Revisit when:** the gate is passed for a line, when the baselines show that the horizons or
   the slot width are wrong, or when the label coverage differs much between lines.
+
+### ADR-020: Analyst data access through the public gold tables
+
+- **Status:** Accepted (R3, Phase 3.5); refines ADR-011 (the MCP half; the FastAPI half stays proposed)
+- **Context:** An AI analyst answers free-form questions. Whatever it can reach, a wrong or
+  manipulated question can reach, so the reachable surface must be the smallest one that answers
+  the questions, and the one the public already sees.
+- **Decision:** `headway_mcp` exposes five read-only tools (`get_line_reliability`, `compare_lines`,
+  `get_delay_trends`, `get_service_alerts`, `get_pipeline_health`) through FastMCP. They query only
+  the public gold and history Parquet over HTTPS with DuckDB (`HEADWAY_DATA_URL`; `file://` in
+  tests). No raw or curated bucket, no warehouse, no credentials, no free SQL: each tool builds one
+  fixed SELECT from validated enums (lines, metrics of `docs/METRICS.md`, windows) and ISO dates.
+  Limits: a date range of at most 31 days (alerts and health: 7), 500 rows, a 5 s query timeout.
+  A value from a row under 50 % arrival coverage is returned as null, as on every page. A metric
+  the export lacks gives a structured `not_available` with the list of available metrics. Every
+  result carries provenance: tables, METRICS.md anchor, comparison period, coverage, freshness
+  (`exported_at`) and the exact SQL that ran. One audit log line per call records the question id,
+  tool, arguments, rows and latency. The Streamlit page runs client and server in process.
+- **Consequences:** The analyst can say nothing the public cannot already read, and a leak is
+  impossible by construction. It is limited to what gold holds (two windows, daily and hourly
+  grain); history is read only for daily and hourly aggregates that have it.
+- **Revisit when:** a question class needs data gold does not export, or the app moves to a
+  separate API (ADR-010), when the same tools can be served remotely.
+
+### ADR-021: LLM cost and abuse controls
+
+- **Status:** Accepted (R3, Phase 3.5)
+- **Context:** The analyst page is public and every live question costs a model call.
+- **Decision:** A daily budget of questions (default 100, `HEADWAY_ANALYST_DAILY_BUDGET`) and a
+  per-session limit (default 10, `HEADWAY_ANALYST_SESSION_LIMIT`). The daily count is kept in
+  process and in a small JSON counter (date keyed, in the temp directory) so a restart does not
+  reset it; a refused question is never counted. The model call has at most four tool rounds, a
+  500-token answer, a 500-character question and temperature 0. Over budget, over the session
+  limit or without the key (Streamlit secret `OPENAI_API_KEY`), the page shows 8 to 10 curated
+  example questions whose answers were computed from the tools by the transform when R3 is on
+  (`gold/analyst_examples.json`), with no model at view time. A question that tries to change the
+  rules is refused before any model call, and only the five tool names are ever dispatched.
+- **Consequences:** The worst-case daily cost is the budget times one bounded call. The counter is
+  per app instance and best effort on a read-only or ephemeral disk; a second instance has its own.
+- **Revisit when:** the page runs on more than one instance (move the counter to shared storage)
+  or the budget is hit on most days.
