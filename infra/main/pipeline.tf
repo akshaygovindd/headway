@@ -149,6 +149,16 @@ data "aws_iam_policy_document" "static" {
       "${aws_s3_bucket.raw.arn}/curated/${var.city_id}/static/*",
     ]
   }
+
+  # Daily weather for the Release 3 weather comparison (ADR-022): one part per date.
+  dynamic "statement" {
+    for_each = var.enable_r3 ? [1] : []
+    content {
+      sid       = "WriteCuratedWeather"
+      actions   = ["s3:PutObject"]
+      resources = ["${aws_s3_bucket.raw.arn}/curated/${var.city_id}/table=weather_daily/*"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "static" {
@@ -317,6 +327,8 @@ resource "aws_lambda_function" "static" {
     variables = {
       RAW_BUCKET = aws_s3_bucket.raw.bucket
       CITY_ID    = var.city_id
+      # Release 3: also fetch the daily weather (ADR-022).
+      HEADWAY_ENABLE_R3 = tostring(var.enable_r3)
     }
   }
 
