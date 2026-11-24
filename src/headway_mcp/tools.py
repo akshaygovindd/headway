@@ -383,3 +383,8 @@ class Tools:
             f"order by _src) = 1)"
         )
         return src, [s.table, f"history/{s.table}"]
+
+    def as_of_date(self) -> date:
+        """The service date of the latest metrics in the export (for default ranges)."""
+        raw = str(self._manifest().get("metrics_as_of", ""))[:10]
+        return date.fromisoformat(raw)

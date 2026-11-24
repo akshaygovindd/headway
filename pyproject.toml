@@ -64,6 +64,7 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 
 [tool.mypy]
 strict = true
+mypy_path = "dbt"
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
