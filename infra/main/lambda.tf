@@ -68,7 +68,7 @@ resource "aws_lambda_function" "ingest" {
   # 128 MB is the target (the vehicle poll loop holds one feed at a time; `make images-smoke`
   # checks peak memory under a 128 MB limit). Fall back to 256 if real runs get close. The
   # timeout covers a run that waits for the 15 s polls: ~48 s typical, ended by 55 s at the latest.
-  memory_size = 128
+  memory_size = 256
   timeout     = 58
 
   filename         = "${path.module}/../../build/ingest.zip"
