@@ -13,7 +13,7 @@ from typing import Any
 
 import boto3
 
-from headway_transform import chaos, cost, history, publish, state
+from headway_transform import chaos, cost, emf, history, publish, state
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -602,6 +602,11 @@ def _transform(
         steps[name] = round((time.monotonic() - t0) * 1000)
         logger.info("step %s finished in %d ms", name, steps[name])
 
+    try:
+        previous_export = emf.previous_export(db_path)
+    except Exception:
+        logger.exception("could not read the previous export time")
+        previous_export = None
     variables = _variables(lookback, _now())
     build = _build_and_test(variables, steps)
     run.tests_passed, run.tests_failed = build.tests_passed, build.tests_failed
@@ -633,6 +638,8 @@ def _transform(
         logger.exception("cost report failed")
         summary["cost_error"] = f"{type(exc).__name__}: {exc}"
     timed("cost", t0)
+
+    _emit_metrics(db_path, previous_export, run.gold_exported_at)
 
     history_error: Exception | None = None
     if publish.r2_enabled():
@@ -690,6 +697,19 @@ def _transform(
         raise history_error
     run.status = "success" if build.success else "tests_failed"
     return summary
+
+
+def _emit_metrics(db_path: str, previous: datetime | None, exported_at: datetime | None) -> None:
+    """Print the run's EMF metric lines; never fails the run. dbt's connection is already closed."""
+    now = _now()
+    try:
+        metrics = emf.collect(
+            db_path, now, previous=previous, exported_at=exported_at or now,
+            r2=publish.r2_enabled(), lag=SLO_LAG, timezone=_timezone(),
+        )  # fmt: skip
+        emf.emit(now, metrics)
+    except Exception:
+        logger.exception("could not emit run metrics")
 
 
 def _fail_publish_in_drill(drill: chaos.Chaos) -> None:
