@@ -21,6 +21,8 @@ stable: other documents and code comments cite them as `ADR-NNN`.
 | 014 | Vehicle positions sampled every 15 s | Accepted (R2) |
 | 015 | Immutable history of daily aggregates, versioned per metric family | Accepted (R2) |
 | 016 | Confidence levels: only high and medium arrivals feed metrics | Accepted (R2) |
+| 017 | Chaos switch for failure drills | Accepted (R2) |
+| 018 | Elementary on dbt-duckdb: anomaly tests, persisted history, daily report | Accepted (R2) |
 
 Template: Status, Context, Decision, Consequences, Revisit when.
 
@@ -366,3 +368,46 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   parameter is the only addition to the roles.
 - **Revisit when:** a drill needs a mode that cannot be made by failing a fetch or the publish
   (for example a corrupt payload), or a second environment needs its own switch.
+
+### ADR-018: Elementary on dbt-duckdb: anomaly tests, persisted history, daily report
+
+- **Status:** Accepted (R2)
+- **Context:** The dbt tests say whether a run is correct, not whether the data looks like
+  yesterday's. Row counts and freshness of the large tables can drift without any test failing.
+  Elementary adds anomaly tests and an HTML report, but it must work on DuckDB, inside the
+  transform image (arm64, Python 3.12, read-only root, `/tmp` only, no network at runtime), and
+  its results must outlive a container whose database is rebuilt every hour.
+- **Verified before adopting** (package metadata and sources, then the image smoke test):
+  the Elementary dbt package 0.26.1 requires dbt `>=1.0,<3.0` (we run 1.11) and ships `duckdb__*`
+  macros; the `edr` CLI 0.26.1 has a `duckdb` extra that requires `dbt-duckdb>=1.8,<2` (we run
+  1.10), and the whole set resolves with our pins (dbt-core, dbt-duckdb, duckdb 1.5.6, protobuf
+  unchanged; networkx goes from 3.7 to 2.8.8 because `edr` pins `<3` and dbt-core allows it). Two
+  of its dependencies, `grapheme` and `ratelimit`, publish no wheel and are built from source
+  (pure Python) in the image's build stage. Under the smoke constraints `edr report` runs
+  in-process (dbt is a library there, no `dbt` binary is needed), renders about 8 MB of HTML from
+  the DuckDB file and needs three accommodations, all in `observability.py`: its internal dbt
+  project and ours have their packages installed at build time (`dbt deps` would otherwise download
+  at runtime and write to the image), its default target directory is created at import, so it is
+  imported from a `/tmp` working directory, and telemetry is switched off in a generated config.
+- **Decision:** `elementary-data[duckdb]` and the dbt package are pinned to the same release
+  (`dbt/pyproject.toml`, `dbt/headway/packages.yml` with its lock file). `elementary.volume_anomalies`
+  and `elementary.freshness_anomalies` run, as warnings that never block an export, on
+  `fct_stop_predictions` (`collected_at`), `fct_reconstructed_arrivals` (`arrival_ts`, Release 2 only)
+  and `agg_line_reliability_hourly` (`service_date`: the table has no timestamp, so freshness is the
+  age of the newest service day). Elementary writes its tables into the run's DuckDB file. The two
+  that carry history, anomaly test results and the data-monitoring metrics (the baseline of every
+  anomaly test), are persisted with the run-state mechanism of `state.py`: restored into the tables
+  dbt has just built, before the tests run, and the rows the run created are appended at its end.
+  The plain dbt test rows (about 600 a run) and the artifact tables are rebuilt each run and not
+  persisted. On the first run at or after 06:00 UTC the report is generated and uploaded to
+  `public/boston/observability/index.html`; the Pipeline health page links to it. Any failure of
+  the restore, the persist or the report is logged and never fails the run.
+- **Consequences:** The image grows (about 1.2 GB with the extra packages and the report assets)
+  and every run builds about 30 Elementary models and records their results (a few seconds). The
+  anomaly tests need a training window of days before they say anything; until then they pass.
+  `make check` and the scripts that build dbt install the packages once (`scripts/dbt_deps.py`).
+  The report is public like the rest of `public/`; sampling of data rows is switched off in it.
+- **Revisit when:** Elementary stops supporting dbt-duckdb or the pinned dbt, the report outgrows a
+  daily rebuild, or anomaly warnings are trusted enough to alarm. The alternative if it breaks:
+  the dbt test results and run history are already persisted (`agg_transform_runs`); a small HTML
+  test-history page rendered from that table would replace the report.

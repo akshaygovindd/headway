@@ -71,6 +71,11 @@ def base_url(value: str | None = None) -> str:
     return url.rstrip("/")
 
 
+def observability_url(base: str) -> str | None:
+    """The daily Elementary report written by the transform, or None for a local data root."""
+    return f"{base}/observability/index.html" if base.startswith("https://") else None
+
+
 def read_bytes(url: str) -> bytes:
     if not url.startswith(("file://", "https://")):
         raise DataUnavailableError(f"unsupported URL scheme: {url}")

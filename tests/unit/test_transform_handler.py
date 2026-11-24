@@ -184,7 +184,7 @@ def test_cost_report_is_written_after_dbt_connections_are_released(
 
     monkeypatch.setattr(handler.cost, "write_cost_daily", spy)
     handler.lambda_handler({}, None)
-    assert order[-2:] == ["release", "cost"]  # also released once at startup, before state loads
+    assert order[order.index("cost") - 1] == "release"  # cost reads the file dbt had open
 
 
 def test_cost_per_1000_is_null_without_captures() -> None:
@@ -312,7 +312,7 @@ def test_handler_builds_exports_costs_and_publishes(
     assert summary["rows_exported"] == 12
     assert summary["cost_rows"] == 1
     assert set(summary["step_ms"]) == {
-        "s3_load", "dbt_build", "dbt_test", "export_gold", "cost", "publish",
+        "s3_load", "dbt_build", "dbt_test", "export_gold", "cost", "observability", "publish",
     }  # fmt: skip
     assert all(isinstance(ms, int) and ms >= 0 for ms in summary["step_ms"].values())
 

@@ -119,3 +119,14 @@ else:
         help="— means no capture count was available for that day.",
     )
     st.dataframe(spend["by_service"], hide_index=True, width="stretch")
+
+st.subheader("Observability report")
+report_url = data.observability_url(base)
+if report_url is None:
+    st.caption("The daily observability report is published with the deployed data only.")
+else:
+    st.markdown(f"[Open the observability report]({report_url})")
+    st.caption(
+        "Elementary's report of test history and anomaly checks on row counts and freshness of "
+        "the prediction, arrival and line-reliability tables. Rebuilt once a day, after 06:00 UTC."
+    )

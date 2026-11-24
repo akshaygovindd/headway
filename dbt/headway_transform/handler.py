@@ -4,16 +4,18 @@ import json
 import logging
 import os
 import shutil
+import tempfile
 import time
 import traceback
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import boto3
 
-from headway_transform import chaos, cost, emf, history, publish, state
+from headway_transform import chaos, cost, emf, history, observability, publish, state
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -326,13 +328,18 @@ def r2_exclusions() -> list[str]:
     return [] if publish.r2_enabled() else ["tag:r2"]
 
 
-def _build_and_test(variables: str, steps: dict[str, int] | None = None) -> DbtOutcome:
+def _build_and_test(
+    variables: str,
+    steps: dict[str, int] | None = None,
+    between: Callable[[], None] | None = None,
+) -> DbtOutcome:
     """Load S3 data, build seeds and models, then run tests, each as its own timed step.
 
     The realtime staging models (tag ``s3_load``) are the only ones that read S3; building them
     first, once, means everything after reads the local database. `dbt build` skips every model
     downstream of a failing test, which silently dropped the gold aggregates, so models are built
-    without tests and test failures are reported but never skip models.
+    without tests and test failures are reported but never skip models. ``between`` runs after the
+    models exist and before the tests (Elementary's history is restored there).
     """
 
     def step(name: str, args: list[str]) -> DbtOutcome:
@@ -353,6 +360,8 @@ def _build_and_test(variables: str, steps: dict[str, int] | None = None) -> DbtO
     )
     if build.node_errors:
         raise TransformError(f"dbt models failed: {', '.join(build.node_errors)}")
+    if between is not None:
+        between()
     tests = step(
         "dbt_test", ["test", *(["--exclude", *r2_exclusions()] if r2_exclusions() else [])]
     )
@@ -453,10 +462,46 @@ def _smoke_r2(
     }
 
 
+def _smoke_observability(
+    s3: Any, public_bucket: str, raw_bucket: str, db_path: str, city: str, started_at: datetime
+) -> dict[str, Any]:
+    """Observability steps on the S3 target, after the build: the run's metric lines (printed, so
+    the smoke script can look for them in the container log), Elementary's rows persisted and read
+    back into a fresh database, and the report rendered by `edr` and uploaded."""
+    import duckdb
+
+    release_dbt_connections()
+    now = _now()
+    sample_now = datetime(2026, 11, 22, 16, 20, tzinfo=UTC)  # just after the sample's last hour
+    metrics = emf.collect(
+        db_path, sample_now, previous=sample_now - timedelta(minutes=60), exported_at=sample_now,
+        r2=publish.r2_enabled(), lag=SLO_LAG, timezone=_timezone(),
+    )  # fmt: skip
+    emf.emit(sample_now, metrics)
+    persisted = observability.persist(s3, raw_bucket, db_path, started_at, now)
+    with tempfile.TemporaryDirectory() as tmp:
+        fresh = os.path.join(tmp, "fresh.duckdb")
+        duckdb.connect(fresh).close()
+        restored = observability.restore(s3, raw_bucket, fresh, now)
+    key = observability.publish_report(s3, public_bucket, city, db_path, now)
+    report = s3.get_object(Bucket=public_bucket, Key=key)
+    body = report["Body"].read()
+    return {
+        "emf_metrics": sorted(metrics),
+        "elementary_persisted": persisted,
+        "elementary_restored": restored,
+        "report_key": key,
+        "report_bytes": len(body),
+        "report_is_html": b"window.elementaryData" in body[:200] and b"<html" in body,
+        "report_content_type": report["ContentType"],
+    }
+
+
 def _smoke(started: float) -> dict[str, Any]:
     """Image smoke test: dbt build + gold export on a local curated root; no AWS, no publish.
 
     With Release 2 on and an S3 gold target it also runs the history, run-state and SLO steps."""
+    run_started = _now()
     root = os.environ["HEADWAY_SMOKE_CURATED_ROOT"]
     gold = os.environ["HEADWAY_SMOKE_GOLD_DIR"]
     s3_gold = gold.startswith("s3://")
@@ -504,14 +549,14 @@ def _smoke(started: float) -> dict[str, Any]:
         "duration_ms": round((time.monotonic() - started) * 1000),
     }
     if r2_s3:
+        db = os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
+        summary.update(_smoke_r2(variables, client, bucket, db))
         summary.update(
-            _smoke_r2(
-                variables,
-                client,
-                bucket,
-                os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb"),  # noqa: S108
+            _smoke_observability(
+                client, bucket, os.environ.get("RAW_BUCKET", "smoke-raw"), db,
+                os.environ["CITY_ID"], run_started,
             )
-        )
+        )  # fmt: skip
     logger.info(json.dumps(summary, sort_keys=True))
     return summary
 
@@ -608,7 +653,7 @@ def _transform(
         logger.exception("could not read the previous export time")
         previous_export = None
     variables = _variables(lookback, _now())
-    build = _build_and_test(variables, steps)
+    build = _build_and_test(variables, steps, lambda: _restore_observability(s3, db_path))
     run.tests_passed, run.tests_failed = build.tests_passed, build.tests_failed
     if build.tests_failed:
         logger.warning("dbt tests failed: %d (export continues)", build.tests_failed)
@@ -640,6 +685,10 @@ def _transform(
     timed("cost", t0)
 
     _emit_metrics(db_path, previous_export, run.gold_exported_at)
+
+    t0 = time.monotonic()
+    summary.update(_publish_observability(s3, public_bucket, city, db_path, run.started_at))
+    timed("observability", t0)
 
     history_error: Exception | None = None
     if publish.r2_enabled():
@@ -697,6 +746,42 @@ def _transform(
         raise history_error
     run.status = "success" if build.success else "tests_failed"
     return summary
+
+
+def _restore_observability(s3: Any, db_path: str) -> None:
+    """Restore Elementary's history before the tests that read it; never fails the run."""
+    try:
+        release_dbt_connections()
+        restored = observability.restore(s3, os.environ["RAW_BUCKET"], db_path, _now())
+        logger.info("elementary history restored: %s", json.dumps(restored, sort_keys=True))
+    except Exception:
+        logger.exception("could not restore the Elementary history")
+
+
+def _publish_observability(
+    s3: Any, public_bucket: str, city: str, db_path: str, started_at: datetime
+) -> dict[str, Any]:
+    """Persist this run's Elementary rows and, once a day, publish the report. Never raises."""
+    out: dict[str, Any] = {}
+    now = _now()
+    try:
+        release_dbt_connections()
+        out["elementary_persisted"] = observability.persist(
+            s3, os.environ["RAW_BUCKET"], db_path, started_at, now
+        )
+    except Exception as exc:
+        logger.exception("could not persist the Elementary history")
+        out["observability_error"] = f"{type(exc).__name__}: {exc}"
+        return out
+    try:
+        if observability.report_due(s3, public_bucket, city, now):
+            out["observability_report"] = observability.publish_report(
+                s3, public_bucket, city, db_path, now
+            )
+    except Exception as exc:
+        logger.exception("could not publish the observability report")
+        out["observability_error"] = f"{type(exc).__name__}: {exc}"
+    return out
 
 
 def _emit_metrics(db_path: str, previous: datetime | None, exported_at: datetime | None) -> None:

@@ -202,3 +202,20 @@ def test_pipeline_health_slo_section_follows_the_flag(
     off = AppTest.from_file(str(APP / "pages/3_Pipeline_health.py"), default_timeout=60).run()
     assert not off.exception, [e.value for e in off.exception]
     assert "Service level objectives" not in [s.value for s in off.subheader]
+
+
+def test_pipeline_health_links_the_observability_report(
+    monkeypatch: pytest.MonkeyPatch, export_root: Path
+) -> None:
+    from lib import data
+
+    assert (
+        data.observability_url("https://example.org/public/boston")
+        == "https://example.org/public/boston/observability/index.html"
+    )
+    assert data.observability_url(f"file://{export_root}") is None
+    monkeypatch.setenv("HEADWAY_DATA_URL", f"file://{export_root}")
+    at = AppTest.from_file(str(APP / "pages/3_Pipeline_health.py"), default_timeout=60).run()
+    assert not at.exception
+    assert any(s.value == "Observability report" for s in at.subheader)
+    assert any("deployed data only" in c.value for c in at.caption)

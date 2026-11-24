@@ -136,6 +136,31 @@ def load(s3: Any, bucket: str, db_path: str, table: StateTable, now: datetime) -
     return int(found[0]) if found else 0
 
 
+def restore(s3: Any, bucket: str, db_path: str, table: StateTable, now: datetime) -> int:
+    """Insert the persisted rows into ``main.<name>``, which a dbt model may already have created.
+
+    `load` replaces the table; this is for tables whose DDL belongs to dbt (the Elementary result
+    tables): the table is created from the declared columns only when it does not exist yet.
+    Never raises on a storage problem, like `load`. Returns the rows now in the table.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            files = fetch_files(s3, bucket, table, now, Path(tmp))
+        except Exception:
+            logger.exception("could not restore state table %s; continuing with none", table.name)
+            files = []
+        con = duckdb.connect(db_path)
+        try:
+            con.execute("set TimeZone = 'UTC'")
+            con.execute(table.ddl.replace("create or replace table", "create table if not exists"))
+            if files:
+                _insert_files(con, table, files, f"main.{table.name}")
+            found = con.execute(f"select count(*) from main.{table.name}").fetchone()  # noqa: S608
+        finally:
+            con.close()
+    return int(found[0]) if found else 0
+
+
 def append(
     s3: Any, bucket: str, table: StateTable, new_rows: Sequence[tuple[Any, ...]], at: datetime
 ) -> str:
