@@ -23,7 +23,10 @@ class ChatClient(Protocol):
     model: str
 
     def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
-        """One assistant message: {"content": str | None, "tool_calls": [{id, name, arguments}]}."""
+        """One assistant message: {"content": str | None, "tool_calls": [{id, name, arguments}]}.
+
+        A client may add "usage": {"prompt_tokens": int, "completion_tokens": int} (the evals read it).
+        """
         ...
 
 
@@ -58,11 +61,20 @@ class OpenAIChat:
         )
         try:
             with urllib.request.urlopen(req, timeout=self._timeout) as resp:  # noqa: S310
-                msg = json.loads(resp.read())["choices"][0]["message"]
+                doc = json.loads(resp.read())
+            msg = doc["choices"][0]["message"]
+            usage = doc.get("usage") or {}
         except (urllib.error.URLError, TimeoutError, KeyError, IndexError, ValueError) as exc:
             raise LlmError(type(exc).__name__) from exc
         calls = [
             {"id": c["id"], "name": c["function"]["name"], "arguments": c["function"]["arguments"]}
             for c in msg.get("tool_calls") or []
         ]
-        return {"content": msg.get("content"), "tool_calls": calls}
+        return {
+            "content": msg.get("content"),
+            "tool_calls": calls,
+            "usage": {
+                "prompt_tokens": int(usage.get("prompt_tokens") or 0),
+                "completion_tokens": int(usage.get("completion_tokens") or 0),
+            },
+        }
