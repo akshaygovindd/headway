@@ -183,6 +183,15 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   `delta_*` field such as the value minus the previous one); where the evidence has no change,
   direction words are rejected. Whether higher is worse is read from the field name (on-time,
   within-band and coverage: higher is better).
+- **Change log:**
+  - Sign fix (bug fix, no change of policy). The check read figures without their sign, so it
+    rejected every negative evidence value (a line running 86 s early could not be described). A
+    signed figure (`-86 s`, `−86 s`, `minus 86 s`) now has to equal the signed evidence value
+    within rounding. An unsigned figure is read as positive, and matches a negative value only when
+    its clause carries a sign word. The direction rule gained those words: early, ahead, faster,
+    under schedule need a negative related value (seconds or a change) in the evidence; late,
+    behind, slower, over schedule a positive one. `86 s early` is accepted for -86, `86 s late` and
+    `-86 s` for +86 are rejected. Found by the analyst evals (`docs/EVALS.md`).
 - **Revisit when:** the assistant (R4) is designed, which needs the same rules over tool results,
   or the rejection count shows the check blocking legitimate text (read `rejection_reason` in
   `incident_summaries`).
