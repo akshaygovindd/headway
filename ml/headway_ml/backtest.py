@@ -27,7 +27,7 @@ GROUP = ["line", "horizon_min", "period_type", "fold", "view", "method"]
 COLUMNS = [
     *GROUP, "n", "n_labelled", "n_fallback", "fallback_share", "mae", "rmse", "within_60",
     "within_120", "ci_lo", "ci_hi", "fold_mae_min", "fold_mae_max", "fold_mae_std", "n_folds",
-    "is_reference",
+    "is_reference", "best_baseline", "diff_mae", "diff_ci_lo", "diff_ci_hi",
 ]  # fmt: skip
 
 
@@ -79,6 +79,7 @@ def _long(
         for m, pred in cols.items():
             sel = mask & pred.notna()
             part = test.loc[sel, ["line", "horizon_min", "period_type", "prediction_ts"]].copy()
+            part["row"] = test.index[sel]
             part["err"] = (pred[sel] - test.loc[sel, "label_delay_s"]).to_numpy()
             part["fallback"] = was_missing[m][sel].to_numpy()
             part["fold"], part["view"], part["method"] = fold, view, m
@@ -127,8 +128,46 @@ def _aggregate(
     else:
         out[["fold_mae_min", "fold_mae_max", "fold_mae_std"]] = np.nan
     out["n_folds"] = n_folds
+    out = _add_paired(out, long, reps, seed)
     out["is_reference"] = out["method"].isin(bl.REFERENCES)
     return out[COLUMNS]
+
+
+BASELINES = [bl.PERSISTENCE, bl.DAYTYPE_HOUR, bl.ROLLING]
+PAIR_KEY = ["line", "horizon_min", "period_type"]
+
+
+def _add_paired(out: pd.DataFrame, long: pd.DataFrame, reps: int, seed: int) -> pd.DataFrame:
+    """Model rows of the pooled strict view get the best baseline (lowest pooled MAE of the three
+    baselines; never the MBTA reference), the MAE difference model minus best baseline and its
+    paired 95% cluster-bootstrap interval: both methods on the same rows, the same prediction-time
+    clusters resampled for both."""
+    for col in ("best_baseline", "diff_mae", "diff_ci_lo", "diff_ci_hi"):
+        out[col] = np.nan if col != "best_baseline" else None
+    pooled = long[(long["fold"] == "all") & (long["view"] == "strict")]
+    for key, g in pooled.groupby(PAIR_KEY):
+        mdl = g[g["method"] == model.NAME]
+        base = g[g["method"].isin(BASELINES)]
+        if mdl.empty or base.empty:
+            continue
+        mae = base.assign(a=base["err"].abs()).groupby("method")["a"].mean()
+        best = str(mae.idxmin())
+        both = mdl[["row", "prediction_ts", "err"]].merge(
+            base.loc[base["method"] == best, ["row", "err"]], on="row", suffixes=("_m", "_b")
+        )
+        a, b = both["err_m"].abs().to_numpy("float64"), both["err_b"].abs().to_numpy("float64")
+        clusters = pd.factorize(both["prediction_ts"])[0].astype("int64")
+        lo, hi = metrics.paired_bootstrap_mae_diff(a, b, clusters, reps, seed)
+        sel = (
+            (out["fold"] == "all") & (out["view"] == "strict") & (out["method"] == model.NAME)
+            & (out["line"] == key[0]) & (out["horizon_min"] == key[1])
+            & (out["period_type"] == key[2])
+        )  # fmt: skip
+        out.loc[sel, "best_baseline"] = best
+        out.loc[sel, "diff_mae"] = float(a.mean() - b.mean())
+        out.loc[sel, "diff_ci_lo"] = lo
+        out.loc[sel, "diff_ci_hi"] = hi
+    return out
 
 
 def run_backtest(

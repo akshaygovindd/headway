@@ -267,3 +267,81 @@ def test_only_training_folds_are_sampled_scoring_uses_the_full_test_week() -> No
         p = capped.results[(capped.results["method"] == m)]["mae"].to_numpy()
         q = full.results[(full.results["method"] == m)]["mae"].to_numpy()
         assert np.allclose(p, q)
+
+
+def _noisy(sd: float) -> pd.DataFrame:
+    df = make_examples(weeks=4)
+    rng = np.random.default_rng(3)
+    df["label_delay_s"] = df["label_delay_s"] + rng.normal(0, sd, len(df))
+    return df
+
+
+class _Oracle:
+    """Predicts the label (it cannot be beaten by a baseline): a clear win."""
+
+    def fit(self, train: pd.DataFrame) -> None: ...
+
+    def predict(self, test: pd.DataFrame) -> np.ndarray:
+        return test["label_delay_s"].to_numpy() + 1.0
+
+
+class _Wrong:
+    """Always 800 s late: a clear loss."""
+
+    def fit(self, train: pd.DataFrame) -> None: ...
+
+    def predict(self, test: pd.DataFrame) -> np.ndarray:
+        return np.full(len(test), 800.0)
+
+
+class _CopiesBestBaseline:
+    """Predicts the daytype_hour table's value (the best baseline on this data): a tie."""
+
+    def fit(self, train: pd.DataFrame) -> None:
+        self.table = baselines.fit_daytype_hour(train)
+
+    def predict(self, test: pd.DataFrame) -> np.ndarray:
+        return baselines.raw_predictions(test, self.table)[baselines.DAYTYPE_HOUR].to_numpy()
+
+
+def _paired(forecaster: object, line: str = "Red", h: int = 15) -> pd.Series:
+    bt = backtest.run_backtest(
+        _noisy(150.0), make_gate(passed=("Red", "Blue")), reps=200,
+        forecaster=forecaster,  # type: ignore[arg-type]
+    )  # fmt: skip
+    return pooled(bt.results, "strict", "lightgbm", line, h)
+
+
+def test_paired_comparison_model_clearly_wins() -> None:
+    r = _paired(_Oracle)
+    assert r["best_baseline"] == baselines.DAYTYPE_HOUR
+    assert r["diff_mae"] < -50 and r["diff_ci_hi"] < 0  # CI entirely below 0: model better
+
+
+def test_paired_comparison_model_clearly_loses() -> None:
+    r = _paired(_Wrong)
+    assert r["diff_mae"] > 100 and r["diff_ci_lo"] > 0  # CI entirely above 0: model worse
+
+
+def test_paired_comparison_tie_has_an_interval_spanning_zero() -> None:
+    r = _paired(_CopiesBestBaseline)
+    assert r["diff_mae"] == pytest.approx(0.0, abs=1e-9)
+    assert r["diff_ci_lo"] <= 0 <= r["diff_ci_hi"]
+
+
+def test_paired_interval_is_tighter_than_two_separate_ones() -> None:
+    """Resampling the same clusters for both methods removes the shared noise."""
+    r = _paired(_CopiesBestBaseline)
+    assert (r["ci_hi"] - r["ci_lo"]) > 0
+    assert (r["diff_ci_hi"] - r["diff_ci_lo"]) < (r["ci_hi"] - r["ci_lo"])
+
+
+def test_paired_columns_only_on_pooled_strict_model_rows() -> None:
+    bt = backtest.run_backtest(
+        _noisy(150.0), make_gate(passed=("Red", "Blue")), reps=50, forecaster=_Oracle
+    )  # fmt: skip
+    has = bt.results[bt.results["diff_mae"].notna()]
+    assert set(has["method"]) == {"lightgbm"} and set(has["view"]) == {"strict"}
+    assert set(has["fold"]) == {"all"}
+    full_model = bt.results[(bt.results["method"] == "lightgbm") & (bt.results["view"] == "full")]
+    assert full_model["diff_mae"].isna().all()

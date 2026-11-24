@@ -1,3 +1,4 @@
+import io
 import json
 import re
 from pathlib import Path
@@ -7,7 +8,7 @@ import boto3
 import duckdb
 import pandas as pd
 import pytest
-from headway_ml import registry, state_data, train_handler
+from headway_ml import registry, reports, state_data, train_handler
 from moto import mock_aws
 from synth import make_examples
 
@@ -71,7 +72,18 @@ def test_gate_not_passed_logs_baselines_and_writes_no_model(s3: Any, tmp_path: P
     out = train_handler.lambda_handler({}, None)
     assert out["status"] == "baselines_only" and out["model_version"] is None
     assert out["mlflow_runs"] == 1 and set(out["gate_reasons"]) == {"Red", "Blue"}
-    assert not any(k.startswith("models/") for k in out["model_objects"])
+    assert out["model_objects"] == []  # no model, no latest.json
+    assert out["report_objects"] == [
+        "models/forecast/reports/backtest.parquet", "models/forecast/reports/gate_status.parquet"
+    ]  # fmt: skip
+    gate = pd.read_parquet(io.BytesIO(
+        s3.get_object(Bucket=BUCKET, Key=reports.GATE_KEY)["Body"].read()
+    ))  # fmt: skip
+    assert not gate["gate_passed"].any() and set(gate["line"]) == {"Red", "Blue"}
+    bt = pd.read_parquet(io.BytesIO(
+        s3.get_object(Bucket=BUCKET, Key=reports.BACKTEST_KEY)["Body"].read()
+    ))  # fmt: skip
+    assert set(bt["fold"]) == {"all"} and "lightgbm" not in set(bt["method"])
     s3.head_object(Bucket=BUCKET, Key="mlflow/mlflow.db")
 
 
@@ -82,6 +94,11 @@ def test_gate_passed_writes_the_model_and_the_db_round_trips(s3: Any, tmp_path: 
     assert out["gate_passed_lines"] == ["Blue", "Red"] and out["mlflow_runs"] == 1
     latest = json.loads(s3.get_object(Bucket=BUCKET, Key=registry.LATEST)["Body"].read())
     assert latest["version"] == 1
+    bt = pd.read_parquet(io.BytesIO(
+        s3.get_object(Bucket=BUCKET, Key=reports.BACKTEST_KEY)["Body"].read()
+    ))  # fmt: skip
+    mdl = bt[(bt["method"] == "lightgbm") & (bt["view"] == "strict") & (bt["period_type"] == "all")]
+    assert len(mdl) and mdl["diff_mae"].notna().all() and mdl["best_baseline"].notna().all()
     # every invocation starts from an empty directory: the db comes back from S3
     again = train_handler.lambda_handler({}, None)
     assert again["model_version"] == 2 and again["mlflow_runs"] == 2

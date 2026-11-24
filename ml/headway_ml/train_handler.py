@@ -51,7 +51,7 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
 def _train(s3: Any, bucket: str, db: Path, state_dir: Path, started: float) -> dict[str, Any]:
     import mlflow
 
-    from headway_ml import data, registry, sampling, state_data, tracking, train
+    from headway_ml import data, registry, reports, sampling, state_data, tracking, train
 
     window = int(os.environ.get("TRAIN_WINDOW_DAYS", DEFAULT_WINDOW_DAYS))
     cap = int(os.environ.get("TRAIN_MAX_ROWS_PER_DAY", DEFAULT_MAX_ROWS_PER_DAY))
@@ -93,6 +93,7 @@ def _train(s3: Any, bucket: str, db: Path, state_dir: Path, started: float) -> d
         },
         extra_metrics=tracking.sampling_metrics(result.sampled),
     )
+    report_keys = reports.write(s3, bucket, run_id, result.backtest.results, gate)
     mlflow.set_tracking_uri(uri)
     runs = mlflow.search_runs(experiment_names=[tracking.EXPERIMENT])
     listing = s3.list_objects_v2(Bucket=bucket, Prefix=f"{registry.PREFIX}/")
@@ -104,7 +105,10 @@ def _train(s3: Any, bucket: str, db: Path, state_dir: Path, started: float) -> d
         "gate_passed_lines": result.passed,
         "gate_reasons": result.reasons,
         "notes": result.notes,
-        "model_objects": sorted(o["Key"] for o in listing.get("Contents", [])),
+        "model_objects": sorted(
+            o["Key"] for o in listing.get("Contents", []) if not o["Key"].startswith(reports.PREFIX)
+        ),
+        "report_objects": report_keys,
         "examples": len(examples),
         "train_rows_by_line": sampling.rows_by_line(result.sampled),
         "duration_ms": round((time.monotonic() - started) * 1000),
