@@ -486,6 +486,35 @@ change the check or the instruction, never the stored text.
 | `incident_summary_status: failed` | the step raised (logged: "incident summaries failed") | read the log; the export and publish continue with empty summary columns |
 | cost higher than expected | the cap is per day, not per hour | lower `HEADWAY_INCIDENT_LLM_DAILY_CAP` |
 
+## Analyst evals
+
+`docs/EVALS.md` is the last real-model run of the analyst on the 40 questions of
+`evals/questions.yaml`, over the frozen snapshot `evals/snapshot/` (the demo-r2 capture of
+2026-11-22/23; rebuild it only on purpose with `uv run python -m evals.build_snapshot`, which
+changes every gold answer). Nothing here touches AWS and nothing runs in CI except the scripted
+`--fake` mode that tests the scorer.
+
+**Run it:** `OPENAI_API_KEY=sk-... make evals`. It writes `docs/EVALS.md`, prints the cost, and
+exits 1 when a threshold fails (numeric correctness >= 90%, unsupported claims <= 2%, refusal
+correctness 100% on insufficient data and injection, p90 latency <= 10 s) or when the cost guard
+cut the run short, 2 without a key. Commit the report only after a full real run.
+
+**Cost:** about 2 model turns per question, roughly 1,000 to 2,000 tokens each with the five tool
+definitions: a full run of `gpt-4o-mini` (the default; `--model` or `HEADWAY_ANALYST_LLM_MODEL`
+change it) costs a few cents. `--max-cost` (default 0.50 USD) stops before a question that would
+cross it and marks the run incomplete; `--max-questions N` and `--category C` run a part (a partial
+report says so). A model without a price in `evals/run.py` reports "cost unknown": bound it with
+`--max-questions`.
+
+**Reading a failure:** the report lists each failed question verbatim with the gold values, the
+status, the shown text, the model's draft, the checker's problems and the tool results (rows and
+SQL). `could_not_verify` with a plausible draft means the check blocked it: fix the instruction or
+the check (ADR-008), never the gold. A number that is right but blocked usually means a negative
+value (the check reads figures without their sign): the questions avoid them for now.
+
+`make evals EVALS_ARGS="--fake --inject-faults"` must fail and name three questions (a wrong
+number, an invented number, a wrong direction); if it does not, the scorer is broken.
+
 ## Live drills
 
 Two failures can be caused on purpose in the deployed pipeline with the chaos switch

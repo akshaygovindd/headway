@@ -572,4 +572,6 @@ predicted deviation, revision, coverage and skipped-share metrics to sections 1 
 deviation and on-time share to section 7, headway shares to section 8, excess trip time to
 section 9. Every tool result names its anchor, tables, comparison period, coverage, freshness and
 SQL (ADR-020). Values from hours under 50% coverage are withheld, and answers are checked against
-the tool results with the number, causal and direction rules of ADR-008.
+the tool results with the number, causal and direction rules of ADR-008. How well the analyst states these metrics is
+measured by the evals (`evals/questions.yaml`, report in `docs/EVALS.md`); their gold answers use
+the same masking rule (values under 50% coverage are withheld).
