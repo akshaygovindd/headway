@@ -126,3 +126,11 @@ def load_manifest(base: str) -> dict[str, Any]:
 
 def load_snapshot(base: str) -> dict[str, Any]:
     return read_json(f"{base}/live/vehicles_latest.json")
+
+
+def load_analyst_examples(base: str) -> dict[str, Any] | None:
+    """gold/analyst_examples.json (precomputed answers), or None when the export has none."""
+    try:
+        return read_json(f"{base}/gold/analyst_examples.json")
+    except DataUnavailableError:
+        return None

@@ -59,6 +59,12 @@ def build(out: Path, source: str, city: str, enable_r2: bool = True) -> Path:
          "--args", f"{{target_dir: {gold}}}"], **env)  # fmt: skip
     run(["uv", "run", "headway", "live-snapshot", "--source", source, "--out", str(public / "live"),
          "--city", city])  # fmt: skip
+    if enable_r2:
+        sys.path.insert(0, str(ROOT / "src"))
+        from headway_mcp import examples
+        from headway_mcp.tools import Tools
+
+        examples.write(Tools(f"file://{public}"), str(gold / "analyst_examples.json"))
     return public
 
 

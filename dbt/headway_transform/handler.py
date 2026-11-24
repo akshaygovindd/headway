@@ -414,6 +414,41 @@ def _build_and_test(
     return tests
 
 
+def _analyst_examples(s3: Any, bucket: str, gold_prefix: str) -> dict[str, Any]:
+    """Precompute the analyst's example answers from the exported gold (no LLM) and publish them
+    as gold/analyst_examples.json. Never fails the run."""
+    import tempfile
+
+    from headway_mcp import examples
+    from headway_mcp.tools import Tools
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            os.makedirs(f"{tmp}/gold")
+            for name in [*examples.required_tables(), "manifest"]:
+                ext = "json" if name == "manifest" else "parquet"
+                try:
+                    s3.download_file(
+                        bucket, f"{gold_prefix}/{name}.{ext}", f"{tmp}/gold/{name}.{ext}"
+                    )
+                except s3.exceptions.ClientError:
+                    continue  # a table this export does not have: its examples are left out
+            path = f"{tmp}/gold/analyst_examples.json"
+            n = examples.write(Tools(f"file://{tmp}"), path)
+            with open(path, "rb") as handle:
+                s3.put_object(
+                    Bucket=bucket,
+                    Key=f"{gold_prefix}/analyst_examples.json",
+                    Body=handle.read(),
+                    ContentType="application/json",
+                    CacheControl=GOLD_CACHE_CONTROL,
+                )
+        return {"analyst_examples": n}
+    except Exception as exc:
+        logger.exception("analyst examples failed")
+        return {"analyst_examples_error": f"{type(exc).__name__}: {exc}"}
+
+
 def _tables_to_publish(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
     tables = list(publish.gold_tables())
     for name in publish.OPTIONAL_TABLES:
@@ -846,6 +881,11 @@ def _transform(
     if publish.r2_enabled() and publish.r3_enabled():
         drop_stale_r3_tables(s3, public_bucket, gold_prefix, rows_exported)
     run.rows_exported = sum(rows_exported.values())
+
+    if publish.r2_enabled() and publish.r3_enabled():
+        t0 = time.monotonic()
+        summary.update(_analyst_examples(s3, public_bucket, gold_prefix))
+        timed("analyst_examples", t0)
 
     cost_rows: int | None = None
     t0 = time.monotonic()

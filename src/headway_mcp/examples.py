@@ -131,3 +131,11 @@ def load(doc: dict[str, Any] | None) -> list[dict[str, Any]]:
     if not doc or doc.get("schema") != SCHEMA:
         return []
     return list(doc.get("examples", []))
+
+
+def required_tables() -> list[str]:
+    """The gold tables the example questions read (what a build must have locally)."""
+    tables = {"agg_active_alerts", "agg_pipeline_health"}
+    for m in METRICS.values():
+        tables.update(s.table for s in (m.window, m.daily, m.hourly) if s is not None)
+    return sorted(tables)

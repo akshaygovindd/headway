@@ -32,6 +32,8 @@ COPY --from=build /deps ${LAMBDA_TASK_ROOT}
 COPY --from=build /duckdb_extensions ${LAMBDA_TASK_ROOT}/duckdb_extensions
 COPY --from=build /project ${LAMBDA_TASK_ROOT}/dbt_project
 COPY dbt/headway_transform ${LAMBDA_TASK_ROOT}/headway_transform
+# The analyst's tools, to precompute the example answers (pure Python over DuckDB; no mcp package).
+COPY src/headway_mcp ${LAMBDA_TASK_ROOT}/headway_mcp
 # The serving subset of the forecast package: the model's feature encoding (the training's own),
 # the registry layout and the loader. Not the training, MLflow or backtest modules.
 COPY ml/headway_ml/__init__.py ml/headway_ml/data.py ml/headway_ml/model.py ml/headway_ml/registry.py ml/headway_ml/serving.py ${LAMBDA_TASK_ROOT}/headway_ml/
