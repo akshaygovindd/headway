@@ -411,8 +411,9 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
 - **Run:** `make backtest` (needs `HEADWAY_ENABLE_R3=true`, set by the target; reads a DuckDB built
   with the R3 models, default `.local/demo-r2/headway.duckdb`). The code is in `ml/` (own uv
   environment). Results go to `agg_forecast_backtest` in `.local/backtest/backtest.duckdb` (not
-  exported) and to MLflow (file store `.local/mlflow`; `HEADWAY_MLFLOW_URI` and
-  `HEADWAY_MLFLOW_ARTIFACT_ROOT` for S3 later). Each run logs the data window, folds, git sha, the
+  exported) and to MLflow (SQLite backend store `.local/mlflow/mlflow.db`, artifacts `.local/mlflow/artifacts`;
+  `HEADWAY_MLFLOW_URI` and `HEADWAY_MLFLOW_ARTIFACT_ROOT` override both; in the training job they
+  point at the database synced from S3 and `s3://<raw>/mlflow/artifacts`). Each run logs the data window, folds, git sha, the
   feature list and the pooled metrics per line x horizon.
 - **Folds:** expanding window, 7-day blocks counted from the first service date; fold k trains on
   blocks before k and tests on block k (later in time, never random). The pooled row (`fold = all`)
@@ -422,8 +423,10 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
 - **Methods:** `persistence` (the same trip's `last_upstream_delay_s`); `daytype_hour` (mean delay
   of the line by day type and hour, computed from the training weeks of the fold only);
   `rolling_median_60m` (the line's 60-minute median); `mbta_reference` (MBTA's predicted
-  deviation: a reference line, not a baseline). A model (`lightgbm`) is compared only for lines
-  past the training gate; for the others the harness prints why and reports the baselines.
+  deviation: a reference line, not a baseline). A model (`lightgbm`: one model over all lines past
+  the gate, `line` a categorical feature, hyperparameters tuned on the last days of each fold's own
+  training weeks) is compared only for lines past the training gate; the other lines are left out of
+  its training and get the baselines and the reason.
 - **Views:** strict = rows where every method has a value; full = every labelled row, a missing
   value taken from the method's chain (persistence, then the rolling median, then day type x hour;
   the reference falls back to persistence first). `fallback_share` is the share of rows replaced;

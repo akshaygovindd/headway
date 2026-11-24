@@ -418,7 +418,8 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 
 ### ADR-019: Forecasting design: target, horizons, leakage rule, gate, baselines
 
-- **Status:** Proposed (R3, Phase 3.0 builds the data; no model exists yet)
+- **Status:** Accepted for the model, gate and registry (R3, Phase 3.2); the forecast report and
+  its publication stay proposed
 - **Context:** Release 3 forecasts arrival delay. The only observed delay Headway has is the
   reconstructed arrival (ADR-016), known to within 15 to 120 s, and only after the captures that
   determine it exist. A forecast that is evaluated against data it could not have had at the time
@@ -457,6 +458,33 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   reconstruction error (15 to 120 s) and cannot be better than it; the report says so. Coverage
   (examples over scheduled trip stops of the slot) is shown with every number, a value from a slice
   with under 50 % coverage is withheld (ADR-016), and a line below the gate has no forecast.
+- **Model (Phase 3.2, `ml/headway_ml/model.py`):** one LightGBM regressor of the delay in seconds
+  over all lines past the gate, `line` a categorical feature, trained on the same features as the
+  baselines (no extra input). The hyperparameters (leaves, minimum leaf size; 200 trees, seed 7,
+  deterministic) are chosen from a small grid on the last 20 % of the service days of the
+  training frame only, then the model is refitted on all of it, so a test week never takes part
+  in tuning. Metrics stay per line x horizon, next to the three baselines and the MBTA reference.
+  A line that has not passed the gate is not in the training rows; it gets the baselines and the
+  reason.
+- **Gate in code:** `train.run_training` trains only on lines with `gate_passed`, and
+  `registry.write_model` refuses a model whose lines are not all passed, so no caller can write
+  one around the gate. Without a passed line the run logs the baselines and the reason
+  (`no line passed the training gate`) and writes nothing under `models/`.
+- **Registry:** `s3://<raw>/models/forecast/v<N>/` holds `model.txt` (LightGBM booster),
+  `lines.json`, `features.json`, `window.json`, `metrics.json` and `meta.json` (git sha,
+  parameters, gate state). `models/forecast/latest.json` points at the newest version and is
+  written last, only for a model trained under a passed gate; a failed run leaves it where it was.
+  Rolling back is writing `latest.json` again for an earlier version.
+- **Training data and job:** the transform (with `enable_r3`) writes each closed service day of
+  `fct_forecast_examples` and `int_forecast_gate_days` once to `s3://<raw>/state/forecast_*`
+  (immutable, conditional put, like the history), because a seven-day dbt lookback can never show
+  21 days and a rebuild of weeks of examples would not fit the transform's 900 s. The weekly
+  training Lambda (`headway-train`, container, arm64, Monday 06:00 UTC, no retry, behind
+  `enable_r3`) reads those partitions (the last 56 days, at most 8000 rows per day, a
+  reproducible sample), runs the backtest and the training, and logs to MLflow. MLflow uses a
+  SQLite backend store: the database is downloaded from `s3://<raw>/mlflow/mlflow.db` at the
+  start, used in `/tmp`, uploaded at the end, under a conditional-put lock (one weekly writer);
+  artifacts go to `s3://<raw>/mlflow/artifacts/`.
 - **Consequences:** The examples table is large (about 100 thousand rows per 27 hours for the whole
   network), so it is built only with `enable_r3`, which needs `enable_r2`, and is not published.
   `known_at` delays features by up to a few minutes compared with the arrival time, which is the

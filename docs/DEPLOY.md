@@ -255,6 +255,29 @@ Switch-on, Phase 2.6, in this order:
 they are not exported or published. With the default the Lambda skips every `r3` model and test;
 local and CI builds always build them. Check the logged step times after switching it on, as for R2.
 
+Switch-on, Phase 3.2 (nothing is deployed by the repository's tests; do this deliberately):
+
+1. Create the `headway-train` ECR repository: it is part of the Terraform with `enable_r3`, so
+   either apply the repository alone first
+   (`terraform apply -target='aws_ecr_repository.pipeline["train"]'` with `enable_r3 = true`), or
+   create it by hand with the same name.
+2. `make images-push` builds and pushes all three images and prints `train_image_uri`; put it in
+   `terraform.tfvars` next to `enable_r2 = true` and `enable_r3 = true`. `make deploy` plans and
+   applies (the plan must destroy nothing). This adds the `headway-train` function, its log group,
+   role, the weekly schedule `headway-train-weekly` (Monday 06:00 UTC) and lets the transform role
+   write `state/forecast_*`.
+3. Wait for transform runs, then check that closed days appear:
+   `aws s3 ls s3://<raw>/state/forecast_examples/metric_version=1/`. Only service days that have
+   closed since the switch are written; to backfill earlier days still inside the lookback invoke
+   the transform with `{"task":"rebuild_forecast_examples","from":"YYYY-MM-DD","to":"YYYY-MM-DD","metric_version":1}`
+   (at most 14 days per call).
+4. First run by hand: `aws lambda invoke --function-name headway-train --payload '{}' out.json`.
+   Until a line has 21 usable days (3 of them weekend days) the result is `baselines_only`, with
+   the reason per line; there is no `models/` object and no `latest.json`. That is the expected
+   outcome for the first weeks.
+5. Turning it off is `enable_r3 = false`: the function and schedule are destroyed (the data under
+   `state/forecast_*`, `mlflow/` and `models/` stays).
+
 ## Release 2 history, run state and SLOs
 
 With `enable_r2 = true` the transform Lambda also keeps two kinds of object, both written by its

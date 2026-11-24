@@ -262,3 +262,8 @@ flowchart LR
 `make backtest` (`ml/`, local only) reads `fct_forecast_examples` and `agg_forecast_gate` from the
 built DuckDB and writes `agg_forecast_backtest` to `.local/backtest/backtest.duckdb` and a run to
 MLflow; neither is a dbt model or exported.
+
+With `enable_r3` the transform also writes each closed service day of `fct_forecast_examples` and
+`int_forecast_gate_days` once to `s3://<raw>/state/forecast_examples/` and `.../forecast_gate_days/`
+(`metric_version=1`, immutable Parquet). The weekly training job reads those partitions, recomputes
+the gate from the gate days, and writes `models/forecast/v<N>/` and `latest.json` (ADR-019).

@@ -17,6 +17,7 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
 
 - [Alarms](#alarms)
 - [Simulations](#simulations)
+- [Training job](#training-job)
 - [Live drills](#live-drills)
 
 ## Alarms
@@ -416,6 +417,38 @@ on purpose in the deployed pipeline, the section links to its [live drill](#live
 - **Recovery:** the next scheduled run logs no `publish_error`, `gold_published` is true, and
   `SHOW TABLES FROM headway;` in MotherDuck shows fresh tables; the failed slot stays in that
   day's transform-success numbers.
+
+## Training job
+
+The weekly forecast training (`headway-train`, only with `enable_r3`; ADR-019). Monday 06:00 UTC,
+no retry. It reads the closed service days the transform keeps in `s3://<raw>/state/forecast_*`,
+backtests, trains one model over the lines past the gate, and logs to MLflow. No alarm is attached
+in this phase: look at it after the schedule.
+
+**What a run returns** (the invocation result and the log line): `status` is `trained`,
+`baselines_only` (no line passed the gate: `gate_reasons` says why per line, nothing under
+`models/` changes), `no_data` (no partitions yet: the transform has not written closed days) or the
+result is `{"skipped": "locked"}` (another run holds `mlflow/train.lock`).
+
+**Run it by hand:** `aws lambda invoke --function-name headway-train --payload '{}' out.json`.
+
+**Read the experiments:** `aws s3 cp s3://<raw>/mlflow/mlflow.db .` and, in the `ml/` environment,
+`uv run mlflow ui --backend-store-uri sqlite:///$PWD/mlflow.db --default-artifact-root s3://<raw>/mlflow/artifacts`
+Each run has the data window, the folds,
+the git sha, `gate_reason.<line>` for every line left out, and the pooled metrics.
+
+**The model that is live:** `aws s3 cp s3://<raw>/models/forecast/latest.json -`. To go back to an
+earlier version, write `latest.json` again with that `version` and `path`
+(`models/forecast/v<N>/`); version directories are never deleted by the job.
+
+**Failure modes**
+
+| Symptom | Cause | What to do |
+| --- | --- | --- |
+| `status: no_data` | no `state/forecast_examples/metric_version=1/` objects | check the transform logs for `forecast state write failed`; backfill with `rebuild_forecast_examples` |
+| `skipped: locked` for more than 20 minutes | a run died holding `mlflow/train.lock` | the lock is replaced after 20 minutes; or delete the object |
+| timeout or out-of-memory | more rows than sized for (memory 4096 MB, 300 s: sized on 448 k examples, 43 s, 2.3 GiB peak) | lower `TRAIN_MAX_ROWS_PER_DAY` or raise `train_memory_mb` / `train_timeout_s` in `infra/main/train.tf` |
+| the run failed after the lock was taken | the database is uploaded anyway (with the half-finished run) | read the log, fix, run again |
 
 ## Live drills
 
