@@ -48,6 +48,9 @@ R2_TABLES = (
     "agg_slo_daily",
     "agg_slo_rollup",
 )
+# Release 3 forecast tables; present only when the deployment has enabled them. The backtest is
+# exported only once a line has passed the training gate.
+R3_TABLES = ("agg_forecast_next_hour", "agg_forecast_gate_status", "agg_forecast_backtest")
 
 
 class DataUnavailableError(RuntimeError):
@@ -98,7 +101,7 @@ def read_json(url: str) -> dict[str, Any]:
 
 
 def load_table(base: str, name: str) -> pd.DataFrame:
-    if name not in GOLD_TABLES and name not in R2_TABLES:
+    if name not in GOLD_TABLES and name not in R2_TABLES and name not in R3_TABLES:
         raise ValueError(f"not a gold table: {name}")
     return pd.read_parquet(io.BytesIO(read_bytes(f"{base}/gold/{name}.parquet")))
 
