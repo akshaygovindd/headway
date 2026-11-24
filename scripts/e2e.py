@@ -83,6 +83,33 @@ def export(db: Path, table: str) -> str:
     return buf.getvalue()
 
 
+def check_incident_summaries_template_path(db: Path) -> None:
+    """Release 3 incidents with the LLM disabled: the template path writes a summary that passes the
+    number check, for every incident the build has and for a seeded one (the sample is two hours,
+    all outage, so it has none of its own)."""
+    sys.path.insert(0, str(ROOT / "dbt"))
+    from headway_transform import incident_numcheck, incident_summaries
+
+    con = duckdb.connect(str(db), read_only=True)
+    try:
+        built = con.execute("select evidence_json from agg_incidents").fetchall()
+        outage = con.execute(
+            "select count(*) filter (where data_outage), count(*) from int_incident_hours"
+        ).fetchone()
+    finally:
+        con.close()
+    seeded = json.dumps(incident_summaries._smoke_evidence("Red", "15:00", "16:00"))
+    for (evidence_json,) in [*built, (seeded,)]:
+        out = incident_summaries.make_summary(
+            evidence_json, None, may_call=False, why_not="llm_disabled"
+        )
+        assert out.template_used and out.number_check == "not_run" and not out.llm_called, out
+        assert incident_numcheck.check(out.text, evidence_json).ok, out.text
+    # outage hours never open an incident
+    assert outage is not None and (outage[0] < outage[1] or not built), outage
+    print(f"incident summaries (template path): {len(built)} built, 1 seeded, all checked")
+
+
 def add_duplicate_deliveries(source: Path) -> None:
     """Add the two shapes a double scheduler delivery leaves, to a copy of the sample.
 
@@ -190,6 +217,7 @@ def main(argv: list[str]) -> int:
             ],  # fmt: skip
             cwd=ROOT, env=env, check=True,
         )  # fmt: skip
+        check_incident_summaries_template_path(db)
         failed = False
         for table in TABLES:
             actual = export(db, table)

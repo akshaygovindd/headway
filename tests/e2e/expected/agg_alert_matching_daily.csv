@@ -1,0 +1,2 @@
+line,service_date,n_incidents,n_incidents_matched,n_incidents_unmatched,n_alerts,n_alerts_matched,n_alerts_unmatched,median_alert_lag_s,n_with_lag
+Red,2026-11-22,0,0,0,1,0,1,,0

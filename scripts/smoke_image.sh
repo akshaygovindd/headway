@@ -119,18 +119,24 @@ transform)
          and r['forecast_state_existing_on_rewrite'] == r['forecast_state_written'] \
          and r['forecast_serving_status'] == 'baselines_only' and r['forecast_model_rows'] == 0 \
          and r['forecast_baseline_rows'] > 0 and r['forecast_model_version'] is None \
-         and r['forecast_cache_files'] == [] and r['r3_tables_exported'] == 2 \
+         and r['forecast_cache_files'] == [] and r['r3_tables_exported'] == 4 \
          and not r['r3_backtest_exported'] and r['forecast_reports'] == \
-             {'raw_forecast_backtest': 0, 'raw_forecast_gate_status': 0}" \
+             {'raw_forecast_backtest': 0, 'raw_forecast_gate_status': 0} \
+         and r['incident_seeded'] == 2 and r['incident_summary_status'] == 'ok' \
+         and r['incident_summaries_template'] == 2 and r['incident_summaries_llm'] == 0 \
+         and r['incident_llm_calls'] == 0 and r['incident_llm_rejections'] == 0" \
         --add-host=host.docker.internal:host-gateway \
         -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R3=true \
-        -e RAW_BUCKET=smoke-raw \
+        -e RAW_BUCKET=smoke-raw -e HEADWAY_SMOKE_SEED_INCIDENTS=1 \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
         -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public/public/boston/gold \
         -e HEADWAY_DBT_TARGET=s3_test -e HEADWAY_S3_ENDPOINT="$endpoint" \
         -e AWS_ENDPOINT_URL="http://$endpoint"
 
+    # Release 3 incident summaries run in both transforms here: the first (no key in SSM) writes the
+    # template for two seeded incidents; the second, with a fake provider injected, makes two calls,
+    # one answer is rejected by the number check (template, counted) and one passes.
     # Release 3 serving with a registered model (model v1 for Red, Orange and Blue under a passed
     # gate, seeded with the training code) under the same constraints: the model is downloaded to
     # /tmp once, LightGBM runs on the read-only image, only the approved lines past the gate get a
@@ -149,11 +155,14 @@ transform)
          and {'model.txt', 'lines.json', 'features.json', 'meta.json'} <= set(r['forecast_cache_files']) \
          and r['forecast_reports']['raw_forecast_gate_status'] == 3 \
          and r['forecast_reports']['raw_forecast_backtest'] > 0 \
-         and r['r3_tables_exported'] == 3 and r['r3_backtest_exported']" \
+         and r['r3_tables_exported'] == 5 and r['r3_backtest_exported'] \
+         and r['incident_seeded'] == 2 and r['incident_summary_status'] == 'ok' \
+         and r['incident_llm_calls'] == 2 and r['incident_llm_rejections'] == 1 \
+         and r['incident_summaries_llm'] == 1 and r['incident_summaries_template'] == 1" \
         --add-host=host.docker.internal:host-gateway \
         -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R3=true \
-        -e RAW_BUCKET=smoke-raw-model \
+        -e RAW_BUCKET=smoke-raw-model -e HEADWAY_SMOKE_SEED_INCIDENTS=1 -e HEADWAY_SMOKE_FAKE_LLM=1 \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
         -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public-model/public/boston/gold \
         -e HEADWAY_DBT_TARGET=s3_test -e HEADWAY_S3_ENDPOINT="$endpoint" \
