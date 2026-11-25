@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
+.PHONY: api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -101,7 +101,9 @@ demo-r2:
 # Container images for the curate/static and transform Lambdas (linux/arm64).
 IMAGE_TAG ?= $(shell git rev-parse --short HEAD)
 AWS_REGION ?= us-east-1
-IMAGES := curate transform train
+IMAGES := curate transform train api
+# Pushed images: the api repository exists only with enable_r4 (pass ENABLE_R4=true).
+PUSH_IMAGES := curate transform train $(if $(filter true,$(ENABLE_R4)),api)
 
 images-build:
 	@set -e; for name in $(IMAGES); do \
@@ -129,7 +131,10 @@ train-smoke:
 ingest-smoke: lambda-zip
 	scripts/smoke_image.sh ingest
 
-images-smoke: curate-smoke transform-smoke train-smoke ingest-smoke
+api-smoke:
+	scripts/smoke_image.sh api
+
+images-smoke: curate-smoke transform-smoke train-smoke api-smoke ingest-smoke
 
 # Logs in to ECR, tags with the git short sha and pushes. The ECR repositories must already exist
 # (see docs/DEPLOY.md). Prints the image URIs to put in terraform.tfvars.
@@ -139,14 +144,17 @@ images-push: images-build
 	registry=$$account.dkr.ecr.$(AWS_REGION).amazonaws.com; \
 	aws ecr get-login-password --region $(AWS_REGION) \
 		| docker login --username AWS --password-stdin $$registry; \
-	for name in $(IMAGES); do \
+	for name in $(PUSH_IMAGES); do \
 		docker tag headway-$$name:$(IMAGE_TAG) $$registry/headway-$$name:$(IMAGE_TAG); \
 		docker push $$registry/headway-$$name:$(IMAGE_TAG); \
 	done; \
 	echo; \
 	echo "curate_image_uri    = \"$$registry/headway-curate:$(IMAGE_TAG)\""; \
 	echo "transform_image_uri = \"$$registry/headway-transform:$(IMAGE_TAG)\""; \
-	echo "train_image_uri     = \"$$registry/headway-train:$(IMAGE_TAG)\"  # only with enable_r3"
+	echo "train_image_uri     = \"$$registry/headway-train:$(IMAGE_TAG)\"  # only with enable_r3"; \
+	if [ "$(ENABLE_R4)" = true ]; then \
+		echo "api_image_uri       = \"$$registry/headway-api:$(IMAGE_TAG)\"  # only with enable_r4"; \
+	fi
 
 # Push the images, point terraform.tfvars at the new git short sha, plan and apply. Aborts before
 # the apply unless the plan destroys nothing. Needs AWS credentials and the ECR repositories.
@@ -159,6 +167,7 @@ deploy: images-push
 		-e 's|^(curate_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-curate:)[^"]*"|\1$(IMAGE_TAG)"|' \
 		-e 's|^(transform_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-transform:)[^"]*"|\1$(IMAGE_TAG)"|' \
 		-e 's|^(train_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-train:)[^"]*"|\1$(IMAGE_TAG)"|' \
+		-e 's|^(api_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-api:)[^"]*"|\1$(IMAGE_TAG)"|' \
 		$(TFVARS); \
 	rm -f $(TFVARS).bak; \
 	grep -q 'headway-curate:$(IMAGE_TAG)"' $(TFVARS) && grep -q 'headway-transform:$(IMAGE_TAG)"' $(TFVARS) \

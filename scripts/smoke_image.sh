@@ -4,7 +4,7 @@
 # working dir /var/task, no /dev/shm (--ipc=none, as in real Lambda). Local fixtures and a local moto
 # S3 only: no AWS access, no network use by the handlers.
 #
-#   smoke_image.sh transform|curate|ingest|train
+#   smoke_image.sh transform|curate|ingest|train|api
 set -euo pipefail
 
 # Keep the Mac awake for the run. An idle or maintenance sleep mid-run froze it for up to 15 minutes
@@ -13,7 +13,7 @@ if [ -z "${SMOKE_AWAKE:-}" ] && command -v caffeinate >/dev/null 2>&1; then
     SMOKE_AWAKE=1 exec caffeinate -i "$0" "$@"
 fi
 
-kind=${1:?usage: smoke_image.sh transform|curate|ingest|train}
+kind=${1:?usage: smoke_image.sh transform|curate|ingest|train|api}
 root=$(cd "$(dirname "$0")/.." && pwd)
 smoke="$root/.local/smoke"
 mkdir -p "$smoke"
@@ -73,6 +73,7 @@ start_moto() {
 # EXPECT_LOG (space-separated grep patterns) must each appear in the container log, which is where
 # the embedded-metric lines go; it is reset after every invocation.
 EXPECT_LOG=
+EVENT='{}'  # the invocation payload; reset after every invocation
 invoke() {
     local image=$1 handler=$2 check=$3
     shift 3
@@ -92,7 +93,7 @@ invoke() {
         exit 1
     fi
     local out
-    out=$(curl -s --max-time 900 -XPOST "localhost:$port/2015-03-31/functions/function/invocations" -d '{}')
+    out=$(curl -s --max-time 900 -XPOST "localhost:$port/2015-03-31/functions/function/invocations" -d "$EVENT")
     if ! SMOKE_OUT="$out" python3 -c "
 import json, os, sys
 r = json.loads(os.environ['SMOKE_OUT'])
@@ -110,6 +111,7 @@ sys.exit(0 if 'errorMessage' not in r and ($check) else 1)"; then
         fi
     done
     EXPECT_LOG=
+    EVENT='{}'
     echo "ok   $handler: $out" | cut -c1-300
     docker rm -f "$name" >/dev/null
 }
@@ -280,6 +282,43 @@ train)
     invoke headway-train:local headway_ml.train_handler.lambda_handler \
         "r['status'] == 'trained' and r['model_version'] == 2 and r['mlflow_runs'] == 2" \
         "${train_env[@]}" -e RAW_BUCKET=smoke-train-open
+    ;;
+api)
+    # The public API image under Lambda constraints, with an HTTP API (payload 2.0) event per call,
+    # a read-only fixture export (file://) and no network. Mangum, headers, validation, docs.
+    rm -rf "$smoke/api" && mkdir -p "$smoke/api"
+    (cd "$root" && uv run python scripts/smoke_api_seed.py "$smoke/api" >/dev/null)
+    chmod -R a+rX "$smoke/api"
+    api_event() {
+        printf '{"version":"2.0","routeKey":"$default","rawPath":"%s","rawQueryString":"%s","headers":{"host":"x.execute-api.us-east-1.amazonaws.com","origin":"https://headway.example.vercel.app"},"requestContext":{"http":{"method":"GET","path":"%s","protocol":"HTTP/1.1","sourceIp":"203.0.113.1","userAgent":"smoke"},"stage":"$default"},"isBase64Encoded":false}' "$1" "$2" "$1"
+    }
+    api_env=(-v "$smoke/api:/fixture:ro" -e HEADWAY_DATA_URL=file:///fixture)
+    handler=headway_api.handler.lambda_handler
+    EVENT=$(api_event /v1/meta "")
+    invoke headway-api:local $handler \
+        "r['statusCode'] == 200 and r['headers']['cache-control'] == 'public, max-age=300' \
+         and r['headers']['access-control-allow-origin'] == 'https://headway.example.vercel.app' \
+         and json.loads(r['body'])['freshness']['exported_at'] == '2026-11-23T00:00:00Z' \
+         and 'agg_slo_rollup' in json.loads(r['body'])['data']['tables_in_export']" "${api_env[@]}"
+    EVENT=$(api_event /v1/lines/Blue/reliability "window=last_24h")
+    invoke headway-api:local $handler \
+        "r['statusCode'] == 200 and json.loads(r['body'])['coverage']['withheld_rows'] == 2 \
+         and json.loads(r['body'])['provenance']['tables'][0] == 'agg_line_reliability_window' \
+         and json.loads(r['body'])['data']['predicted_deviation']['rows'][0]['median_predicted_deviation_s'] is None" \
+        "${api_env[@]}"
+    EVENT=$(api_event /v1/lines/Purple/reliability "")
+    invoke headway-api:local $handler \
+        "r['statusCode'] == 422 and 'Red' in json.loads(r['body'])['detail'][0]['allowed'] \
+         and r['headers']['cache-control'] == 'no-store'" "${api_env[@]}"
+    EVENT=$(api_event /docs "")
+    invoke headway-api:local $handler "r['statusCode'] == 200 and 'swagger' in r['body'].lower()" \
+        "${api_env[@]}"
+    # The baked httpfs extension loads from the read-only image with nothing installed or fetched.
+    docker run --rm --platform linux/arm64 --read-only --ipc=none --tmpfs /tmp:exec --user 993:990 \
+        --network none -e HEADWAY_DUCKDB_EXTENSIONS_DIR=/var/task/duckdb_extensions \
+        -e HEADWAY_DUCKDB_HOME=/tmp --entrypoint /var/lang/bin/python3.12 headway-api:local \
+        -c "from headway_mcp import runner; c = runner._connect(); c.execute('load httpfs'); \
+print('ok   httpfs loaded from the baked directory')"
     ;;
 *) echo "unknown image: $kind" >&2; exit 2 ;;
 esac

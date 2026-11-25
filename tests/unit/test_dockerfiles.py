@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DOCKERFILES = {
     "curate": "headway.curate.handler.curate_handler",
     "transform": "headway_transform.handler.lambda_handler",
+    "api": "headway_api.handler.lambda_handler",
 }
 
 
