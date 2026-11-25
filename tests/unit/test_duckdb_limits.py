@@ -71,3 +71,24 @@ def test_lambda_profile_and_terraform_carry_the_limits() -> None:
     block = tf.split('resource "aws_lambda_function" "transform"')[1].split("logging_config")[0]
     assert re.search(r"ephemeral_storage\s*{\s*size\s*=\s*10240", block)
     assert "HEADWAY_DUCKDB_MEMORY_LIMIT" in block
+
+
+def test_memory_percentage_and_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    from headway_transform import memory
+
+    monkeypatch.delenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", raising=False)
+    monkeypatch.delenv("HEADWAY_MEMORY_LIMIT_MB", raising=False)
+    assert memory.limit_mb() == 3008
+    monkeypatch.setenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "1000")
+    assert memory.used_pct(850.0) == 85.0
+
+
+def test_tracker_reports_spill_per_step(tmp_path: Path) -> None:
+    from headway_transform import memory
+
+    tracker = memory.Tracker(str(tmp_path), interval_s=0.01).start()
+    (tmp_path / "spill.tmp").write_bytes(b"x" * 3 * 1024 * 1024)
+    tracker.mark("a")
+    tracker.stop()
+    assert tracker.report()["step_spill_mb"] == {"a": 3}
+    assert tracker.report()["peak_memory_mb"] > 0

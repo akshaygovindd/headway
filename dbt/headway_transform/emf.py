@@ -162,3 +162,12 @@ def collect(
         if value is not None:
             metrics[name] = value
     return metrics
+
+
+def emit_memory(timestamp: datetime, used_pct: float) -> str:
+    """Print the run's peak memory as a percentage of the function's limit (alarmed at 85%)."""
+    line = emf_line(
+        timestamp, {"TransformMemoryUsedPct": used_pct}, {"TransformMemoryUsedPct": "Percent"}
+    )
+    print(line, flush=True)  # noqa: T201
+    return line

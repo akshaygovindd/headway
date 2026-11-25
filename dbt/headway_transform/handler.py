@@ -25,6 +25,7 @@ from headway_transform import (
     forecast_state,
     history,
     incident_summaries,
+    memory,
     observability,
     publish,
     state,
@@ -373,6 +374,22 @@ def r2_exclusions() -> list[str]:
     return out
 
 
+_TRACKER: memory.Tracker | None = None
+
+
+def _mark_memory(step: str) -> None:
+    """Close a step's memory and spill accounting (no-op outside a transform run)."""
+    if _TRACKER is not None:
+        _TRACKER.mark(step)
+
+
+def _stop_memory_tracking() -> None:
+    global _TRACKER
+    if _TRACKER is not None:
+        _TRACKER.stop()
+        _TRACKER = None
+
+
 def _build_and_test(
     variables: str,
     steps: dict[str, int] | None = None,
@@ -396,6 +413,7 @@ def _build_and_test(
             logger.info("step %s finished in %d ms", name, ms)
             if steps is not None:
                 steps[name] = ms
+            _mark_memory(name)
 
     load = step("s3_load", ["run", "--select", "tag:s3_load"])
     if load.node_errors:
@@ -830,7 +848,10 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
             return _rebuild_forecast_examples(started, s3, run, *rebuild)
         if rebuild is not None:
             return _rebuild_history(started, s3, run, *rebuild, drill=drill)
-        return _transform(started, s3, run, drill)
+        try:
+            return _transform(started, s3, run, drill)
+        finally:
+            _stop_memory_tracking()
     except Exception as exc:
         run.error = f"{type(exc).__name__}: {exc}"[:1000]
         raise
@@ -851,9 +872,13 @@ def _transform(
     steps: dict[str, int] = run.steps
     summary: dict[str, Any] = {}
 
+    global _TRACKER
+    _TRACKER = tracker = memory.Tracker(duckdb_limits.settings()["temp_directory"]).start()
+
     def timed(name: str, t0: float) -> None:
         steps[name] = round((time.monotonic() - t0) * 1000)
         logger.info("step %s finished in %d ms", name, steps[name])
+        _mark_memory(name)
 
     try:
         previous_export = emf.previous_export(db_path)
@@ -971,6 +996,15 @@ def _transform(
         summary["publish_error"] = f"{type(exc).__name__}: {exc}"
     timed("publish", t0)
 
+    tracker.stop()
+    _TRACKER = None
+    summary.update(tracker.report())
+    emf.emit_memory(_now(), summary["memory_used_pct"])
+    if summary["memory_used_pct"] >= memory.ALARM_PCT:
+        logger.warning(
+            "transform peak memory %d MB is %.1f%% of its %d MB limit",
+            summary["peak_memory_mb"], summary["memory_used_pct"], summary["memory_limit_mb"],
+        )  # fmt: skip
     summary.update(
         {
             "gold_exported": True,
