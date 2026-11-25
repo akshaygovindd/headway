@@ -30,6 +30,7 @@ REPORTS = {
     "raw_forecast_gate_status": "models/forecast/reports/gate_status.parquet",
 }
 SCORES = "forecast_serving_scores"
+SCORE_CHUNK_VECTORS = 25  # x2048 rows: bounds the pandas working set while scoring
 SLOT = ["line", "direction_id", "stop_id", "prediction_ts", "horizon_min"]
 
 
@@ -113,18 +114,35 @@ def serve(
 
 
 def _score(con: Any, model: Any, passed: set[str]) -> int:
+    import pandas as pd  # a LightGBM dependency, present wherever a model is scored
+
     lines = sorted(set(model.lines) & passed)
     if not lines:
         return 0
     marks = ", ".join("?" for _ in lines)
-    rows = con.execute(
+    # Stream the features in chunks and keep only per-slot partial sums: the table is the
+    # transform's largest and was once materialised whole in pandas (ADR-024).
+    cursor = con.execute(
         f"select * from int_forecast_serving_features where line in ({marks})",  # noqa: S608
         lines,
-    ).df()
-    if rows.empty:
+    )
+    partials = []
+    scored = 0
+    while True:
+        chunk = cursor.fetch_df_chunk(SCORE_CHUNK_VECTORS)
+        if chunk.empty:
+            break
+        chunk["score"] = model.score(chunk)
+        partials.append(
+            chunk.groupby(SLOT, dropna=False)["score"].agg(["sum", "count"]).reset_index()
+        )
+        scored += len(chunk)
+        del chunk
+    if not scored:
         return 0
-    rows["score"] = model.score(rows)
-    slots = rows.groupby(SLOT, dropna=False)["score"].agg(["mean", "count"]).reset_index()
+    totals = pd.concat(partials).groupby(SLOT, dropna=False, as_index=False)[["sum", "count"]].sum()
+    totals["mean"] = totals["sum"] / totals["count"]
+    slots = totals[[*SLOT, "mean", "count"]]
     con.register("slot_scores", slots)
     con.execute(f"create or replace table main.{SCORES} as select * from slot_scores")  # noqa: S608
     con.unregister("slot_scores")
@@ -139,7 +157,7 @@ def _score(con: Any, model: Any, passed: set[str]) -> int:
             and a.horizon_min = s.horizon_min
         """  # noqa: S608
     )
-    return len(rows)
+    return scored
 
 
 def _label_baselines(con: Any, model: Any, passed: set[str], error: str | None) -> None:
