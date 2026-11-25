@@ -3,7 +3,7 @@ import { LineBadge } from "@/components/LineBadge";
 import { BusIcon } from "@/components/trust";
 import { HEALTH_RAMP, STATE_LABEL, type SegmentState } from "@/lib/health";
 import { lineName } from "@/lib/lines";
-import { disruptedStretches, stateCounts, type Seg } from "@/lib/network";
+import { cleanHeader, disruptedStretches, stateCounts, type Seg, type Stretch } from "@/lib/network";
 import { covText } from "@/lib/coverage";
 
 export function segmentFill(state: SegmentState): string | undefined {
@@ -31,11 +31,18 @@ export function SegmentBar({ s, tall = false }: { s: Seg; tall?: boolean }) {
   );
 }
 
+/** The alert text for a stretch (its segments' own header, else the line's), as given; else the stops. */
+function stretchLabel(st: Stretch, segs: Seg[], header: string | null | undefined): string {
+  const own = segs.slice(st.start, st.end + 1).map((s) => cleanHeader(s.row.disruption_header)).find(Boolean);
+  const text = own ?? header;
+  return text ? `Service disruption: ${text}` : `Service disruption: ${st.from} to ${st.to}`;
+}
+
 /** One row per line, segments between consecutive stops; disrupted stretches are dashed with a bus icon. */
-export function NetworkDiagram({ rows }: { rows: { line: string; segs: Seg[] }[] }) {
+export function NetworkDiagram({ rows }: { rows: { line: string; segs: Seg[]; header?: string | null }[] }) {
   return (
     <ul className="grid gap-3" aria-label="Spacing along each line">
-      {rows.map(({ line, segs }) => {
+      {rows.map(({ line, segs, header }) => {
         const stretches = disruptedStretches(segs);
         const counts = stateCounts(segs);
         const items: React.ReactNode[] = [];
@@ -69,9 +76,9 @@ export function NetworkDiagram({ rows }: { rows: { line: string; segs: Seg[] }[]
                 <p className="text-sm text-muted">Segment health is not published yet.</p>
               )}
               {stretches.map((st) => (
-                <p key={st.start} className="mt-1 flex items-center gap-1 text-xs font-medium text-[#7A2E00]">
+                <p key={st.start} className="mt-1 flex min-w-0 items-center gap-1 text-xs font-medium text-[#7A2E00]" data-testid="stretch-label" title={stretchLabel(st, segs, header)}>
                   <BusIcon />
-                  Service disruption: {st.from} to {st.to}
+                  <span className="truncate">{stretchLabel(st, segs, header)}</span>
                 </p>
               ))}
               <p className="sr-only">

@@ -2,9 +2,11 @@ import Link from "next/link";
 import { LineBadge } from "@/components/LineBadge";
 import { DisruptionChip, Metric, StopsSkippedChip } from "@/components/trust";
 import { lineName } from "@/lib/lines";
+import { disruptionLabel } from "@/lib/network";
 import type { LineStat } from "@/lib/site-data";
 
-export type CardChips = { disrupted: boolean; skipped: boolean };
+/** `header` is the alert text when the API has it; `skipped` is the inferred fallback and only set without one. */
+export type CardChips = { disrupted: boolean; header: string | null; skipped: boolean };
 
 /** Fixed order, never sorted by value. Departure-board rows on a phone, cards from `sm` up. */
 export function LineCards({ cards }: { cards: { stat: LineStat; chips: CardChips }[] }) {
@@ -32,7 +34,7 @@ export function LineCards({ cards }: { cards: { stat: LineStat; chips: CardChips
               />
             </div>
             <div className="flex flex-wrap items-center gap-1.5 sm:mt-2">
-              {chips.disrupted ? <DisruptionChip open /> : null}
+              {chips.disrupted ? <DisruptionChip open label={disruptionLabel(chips.header, false).text} /> : null}
               {chips.skipped ? <StopsSkippedChip /> : null}
             </div>
           </li>

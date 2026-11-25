@@ -1,4 +1,8 @@
-/** A line with an open incident. Text states it; the icon is decorative. Dashed brown on cream. */
+/**
+ * A line with an open incident. The text states it; the icon is decorative. `label` is plain text
+ * (an MBTA alert header is shown as given, never as HTML), cut off visually by CSS with the full
+ * text in the title and in the accessible name.
+ */
 export function DisruptionChip({ open, label }: { open: boolean | null; label?: string }) {
   if (open == null) {
     return (
@@ -7,10 +11,11 @@ export function DisruptionChip({ open, label }: { open: boolean | null; label?: 
       </span>
     );
   }
+  const text = label ?? "Service disruption";
   return open ? (
-    <span data-testid="disruption" className="chip-disruption">
+    <span data-testid="disruption" className="chip-disruption max-w-full" title={text}>
       <BusIcon />
-      {label ?? "Service disruption"}
+      <span className="truncate">{text}</span>
     </span>
   ) : (
     <span data-testid="disruption" className="text-xs text-muted">
@@ -19,12 +24,12 @@ export function DisruptionChip({ open, label }: { open: boolean | null; label?: 
   );
 }
 
-/** Stops were skipped in an open incident. Same look as a disruption: it is one. */
-export function StopsSkippedChip() {
+/** Shown only when no alert text is available: stops skipped inferred from an open incident. */
+export function StopsSkippedChip({ label = "Possible stop skipped (inferred from incidents)" }: { label?: string }) {
   return (
-    <span data-testid="skipped" className="chip-disruption">
+    <span data-testid="skipped" className="chip-disruption max-w-full" title={label}>
       <span aria-hidden="true">!</span>
-      Stops skipped
+      <span className="truncate">{label}</span>
     </span>
   );
 }

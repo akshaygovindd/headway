@@ -5,7 +5,9 @@ import { NetworkDiagram, RampLegend } from "@/components/home/NetworkDiagram";
 import { StateKey } from "@/components/home/StateKey";
 import { TrustStrip } from "@/components/home/TrustStrip";
 import { ErrorState } from "@/components/ui";
-import { capturePct, checkCounts } from "@/lib/heartbeat";
+import { checksSummary } from "@/lib/checks";
+import { capturePct } from "@/lib/heartbeat";
+import { lineDisruptionHeader } from "@/lib/network";
 import { heroSentence } from "@/lib/hero";
 import { shown } from "@/lib/map";
 import { homeData, openIncidentsByLine, thresholds, withheldWhy } from "@/lib/site-data";
@@ -32,14 +34,19 @@ export default async function Home() {
   const asOf = d.meta.ok ? d.meta.body.freshness.metrics_as_of : d.lines.body.freshness.metrics_as_of;
   const time = hhmmET(asOf);
 
-  const chips = (line: string, anyDisrupted: boolean): CardChips => {
-    const inc = open?.get(line) ?? [];
-    return { disrupted: inc.length > 0 || anyDisrupted, skipped: inc.some((i) => thresholds(i).includes("skipped")) };
+  const headerOf = (p: (typeof d.perLine)[number]) =>
+    lineDisruptionHeader(p.disruptions.ok ? p.disruptions.body.data.rows : null, p.seg.all);
+  const chips = (p: (typeof d.perLine)[number]): CardChips => {
+    const inc = open?.get(p.line) ?? [];
+    const header = headerOf(p);
+    return {
+      disrupted: inc.length > 0 || p.seg.segs.some((s) => s.row.disrupted) || header != null,
+      header,
+      // Only a fallback: with alert text available, nothing is inferred.
+      skipped: header == null && inc.some((i) => thresholds(i).includes("skipped")),
+    };
   };
-  const cards = d.perLine.map(({ line, stat, seg }) => ({
-    stat,
-    chips: chips(line, seg.segs.some((s) => s.row.disrupted)),
-  }));
+  const cards = d.perLine.map((p) => ({ stat: p.stat, chips: chips(p) }));
   const hero = heroSentence(
     d.perLine.map(({ stat }, i) => {
       const s = shown(stat.cell);
@@ -75,7 +82,7 @@ export default async function Home() {
         <h2 id="network-h" className="text-xl">Spacing along every line</h2>
         <p className="mb-3 mt-1 text-sm text-muted">Each bar is the stretch between two stations, over the last 24 hours.</p>
         <div className="rounded-lg border border-line bg-card p-4">
-          <NetworkDiagram rows={d.perLine.map(({ line, seg }) => ({ line, segs: seg.segs }))} />
+          <NetworkDiagram rows={d.perLine.map((p) => ({ line: p.line, segs: p.seg.segs, header: headerOf(p) }))} />
           <RampLegend />
         </div>
       </section>
@@ -85,7 +92,7 @@ export default async function Home() {
           asOf={asOf}
           capture={d.heartbeat.ok ? capturePct(d.heartbeat.body.data.rows) : null}
           measured={measured}
-          checks={d.slo.ok ? checkCounts(d.slo.body.data.slos) : null}
+          checks={checksSummary(d.checks)}
           heartbeat={d.heartbeat.ok ? d.heartbeat.body.data.rows : null}
         />
       </div>

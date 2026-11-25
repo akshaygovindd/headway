@@ -27,7 +27,11 @@ describe("home page", () => {
       "Red Line", "Orange Line", "Blue Line", "Green Line B", "Green Line C", "Green Line D", "Green Line E", "Mattapan Trolley",
     ]);
     expect(within(cards[0]!).getByTestId("withheld")).toHaveTextContent("Not enough data · 35% cov.");
-    expect(within(cards[0]!).getByTestId("disruption")).toHaveTextContent("Service disruption");
+    const chip = within(cards[0]!).getByTestId("disruption");
+    expect(chip).toHaveTextContent("Service disruption: Shuttle buses replace Red Line trains between Broadway and North Quincy");
+    expect(chip).toHaveAttribute("title", chip.textContent ?? "");
+    // Alert text is available, so nothing is inferred from incidents.
+    expect(within(cards[0]!).queryByTestId("skipped")).toBeNull();
     expect(within(cards[1]!).getByTestId("coverage-badge")).toHaveAttribute("data-state", "partial");
     expect(within(cards[1]!).getByTestId("coverage-badge")).toHaveTextContent("68% cov.");
     expect(within(cards[2]!).getByRole("button", { name: "87%" })).toBeInTheDocument();
@@ -38,7 +42,9 @@ describe("home page", () => {
     await home();
     const stretches = screen.getAllByTestId("stretch");
     expect(stretches).toHaveLength(1);
-    expect(screen.getByText(/Service disruption: Broadway to North Quincy/)).toBeInTheDocument();
+    const label = screen.getByTestId("stretch-label");
+    expect(label).toHaveTextContent("Service disruption: Shuttle buses replace Red Line trains between Broadway and North Quincy");
+    expect(label).toHaveAttribute("title", label.textContent ?? "");
     expect(document.querySelectorAll('[data-testid="network-row"] [data-state="withheld"]').length).toBeGreaterThan(10);
     expect(document.querySelectorAll('[data-testid="network-row"] [data-state="even"]').length).toBeGreaterThan(10);
   });
@@ -48,7 +54,8 @@ describe("home page", () => {
     const strip = screen.getByRole("region", { name: "Can you trust this page?" });
     expect(strip).toHaveTextContent("06:45 ET");
     expect(strip).toHaveTextContent("our data, not the trains");
-    expect(strip).toHaveTextContent("1 failing");
+    expect(strip.querySelector('[data-testid="checks"]')).toHaveTextContent("1 failing · 1 warnings");
+    expect(strip.querySelector('[data-testid="checks"]')).toHaveTextContent("last 24 h");
     expect(strip.querySelectorAll('[data-outage="true"]')).toHaveLength(1);
   });
 
@@ -62,5 +69,24 @@ describe("home page", () => {
     await home();
     const key = screen.getByTestId("state-key");
     for (const name of ["Shown", "Partial", "Withheld", "Our data gap", "Service disruption"]) expect(key).toHaveTextContent(name);
+  });
+});
+
+describe("home page without the new endpoints", () => {
+  it("shows checks n/a and falls back to the segment header, then to the inferred skip label", async () => {
+    const real = (await import("../scripts/mock-api.mjs")).respond;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request) => {
+        const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
+        const gone = url.pathname === "/v1/pipeline/checks" || url.pathname.endsWith("/disruptions");
+        const { status, body } = gone ? { status: 404, body: { error: "not_available", reason: "not in this export" } } : real(url.pathname, url.search);
+        return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+      }),
+    );
+    await home();
+    expect(screen.getByTestId("checks")).toHaveTextContent("n/a");
+    const cards = within(screen.getByRole("list", { name: "Lines" })).getAllByRole("listitem");
+    expect(within(cards[0]!).getByTestId("disruption")).toHaveTextContent("Shuttle buses replace Red Line trains");
   });
 });
