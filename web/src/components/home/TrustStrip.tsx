@@ -57,7 +57,7 @@ export function TrustStrip({
             {checks ? (
               <>
                 <OwnMetric value={checks.failing} unit="count" info={{ k: "checks", window: `last_${checks.hours}h`, label: "Checks failing" }} /> failing ·{" "}
-                <OwnMetric value={checks.warnings} unit="count" info={{ k: "checks", window: `last_${checks.hours}h`, label: "Check warnings" }} /> warnings
+                <OwnMetric value={checks.warnings} unit="count" info={{ k: "checks", window: `last_${checks.hours}h`, label: "Check warnings" }} /> {checks.warnings === 1 ? "warning" : "warnings"}
                 <span className="w-full text-xs text-[#aab3c2]">{checks.windowText}</span>
               </>
             ) : (

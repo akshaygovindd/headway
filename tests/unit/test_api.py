@@ -527,3 +527,13 @@ def test_lambda_handler_with_an_http_api_event(root: str, monkeypatch: pytest.Mo
     assert res["statusCode"] == 200
     assert res["headers"]["cache-control"] == "public, max-age=300"
     assert json.loads(res["body"])["data"]["slos"][0]["slo_name"] == "transform_success"
+
+
+def test_horizon_buckets_sort_by_number_not_text(client: TestClient) -> None:
+    body = client.get("/v1/lines/Red/accuracy").json()
+    assert [r["horizon_bucket"] for r in rows(body, "prediction_accuracy")] == [
+        "0-5",
+        "5-10",
+        "10-20",
+        "20-30",
+    ]

@@ -54,7 +54,7 @@ describe("home page", () => {
     const strip = screen.getByRole("region", { name: "Can you trust this page?" });
     expect(strip).toHaveTextContent("06:45 ET");
     expect(strip).toHaveTextContent("our data, not the trains");
-    expect(strip.querySelector('[data-testid="checks"]')).toHaveTextContent("1 failing · 1 warnings");
+    expect(strip.querySelector('[data-testid="checks"]')).toHaveTextContent("1 failing · 1 warning");
     expect(strip.querySelector('[data-testid="checks"]')).toHaveTextContent("last 24 h");
     expect(strip.querySelectorAll('[data-outage="true"]')).toHaveLength(1);
   });

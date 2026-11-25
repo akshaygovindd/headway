@@ -7,13 +7,13 @@ import { realIncidents } from "@/lib/site-data";
 import { getApi } from "@/lib/api";
 import type { CsvSpec } from "@/lib/csv";
 import { shown } from "@/lib/map";
+import { dateTimeET } from "@/lib/time";
 import type { IncidentsData } from "@/lib/types";
 
 export const revalidate = 300;
 export const metadata: Metadata = pageMeta("Incidents", "Stretches of at least two hours where an MBTA subway line was clearly off, with coverage and data-outage hours marked.", "/incidents");
 
-const when = (ts: string | null) =>
-  ts ? new Date(ts).toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" }) : "ongoing";
+const when = (ts: string | null) => (ts ? dateTimeET(ts) : "ongoing");
 
 /**
  * The incident's coverage is the API's `coverage_pct` (the mean over its evaluated hours): the same

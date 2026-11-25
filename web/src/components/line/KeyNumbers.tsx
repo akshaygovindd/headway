@@ -1,4 +1,5 @@
 import { Metric } from "@/components/trust";
+import { leftOutText } from "@/lib/definitions";
 import { lineName } from "@/lib/lines";
 import type { Cell } from "@/lib/map";
 import type { AccuracyRow, ActualRow, HeadwayRow } from "@/lib/types";
@@ -16,6 +17,7 @@ export function KeyNumbers({
   h,
   a,
   acc,
+  leftOut,
 }: {
   line: string;
   heavy: boolean;
@@ -23,9 +25,12 @@ export function KeyNumbers({
   h: HeadwayRow | undefined;
   a: ActualRow | undefined;
   acc: AccuracyRow | undefined;
+  /** Headways left out because our own capture had a gap, summed over the line. Null when unknown. */
+  leftOut?: number | null;
 }) {
   const nm = lineName(line);
-  const hi = { line, n: h?.n_observations, window };
+  const ex = leftOutText(leftOut ?? null, "headways");
+  const hi = { line, n: h?.n_observations, window, excluded: ex };
   const tiles: { key: string; label: string; body: React.ReactNode }[] = [
     {
       key: "within",
@@ -36,16 +41,22 @@ export function KeyNumbers({
       key: "bunched",
       label: "Bunched · gaps",
       body: (
-        <span className="flex flex-wrap items-start gap-x-3">
-          <Metric size="lg" cell={cell(h, h?.pct_bunched)} unit="pct0" info={{ ...hi, k: "bunched", label: `${nm}: bunched` }} />
-          <Metric size="lg" cell={cell(h, h?.pct_gap)} unit="pct0" info={{ ...hi, k: "gap", label: `${nm}: gaps` }} />
+        <span className="flex flex-wrap items-start gap-x-4 gap-y-2">
+          <span className="flex flex-col items-start" data-testid="bunched-value">
+            <span className="text-xs text-muted">Bunched</span>
+            <Metric size="lg" cell={cell(h, h?.pct_bunched)} unit="pct0" info={{ ...hi, k: "bunched", label: `${nm}: bunched` }} />
+          </span>
+          <span className="flex flex-col items-start" data-testid="gaps-value">
+            <span className="text-xs text-muted">Gaps</span>
+            <Metric size="lg" cell={cell(h, h?.pct_gap)} unit="pct0" info={{ ...hi, k: "gap", label: `${nm}: gaps` }} />
+          </span>
         </span>
       ),
     },
     {
       key: "ontime",
       label: heavy ? "On time (secondary)" : "On time",
-      body: <Metric size="lg" cell={cell(a, a?.pct_on_time_window)} unit="pct0" info={{ line, n: a?.n_observations, window, k: "on_time", label: `${nm}: on time` }} />,
+      body: <Metric size="lg" cell={cell(a, a?.pct_on_time_window)} unit="pct0" info={{ line, n: a?.n_observations, window, excluded: leftOutText(null), k: "on_time", label: `${nm}: on time` }} />,
     },
     {
       key: "countdown",

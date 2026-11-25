@@ -5,10 +5,10 @@ import { hourLabel } from "./time";
 import type { SpacingHour, TripTimeRow } from "./types";
 
 const BAND_LABEL: Record<string, string> = {
-  am_peak: "AM peak",
-  midday: "Midday",
-  pm_peak: "PM peak",
-  evening: "Evening",
+  am_peak: "Morning peak (06:30\u201309:00)",
+  midday: "Midday (09:00\u201315:30)",
+  pm_peak: "Afternoon peak (15:30\u201318:30)",
+  evening: "Evening (18:30\u201324:00)",
   other: "Other hours",
 };
 export const bandLabel = (b: string): string => BAND_LABEL[b] ?? b;
@@ -56,4 +56,13 @@ export function orderHours(hours: SpacingHour[]): SpacingHour[] {
  */
 export function countdownRowsFor<R extends { station_id: string; line?: string }>(rows: R[], line: string, stopIds: Set<string>): R[] {
   return rows.filter((r) => (r.line == null || r.line === line) && (stopIds.size === 0 || stopIds.has(r.station_id)));
+}
+
+/** Horizon buckets ("0-5", "5-10", "10-20", "20-30") in numeric order, whatever order they arrived in. */
+export function sortBuckets<R extends { horizon_bucket: string }>(rows: R[]): R[] {
+  const first = (b: string) => {
+    const n = Number.parseFloat(b);
+    return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
+  };
+  return [...rows].sort((a, b) => first(a.horizon_bucket) - first(b.horizon_bucket) || a.horizon_bucket.localeCompare(b.horizon_bucket));
 }

@@ -237,7 +237,9 @@ class Query:
         vals = ", ".join(f"round(case when {ok} then {v} end, 2) as {v}" for v in s.values)
         keys = "".join(f", {k}" for k in s.keys)
         where = f"window_label = '{window}'" + (f" and line = '{line}'" if line else "")
-        order = ", ".join(["line", *s.keys])
+        # Horizon buckets are text ("0-5", "10-20"): order them by their first number, not as text.
+        bucket = "try_cast(split_part(horizon_bucket, '-', 1) as integer), horizon_bucket"
+        order = ", ".join(["line", *(bucket if k == "horizon_bucket" else k for k in s.keys)])
         return (
             f"select line{keys}, window_label as window, {vals}, {s.n_column} as n_observations, "
             f"round(coverage_pct, 1) as coverage_pct, not ({ok}) as withheld "

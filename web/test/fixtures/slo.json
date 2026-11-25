@@ -2,6 +2,30 @@
  "data": {
   "slos": [
    {
+    "slo_name": "arrival_coverage",
+    "window": "last_30d",
+    "target_pct": 80.0,
+    "good_events": 4310.0,
+    "total_events": 5200.0,
+    "actual_pct": 82.88,
+    "met": true,
+    "error_budget_used": 0.856,
+    "days_covered": 1,
+    "counts_toward_slo": true
+   },
+   {
+    "slo_name": "arrival_coverage",
+    "window": "last_7d",
+    "target_pct": 80.0,
+    "good_events": 4310.0,
+    "total_events": 5200.0,
+    "actual_pct": 82.88,
+    "met": true,
+    "error_budget_used": 0.856,
+    "days_covered": 1,
+    "counts_toward_slo": true
+   },
+   {
     "slo_name": "capture_completeness",
     "window": "last_30d",
     "target_pct": 99.0,
@@ -9,7 +33,7 @@
     "total_events": 60.0,
     "actual_pct": 98.33,
     "met": false,
-    "error_budget_used": 1.667,
+    "error_budget_used": 1.67,
     "days_covered": 1,
     "counts_toward_slo": true
    },
@@ -21,7 +45,55 @@
     "total_events": 60.0,
     "actual_pct": 98.33,
     "met": false,
-    "error_budget_used": 1.667,
+    "error_budget_used": 1.67,
+    "days_covered": 1,
+    "counts_toward_slo": true
+   },
+   {
+    "slo_name": "gold_freshness",
+    "window": "last_30d",
+    "target_pct": 99.0,
+    "good_events": 166.0,
+    "total_events": 168.0,
+    "actual_pct": 98.81,
+    "met": false,
+    "error_budget_used": 1.19,
+    "days_covered": 1,
+    "counts_toward_slo": true
+   },
+   {
+    "slo_name": "gold_freshness",
+    "window": "last_7d",
+    "target_pct": 99.0,
+    "good_events": 166.0,
+    "total_events": 168.0,
+    "actual_pct": 98.81,
+    "met": false,
+    "error_budget_used": 1.19,
+    "days_covered": 1,
+    "counts_toward_slo": true
+   },
+   {
+    "slo_name": "transform_success",
+    "window": "last_30d",
+    "target_pct": 99.0,
+    "good_events": 24.0,
+    "total_events": 24.0,
+    "actual_pct": 100.0,
+    "met": true,
+    "error_budget_used": 0.0,
+    "days_covered": 1,
+    "counts_toward_slo": true
+   },
+   {
+    "slo_name": "transform_success",
+    "window": "last_7d",
+    "target_pct": 99.0,
+    "good_events": 24.0,
+    "total_events": 24.0,
+    "actual_pct": 100.0,
+    "met": true,
+    "error_budget_used": 0.0,
     "days_covered": 1,
     "counts_toward_slo": true
    }

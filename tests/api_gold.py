@@ -41,7 +41,7 @@ def build(base: Path, exported_at: str = EXPORTED_AT, shift: float = 0.0) -> str
             "select '{0}' line, 'last_24h' window_label, '{1}' horizon_bucket, 9 n,"
             " 40.0::double median_abs_error_s, 120.0::double p90_abs_error_s, 55.0::double mae_s,"
             " 70.0::double pct_within_60s, 85.0::double pct_within_120s, {2}::double coverage_pct",
-            [(ln, h, cov) for ln, cov in LINE_COV for h in ("0-5 min", "5-15 min")],
+            [(ln, h, cov) for ln, cov in LINE_COV for h in ("20-30", "5-10", "0-5", "10-20")],
         ),
         "agg_headway_window": _rows(
             "select '{0}' line, 'last_24h' window_label, 7 n_headways, 60.0::double"

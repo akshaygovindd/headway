@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import notes from "@/data/metric-notes.json";
-import { definitionFor, docUrl, sqlUrl } from "@/lib/definitions";
+import { definitionFor, docUrl, leftOutText, sqlUrl } from "@/lib/definitions";
 
 type Info = {
   k: string;
@@ -119,7 +119,7 @@ export function MetricPopover() {
             <dt className="text-muted">Window</dt>
             <dd>{info.win ? (WINDOWS[info.win] ?? info.win.replace(/^last_(\d+)h$/, "last $1 hours")) : "last 24 hours"}</dd>
             <dt className="text-muted">Left out</dt>
-            <dd>{info.ex ?? "trips with an unproven order and hours when our own capture had a gap"}</dd>
+            <dd>{info.ex ?? leftOutText(null)}</dd>
           </dl>
           {note ? (
             <p className="mt-3 rounded border border-[#D5D9E0] bg-[#F4F5F7] p-3 text-sm">

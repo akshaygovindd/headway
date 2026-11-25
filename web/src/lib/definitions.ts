@@ -116,6 +116,19 @@ export function sqlUrl(table: string): string {
   return `${REPO_URL}/blob/main/dbt/headway/models/marts/${table}.sql`;
 }
 
+/** What the popover's "Left out" line says: the count if one is published, else that none is. */
+export function leftOutText(n: number | null | undefined, what = "observations"): string {
+  return n == null ? "No left-out count is published for this figure" : `${n} ${what} in hours when our own capture had a gap (not evaluated)`;
+}
+
+/** "capture_completeness" -> "Capture Completeness". */
+export function sloTitle(name: string): string {
+  return name
+    .split("_")
+    .map((w) => (w ? w[0]!.toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
 export function docUrl(path: string): string {
   return `${REPO_URL}/blob/main/${path}`;
 }

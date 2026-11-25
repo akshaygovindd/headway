@@ -21,7 +21,7 @@ import { lineName, LINE_STYLE } from "@/lib/lines";
 import { isHeavyRail, isLine, LINES, shown, trend, type Cell, type Trend } from "@/lib/map";
 import { disruptionLabel, lineDisruptionHeader, termini } from "@/lib/network";
 import { branchPaths, coveredStops, rowsForBranch } from "@/lib/marey";
-import { bandLabel, countdownRowsFor } from "@/lib/linedata";
+import { bandLabel, countdownRowsFor, sortBuckets } from "@/lib/linedata";
 import { openIncidentsByLine, segmentsOf, thresholds } from "@/lib/site-data";
 import { hhmmET } from "@/lib/time";
 import notes from "@/data/metric-notes.json";
@@ -41,6 +41,9 @@ import type {
 } from "@/lib/types";
 
 export const revalidate = 300;
+
+/** Day and week figures closer than this many points read as "steady". */
+const TREND_FLAT_BELOW = 1;
 // Only the eight known lines exist: anything else is a real 404 without calling the API.
 export const dynamicParams = false;
 
@@ -61,14 +64,16 @@ const cellOf = (row: CoveredRow, value: number | null): Cell => ({
   withheld_reason: row.withheld_reason,
 });
 
-function TrendText({ t, goodWhenUp, unit }: { t: Trend; goodWhenUp: boolean; unit: string }) {
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+function TrendText({ t, goodWhenUp, unit, flatBelow }: { t: Trend; goodWhenUp: boolean; unit: [string, string]; flatBelow: number }) {
   if (t.kind === "unavailable") return <span className="text-sm italic text-muted">Data unavailable right now</span>;
   if (t.kind === "withheld") return <span className="text-sm italic text-muted">Trend withheld: one of the two periods has too little data</span>;
-  if (t.kind === "flat") return <span>Steady: last 24 hours within {unit} of the 7-day figure</span>;
+  if (t.kind === "flat") return <span>Steady: last 24 hours within {plural(flatBelow, unit[0], unit[1])} of the 7-day figure</span>;
   const better = (t.kind === "up") === goodWhenUp;
   return (
     <span>
-      {t.kind === "up" ? "Up" : "Down"} {Math.abs(t.delta)} {unit} against the 7-day figure ({better ? "better" : "worse"})
+      {t.kind === "up" ? "Up" : "Down"} {plural(Math.abs(t.delta), unit[0], unit[1])} against the 7-day figure ({better ? "better" : "worse"})
     </span>
   );
 }
@@ -114,7 +119,7 @@ function csvRows(
     }
   }
   if (s.acc.ok) {
-    for (const r of s.acc.body.data.prediction_accuracy?.rows ?? []) {
+    for (const r of sortBuckets(s.acc.body.data.prediction_accuracy?.rows ?? [])) {
       add("Accuracy of MBTA predictions", "Within 60 s", r.horizon_bucket, cellOf(r, r.pct_within_60s), "pct");
       add("Accuracy of MBTA predictions", "Within 120 s", r.horizon_bucket, cellOf(r, r.pct_within_120s), "pct");
       add("Accuracy of MBTA predictions", "Median error", r.horizon_bucket, cellOf(r, r.median_abs_error_s), "s");
@@ -161,6 +166,7 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
   const disrupted = open.length > 0 || header != null || seg24.segs.some((x) => x.row.disrupted);
   const chipLabel = disruptionLabel(header, header == null && open.some((i) => thresholds(i).includes("skipped")));
   const stopIds = new Set(seg24.all.flatMap((r) => [r.from_stop_id, r.to_stop_id]));
+  const leftOutOf = (s: typeof seg24) => (s.result.ok ? s.all.reduce((n, r) => n + (r.n_excluded_outage ?? 0), 0) : null);
   const note = (notes as Record<string, { text: string; href: string }>)[line];
 
   const accRow = (r: typeof acc) => (r.ok ? r.body.data.prediction_accuracy?.rows.find((x) => x.horizon_bucket === "0-5") : undefined);
@@ -201,7 +207,7 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
       <Missing r={acc} what="Prediction accuracy">
         {(d) => (
           <Table caption={`Prediction accuracy by horizon, ${lineName(line)}`} head={["Minutes ahead", "Within 60 s", "Within 120 s", "Median error"]}>
-            {(d.prediction_accuracy?.rows ?? []).map((r) => (
+            {sortBuckets(d.prediction_accuracy?.rows ?? []).map((r) => (
               <tr key={r.horizon_bucket}>
                 <Td>{r.horizon_bucket}</Td>
                 <Td><Metric cell={cellOf(r, r.pct_within_60s)} unit="pct" info={{ k: "accuracy", line, n: r.n_observations, window: "last_24h", label: `Within 60 s, ${r.horizon_bucket} min ahead` }} /></Td>
@@ -246,7 +252,7 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
       <div className="grid gap-3 sm:grid-cols-3">
         <div><p className="text-sm text-muted">Last 24 hours</p><Metric cell={dayCell} unit="pct" info={{ k: heavy ? "within_band" : "on_time", line, window: "last_24h" }} /></div>
         <div><p className="text-sm text-muted">Last 7 days</p><Metric cell={weekCell} unit="pct" info={{ k: heavy ? "within_band" : "on_time", line, window: "last_7d" }} /></div>
-        <p aria-live="polite"><TrendText t={trend(dayCell, weekCell, 1)} goodWhenUp unit="points" /></p>
+        <p aria-live="polite"><TrendText t={trend(dayCell, weekCell, TREND_FLAT_BELOW)} goodWhenUp unit={["point", "points"]} flatBelow={TREND_FLAT_BELOW} /></p>
       </div>
     </Card>
   );
@@ -328,8 +334,8 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
         <section aria-labelledby="key-h">
           <h2 id="key-h" className="mb-2 text-xl">Key numbers</h2>
           <p className="mb-2 text-sm text-muted">{heavy ? "Heavy rail runs to headways, so spacing between trains comes first." : "Light rail: on-time share against the timetable comes first."} Press a number to see how it was measured.</p>
-          <div className="win-24"><KeyNumbers line={line} heavy={heavy} window="last_24h" h={hRow(h24)} a={aRow(rel24)} acc={accRow(acc)} /></div>
-          <div className="win-7"><KeyNumbers line={line} heavy={heavy} window="last_7d" h={hRow(h7)} a={aRow(rel7)} acc={accRow(acc7)} /></div>
+          <div className="win-24"><KeyNumbers line={line} heavy={heavy} window="last_24h" h={hRow(h24)} a={aRow(rel24)} acc={accRow(acc)} leftOut={leftOutOf(seg24)} /></div>
+          <div className="win-7"><KeyNumbers line={line} heavy={heavy} window="last_7d" h={hRow(h7)} a={aRow(rel7)} acc={accRow(acc7)} leftOut={leftOutOf(seg7)} /></div>
           {note ? (
             <p className="mt-3 rounded border border-line bg-card p-3 text-sm" data-testid="line-note">
               {note.text} <a href={docUrl(note.href)}>See the measurement</a>

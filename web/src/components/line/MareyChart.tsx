@@ -107,7 +107,7 @@ function Svg({ uid, rows, hourStart, orientation, minutes, label, annotations, p
   );
 }
 
-const mins = (s: number) => `${Math.round(s / 60)} min`;
+const mins = (s: number) => (s < 30 ? "under 1 min" : `${Math.round(s / 60)} min`);
 
 /**
  * Time-distance chart of the last complete hour in one direction: stations down, time across;

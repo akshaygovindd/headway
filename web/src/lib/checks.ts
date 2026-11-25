@@ -20,5 +20,5 @@ export function checksSummary(r: ApiResult<ChecksData>): ChecksSummary | null {
 }
 
 export function checksText(c: ChecksSummary): string {
-  return `${c.failing} failing · ${c.warnings} warnings (${c.windowText})`;
+  return `${c.failing} failing · ${c.warnings} ${c.warnings === 1 ? "warning" : "warnings"} (${c.windowText})`;
 }
