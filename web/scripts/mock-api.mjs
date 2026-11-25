@@ -12,19 +12,52 @@ const dir =
 const load = (name) => JSON.parse(readFileSync(`${dir}${name}.json`, "utf8"));
 const LINES = ["Red", "Orange", "Blue", "Green-B", "Green-C", "Green-D", "Green-E", "Mattapan"];
 
-/** Fixtures are written for Red; other lines reuse them. Blue has too little data, to show it. */
-function forLine(body, line) {
+/**
+ * What each line looks like in the fixtures, mirroring real states: Red is withheld (35% cov.,
+ * with a shuttle stretch), Orange is partial (68% cov.), Blue is shown at 87% evenly spaced on
+ * 77% cov., the rest are plausible shown values.
+ */
+const STATE = {
+  Red: { cov: 35 },
+  Orange: { cov: 68 },
+  Blue: { cov: 77, set: { pct_within_band: 87, pct_bunched: 5.4, pct_gap: 7.6, pct_on_time_window: 83.1 } },
+  "Green-B": { cov: 75.4 },
+  "Green-C": { cov: 71.7 },
+  "Green-D": { cov: 78.3 },
+  "Green-E": { cov: 86.7 },
+  Mattapan: { cov: 82.4 },
+};
+const KEEP = ["coverage_pct", "n_observations", "countdown_min"];
+const clamp = (x) => Math.min(99, Math.max(1, Math.round(x * 10) / 10));
+
+/** Fixtures are written for Red; other lines reuse them with their own state and small, stable variation. */
+function forLine(body, line, window) {
+  const idx = LINES.indexOf(line);
+  const st = STATE[line];
   const walk = (v) => {
     if (Array.isArray(v)) return v.map(walk);
     if (v && typeof v === "object") {
       const out = {};
-      for (const [k, x] of Object.entries(v)) out[k] = k === "line" && x === "Red" ? line : walk(x);
-      if (line === "Blue" && "coverage_pct" in out && "withheld_reason" in out) {
+      for (const [k, x] of Object.entries(v)) {
+        out[k] = k === "line" && x === "Red" ? line : k === "window" && window ? window : walk(x);
+      }
+      if ("coverage_pct" in out && "withheld_reason" in out && out.coverage_pct != null && st) {
+        out.coverage_pct = st.cov;
         for (const k of Object.keys(out)) {
-          if (typeof out[k] === "number" && !["coverage_pct", "n_observations", "countdown_min"].includes(k)) out[k] = null;
+          const n = out[k];
+          if (typeof n !== "number" || KEEP.includes(k)) continue;
+          if (k.startsWith("pct_")) out[k] = clamp(n + ((idx * 37) % 11) - 5);
+          else if (k.endsWith("_s") && k !== "countdown_min") out[k] = Math.round(n * (1 + (((idx * 37) % 11) - 5) / 20));
         }
-        out.coverage_pct = 30;
-        out.withheld_reason = "coverage 30% is below 50%";
+        if (typeof out.pct_within_band === "number") {
+          out.pct_bunched = Math.round((100 - out.pct_within_band) * 4) / 10;
+          out.pct_gap = Math.round((100 - out.pct_within_band - out.pct_bunched) * 10) / 10;
+        }
+        if (st.set) Object.assign(out, Object.fromEntries(Object.entries(st.set).filter(([k]) => k in out)));
+        if (st.cov < 50) {
+          for (const k of Object.keys(out)) if (typeof out[k] === "number" && !KEEP.includes(k)) out[k] = null;
+          out.withheld_reason = `coverage ${Math.round(st.cov)}% is below 50%`;
+        }
       }
       return out;
     }
@@ -33,19 +66,47 @@ function forLine(body, line) {
   return walk(body);
 }
 
-export function respond(path) {
+/** Direction filter and window label for the R4 fixtures. */
+function segmentsFor(line, params) {
+  const body = load(`lines_${line}_segments`);
+  const d = params.get("direction");
+  if (d != null) body.data.rows = body.data.rows.filter((r) => String(r.direction_id) === d);
+  body.data.window = params.get("window") ?? "last_24h";
+  body.data.direction = d == null ? null : Number(d);
+  return body;
+}
+
+function mareyFor(line, params) {
+  const body = load(`lines_${line}_marey`);
+  const d = params.get("direction");
+  if (d != null) body.data.rows = body.data.rows.filter((r) => String(r.direction_id) === d);
+  body.data.direction = d == null ? null : Number(d);
+  return body;
+}
+
+export function respond(path, search = "") {
+  const params = new URLSearchParams(search);
   if (path === "/v1/lines") {
     const b = load("lines");
     return { status: 200, body: b };
   }
-  let m = path.match(/^\/v1\/lines\/([^/]+)\/(reliability|headways|accuracy|countdown)$/);
+  let m = path.match(/^\/v1\/lines\/([^/]+)\/(reliability|headways|accuracy|countdown|segments|marey)$/);
   if (m) {
     const [, line, what] = m;
     if (!LINES.includes(line)) return { status: 422, body: { error: "validation_error" } };
-    return { status: 200, body: forLine(load(`lines_Red_${what}`), line) };
+    if (what === "segments") return { status: 200, body: segmentsFor(line, params) };
+    if (what === "marey") return { status: 200, body: mareyFor(line, params) };
+    return { status: 200, body: forLine(load(`lines_Red_${what}`), line, params.get("window")) };
   }
   m = path.match(/^\/v1\/forecast\/([^/]+)$/);
   if (m) return { status: 200, body: forLine(load("forecast_Red"), m[1]) };
+  if (path === "/v1/pipeline/heartbeat") {
+    const body = load("pipeline_heartbeat");
+    const hours = Number(params.get("hours") ?? 24);
+    body.data.rows = body.data.rows.slice(-hours);
+    body.data.hours = hours;
+    return { status: 200, body };
+  }
   const flat = { "/v1/incidents": "incidents", "/v1/slo": "slo", "/v1/metrics": "metrics", "/v1/meta": "meta", "/v1/pipeline/health": "pipeline_health" };
   if (flat[path]) return { status: 200, body: load(flat[path]) };
   return { status: 404, body: { error: "not_found" } };
@@ -54,7 +115,7 @@ export function respond(path) {
 export function startMockApi(port = 0) {
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
-    const { status, body } = respond(url.pathname);
+    const { status, body } = respond(url.pathname, url.search);
     res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
     res.end(JSON.stringify(body));
   });

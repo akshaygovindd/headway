@@ -31,19 +31,19 @@ async function downloaded(name: string) {
 describe("CSV on the Line page", () => {
   it("has one data row per number shown, with the comment and header", async () => {
     const shownCount = () => screen.queryAllByTestId("metric").length;
-    const lines = await downloaded("/lines/Red");
+    const lines = await downloaded("/lines/Blue");
     expect(lines[0]).toMatch(/^# metric definition: .*METRICS\.md#.*; exported \d{4}-/);
     expect(lines[1]).toBe("line,section,metric,key,value,unit,coverage_pct,withheld_reason,freshness");
     expect(lines.length - 2).toBe(shownCount());
   });
 
-  it("exports withheld numbers as empty with a reason (Blue fixture is under 50%)", async () => {
-    const lines = await downloaded("/lines/Blue (withheld)");
+  it("exports withheld numbers as empty with a reason (Red fixture is 35% cov.)", async () => {
+    const lines = await downloaded("/lines/Red (withheld, shuttle)");
     const data = lines.slice(2);
     expect(data.length).toBeGreaterThan(0);
     const withheld = data.filter((l) => l.includes("below 50%"));
     expect(withheld.length).toBeGreaterThan(0);
-    for (const l of withheld) expect(l).toMatch(/,[a-z]+,30,coverage 30% is below 50%,/);
+    for (const l of withheld) expect(l).toMatch(/,[a-z]+,35,coverage 35% is below 50%,/);
   });
 });
 

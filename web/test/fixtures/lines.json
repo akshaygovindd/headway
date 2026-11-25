@@ -2,9 +2,9 @@
  "data": [
   {
    "line": "Red",
-   "coverage_pct_last_24h": 71.8,
-   "withheld_last_24h": false,
-   "withheld_reason": null,
+   "coverage_pct_last_24h": 35.0,
+   "withheld_last_24h": true,
+   "withheld_reason": "coverage 35% is below 50%",
    "endpoints": [
     "/v1/lines/Red/reliability",
     "/v1/lines/Red/accuracy",
@@ -14,7 +14,7 @@
   },
   {
    "line": "Orange",
-   "coverage_pct_last_24h": 92.7,
+   "coverage_pct_last_24h": 68.0,
    "withheld_last_24h": false,
    "withheld_reason": null,
    "endpoints": [
@@ -26,7 +26,7 @@
   },
   {
    "line": "Blue",
-   "coverage_pct_last_24h": 91.8,
+   "coverage_pct_last_24h": 77.0,
    "withheld_last_24h": false,
    "withheld_reason": null,
    "endpoints": [
@@ -99,9 +99,9 @@
  ],
  "coverage": {
   "rows": 16,
-  "mean_coverage_pct": 81.3,
-  "min_coverage_pct": 71.7,
-  "withheld_rows": 8,
+  "mean_coverage_pct": 70.8,
+  "min_coverage_pct": 35.0,
+  "withheld_rows": 1,
   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
  },
  "freshness": {

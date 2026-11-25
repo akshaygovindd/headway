@@ -9,7 +9,7 @@ export function stubFixtureApi() {
     "fetch",
     vi.fn(async (input: string | URL | Request) => {
       const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
-      const { status, body } = respond(url.pathname);
+      const { status, body } = respond(url.pathname, url.search);
       return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
     }),
   );
@@ -17,8 +17,10 @@ export function stubFixtureApi() {
 
 export const PAGES: { name: string; load: () => Promise<ReactElement> }[] = [
   { name: "/", load: async () => (await import("@/app/page")).default() },
-  { name: "/lines/Red", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Red" }) }) },
-  { name: "/lines/Blue (withheld)", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Blue" }) }) },
+  { name: "/lines/Red (withheld, shuttle)", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Red" }) }) },
+  { name: "/lines/Orange (partial)", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Orange" }) }) },
+  { name: "/lines/Blue", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Blue" }) }) },
+  { name: "/lines/Green-D", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Green-D" }) }) },
   { name: "/lines/Mattapan", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Mattapan" }) }) },
   { name: "/incidents", load: async () => (await import("@/app/incidents/page")).default() },
   { name: "/forecast", load: async () => (await import("@/app/forecast/page")).default() },

@@ -35,7 +35,8 @@
     "n_hours": 3,
     "is_open": true,
     "thresholds_crossed": [
-     "gap"
+     "gap",
+     "skipped"
     ],
     "min_coverage_pct": 80.0,
     "mean_coverage_pct": 84.0,
@@ -43,7 +44,7 @@
     "n_outage_hours_inside": 0,
     "match_status": "matched",
     "alert_lag_s": 300,
-    "summary_text": "Red line northbound ran with long gaps for three hours.",
+    "summary_text": "Red line: shuttle buses replace trains between Broadway and North Quincy.",
     "template_used": true
    },
    {
