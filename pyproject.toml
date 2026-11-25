@@ -29,6 +29,7 @@ dev = [
     "moto[s3,server]",
     "mypy",
     "numpy>=2.5.5",
+    "pandas>=3.1.1",
     "pytest",
     "ruff",
     "types-protobuf>=7.35.1.20260906",
