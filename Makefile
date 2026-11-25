@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: api-dev web-dev api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
+.PHONY: images-list api-dev web-dev api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -101,9 +101,18 @@ demo-r2:
 # Container images for the curate/static and transform Lambdas (linux/arm64).
 IMAGE_TAG ?= $(shell git rev-parse --short HEAD)
 AWS_REGION ?= us-east-1
-IMAGES := curate transform train api
-# Pushed images: the api repository exists only with enable_r4 (pass ENABLE_R4=true).
-PUSH_IMAGES := curate transform train $(if $(filter true,$(ENABLE_R4)),api)
+TFVARS := infra/main/terraform.tfvars
+# ENABLE_R3 / ENABLE_R4 default to enable_r3 / enable_r4 in terraform.tfvars (false when unset), so
+# the train and api images, and their ECR repositories, are only used when Terraform creates them.
+tfvar_flag = $(shell sed -nE 's/^$(1)[[:space:]]*=[[:space:]]*(true|false)([[:space:]]*\#.*)?[[:space:]]*$$/\1/p' $(TFVARS) 2>/dev/null | tail -n 1)
+ENABLE_R3 ?= $(call tfvar_flag,enable_r3)
+ENABLE_R4 ?= $(call tfvar_flag,enable_r4)
+IMAGES := $(strip curate transform $(if $(filter true,$(ENABLE_R3)),train) $(if $(filter true,$(ENABLE_R4)),api))
+PUSH_IMAGES := $(IMAGES)
+
+# Prints the image list for the current flags (tests/unit/test_makefile_images.py runs it).
+images-list:
+	@echo "$(IMAGES)"
 
 images-build:
 	@set -e; for name in $(IMAGES); do \
@@ -161,14 +170,15 @@ images-push: images-build
 	echo; \
 	echo "curate_image_uri    = \"$$registry/headway-curate:$(IMAGE_TAG)\""; \
 	echo "transform_image_uri = \"$$registry/headway-transform:$(IMAGE_TAG)\""; \
-	echo "train_image_uri     = \"$$registry/headway-train:$(IMAGE_TAG)\"  # only with enable_r3"; \
+	if [ "$(ENABLE_R3)" = true ]; then \
+		echo "train_image_uri     = \"$$registry/headway-train:$(IMAGE_TAG)\"  # only with enable_r3"; \
+	fi; \
 	if [ "$(ENABLE_R4)" = true ]; then \
 		echo "api_image_uri       = \"$$registry/headway-api:$(IMAGE_TAG)\"  # only with enable_r4"; \
 	fi
 
 # Push the images, point terraform.tfvars at the new git short sha, plan and apply. Aborts before
 # the apply unless the plan destroys nothing. Needs AWS credentials and the ECR repositories.
-TFVARS := infra/main/terraform.tfvars
 
 deploy: images-push
 	@set -eo pipefail; \
