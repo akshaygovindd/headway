@@ -1,0 +1,123 @@
+{
+ "data": [
+  {
+   "line": "Red",
+   "coverage_pct_last_24h": 71.8,
+   "withheld_last_24h": false,
+   "withheld_reason": null,
+   "endpoints": [
+    "/v1/lines/Red/reliability",
+    "/v1/lines/Red/accuracy",
+    "/v1/lines/Red/headways",
+    "/v1/lines/Red/countdown"
+   ]
+  },
+  {
+   "line": "Orange",
+   "coverage_pct_last_24h": 92.7,
+   "withheld_last_24h": false,
+   "withheld_reason": null,
+   "endpoints": [
+    "/v1/lines/Orange/reliability",
+    "/v1/lines/Orange/accuracy",
+    "/v1/lines/Orange/headways",
+    "/v1/lines/Orange/countdown"
+   ]
+  },
+  {
+   "line": "Blue",
+   "coverage_pct_last_24h": 91.8,
+   "withheld_last_24h": false,
+   "withheld_reason": null,
+   "endpoints": [
+    "/v1/lines/Blue/reliability",
+    "/v1/lines/Blue/accuracy",
+    "/v1/lines/Blue/headways",
+    "/v1/lines/Blue/countdown"
+   ]
+  },
+  {
+   "line": "Green-B",
+   "coverage_pct_last_24h": 75.4,
+   "withheld_last_24h": false,
+   "withheld_reason": null,
+   "endpoints": [
+    "/v1/lines/Green-B/reliability",
+    "/v1/lines/Green-B/accuracy",
+    "/v1/lines/Green-B/headways",
+    "/v1/lines/Green-B/countdown"
+   ]
+  },
+  {
+   "line": "Green-C",
+   "coverage_pct_last_24h": 71.7,
+   "withheld_last_24h": false,
+   "withheld_reason": null,
+   "endpoints": [
+    "/v1/lines/Green-C/reliability",
+    "/v1/lines/Green-C/accuracy",
+    "/v1/lines/Green-C/headways",
+    "/v1/lines/Green-C/countdown"
+   ]
+  },
+  {
+   "line": "Green-D",
+   "coverage_pct_last_24h": 78.3,
+   "withheld_last_24h": false,
+   "withheld_reason": null,
+   "endpoints": [
+    "/v1/lines/Green-D/reliability",
+    "/v1/lines/Green-D/accuracy",
+    "/v1/lines/Green-D/headways",
+    "/v1/lines/Green-D/countdown"
+   ]
+  },
+  {
+   "line": "Green-E",
+   "coverage_pct_last_24h": 86.7,
+   "withheld_last_24h": false,
+   "withheld_reason": null,
+   "endpoints": [
+    "/v1/lines/Green-E/reliability",
+    "/v1/lines/Green-E/accuracy",
+    "/v1/lines/Green-E/headways",
+    "/v1/lines/Green-E/countdown"
+   ]
+  },
+  {
+   "line": "Mattapan",
+   "coverage_pct_last_24h": 82.4,
+   "withheld_last_24h": false,
+   "withheld_reason": null,
+   "endpoints": [
+    "/v1/lines/Mattapan/reliability",
+    "/v1/lines/Mattapan/accuracy",
+    "/v1/lines/Mattapan/headways",
+    "/v1/lines/Mattapan/countdown"
+   ]
+  }
+ ],
+ "coverage": {
+  "rows": 16,
+  "mean_coverage_pct": 81.3,
+  "min_coverage_pct": 71.7,
+  "withheld_rows": 8,
+  "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+ },
+ "freshness": {
+  "exported_at": "2026-11-24T12:00:00Z",
+  "metrics_as_of": "2026-11-24T11:45:00Z",
+  "age_minutes": 12.0
+ },
+ "provenance": {
+  "tables": [
+   "agg_line_reliability_window",
+   "agg_actual_deviation_window"
+  ],
+  "definition": "Predicted schedule deviation and prediction revision (last_24h only)",
+  "metrics_md": "docs/METRICS.md#1-predicted-schedule-deviation",
+  "row_limit": 500,
+  "truncated": false,
+  "served_from": "remote"
+ }
+}

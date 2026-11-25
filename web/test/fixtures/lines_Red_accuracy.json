@@ -1,0 +1,87 @@
+{
+ "data": {
+  "line": "Red",
+  "window": "last_24h",
+  "prediction_accuracy": {
+   "table": "agg_accuracy_window",
+   "label": "Accuracy of MBTA's published predictions by horizon bucket",
+   "metrics_md": "release-2-metrics-shared-rules",
+   "rows": [
+    {
+     "line": "Red",
+     "horizon_bucket": "0-5",
+     "window": "last_24h",
+     "median_abs_error_s": 22.0,
+     "p90_abs_error_s": 95.0,
+     "mae_s": 31.0,
+     "pct_within_60s": 86.5,
+     "pct_within_120s": 95.2,
+     "n_observations": 900,
+     "coverage_pct": 76.0,
+     "withheld_reason": null
+    },
+    {
+     "line": "Red",
+     "horizon_bucket": "10-20",
+     "window": "last_24h",
+     "median_abs_error_s": null,
+     "p90_abs_error_s": null,
+     "mae_s": null,
+     "pct_within_60s": null,
+     "pct_within_120s": null,
+     "n_observations": 0,
+     "coverage_pct": null,
+     "withheld_reason": "no coverage figure: the scheduled denominator is zero"
+    },
+    {
+     "line": "Red",
+     "horizon_bucket": "20-30",
+     "window": "last_24h",
+     "median_abs_error_s": 22.0,
+     "p90_abs_error_s": 95.0,
+     "mae_s": 31.0,
+     "pct_within_60s": 86.5,
+     "pct_within_120s": 95.2,
+     "n_observations": 900,
+     "coverage_pct": 76.0,
+     "withheld_reason": null
+    },
+    {
+     "line": "Red",
+     "horizon_bucket": "5-10",
+     "window": "last_24h",
+     "median_abs_error_s": null,
+     "p90_abs_error_s": null,
+     "mae_s": null,
+     "pct_within_60s": null,
+     "pct_within_120s": null,
+     "n_observations": 0,
+     "coverage_pct": null,
+     "withheld_reason": "no coverage figure: the scheduled denominator is zero"
+    }
+   ]
+  }
+ },
+ "coverage": {
+  "rows": 4,
+  "mean_coverage_pct": null,
+  "min_coverage_pct": null,
+  "withheld_rows": 4,
+  "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+ },
+ "freshness": {
+  "exported_at": "2026-11-24T12:00:00Z",
+  "metrics_as_of": "2026-11-24T11:45:00Z",
+  "age_minutes": 12.0
+ },
+ "provenance": {
+  "tables": [
+   "agg_accuracy_window"
+  ],
+  "definition": "Accuracy of MBTA's published predictions by horizon bucket",
+  "metrics_md": "docs/METRICS.md#release-2-metrics-shared-rules",
+  "row_limit": 500,
+  "truncated": false,
+  "served_from": "remote"
+ }
+}

@@ -1,0 +1,75 @@
+{
+ "data": {
+  "api_version": "1.0.0",
+  "lines": [
+   "Red",
+   "Orange",
+   "Blue",
+   "Green-B",
+   "Green-C",
+   "Green-D",
+   "Green-E",
+   "Mattapan"
+  ],
+  "windows": [
+   "last_24h",
+   "last_7d"
+  ],
+  "tables_in_export": [
+   "agg_accuracy_window",
+   "agg_active_alerts",
+   "agg_actual_deviation_daily",
+   "agg_actual_deviation_hourly",
+   "agg_actual_deviation_window",
+   "agg_arrival_reconstruction_daily",
+   "agg_ett_daily",
+   "agg_ett_window",
+   "agg_headway_adherence_daily",
+   "agg_headway_adherence_hourly",
+   "agg_headway_window",
+   "agg_line_reliability_hourly",
+   "agg_line_reliability_window",
+   "agg_pipeline_health",
+   "agg_prediction_accuracy_daily",
+   "agg_quality_checks_hourly",
+   "agg_slo_daily",
+   "agg_slo_rollup",
+   "agg_stop_deviation_daily",
+   "dim_route",
+   "dim_stop",
+   "route_shapes"
+  ],
+  "coverage_rules": {
+   "min_coverage_pct": 50.0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "limits": {
+   "max_rows": 500,
+   "incident_range_days": 31,
+   "health_days": 30,
+   "max_request_bytes": 2048
+  },
+  "cache_control": "public, max-age=300",
+  "metrics_md": "docs/METRICS.md"
+ },
+ "coverage": {
+  "rows": 0,
+  "mean_coverage_pct": null,
+  "min_coverage_pct": null,
+  "withheld_rows": 0,
+  "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+ },
+ "freshness": {
+  "exported_at": "2026-11-24T12:00:00Z",
+  "metrics_as_of": "2026-11-24T11:45:00Z",
+  "age_minutes": 12.0
+ },
+ "provenance": {
+  "tables": [],
+  "definition": "Export freshness and the rules every value follows",
+  "metrics_md": "docs/METRICS.md#",
+  "row_limit": 500,
+  "truncated": false,
+  "served_from": "remote"
+ }
+}
