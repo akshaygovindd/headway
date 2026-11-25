@@ -13,8 +13,8 @@ from typing import Any
 
 import duckdb
 
-DEFAULT_MEMORY_LIMIT = "2200MB"
-DEFAULT_THREADS = 2
+DEFAULT_MEMORY_LIMIT = "1500MB"
+DEFAULT_THREADS = 1
 DEFAULT_MAX_TEMP = "8GB"
 DEFAULT_SPILL_DIR = "/tmp/duckdb_spill"  # noqa: S108 - Lambda's only writable path
 

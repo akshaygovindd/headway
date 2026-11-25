@@ -705,8 +705,10 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   [INCIDENTS](INCIDENTS.md#transform-out-of-memory-at-the-account-memory-cap)).
 - **Decision:** treat 3008 MB as a fixed budget and bound the work to it instead of asking for more.
   Budget: peak memory at most 85% of the configured limit (2557 MB at 3008). DuckDB gets
-  `memory_limit` 2200 MB so the rest (Python, dbt, boto3, Elementary, the runtime) fits in about
-  350 MB of headroom below the budget; it uses 2 threads and spills to `/tmp` (ephemeral storage
+  `memory_limit` 1500 MB and 1 thread: the process adds 700 to 800 MB on top (Python, dbt, boto3,
+  Elementary, allocations DuckDB does not count), so 2200 MB with 2 threads peaked at 2917 MB (97%)
+  and 1800 MB with 2 threads at 85.5% with 7 GB of spill, while 1500 MB with 1 thread peaked at
+  2331 MB (77.5%) on a 7-day window with 4x vehicle sampling. DuckDB spills to `/tmp` (ephemeral storage
   10240 MB, spill cap 8 GB, `preserve_insertion_order=false`). Everything that reads a table into
   Python does so in chunks or streams to disk. The limits are variables
   (`transform_duckdb_memory_limit`, `transform_duckdb_threads`, `transform_duckdb_max_temp`) so a

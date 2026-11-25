@@ -19,8 +19,8 @@ def test_defaults_bound_memory_threads_and_spill(monkeypatch: pytest.MonkeyPatch
     ):
         monkeypatch.delenv(name, raising=False)
     assert duckdb_limits.settings() == {
-        "memory_limit": "2200MB",
-        "threads": 2,
+        "memory_limit": "1500MB",
+        "threads": 1,
         "temp_directory": "/tmp/duckdb_spill",
         "max_temp_directory_size": "8GB",
         "preserve_insertion_order": False,
@@ -66,7 +66,7 @@ def test_lambda_profile_and_terraform_carry_the_limits() -> None:
     for key in ("memory_limit", "temp_directory", "max_temp_directory_size"):
         assert key in lam
     assert "preserve_insertion_order: false" in lam
-    assert "HEADWAY_DUCKDB_THREADS', '2'" in lam
+    assert "HEADWAY_DUCKDB_THREADS', '1'" in lam
     tf = (ROOT / "infra" / "main" / "pipeline.tf").read_text()
     block = tf.split('resource "aws_lambda_function" "transform"')[1].split("logging_config")[0]
     assert re.search(r"ephemeral_storage\s*{\s*size\s*=\s*10240", block)
@@ -93,3 +93,13 @@ def test_tracker_reports_spill_per_step(tmp_path: Path) -> None:
     assert tracker.report()["step_spill_mb"] == {"a": 3}
     assert tracker.report()["peak_memory_mb"] > 0
     assert tracker.report()["memory_limit_mb"] > 0
+
+
+def test_smoke_memory_limit_matches_the_function() -> None:
+    tf = (ROOT / "infra" / "main" / "pipeline.tf").read_text()
+    block = tf.split('resource "aws_lambda_function" "transform"')[1].split("timeout")[0]
+    configured = re.search(r"memory_size\s*=\s*(\d+)", block)
+    smoke = (ROOT / "scripts" / "smoke_image.sh").read_text()
+    limit = re.search(r"^TRANSFORM_MEMORY_MB=(\d+)", smoke, re.M)
+    assert configured and limit and configured.group(1) == limit.group(1) == "3008"
+    assert "MEMORY_PCT_MAX=85" in smoke

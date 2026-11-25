@@ -69,6 +69,15 @@ start_moto() {
     fi
 }
 
+# The transform runs with a hard memory limit equal to the function's (infra/main/pipeline.tf,
+# checked by tests/unit/test_duckdb_limits.py), and fails when its own peak is above 85% of it:
+# the account cannot give a Lambda more than 3008 MB (ADR-024), so the headroom is the guard.
+TRANSFORM_MEMORY_MB=3008
+MEMORY_PCT_MAX=85
+MEM_CHECK="r['memory_used_pct'] <= $MEMORY_PCT_MAX and r['memory_limit_mb'] == $TRANSFORM_MEMORY_MB"
+TRANSFORM_MEM=(--memory="${TRANSFORM_MEMORY_MB}m" --memory-swap="${TRANSFORM_MEMORY_MB}m"
+    -e AWS_LAMBDA_FUNCTION_MEMORY_SIZE="$TRANSFORM_MEMORY_MB")
+
 # invoke <image> <handler> <expected-python-expression-on-result> [docker args...]
 # EXPECT_LOG (space-separated grep patterns) must each appear in the container log, which is where
 # the embedded-metric lines go; it is reset after every invocation.
@@ -122,15 +131,15 @@ transform)
     (cd "$root" && uv run headway replay --source samples/boston --target "$smoke/curated" \
         --city boston >/dev/null)
     invoke headway-transform:local headway_transform.handler.lambda_handler \
-        "r['smoke'] and r['extension_dir_writable'] and r['tables_exported'] >= 8 and r['rows_exported'] > 0 and not r['r2_enabled'] and r['tests_failed'] == 0" \
-        -v "$smoke/curated:/fixture/curated:ro" \
+        "$MEM_CHECK and r['smoke'] and r['extension_dir_writable'] and r['tables_exported'] >= 8 and r['rows_exported'] > 0 and not r['r2_enabled'] and r['tests_failed'] == 0" \
+        "${TRANSFORM_MEM[@]}" -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated -e HEADWAY_SMOKE_GOLD_DIR=/tmp/gold
 
     # Release 2 switched on: same gold, plus the r2 models and their tests.
     invoke headway-transform:local headway_transform.handler.lambda_handler \
-        "r['smoke'] and r['r2_enabled'] and r['tables_exported'] >= 8 and r['tests_failed'] == 0" \
-        -v "$smoke/curated:/fixture/curated:ro" \
+        "$MEM_CHECK and r['smoke'] and r['r2_enabled'] and r['tables_exported'] >= 8 and r['tests_failed'] == 0" \
+        "${TRANSFORM_MEM[@]}" -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R3=true \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated -e HEADWAY_SMOKE_GOLD_DIR=/tmp/gold
 
@@ -141,9 +150,9 @@ transform)
         -H "Authorization: AWS4-HMAC-SHA256 Credential=smoke/20260101/us-east-1/s3/aws4_request"
     endpoint="host.docker.internal:$moto_port"
     invoke headway-transform:local headway_transform.handler.lambda_handler \
-        "r['smoke'] and r['extension_dir_writable'] and r['tables_exported'] >= 8 and r['rows_exported'] > 0" \
+        "$MEM_CHECK and r['smoke'] and r['extension_dir_writable'] and r['tables_exported'] >= 8 and r['rows_exported'] > 0" \
         --add-host=host.docker.internal:host-gateway \
-        -v "$smoke/curated:/fixture/curated:ro" \
+        "${TRANSFORM_MEM[@]}" -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
         -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public/public/boston/gold \
@@ -159,9 +168,9 @@ transform)
     # uploaded (no network, read-only root, /tmp only).
     curl -s -o /dev/null -XPUT "localhost:$moto_port/smoke-raw" \
         -H "Authorization: AWS4-HMAC-SHA256 Credential=smoke/20260101/us-east-1/s3/aws4_request"
-    EXPECT_LOG="GoldAgeMinutes MissedRunsLastHour ArrivalCoveragePct"
+    EXPECT_LOG="GoldAgeMinutes MissedRunsLastHour ArrivalCoveragePct TransformMemoryUsedPct"
     invoke headway-transform:local headway_transform.handler.lambda_handler \
-        "r['smoke'] and r['r2_enabled'] and r['tests_failed'] == 0 and r['r2_tables_exported'] == 16 \
+        "$MEM_CHECK and r['smoke'] and r['r2_enabled'] and r['tests_failed'] == 0 and r['r2_tables_exported'] == 16 \
          and r['history_written'] > 0 and r['history_rewritten'] == 0 \
          and r['history_existing_on_rewrite'] == r['history_written'] and r['history_objects_unchanged'] \
          and r['state_rows_loaded'] == 1 and r['slo_daily_rows'] > 0 and r['slo_rollup_rows'] > 0 \
@@ -182,7 +191,7 @@ transform)
          and r['incident_summaries_template'] == 2 and r['incident_summaries_llm'] == 0 \
          and r['incident_llm_calls'] == 0 and r['incident_llm_rejections'] == 0" \
         --add-host=host.docker.internal:host-gateway \
-        -v "$smoke/curated:/fixture/curated:ro" \
+        "${TRANSFORM_MEM[@]}" -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R3=true \
         -e RAW_BUCKET=smoke-raw -e HEADWAY_SMOKE_SEED_INCIDENTS=1 \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
@@ -203,7 +212,7 @@ transform)
     curl -s -o /dev/null -XPUT "localhost:$moto_port/smoke-public-model" \
         -H "Authorization: AWS4-HMAC-SHA256 Credential=smoke/20260101/us-east-1/s3/aws4_request"
     invoke headway-transform:local headway_transform.handler.lambda_handler \
-        "r['smoke'] and r['tests_failed'] == 0 and r['forecast_serving_status'] == 'model' \
+        "$MEM_CHECK and r['smoke'] and r['tests_failed'] == 0 and r['forecast_serving_status'] == 'model' \
          and r['forecast_model_rows'] > 0 and r['forecast_model_version'] == 1 \
          and r['forecast_model_from_cache'] is False and r['forecast_scored_trip_stops'] > 0 \
          and r['forecast_model_error'] is None \
@@ -218,7 +227,7 @@ transform)
          and 'analyst_examples_error' not in r and r['analyst_examples'] > 0 \
          and r['analyst_examples_read_back'] == r['analyst_examples']" \
         --add-host=host.docker.internal:host-gateway \
-        -v "$smoke/curated:/fixture/curated:ro" \
+        "${TRANSFORM_MEM[@]}" -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R3=true \
         -e RAW_BUCKET=smoke-raw-model -e HEADWAY_SMOKE_SEED_INCIDENTS=1 -e HEADWAY_SMOKE_FAKE_LLM=1 \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \

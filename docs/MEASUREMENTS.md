@@ -38,6 +38,47 @@ The 23 Nov total is the manual run's; the 24 Nov run is the scheduled one with t
 incremental trigger in effect, so the run covers more data per slot. Both are far below the 900 s
 timeout.
 
+## Transform memory under the account cap
+
+Measured on 2026-11-25 on a Mac (Docker VM, arm64) with `scripts/measure_transform.py`: the
+`headway-transform` image under Lambda conditions (read-only root, `--ipc=none`, unprivileged user,
+`--memory=3008m --memory-swap=3008m`, a disk-backed `/tmp`), Release 2 and 3 on, `LOOKBACK_DAYS=7`,
+defaults of ADR-024 (`memory_limit` 1500 MB, 1 thread, spill cap 8 GB). S3 is a local moto server;
+the MotherDuck publish step is not exercised (no token locally: it fails on the missing SSM
+parameter after the summary is written, so its time and memory are not in these numbers).
+Peak memory is the process high-water mark (`VmHWM`) and step peaks are reset per step. The budget is
+85% of 3008 MB = 2557 MB.
+
+| Dataset | Peak memory | Spill (peak) | Duration |
+| --- | --- | --- | --- |
+| (a) Real curated data copied read-only from S3 (2026-11-22 to 25, 2 complete days, 4 days of files; 2.3 M trip-update rows/day) | 2052 MB (68.2%) | 831 MB | 67 s |
+| (b) Synthetic 7 days: the two real complete days date-shifted, vehicle positions x4 at 15 s offsets (3.2 M vehicle rows, 17.3 M trip updates, 5.7 M alerts) | 2331 MB (77.5%) | 4853 MB | 172 s |
+
+Per step (peak MB / spill MB / seconds), (a) then (b): `s3_load` 2052 / 455 / 12 then 2331 / 2427 /
+37; `dbt_build` 2052 / 831 / 33 then 2160 / 4853 / 101; `dbt_test` 1641 / 0 / 19 then 1964 / 917 /
+28; every other step (forecast serving, incident summaries, export, history, state, cost,
+observability, analyst examples) at most 673 MB and under 1.2 s in both.
+
+How the limit was chosen (dataset b unless noted; Release 2 on):
+
+| `memory_limit`, threads | Result |
+| --- | --- |
+| unbounded (6 GB, 4 threads), real data | killed by the 3008 MB cgroup limit after 5 s |
+| 2200 MB, 2 threads, real data (Release 1 models) | 2917 MB (97%): over the budget |
+| 1500 MB, 2 threads | `Out of Memory Error` in `int_vehicle_stop_events` and `fct_stop_predictions` |
+| 1800 MB, 2 threads | 2572 MB (85.5%), spill 7.0 GB of 8 GB, 156 s: no margin |
+| 1500 MB, 1 thread | 2214 MB (73.6%), spill 4.8 GB, 176 s |
+
+The process adds about 700 to 800 MB to DuckDB's limit (Python, dbt, boto3, Elementary and
+allocations DuckDB does not count), so a 2200 MB limit cannot meet the 85% budget, and the heavy
+models need single-threaded operators to fit in 1500 MB. The Lambda's own `Max Memory Used` can read
+higher than these local figures (INCIDENTS: ingest memory underestimated): check the first deployed
+run against the alarm.
+
+Headroom: the 7-day x4 window leaves 8 points to the budget and 3 GB of spill budget. The step that
+grows with the window is `dbt_build` (spill 4.8 GB). A longer window or more feeds needs the
+incremental closed-day design of ADR-015.
+
 ## Ingest memory and duration
 
 Source: Lambda REPORT lines of `headway-ingest` after the 15 s polling deploy.

@@ -216,11 +216,14 @@ and what now prevents a repeat. Newest last.
   Python added to it: the forecast serving features were read whole into a DataFrame, history and
   state objects were read whole into bytes, and the Elementary report runs in the same process.
 - **Fix:** every connection goes through `headway_transform.duckdb_limits.connect`
-  (`memory_limit` 2200 MB, 2 threads, spill to `/tmp/duckdb_spill`, 8 GB spill cap,
+  (`memory_limit` 1500 MB, 1 thread, spill to `/tmp/duckdb_spill`, 8 GB spill cap,
   `preserve_insertion_order=false`; all from `HEADWAY_DUCKDB_*` environment variables, the same
   in the dbt `lambda` profile); transform ephemeral storage 4096 to 10240 MB; forecast scoring in
   chunks with per-slot partial sums; history and state objects streamed to and from disk. The run
-  reports `peak_memory_mb`, `step_peak_mb` and `spill_peak_mb`. Measurements are in
+  reports `peak_memory_mb`, `step_peak_mb` and `spill_peak_mb`. Measured with `scripts/measure_transform.py`: before, the unbounded setting was killed at the 3008 MB
+  limit in 5 s on the real data, and 2200 MB / 2 threads still peaked at 97%; after, real data peaks at
+  2052 MB (68%) in 67 s and a synthetic 7-day window with 4x vehicle sampling at 2331 MB (77.5%) in 172 s
+  (the numbers are in
   [MEASUREMENTS.md](MEASUREMENTS.md#transform-memory-under-the-account-cap).
 - **Guard:** `make images-smoke` runs the transform in a container with `--memory` equal to the
   function's configured memory and fails when its peak is above 85% of it; the run emits

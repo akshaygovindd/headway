@@ -29,6 +29,8 @@ SHIFT_COLUMNS = {
     "quarantine": ["fetched_at"],
 }  # fmt: skip
 
+DATE_COLUMNS = {"start_date"}
+
 
 def shifted(table: str, days: int, k: int, polls: int) -> str:
     """The SELECT list: the source columns with dates moved by `days` and poll offset `k`."""
@@ -37,8 +39,12 @@ def shifted(table: str, days: int, k: int, polls: int) -> str:
         if table == "vehicle_positions"
         else (f"to_days({days})")
     )
-    items = [f"{c} + {offset} AS {c}" for c in SHIFT_COLUMNS[table]]
-    items.append(f"dt + to_days({days}) AS dt")
+    # date columns stay DATE (date + interval is a timestamp in DuckDB); the rest keep their type
+    items = [
+        f"cast({c} + {offset} as date) AS {c}" if c in DATE_COLUMNS else f"{c} + {offset} AS {c}"
+        for c in SHIFT_COLUMNS[table]
+    ]
+    items.append(f"cast(dt + to_days({days}) as date) AS dt")
     if "capture_id" in _COLUMNS[table]:
         suffix = ("-d" + str(days) if days else "") + (f"-q{k}" if polls > 1 and k else "")
         if suffix:

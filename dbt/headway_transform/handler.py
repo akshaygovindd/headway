@@ -632,6 +632,8 @@ def _smoke(started: float) -> dict[str, Any]:
     """Image smoke test: dbt build + gold export on a local curated root; no AWS, no publish.
 
     With Release 2 on and an S3 gold target it also runs the history, run-state and SLO steps."""
+    global _TRACKER
+    _TRACKER = tracker = memory.Tracker(duckdb_limits.settings()["temp_directory"]).start()
     run_started = _now()
     root = os.environ["HEADWAY_SMOKE_CURATED_ROOT"]
     gold = os.environ["HEADWAY_SMOKE_GOLD_DIR"]
@@ -712,6 +714,10 @@ def _smoke(started: float) -> dict[str, Any]:
                 os.environ["CITY_ID"], run_started,
             )
         )  # fmt: skip
+    tracker.stop()
+    _TRACKER = None
+    summary.update(tracker.report())
+    emf.emit_memory(_now(), float(summary["memory_used_pct"]))
     logger.info(json.dumps(summary, sort_keys=True))
     return summary
 

@@ -39,13 +39,13 @@ variable "lookback_days" {
 variable "transform_duckdb_memory_limit" {
   description = "DuckDB memory_limit inside the transform Lambda (account cap is 3008 MB, ADR-024)."
   type        = string
-  default     = "2200MB"
+  default     = "1500MB"
 }
 
 variable "transform_duckdb_threads" {
   description = "DuckDB and dbt threads inside the transform Lambda."
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "transform_duckdb_max_temp" {
