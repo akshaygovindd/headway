@@ -112,6 +112,38 @@ def test_incidents_range_line_and_privacy(client: TestClient) -> None:
     )
 
 
+def test_data_outages_never_appear_as_incidents(client: TestClient) -> None:
+    ids = [i["incident_id"] for i in client.get("/v1/incidents").json()["data"]["incidents"]]
+    assert "inc-outage" not in ids and "inc-1" in ids
+
+
+def _inc(crossed: list[str], n: int, outage: int, span: int | None = None) -> dict[str, Any]:
+    return {
+        "thresholds_crossed": crossed,
+        "n_hours": n,
+        "n_outage_hours_inside": outage,
+        "span_s": span,
+    }
+
+
+@pytest.mark.parametrize(
+    ("row", "real"),
+    [
+        (_inc(["gap"], 3, 0, 10800), True),
+        (_inc(["gap"], 2, 2, 7200), False),  # outage hours counted as incident hours
+        (_inc(["gap"], 2, 2, 14400), True),
+        (_inc(["gap"], 1, 0, 3600), False),  # under the 2-hour minimum
+        (_inc(["data_outage"], 3, 0), False),
+        (_inc([], 3, 0), False),
+        (_inc(["skipped"], 3, 1), True),  # open: no end yet
+    ],
+)
+def test_is_real_incident_rule(row: dict[str, Any], real: bool) -> None:
+    from headway_api.queries import is_real_incident
+
+    assert is_real_incident(row) is real
+
+
 def test_forecast_withholds_methods_below_half_coverage(client: TestClient) -> None:
     data = client.get("/v1/forecast/Red").json()["data"]
     h = data["horizons"][0]

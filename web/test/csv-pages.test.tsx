@@ -72,9 +72,10 @@ describe("CSV on the Incidents page", () => {
     const lines = await downloaded("/incidents");
     expect(lines[0]).toContain("incidents-release-3");
     expect(lines).toHaveLength(2 + screen.getAllByRole("listitem").length);
-    const i2 = lines.find((l) => l.startsWith("i2,"))!;
-    expect(i2).toMatch(/,,h,35,/);
-    expect(i2).toContain("below the minimum");
-    expect(lines.find((l) => l.startsWith("i1,"))).toMatch(/,\d+,h,80,,/);
+    const i3 = lines.find((l) => l.startsWith("i3,"))!;
+    expect(i3).toMatch(/,,h,42,/);
+    expect(i3).toContain("below the minimum");
+    // Coverage is the incident's own mean (what the page judges it by), not its worst hour.
+    expect(lines.find((l) => l.startsWith("i1,"))).toMatch(/,\d+,h,84,,/);
   });
 });

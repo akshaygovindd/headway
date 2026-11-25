@@ -49,10 +49,33 @@ export async function segmentsOf(line: string, window: "last_24h" | "last_7d"): 
   return { result, segs: orderedSegments(all, 0), all };
 }
 
+const MIN_INCIDENT_HOURS = 2;
+const OUTAGE_THRESHOLDS = new Set(["data_outage", "outage", "no_data", "capture_gap"]);
+
+/**
+ * Guard (the API applies the same rule): a gap in Headway's own data is never an incident. A real
+ * incident has at least two evaluated hours, names a service threshold, and its evaluated hours
+ * plus the outage hours inside it fit in its span.
+ */
+export function isRealIncident(i: Incident): boolean {
+  const crossed = thresholds(i);
+  if (crossed.length === 0 || crossed.some((t) => OUTAGE_THRESHOLDS.has(t))) return false;
+  if (i.n_hours < MIN_INCIDENT_HOURS) return false;
+  if (i.end_ts) {
+    const span = (Date.parse(i.end_ts) - Date.parse(i.start_ts)) / 3600000;
+    if (Number.isFinite(span) && i.n_hours + (i.n_outage_hours_inside ?? 0) > span + 1e-6) return false;
+  }
+  return true;
+}
+
+export function realIncidents(r: ApiResult<IncidentsData>): Incident[] {
+  return r.ok ? r.body.data.incidents.filter(isRealIncident) : [];
+}
+
 export function openIncidentsByLine(r: ApiResult<IncidentsData>): Map<string, Incident[]> | null {
   if (!r.ok) return null;
   const out = new Map<string, Incident[]>();
-  for (const i of r.body.data.incidents) {
+  for (const i of realIncidents(r)) {
     if (!i.is_open) continue;
     out.set(i.line, [...(out.get(i.line) ?? []), i]);
   }

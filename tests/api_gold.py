@@ -63,6 +63,12 @@ def build(base: Path, exported_at: str = EXPORTED_AT, shift: float = 0.0) -> str
             " 70.0::double mean_coverage_pct, 0 n_outage_hours_inside, 'matched' match_status,"
             " 120 alert_lag_s, 'Delays on the Red Line.' summary_text, true template_used,"
             " 'secret evidence' evidence_json"
+            # An incident made of data-outage hours: the dbt model never produces one, and the
+            # API must not pass one on (its 2 evaluated + 2 outage hours do not fit in 2 h).
+            " union all select 'inc-outage', 'Red', 0,"
+            f" timestamptz '{DAY} 14:00:00-05', timestamptz '{DAY} 16:00:00-05', 2, false,"
+            " ['skipped'], 30.0::double, 30.0::double, 2, 'unmatched', null,"
+            " 'No data.', true, 'secret evidence'"
         ),
         "agg_forecast_next_hour": _rows(
             "select 'Red' line, 0 direction_id, 'stop{0}' stop_id,"

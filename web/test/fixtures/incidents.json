@@ -1,9 +1,9 @@
 {
  "coverage": {
-  "rows": 2,
-  "mean_coverage_pct": 71.8,
-  "min_coverage_pct": 71.8,
-  "withheld_rows": 0,
+  "rows": 3,
+  "mean_coverage_pct": 62.0,
+  "min_coverage_pct": 42.0,
+  "withheld_rows": 1,
   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
  },
  "freshness": {
@@ -53,15 +53,35 @@
     "direction_id": 1,
     "start_ts": "2026-11-22T17:00:00-05:00",
     "end_ts": "2026-11-22T21:00:00-05:00",
-    "n_hours": 4,
+    "n_hours": 2,
     "is_open": false,
     "thresholds_crossed": [
      "skipped"
     ],
-    "min_coverage_pct": 35.0,
+    "min_coverage_pct": 55.0,
     "mean_coverage_pct": 60.0,
     "coverage_pct": 60.0,
     "n_outage_hours_inside": 2,
+    "match_status": "unmatched",
+    "alert_lag_s": null,
+    "summary_text": "Orange line: stops were skipped on the northbound platform during the evening peak.",
+    "template_used": true
+   },
+   {
+    "incident_id": "i3",
+    "line": "Blue",
+    "direction_id": 0,
+    "start_ts": "2026-11-21T07:00:00-05:00",
+    "end_ts": "2026-11-21T10:00:00-05:00",
+    "n_hours": 3,
+    "is_open": false,
+    "thresholds_crossed": [
+     "gap"
+    ],
+    "min_coverage_pct": 30.0,
+    "mean_coverage_pct": 42.0,
+    "coverage_pct": 42.0,
+    "n_outage_hours_inside": 0,
     "match_status": "unmatched",
     "alert_lag_s": null,
     "summary_text": "Hidden by the coverage rule.",

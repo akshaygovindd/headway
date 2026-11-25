@@ -161,6 +161,31 @@ class Result:
     metric: str | None = None
 
 
+MIN_INCIDENT_HOURS = 2  # dbt var incidents.min_hours
+OUTAGE_THRESHOLDS = {"data_outage", "outage", "no_data", "capture_gap"}
+
+
+def is_real_incident(r: dict[str, Any]) -> bool:
+    """Guard: a gap in Headway's own data is never an incident (docs/METRICS.md "Incidents").
+
+    The dbt model ends a run at a data-outage hour, so a real incident has at least
+    MIN_INCIDENT_HOURS evaluated breach hours, names a service threshold, and its evaluated
+    hours plus the outage hours inside it fit in its span. Anything else is outage hours being
+    counted as service trouble, and is dropped here rather than shown.
+    """
+    raw = r.get("thresholds_crossed")
+    crossed = [str(x) for x in (raw if isinstance(raw, list | tuple) else [raw] if raw else [])]
+    if not crossed or OUTAGE_THRESHOLDS.intersection(crossed):
+        return False
+    n_hours = int(r.get("n_hours") or 0)
+    if n_hours < MIN_INCIDENT_HOURS:
+        return False
+    span_s = r.get("span_s")
+    if span_s is not None:  # open incidents have no end yet
+        return n_hours + int(r.get("n_outage_hours_inside") or 0) <= float(span_s) / 3600 + 1e-6
+    return True
+
+
 class Query:
     """One request: a snapshot of the export, then fixed queries on it."""
 
@@ -286,7 +311,8 @@ class Query:
                 "cast(incident_end_ts as varchar) as end_ts, n_hours, is_open, thresholds_crossed, "
                 "round(min_coverage_pct, 1) as min_coverage_pct, "
                 "round(mean_coverage_pct, 1) as mean_coverage_pct, n_outage_hours_inside, "
-                "match_status, alert_lag_s, summary_text, template_used")  # fmt: skip
+                "match_status, alert_lag_s, summary_text, template_used, "
+                "epoch(incident_end_ts) - epoch(incident_start_ts) as span_s")  # fmt: skip
 
         def build(base: str) -> str:
             ln = f" and line = '{line}'" if line else ""
@@ -298,7 +324,9 @@ class Query:
             )
 
         rows, more, shown = self.run(build)
+        rows = [r for r in rows if is_real_incident(r)]
         for r in rows:
+            r.pop("span_s", None)
             r["coverage_pct"] = r["mean_coverage_pct"]
         data = {"line": line, "from": start.isoformat(), "to": end.isoformat(), "incidents": rows}
         return Result(data, ["agg_incidents"], [shown], "release-3-metrics",

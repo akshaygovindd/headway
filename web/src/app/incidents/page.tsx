@@ -3,6 +3,7 @@ import { pageMeta } from "@/lib/site";
 import { CsvButton } from "@/components/CsvButton";
 import { DisruptionChip, Metric, OutageLabel, Withheld } from "@/components/trust";
 import { ErrorState, LineLink, PageHeader } from "@/components/ui";
+import { realIncidents } from "@/lib/site-data";
 import { getApi } from "@/lib/api";
 import type { CsvSpec } from "@/lib/csv";
 import { shown } from "@/lib/map";
@@ -13,6 +14,12 @@ export const metadata: Metadata = pageMeta("Incidents", "Stretches of at least t
 
 const when = (ts: string | null) =>
   ts ? new Date(ts).toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" }) : "ongoing";
+
+/**
+ * The incident's coverage is the API's `coverage_pct` (the mean over its evaluated hours): the same
+ * hourly capture measure the line pages use, not the single worst hour.
+ */
+const incidentCell = (i: IncidentsData["incidents"][number]) => ({ value: i.n_hours, coverage_pct: i.coverage_pct });
 
 function csvFor(incidents: IncidentsData["incidents"], freshness: string | null): CsvSpec {
   return {
@@ -27,7 +34,7 @@ function csvFor(incidents: IncidentsData["incidents"], freshness: string | null)
         n_outage_hours_inside: i.n_outage_hours_inside,
       },
       // The value shown on the page is the duration, withheld by the same minimum-coverage rule.
-      cell: { value: i.n_hours, coverage_pct: i.min_coverage_pct },
+      cell: incidentCell(i),
       unit: "h" as const,
     })),
     definition: "incidents-release-3",
@@ -37,6 +44,7 @@ function csvFor(incidents: IncidentsData["incidents"], freshness: string | null)
 
 export default async function IncidentsPage() {
   const r = await getApi<IncidentsData>("/incidents");
+  const list = realIncidents(r);
   return (
     <>
       <PageHeader
@@ -45,16 +53,16 @@ export default async function IncidentsPage() {
       />
       {!r.ok ? (
         <ErrorState failure={r} what="Incidents" />
-      ) : r.body.data.incidents.length === 0 ? (
+      ) : list.length === 0 ? (
         <p>No incidents between {r.body.data.from} and {r.body.data.to}.</p>
       ) : (
         <>
         <p className="mb-4">
-          <CsvButton spec={csvFor(r.body.data.incidents, r.body.freshness.exported_at)} filename="headway-incidents.csv" />
+          <CsvButton spec={csvFor(list, r.body.freshness.exported_at)} filename="headway-incidents.csv" />
         </p>
         <ul className="grid gap-4">
-          {r.body.data.incidents.map((i) => {
-            const summaryOk = shown({ value: 1, coverage_pct: i.min_coverage_pct }).kind === "value";
+          {list.map((i) => {
+            const summaryOk = shown({ value: 1, coverage_pct: i.coverage_pct }).kind === "value";
             return (
               <li key={i.incident_id} className="rounded-lg border border-line bg-card p-4">
                 <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
@@ -66,10 +74,10 @@ export default async function IncidentsPage() {
                   <OutageLabel hours={i.n_outage_hours_inside} />
                 </h2>
                 <p className="mt-2 text-sm">
-                  Lasted <Metric cell={{ value: i.n_hours, coverage_pct: i.min_coverage_pct }} unit="h" />
+                  Lasted <Metric cell={incidentCell(i)} unit="h" />
                 </p>
                 <div className="mt-2">
-                  {summaryOk && i.summary_text ? <p>{i.summary_text}</p> : <Withheld coverage={i.min_coverage_pct} />}
+                  {summaryOk && i.summary_text ? <p>{i.summary_text}</p> : <Withheld coverage={i.coverage_pct} />}
                 </div>
               </li>
             );
