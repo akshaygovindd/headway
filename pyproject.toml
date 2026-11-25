@@ -28,6 +28,7 @@ dev = [
     "mcp>=1.2,<2",
     "moto[s3,server]",
     "mypy",
+    "numpy>=2.5.5",
     "pytest",
     "ruff",
     "types-protobuf>=7.35.1.20260906",
