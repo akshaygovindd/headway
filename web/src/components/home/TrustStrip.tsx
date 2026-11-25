@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { OwnMetric } from "@/components/trust";
+import type { ChecksSummary } from "@/lib/checks";
 import { heartbeatBars, type HeartbeatBar } from "@/lib/heartbeat";
 import { hhmmET, hourLabel, hourET } from "@/lib/time";
 
@@ -30,7 +31,7 @@ export function TrustStrip({
   asOf: string | null;
   capture: number | null;
   measured: number | null;
-  checks: { failing: number; warnings: number } | null;
+  checks: ChecksSummary | null;
   heartbeat: Parameters<typeof heartbeatBars>[0] | null;
 }) {
   const time = hhmmET(asOf);
@@ -52,11 +53,12 @@ export function TrustStrip({
         </div>
         <div>
           <dt className="text-xs uppercase tracking-wide text-[#aab3c2]">Checks</dt>
-          <dd className="flex flex-wrap items-baseline gap-x-1">
+          <dd className="flex flex-wrap items-baseline gap-x-1" data-testid="checks">
             {checks ? (
               <>
-                <OwnMetric value={checks.failing} unit="count" info={{ k: "checks", window: "last_7d", label: "Checks failing" }} /> failing ·{" "}
-                <OwnMetric value={checks.warnings} unit="count" info={{ k: "checks", window: "last_7d", label: "Check warnings" }} /> warnings
+                <OwnMetric value={checks.failing} unit="count" info={{ k: "checks", window: `last_${checks.hours}h`, label: "Checks failing" }} /> failing ·{" "}
+                <OwnMetric value={checks.warnings} unit="count" info={{ k: "checks", window: `last_${checks.hours}h`, label: "Check warnings" }} /> warnings
+                <span className="w-full text-xs text-[#aab3c2]">{checks.windowText}</span>
               </>
             ) : (
               "n/a"

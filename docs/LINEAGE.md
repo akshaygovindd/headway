@@ -202,9 +202,10 @@ flowchart LR
   `agg_capture_heartbeat_hourly` (trust strip and the hourly capture strip), `agg_ett_band_window`
   (trip-time table) and `agg_service_disruptions` (disruption notes: public MBTA header text; incident
   evidence stays hidden). The spacing-by-hour strip reads `agg_headway_adherence_hourly` and the checks
-  count `agg_quality_checks_hourly`. Every other number on the site comes from the Release 2 and 3
+  count `agg_quality_checks_hourly` (`/v1/pipeline/checks`, distinct failing and warning checks). Every other number on the site comes from the Release 2 and 3
   tables above. The site adds no metric of its own: its hero sentence
-  and checks count are computed from API values (`web/src/lib/hero.ts`, `heartbeat.ts`).
+  is computed from API values (`web/src/lib/hero.ts`); the checks figure is the API's own distinct
+  counts (`web/src/lib/checks.ts`).
 - **Windows.** `int_window_hours` lists the service hours of `last_24h` (24 hours) and `last_7d`
   (168 hours) ending at the latest hour of `agg_line_reliability_hourly` (the export's
   `metrics_as_of`). The four `agg_*_window` marts compute medians, p90 and shares over every

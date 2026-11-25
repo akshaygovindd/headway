@@ -229,6 +229,8 @@ export type SegmentRow = {
   n_headways: number;
   n_excluded_outage: number;
   disrupted: boolean;
+  /** Public MBTA alert header; null unless disrupted (on last_7d it may be null even when disrupted). */
+  disruption_header?: string | null;
   coverage_pct: number | null;
   withheld_reason: string | null;
 };
@@ -260,3 +262,84 @@ export type HeartbeatRow = {
 export type HeartbeatData = { hours: number; rows: HeartbeatRow[] };
 
 export type MetaData = { api_version: string; lines: string[]; tables_in_export: string[] };
+
+// --- Trip time, spacing by hour, disruptions, checks ---------------------------------------
+
+export type TripTimeStatus = "measured" | "no_trips" | "withheld";
+
+export type TripTimeRow = {
+  direction_id: number;
+  time_band: "am_peak" | "midday" | "pm_peak" | "evening" | "other";
+  n_trips: number;
+  n_scheduled_trips: number;
+  n_excluded_outage: number;
+  n_implausible: number;
+  n_disruption: number;
+  median_ett_s: number | null;
+  p90_ett_s: number | null;
+  median_scheduled_s: number | null;
+  median_actual_s: number | null;
+  coverage_pct: number | null;
+  status: TripTimeStatus;
+  withheld_reason: string | null;
+  no_trips_reason: string | null;
+};
+
+export type TripTimeData = {
+  line: string;
+  window: string;
+  unit: "seconds";
+  rows: TripTimeRow[];
+  overall: (Omit<TripTimeRow, "direction_id" | "time_band" | "median_scheduled_s" | "median_actual_s"> & Partial<TripTimeRow>) | null;
+};
+
+export type SpacingStatus = "measured" | "withheld" | "no_headways" | "outage";
+
+export type SpacingHour = {
+  service_date: string;
+  hour_local: number;
+  hour_start: string;
+  n_headways: number;
+  pct_within_band: number | null;
+  pct_bunched: number | null;
+  pct_gap: number | null;
+  scheduled_headways: number;
+  coverage_pct: number | null;
+  data_outage: boolean;
+  status: SpacingStatus;
+  withheld_reason: string | null;
+};
+
+export type SpacingData = { line: string; service_date: string; hours: SpacingHour[] };
+
+export type DisruptionRow = {
+  alert_id: string;
+  effect: string;
+  header_text: string | null;
+  first_seen: string;
+  last_seen: string;
+  is_active: boolean;
+  n_stations: number;
+  from_station_name: string | null;
+  to_station_name: string | null;
+  segments: { direction_id: number; from_stop_id: string; to_stop_id: string }[];
+};
+
+export type DisruptionsData = { line: string; window: string; rows: DisruptionRow[] };
+
+export type QualityCheck = {
+  check_name: string;
+  n_hours_evaluated: number;
+  n_fail_hours: number;
+  n_warn_hours: number;
+  n_ok_hours: number;
+  worst_status: "fail" | "warn" | "ok" | "not_evaluated";
+};
+
+export type ChecksData = {
+  hours: number;
+  n_checks: number;
+  n_failing_checks: number;
+  n_warning_checks: number;
+  checks: QualityCheck[];
+};

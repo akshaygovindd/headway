@@ -8,6 +8,8 @@ import { LINES, shown, type Cell } from "./map";
 import { orderedSegments, type Seg } from "./network";
 import type {
   AccuracyData,
+  ChecksData,
+  DisruptionsData,
   HeadwayData,
   HeartbeatData,
   Incident,
@@ -16,7 +18,6 @@ import type {
   MetaData,
   ReliabilityData,
   SegmentsData,
-  SloData,
 } from "./types";
 
 export type LineStat = {
@@ -71,12 +72,12 @@ export function withheldWhy(cell: Cell, disrupted: boolean): string {
 }
 
 export async function homeData() {
-  const [meta, lines, incidents, heartbeat, slo] = await Promise.all([
+  const [meta, lines, incidents, heartbeat, checks] = await Promise.all([
     getApi<MetaData>("/meta"),
     getApi<LineSummary[]>("/lines"),
     getApi<IncidentsData>("/incidents"),
     getApi<HeartbeatData>("/pipeline/heartbeat?hours=24"),
-    getApi<SloData>("/slo"),
+    getApi<ChecksData>("/pipeline/checks?hours=24"),
   ]);
   const perLine = await Promise.all(
     LINES.map(async (line) => ({
@@ -84,7 +85,8 @@ export async function homeData() {
       stat: await lineStat(line),
       seg: await segmentsOf(line, "last_24h"),
       acc: await getApi<AccuracyData>(`/lines/${line}/accuracy?window=last_24h`),
+      disruptions: await getApi<DisruptionsData>(`/lines/${line}/disruptions`),
     })),
   );
-  return { meta, lines, incidents, heartbeat, slo, perLine };
+  return { meta, lines, incidents, heartbeat, checks, perLine };
 }

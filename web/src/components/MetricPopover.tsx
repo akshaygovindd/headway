@@ -117,7 +117,7 @@ export function MetricPopover() {
             <dt className="text-muted">Coverage</dt>
             <dd>{info.cov ? `${Math.round(Number(info.cov))}% of scheduled trips observed` : "not applicable: this counts Headway's own runs"}</dd>
             <dt className="text-muted">Window</dt>
-            <dd>{info.win ? (WINDOWS[info.win] ?? info.win) : "last 24 hours"}</dd>
+            <dd>{info.win ? (WINDOWS[info.win] ?? info.win.replace(/^last_(\d+)h$/, "last $1 hours")) : "last 24 hours"}</dd>
             <dt className="text-muted">Left out</dt>
             <dd>{info.ex ?? "trips with an unproven order and hours when our own capture had a gap"}</dd>
           </dl>

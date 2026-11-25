@@ -84,9 +84,21 @@ export const DEFINITIONS: Record<string, MetricDefinition> = {
   },
   checks: {
     label: "Pipeline checks",
-    what: "Service-level objectives over 7 days. Failing: not met. Warning: met with 75% or more of the error budget used, or too few days to count.",
-    anchor: "release-4-site-metrics",
-    table: "agg_slo_rollup",
+    what: "Data-quality checks of Headway's own pipeline over the window, counted as distinct checks. Failing: at least one evaluated hour failed. Warning: no failed hour but at least one warned. Hours with no service or no data are not evaluated.",
+    anchor: "quality-checks-on-the-trust-strip",
+    table: "agg_quality_checks_hourly",
+  },
+  trip_time: {
+    label: "Trip time against the timetable",
+    what: "Actual running time minus the planned running time of the same trips, per direction and time band (positive is slower). An adapted approximation, not an official measure.",
+    anchor: "trip-time-per-direction-and-band-agg_ett_band_window",
+    table: "agg_ett_band_window",
+  },
+  spacing_hour: {
+    label: "Spacing by hour",
+    what: "Share of gaps between trains within the expected band in one service hour, both directions combined.",
+    anchor: HEADWAY,
+    table: "agg_headway_adherence_hourly",
   },
   generic: {
     label: "Measurement",

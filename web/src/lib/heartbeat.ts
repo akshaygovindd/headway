@@ -1,6 +1,6 @@
-// Capture heartbeat and the checks count: both describe Headway's own data collection.
+// Capture heartbeat: Headway's own data collection (the checks count is in checks.ts).
 
-import type { HeartbeatRow, Slo } from "./types";
+import type { HeartbeatRow } from "./types";
 
 export type HeartbeatBar = { hour_start: string; completeness: number; outage: boolean; missed: number };
 
@@ -23,23 +23,4 @@ export function capturePct(rows: HeartbeatRow[]): number | null {
 
 export function outageHours(rows: HeartbeatRow[]): number {
   return rows.filter((r) => r.data_outage).length;
-}
-
-export const WARN_BUDGET_USED = 0.75;
-
-/**
- * "N failing, M warnings" from the SLOs over 7 days. Failing: counts toward the SLO and is not
- * met. Warning: met but with at least 75% of the error budget used, or too few days to count.
- */
-export function checkCounts(slos: Slo[]): { failing: number; warnings: number } {
-  const week = slos.filter((s) => s.window === "last_7d");
-  const rows = week.length ? week : slos;
-  let failing = 0;
-  let warnings = 0;
-  for (const s of rows) {
-    if (!s.counts_toward_slo) warnings += 1;
-    else if (s.met === false) failing += 1;
-    else if ((s.error_budget_used ?? 0) >= WARN_BUDGET_USED) warnings += 1;
-  }
-  return { failing, warnings };
 }

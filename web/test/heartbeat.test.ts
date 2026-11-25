@@ -1,13 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { capturePct, checkCounts, heartbeatBars, outageHours } from "@/lib/heartbeat";
+import { capturePct, heartbeatBars, outageHours } from "@/lib/heartbeat";
 import { hhmmET, hourET, SERVICE_HOURS } from "@/lib/time";
-import type { Slo } from "@/lib/types";
 
 const hb = (hour_start: string, missed: number, outage = false) => ({ hour_start, expected_runs: 60, missed_runs: missed, feed_gap_min: missed, data_outage: outage });
-const slo = (over: Partial<Slo>): Slo => ({
-  slo_name: "x", window: "last_7d", target_pct: 99, good_events: 1, total_events: 1, actual_pct: 100, met: true,
-  error_budget_used: 0, days_covered: 7, counts_toward_slo: true, ...over,
-});
 
 describe("heartbeat", () => {
   it("computes capture share, outage hours and bar heights", () => {
@@ -16,11 +11,6 @@ describe("heartbeat", () => {
     expect(capturePct([])).toBeNull();
     expect(outageHours(rows)).toBe(1);
     expect(heartbeatBars(rows).map((b) => [b.completeness, b.outage])).toEqual([[1, false], [0.5, true]]);
-  });
-
-  it("counts failing checks and warnings from the 7-day SLOs", () => {
-    expect(checkCounts([slo({ met: false }), slo({ error_budget_used: 0.8 }), slo({ counts_toward_slo: false, met: null }), slo({}), slo({ window: "last_30d", met: false })])).toEqual({ failing: 1, warnings: 2 });
-    expect(checkCounts([slo({ window: "last_30d", met: false })])).toEqual({ failing: 1, warnings: 0 });
   });
 });
 
