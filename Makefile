@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
+.PHONY: api-dev web-dev api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -133,6 +133,16 @@ ingest-smoke: lambda-zip
 
 api-smoke:
 	scripts/smoke_image.sh api
+
+# Public site (web/, docs: web/README.md). `make api-dev` serves the metric API on :8000 from the
+# demo gold (`make demo-data` builds it); `make web-dev` runs Next.js on :3000 against it.
+api-dev:
+	@test -d $(DEMO_DIR)/public/boston/gold || { echo "no demo gold: run 'make demo-data' first" >&2; exit 1; }
+	HEADWAY_DATA_URL=$(DEMO_DATA_URL) API_CORS_ORIGINS=http://localhost:3000 \
+		uv run uvicorn headway_api.app:create_app --factory --port 8000
+
+web-dev:
+	cd web && { test -d node_modules || npm ci; } && HEADWAY_API_URL=http://localhost:8000 npm run dev
 
 images-smoke: curate-smoke transform-smoke train-smoke api-smoke ingest-smoke
 
