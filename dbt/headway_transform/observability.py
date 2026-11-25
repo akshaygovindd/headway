@@ -20,9 +20,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import duckdb
-
-from headway_transform import cost, state
+from headway_transform import cost, duckdb_limits, state
 
 logger = logging.getLogger()
 
@@ -107,7 +105,7 @@ def persist(s3: Any, bucket: str, db_path: str, since: datetime, now: datetime) 
     """Append the rows this run created (stamped at or after ``since``) to the persisted history."""
     cutoff = since.astimezone(UTC).replace(tzinfo=None)  # Elementary stamps naive UTC
     written: dict[str, int] = {}
-    con = duckdb.connect(db_path, read_only=True)
+    con = duckdb_limits.connect(db_path, read_only=True)
     try:
         con.execute("set TimeZone = 'UTC'")
         for table, keep in PERSISTED:

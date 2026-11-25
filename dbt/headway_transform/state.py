@@ -18,7 +18,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import duckdb
+from headway_transform import duckdb_limits
 
 logger = logging.getLogger()
 PARQUET = "application/vnd.apache.parquet"
@@ -124,7 +124,7 @@ def load(s3: Any, bucket: str, db_path: str, table: StateTable, now: datetime) -
         except Exception:
             logger.exception("could not load state table %s; continuing with none", table.name)
             files = []
-        con = duckdb.connect(db_path)
+        con = duckdb_limits.connect(db_path)
         try:
             con.execute("set TimeZone = 'UTC'")
             con.execute(table.ddl)
@@ -149,7 +149,7 @@ def restore(s3: Any, bucket: str, db_path: str, table: StateTable, now: datetime
         except Exception:
             logger.exception("could not restore state table %s; continuing with none", table.name)
             files = []
-        con = duckdb.connect(db_path)
+        con = duckdb_limits.connect(db_path)
         try:
             con.execute("set TimeZone = 'UTC'")
             con.execute(table.ddl.replace("create or replace table", "create table if not exists"))
@@ -170,7 +170,7 @@ def append(
         old = Path(tmp) / "old.parquet"
         out = Path(tmp) / "rows.parquet"
         existing = _get(s3, bucket, key)
-        con = duckdb.connect()
+        con = duckdb_limits.connect()
         try:
             con.execute("set TimeZone = 'UTC'")
             con.execute(table.ddl.replace("main.", "", 1))

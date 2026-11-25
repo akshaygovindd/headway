@@ -4,7 +4,7 @@ import os
 from collections.abc import Sequence
 from typing import Any
 
-import duckdb
+from headway_transform import duckdb_limits
 
 GOLD_TABLES = (
     "agg_line_reliability_hourly",
@@ -69,7 +69,7 @@ def gold_tables() -> tuple[str, ...]:
 
 
 def _connect(token: str) -> Any:
-    return duckdb.connect(
+    return duckdb_limits.connect(
         "md:",
         config={
             "motherduck_token": token,

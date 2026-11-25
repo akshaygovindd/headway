@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-import duckdb
+from headway_transform import duckdb_limits
 
 logger = logging.getLogger()
 
@@ -154,7 +154,7 @@ def write_closed_days(
     prefix = history_prefix(city)
     wanted = None if days is None else set(days)
     result = HistoryResult()
-    con = duckdb.connect(db_path, read_only=True)
+    con = duckdb_limits.connect(db_path, read_only=True)
     try:
         con.execute("set TimeZone = 'UTC'")
         present = {

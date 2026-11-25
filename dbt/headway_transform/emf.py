@@ -23,6 +23,8 @@ from zoneinfo import ZoneInfo
 
 import duckdb
 
+from headway_transform import duckdb_limits
+
 logger = logging.getLogger()
 NAMESPACE = "Headway"
 SERVICE_START_HOUR = 5
@@ -59,7 +61,7 @@ def emit(timestamp: datetime, metrics: Mapping[str, float]) -> list[str]:
 
 def previous_export(db_path: str) -> datetime | None:
     """Newest ``gold_exported_at`` in the loaded run history (before this run's own record)."""
-    con = duckdb.connect(db_path, read_only=True)
+    con = duckdb_limits.connect(db_path, read_only=True)
     try:
         row = con.execute(
             "select epoch(max(gold_exported_at)) from main.agg_transform_runs "
@@ -80,7 +82,7 @@ def gold_age_minutes(previous: datetime | None, exported_at: datetime) -> float 
 
 
 def missed_runs_last_hour(db_path: str) -> int | None:
-    con = duckdb.connect(db_path, read_only=True)
+    con = duckdb_limits.connect(db_path, read_only=True)
     try:
         row = con.execute(
             """
@@ -113,7 +115,7 @@ def arrival_coverage_pct(
     if not in_service_hours((local_end - timedelta(hours=1)).hour):
         return None
     end = local_end.astimezone(UTC)
-    con = duckdb.connect(db_path, read_only=True)
+    con = duckdb_limits.connect(db_path, read_only=True)
     try:
         row = con.execute(
             """

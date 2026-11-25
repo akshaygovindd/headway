@@ -18,9 +18,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-import duckdb
-
-from headway_transform import history
+from headway_transform import duckdb_limits, history
 
 logger = logging.getLogger()
 
@@ -55,7 +53,7 @@ def write_closed_days(
     left alone. `days` limits the dates (a backfill); `only_version` the tables at that version."""
     wanted = None if days is None else set(days)
     result = history.HistoryResult()
-    con = duckdb.connect(db_path, read_only=True)
+    con = duckdb_limits.connect(db_path, read_only=True)
     try:
         con.execute("set TimeZone = 'UTC'")
         present = {

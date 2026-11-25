@@ -23,9 +23,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
-import duckdb
-
-from headway_transform import incident_numcheck, state
+from headway_transform import duckdb_limits, incident_numcheck, state
 
 logger = logging.getLogger()
 
@@ -249,7 +247,7 @@ def summarize(
     """Fill the summary columns of agg_incidents; returns the step's summary."""
     cap = daily_cap() if cap is None else cap
     state.load(s3, bucket, db_path, INCIDENT_SUMMARIES, now)
-    con = duckdb.connect(db_path)
+    con = duckdb_limits.connect(db_path)
     new_rows: list[tuple[Any, ...]] = []
     summary: dict[str, Any] = {"incident_summary_status": "ok"}
     try:
@@ -377,7 +375,7 @@ def _smoke_evidence(line: str, start: str, end: str) -> dict[str, Any]:
 
 def seed_smoke_incidents(db_path: str) -> int:
     """Two synthetic incidents in agg_incidents (the smoke sample is too short to make any)."""
-    con = duckdb.connect(db_path)
+    con = duckdb_limits.connect(db_path)
     try:
         con.execute("delete from agg_incidents")
         for i, line in enumerate(("Red", "Blue")):

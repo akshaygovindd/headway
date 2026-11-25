@@ -350,7 +350,7 @@ resource "aws_lambda_function" "transform" {
   timeout       = 900
 
   ephemeral_storage {
-    size = 4096
+    size = 10240
   }
 
   environment {
@@ -359,6 +359,11 @@ resource "aws_lambda_function" "transform" {
       PUBLIC_BUCKET = aws_s3_bucket.public.bucket
       CITY_ID       = var.city_id
       LOOKBACK_DAYS = tostring(var.lookback_days)
+      # DuckDB limits (ADR-024): the account caps Lambda memory at 3008 MB, so bound DuckDB
+      # well under it and let it spill to /tmp (ephemeral storage above).
+      HEADWAY_DUCKDB_MEMORY_LIMIT = var.transform_duckdb_memory_limit
+      HEADWAY_DUCKDB_THREADS      = tostring(var.transform_duckdb_threads)
+      HEADWAY_DUCKDB_MAX_TEMP     = var.transform_duckdb_max_temp
       # Release 2 dbt models (tag r2) are skipped unless this is "true"; see docs/DEPLOY.md
       HEADWAY_ENABLE_R2 = tostring(var.enable_r2)
       # Release 3 dbt models (tag r3) are skipped unless this is "true"; they need enable_r2

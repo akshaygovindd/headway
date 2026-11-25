@@ -21,7 +21,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-import duckdb
+from headway_transform import duckdb_limits
 
 logger = logging.getLogger()
 
@@ -36,7 +36,7 @@ SLOT = ["line", "direction_id", "stop_id", "prediction_ts", "horizon_min"]
 def load_reports(s3: Any, bucket: str, db_path: str) -> dict[str, int]:
     """Rows loaded per report table (0 when the training job has not written it)."""
     loaded: dict[str, int] = {}
-    con = duckdb.connect(db_path)
+    con = duckdb_limits.connect(db_path)
     try:
         for table, key in REPORTS.items():
             with tempfile.TemporaryDirectory() as tmp:
@@ -70,7 +70,7 @@ def serve(
     s3: Any, bucket: str, db_path: str, load_model: Callable[[Any, str], Any] | None = None
 ) -> dict[str, Any]:
     """Fill agg_forecast_next_hour's model columns. Returns the summary of the step."""
-    con = duckdb.connect(db_path)
+    con = duckdb_limits.connect(db_path)
     try:
         con.execute("set TimeZone = 'UTC'")
         tables = {

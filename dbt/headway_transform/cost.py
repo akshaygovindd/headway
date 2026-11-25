@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import duckdb
+from headway_transform import duckdb_limits
 
 COST_KEY_NAME = "cost_daily.parquet"
 RUN_AFTER_HOUR_UTC = 6
@@ -57,7 +57,7 @@ def fetch_costs(ce: Any, today: date) -> dict[date, dict[str, float]]:
 
 def captures_by_day(db_path: str) -> dict[date, int]:
     """Captures per UTC day from the dbt pipeline-health table."""
-    con = duckdb.connect(db_path, read_only=True)
+    con = duckdb_limits.connect(db_path, read_only=True)
     try:
         con.execute("set TimeZone = 'UTC'")
         rows = con.execute(
@@ -85,7 +85,7 @@ def build_rows(
 def write_parquet(rows: list[tuple[Any, ...]]) -> bytes:
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / COST_KEY_NAME
-        con = duckdb.connect()
+        con = duckdb_limits.connect()
         con.execute(f"create table cost ({_COLUMNS})")
         if rows:
             con.executemany("insert into cost values (?, ?, ?, ?, ?, ?)", rows)

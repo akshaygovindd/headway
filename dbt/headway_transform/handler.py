@@ -19,6 +19,7 @@ import boto3
 from headway_transform import (
     chaos,
     cost,
+    duckdb_limits,
     emf,
     forecast_serving,
     forecast_state,
@@ -179,9 +180,8 @@ def prepare_extension_dir() -> str:
 def assert_extension_dir_writable(runtime: str) -> bool:
     """Smoke check: a DuckDB connection configured with ``runtime`` can have extensions written
     into it (simulated by creating and renaming a file the way an extension install does)."""
-    import duckdb
 
-    con = duckdb.connect(config={"extension_directory": runtime, "home_directory": "/tmp"})  # noqa: S108
+    con = duckdb_limits.connect(config={"extension_directory": runtime, "home_directory": "/tmp"})  # noqa: S108
     try:
         configured = con.execute("select current_setting('extension_directory')").fetchone()
     finally:
@@ -466,7 +466,6 @@ def _smoke_r2(
     """Release 2 smoke steps on the S3 target, in the order a run takes them: run-state append and
     load, the SLO models built over that state, history write (and that it is immutable), and the
     SLO models again, now reading the history they just wrote."""
-    import duckdb
 
     raw_bucket = os.environ.get("RAW_BUCKET", "smoke-raw")
     city = os.environ["CITY_ID"]
@@ -483,7 +482,7 @@ def _smoke_r2(
         if outcome.node_errors:
             raise TransformError(f"smoke SLO rebuild failed: {', '.join(outcome.node_errors)}")
         release_dbt_connections()
-        con = duckdb.connect(db_path, read_only=True)
+        con = duckdb_limits.connect(db_path, read_only=True)
         try:
             daily = con.execute("select count(*) from agg_slo_daily").fetchone()
             rollup = con.execute("select count(*) from agg_slo_rollup").fetchone()
@@ -566,7 +565,6 @@ def _smoke_observability(
     """Observability steps on the S3 target, after the build: the run's metric lines (printed, so
     the smoke script can look for them in the container log), Elementary's rows persisted and read
     back into a fresh database, and the report rendered by `edr` and uploaded."""
-    import duckdb
 
     release_dbt_connections()
     now = _now()
@@ -579,7 +577,7 @@ def _smoke_observability(
     persisted = observability.persist(s3, raw_bucket, db_path, started_at, now)
     with tempfile.TemporaryDirectory() as tmp:
         fresh = os.path.join(tmp, "fresh.duckdb")
-        duckdb.connect(fresh).close()
+        duckdb_limits.connect(fresh).close()
         restored = observability.restore(s3, raw_bucket, fresh, now)
     key = observability.publish_report(s3, public_bucket, city, db_path, now)
     report = s3.get_object(Bucket=public_bucket, Key=key)

@@ -11,7 +11,7 @@ headway:
     lambda:
       type: duckdb
       path: "{{ env_var('HEADWAY_DUCKDB_PATH', '/tmp/headway.duckdb') }}"
-      threads: 4
+      threads: "{{ env_var('HEADWAY_DUCKDB_THREADS', '2') | int }}"
       extensions:
         - httpfs
       # Connect-time options: dbt-duckdb installs extensions right after connecting, before any
@@ -19,6 +19,11 @@ headway:
       config_options:
         home_directory: /tmp
         extension_directory: "{{ env_var('HEADWAY_DUCKDB_EXTENSIONS', '/tmp/duckdb_extensions') }}"
+        # DuckDB sizes itself from host RAM, not the Lambda cgroup: bound it (ADR-024).
+        memory_limit: "{{ env_var('HEADWAY_DUCKDB_MEMORY_LIMIT', '2200MB') }}"
+        temp_directory: "{{ env_var('HEADWAY_DUCKDB_TEMP_DIR', '/tmp/duckdb_spill') }}"
+        max_temp_directory_size: "{{ env_var('HEADWAY_DUCKDB_MAX_TEMP', '8GB') }}"
+        preserve_insertion_order: false
       settings:
         TimeZone: UTC
       secrets:
@@ -29,12 +34,17 @@ headway:
     s3_test:
       type: duckdb
       path: "{{ env_var('HEADWAY_DUCKDB_PATH', '/tmp/headway.duckdb') }}"
-      threads: 4
+      threads: "{{ env_var('HEADWAY_DUCKDB_THREADS', '2') | int }}"
       extensions:
         - httpfs
       config_options:
         home_directory: /tmp
         extension_directory: "{{ env_var('HEADWAY_DUCKDB_EXTENSIONS', '/tmp/duckdb_extensions') }}"
+        # DuckDB sizes itself from host RAM, not the Lambda cgroup: bound it (ADR-024).
+        memory_limit: "{{ env_var('HEADWAY_DUCKDB_MEMORY_LIMIT', '2200MB') }}"
+        temp_directory: "{{ env_var('HEADWAY_DUCKDB_TEMP_DIR', '/tmp/duckdb_spill') }}"
+        max_temp_directory_size: "{{ env_var('HEADWAY_DUCKDB_MAX_TEMP', '8GB') }}"
+        preserve_insertion_order: false
       settings:
         TimeZone: UTC
       secrets:
@@ -68,5 +78,10 @@ elementary:
       config_options:
         home_directory: /tmp
         extension_directory: "{{ env_var('HEADWAY_DUCKDB_EXTENSIONS', '/tmp/duckdb_extensions') }}"
+        # DuckDB sizes itself from host RAM, not the Lambda cgroup: bound it (ADR-024).
+        memory_limit: "{{ env_var('HEADWAY_DUCKDB_MEMORY_LIMIT', '2200MB') }}"
+        temp_directory: "{{ env_var('HEADWAY_DUCKDB_TEMP_DIR', '/tmp/duckdb_spill') }}"
+        max_temp_directory_size: "{{ env_var('HEADWAY_DUCKDB_MAX_TEMP', '8GB') }}"
+        preserve_insertion_order: false
       settings:
         TimeZone: UTC

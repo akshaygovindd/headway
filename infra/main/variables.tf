@@ -36,6 +36,24 @@ variable "lookback_days" {
   default     = 7
 }
 
+variable "transform_duckdb_memory_limit" {
+  description = "DuckDB memory_limit inside the transform Lambda (account cap is 3008 MB, ADR-024)."
+  type        = string
+  default     = "2200MB"
+}
+
+variable "transform_duckdb_threads" {
+  description = "DuckDB and dbt threads inside the transform Lambda."
+  type        = number
+  default     = 2
+}
+
+variable "transform_duckdb_max_temp" {
+  description = "Spill budget under /tmp for the transform Lambda; must fit its ephemeral storage."
+  type        = string
+  default     = "8GB"
+}
+
 variable "vehicle_polls" {
   description = "Vehicle position polls per minute: 1 is one poll per minute, 4 is 15 s sampling (ADR-014)."
   type        = number
