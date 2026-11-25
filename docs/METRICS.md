@@ -485,8 +485,8 @@ The metrics below (6-10) are computed from reconstructed arrivals.
 
 ## Release 4 site metrics
 
-Three tables feed the public site (`HEADWAY_ENABLE_R4=true`, with R2; tag `r4`). They add no new
-measure: they re-cut the headways, the reconstructed arrivals and the capture checks above.
+Five tables feed the public site (`HEADWAY_ENABLE_R4=true`, with R2; tag `r4`). They add no new
+measure: they re-cut the headways, trip times, alerts, reconstructed arrivals and the capture checks above.
 
 ### Segment health (`agg_headway_segment_window`)
 - **What:** headway adherence per segment over `last_24h` and `last_7d`, with the bands, outage
@@ -507,7 +507,7 @@ measure: they re-cut the headways, the reconstructed arrivals and the capture ch
   service-disruption alert (`int_alert_scopes`, scope `line`) named the station of either stop
   among the stations it covers. An alert without stops (a whole-line alert) is not placed on
   segments. Disrupted segments are kept in the shares (`n_disruption` counts their valid
-  headways), as in the other window tables. Alert text is not exported.
+  headways), as in the other window tables. The text of the alerts is in `agg_service_disruptions`.
 - **Limitations:** the shares are per stop pair and so noisier than the line figure; a
   short-turn or branch trip only counts for the segments it runs.
 
@@ -525,6 +525,32 @@ measure: they re-cut the headways, the reconstructed arrivals and the capture ch
   per-run `agg_pipeline_health` is finer but not needed for an hourly heartbeat.
 - **Grain:** service_date x hour_local.
 
+### Trip time per direction and band (`agg_ett_band_window`)
+- **What:** the ETT approximation of section 9 per line, direction and time band over `last_24h` and
+  `last_7d` (all day types), computed from the trips of the window, not from daily medians. Same trip,
+  outage and implausible rules and the same coverage as `agg_ett_window`. A band with scheduled trips
+  and no measured ETT keeps a row with `n_trips` 0 and coverage 0, so "no trips measured" differs from
+  "no row". Plan comparison: `median_scheduled_s` (scheduled running time of the measured trips),
+  `median_actual_s` (scheduled plus ETT) and `median_ett_s` (actual minus plan).
+- **Grain:** line x direction_id x time_band x window_label.
+- **Spacing by hour** reads `agg_headway_adherence_hourly` (section 8) directly: one service day,
+  directions combined, 05:00 to 01:00; `data_outage` hours carry no statistics.
+
+### Disruption alerts (`agg_service_disruptions`)
+- **What:** line-scope service-disruption alerts (`int_alert_scopes`: scope `line`, effect rule of
+  the service-disruption rule of Release 2) of the last 24 hours, one row per line and alert, with `header_text` (the public MBTA
+  alert text, from its latest sighting), `first_seen`, `last_seen`, `is_active` (active in the latest
+  hour of the window), the first and last affected station along direction 0, and the affected
+  segments (`direction_id:from_stop_id:to_stop_id`, segments starting or ending at an affected
+  station). `agg_incidents.evidence_json` stays hidden.
+- **Grain:** line x alert_id.
+
+### Quality checks on the trust strip
+`/v1/pipeline/checks` summarises `agg_quality_checks_hourly` over the last N hours (24 by default). Per
+check it counts hours in `fail` and `warn`; `no_service`, `no_data` and `no_baseline` hours are not
+evaluated. A check's worst status over the window is `fail`, `warn` or `ok`. "N failing, M warnings" is
+the number of distinct checks whose worst status is `fail` (N) or `warn` (M), not a count of check-hours.
+
 ### How the site shows them
 - **Coverage glyph:** a five-segment meter and "N% cov." under every number. 70% and over is shown, 50 to
   under 70 is shown as partial (amber dot and the word), under 50 is withheld.
@@ -532,8 +558,8 @@ measure: they re-cut the headways, the reconstructed arrivals and the capture ch
   colours. Withheld segments are hatched, data-outage hours are hatched darker, and a disrupted stretch is
   dashed.
 - **Capture and checks** on the trust strip count Headway's own runs: captures is `1 - missed_runs / expected_runs`
-  over the last 24 hourly heartbeat rows; checks are the 7-day SLOs (failing: not met; warning: met with 75% or
-  more of the error budget used, or too few days to count).
+  over the last 24 hourly heartbeat rows; checks are the data-quality checks of `/v1/pipeline/checks` over the
+  last 24 hours (distinct checks failing or warning, see above).
 - **Prediction error** below the 20 s timing floor of the reconstruction is shown as "~20 s".
 
 ## Known limitations

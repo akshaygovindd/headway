@@ -421,9 +421,10 @@ so the variable is your statement of it: `enable_r4 = true` fails validation whi
 **Site tables (the public site's data).** `enable_r4 = true` together with `enable_r2 = true` also
 sets `HEADWAY_ENABLE_R4=true` on the transform Lambda (`tostring(var.enable_r4 && var.enable_r2)`;
 false by default, so a plan with R4 off changes nothing). The transform then also builds the dbt
-models tagged `r4` and exports `agg_headway_segment_window`, `agg_marey_last_hour` and
-`agg_capture_heartbeat_hourly` with the gold tables; the API serves them as
-`/v1/lines/{line}/segments`, `/v1/lines/{line}/marey` and `/v1/pipeline/heartbeat` (404
+models tagged `r4` and exports `agg_headway_segment_window`, `agg_marey_last_hour`,
+`agg_capture_heartbeat_hourly`, `agg_ett_band_window` and `agg_service_disruptions` with the gold tables;
+the API serves them as `/v1/lines/{line}/segments`, `/marey`, `/trip-time`, `/disruptions` and
+`/v1/pipeline/heartbeat` (404
 `not_available` before). Switch-on: set `enable_r4 = true` next to `enable_r2 = true` and deploy
 (`make deploy ENABLE_R4=true`); after the next transform run check that the export has the
 tables (`curl -s "$API/v1/meta"` lists them in `tables_in_export`, and `/v1/lines/Red/segments`

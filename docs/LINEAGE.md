@@ -176,6 +176,10 @@ flowchart LR
     WH --> MLH[agg_marey_last_hour<br/>R4]
     RA --> MLH
     WH --> ETTW[agg_ett_window]
+    WH --> ETTB[agg_ett_band_window<br/>R4]
+    UA --> ETTB
+    WH --> SDS[agg_service_disruptions<br/>R4]
+    HSW --> SDS
     PE --> ACCW
     UA --> DEVW
     HW --> HWW
@@ -193,10 +197,13 @@ flowchart LR
   (`n_excluded_outage`). `int_disrupted_line_hours` marks line hours with an active detour,
   suspension or shuttle alert: those hours stay in the statistics and are counted
   (`service_disruption`, `n_disruption`).
-- **Public site (R4).** `web/` reads three R4 tables through `/v1`: `agg_headway_segment_window`
-  (network diagram, station strips, the `disrupted` flag), `agg_marey_last_hour` (Marey chart) and
-  `agg_capture_heartbeat_hourly` (trust strip and the hourly capture strip). Every other number on the
-  site comes from the Release 2 and 3 tables above. The site adds no metric of its own: its hero sentence
+- **Public site (R4).** `web/` reads five R4 tables through `/v1`: `agg_headway_segment_window`
+  (network diagram, station strips, the `disrupted` flag), `agg_marey_last_hour` (Marey chart),
+  `agg_capture_heartbeat_hourly` (trust strip and the hourly capture strip), `agg_ett_band_window`
+  (trip-time table) and `agg_service_disruptions` (disruption notes: public MBTA header text; incident
+  evidence stays hidden). The spacing-by-hour strip reads `agg_headway_adherence_hourly` and the checks
+  count `agg_quality_checks_hourly`. Every other number on the site comes from the Release 2 and 3
+  tables above. The site adds no metric of its own: its hero sentence
   and checks count are computed from API values (`web/src/lib/hero.ts`, `heartbeat.ts`).
 - **Windows.** `int_window_hours` lists the service hours of `last_24h` (24 hours) and `last_7d`
   (168 hours) ending at the latest hour of `agg_line_reliability_hourly` (the export's
