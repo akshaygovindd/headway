@@ -82,6 +82,12 @@ export const DEFINITIONS: Record<string, MetricDefinition> = {
     anchor: "3-coverage",
     table: "agg_line_reliability_window",
   },
+  checks: {
+    label: "Pipeline checks",
+    what: "Service-level objectives over 7 days. Failing: not met. Warning: met with 75% or more of the error budget used, or too few days to count.",
+    anchor: "release-4-site-metrics",
+    table: "agg_slo_rollup",
+  },
   generic: {
     label: "Measurement",
     what: "A figure computed by Headway from public MBTA feeds.",

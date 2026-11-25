@@ -115,7 +115,7 @@ export function MetricPopover() {
             <dt className="text-muted">Observations (n)</dt>
             <dd>{info.n ?? "not given for this figure"}</dd>
             <dt className="text-muted">Coverage</dt>
-            <dd>{info.cov ? `${Math.round(Number(info.cov))}% of scheduled trips observed` : "unknown"}</dd>
+            <dd>{info.cov ? `${Math.round(Number(info.cov))}% of scheduled trips observed` : "not applicable: this counts Headway's own runs"}</dd>
             <dt className="text-muted">Window</dt>
             <dd>{info.win ? (WINDOWS[info.win] ?? info.win) : "last 24 hours"}</dd>
             <dt className="text-muted">Left out</dt>

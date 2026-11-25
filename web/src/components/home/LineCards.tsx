@@ -1,0 +1,43 @@
+import Link from "next/link";
+import { LineBadge } from "@/components/LineBadge";
+import { DisruptionChip, Metric, StopsSkippedChip } from "@/components/trust";
+import { lineName } from "@/lib/lines";
+import type { LineStat } from "@/lib/site-data";
+
+export type CardChips = { disrupted: boolean; skipped: boolean };
+
+/** Fixed order, never sorted by value. Departure-board rows on a phone, cards from `sm` up. */
+export function LineCards({ cards }: { cards: { stat: LineStat; chips: CardChips }[] }) {
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Lines">
+      {cards.map(({ stat, chips }) => {
+        return (
+          <li key={stat.line} className="flex items-center gap-3 rounded-lg border border-line bg-card p-3 sm:block sm:p-4">
+            <div className="flex items-center gap-2 sm:mb-2">
+              <LineBadge line={stat.line} size={32} />
+              <div>
+                <h3 className="text-base leading-tight">
+                  <Link href={`/lines/${stat.line}`}>{lineName(stat.line)}</Link>
+                </h3>
+                <p className="text-xs text-muted">{stat.label}</p>
+              </div>
+            </div>
+            <div className="ml-auto sm:ml-0">
+              <Metric
+                cell={stat.cell}
+                unit="pct0"
+                size="lg"
+                block
+                info={{ k: stat.k, line: stat.line, n: stat.n, window: "last_24h", label: `${lineName(stat.line)}: ${stat.label.toLowerCase()}` }}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 sm:mt-2">
+              {chips.disrupted ? <DisruptionChip open /> : null}
+              {chips.skipped ? <StopsSkippedChip /> : null}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
