@@ -48,7 +48,8 @@ def test_every_alarm_has_exactly_one_section_named_after_it() -> None:
     known = anchors(DOCS / "RUNBOOK.md")
     names = {
         "headway-ingest-rt-errors", "headway-ingest-rt-invocations-low", "headway-curate-errors",
-        "headway-static-errors", "headway-transform-errors", "headway-transform-not-succeeded", "headway-transform-memory-high",
+        "headway-static-errors", "headway-transform-errors", "headway-transform-not-succeeded",
+        "headway-transform-memory-high",
         "headway-feed-errors", "headway-gold-stale", "headway-missed-minutes",
         "headway-arrival-coverage-low",
     }  # fmt: skip
