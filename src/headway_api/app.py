@@ -216,6 +216,31 @@ def create_app(settings: Settings | None = None, source: GoldSource | None = Non
     ) -> Envelope:
         return serve(request, lambda q: q.marey(line, direction))
 
+    @app.get(f"{v1}/lines/{{line}}/trip-time", response_model=Envelope, tags=tag,
+             summary="Trip time against the timetable per direction and time band")  # fmt: skip
+    def line_trip_time(
+        request: Request,
+        line: LineName,
+        window: Annotated[WindowName, Query(description="Rolling window")] = "last_24h",
+    ) -> Envelope:
+        return serve(request, lambda q: q.trip_time(line, window))
+
+    @app.get(f"{v1}/lines/{{line}}/spacing-by-hour", response_model=Envelope, tags=tag,
+             summary="Headway adherence per service hour of one service day")  # fmt: skip
+    def line_spacing_by_hour(
+        request: Request,
+        line: LineName,
+        date: Annotated[
+            str | None, Query(description="Service date (YYYY-MM-DD); default: the latest")
+        ] = None,
+    ) -> Envelope:
+        return serve(request, lambda q: q.spacing_by_hour(line, date))
+
+    @app.get(f"{v1}/lines/{{line}}/disruptions", response_model=Envelope, tags=tag,
+             summary="Line-scope service disruptions of the last 24 hours")  # fmt: skip
+    def line_disruptions(request: Request, line: LineName) -> Envelope:
+        return serve(request, lambda q: q.disruptions(line))
+
     @app.get(f"{v1}/incidents", response_model=Envelope, tags=tag, summary="Incidents in a range")
     def incidents(
         request: Request,
@@ -244,6 +269,14 @@ def create_app(settings: Settings | None = None, source: GoldSource | None = Non
         hours: Annotated[int, Query(description=f"1 to {queries.MAX_HEARTBEAT_HOURS}")] = 24,
     ) -> Envelope:
         return serve(request, lambda q: q.heartbeat(hours))
+
+    @app.get(f"{v1}/pipeline/checks", response_model=Envelope, tags=tag,
+             summary="Data-quality checks over the last hours")  # fmt: skip
+    def pipeline_checks(
+        request: Request,
+        hours: Annotated[int, Query(description=f"1 to {queries.MAX_CHECK_HOURS}")] = 24,
+    ) -> Envelope:
+        return serve(request, lambda q: q.checks(hours))
 
     @app.get(f"{v1}/slo", response_model=Envelope, tags=tag, summary="Service level objectives")
     def slo(request: Request) -> Envelope:

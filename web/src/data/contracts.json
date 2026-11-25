@@ -495,6 +495,248 @@
       ]
     },
     {
+      "name": "agg_ett_band_window",
+      "description": "ETT approximation per line, direction and time band over the last 24 hours and the last 7 days, all day types combined, with the median scheduled and actual running time of the measured trips (Release 4). Same trips, rules and coverage as agg_ett_window. A band with scheduled trips but no measured ETT keeps a row with n_trips 0. An adapted approximation, not an official measure. Exported with the R4 gold tables.",
+      "grain": "line x direction_id x time_band x window_label",
+      "endpoints": [
+        "/v1/lines/{line}/trip-time"
+      ],
+      "value_columns": [],
+      "n_column": null,
+      "definition": "docs/METRICS.md#release-4-site-metrics",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "A value from a row with coverage_pct under 50 is withheld (null) with withheld_reason. A zero denominator gives no coverage figure and is withheld too.",
+      "columns": [
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line."
+        },
+        {
+          "name": "direction_id",
+          "type": "integer",
+          "nullable": true,
+          "description": "GTFS direction of the trips."
+        },
+        {
+          "name": "time_band",
+          "type": "unclassified",
+          "nullable": false,
+          "description": "am_peak 06:30-09:00, midday 09:00-15:30, pm_peak 15:30-18:30, evening 18:30-24:00 or other, by the scheduled arrival at the second stop (local)."
+        },
+        {
+          "name": "window_label",
+          "type": "string",
+          "nullable": false,
+          "description": "last_24h or last_7d, ending at the latest hour of the export (metrics_as_of)."
+        },
+        {
+          "name": "n_scheduled_trips",
+          "type": "integer",
+          "nullable": true,
+          "description": "Scheduled trips of the band, outage trips excluded."
+        },
+        {
+          "name": "n_excluded_outage",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trips left out because an end stop's hour is a data outage."
+        },
+        {
+          "name": "n_implausible",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trips with an ETT beyond 3600 seconds, left out of the statistics."
+        },
+        {
+          "name": "n_trips",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trips behind the statistics; zero when no trip of the band was measured."
+        },
+        {
+          "name": "n_disruption",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trips behind the statistics with a service-disruption alert at either end stop (kept)."
+        },
+        {
+          "name": "median_ett_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Median ETT in seconds (actual minus plan); positive is slower than schedule."
+        },
+        {
+          "name": "p90_ett_s",
+          "type": "double",
+          "nullable": true,
+          "description": "90th percentile of ETT in seconds."
+        },
+        {
+          "name": "median_scheduled_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Median scheduled running time in seconds between the second and second-to-last stop of the measured trips."
+        },
+        {
+          "name": "median_actual_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Median actual running time in seconds (scheduled plus ETT) of the measured trips."
+        },
+        {
+          "name": "coverage_numerator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Numerator of coverage."
+        },
+        {
+          "name": "coverage_denominator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Denominator of coverage."
+        },
+        {
+          "name": "coverage_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "Trips with an ETT over scheduled trips as a percentage (0-100); null when the denominator is zero."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"line\",\"direction_id\",\"time_band\",\"window_label\"]"
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "time_band",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "window_label",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "name": "agg_ett_window",
+      "description": "ETT approximation per line over the last 24 hours and the last 7 days, all directions, time bands and day types combined, computed over every trip of the window. An adapted approximation, not an official measure.",
+      "grain": "line x window_label",
+      "endpoints": [
+        "/v1/lines/{line}/trip-time"
+      ],
+      "value_columns": [],
+      "n_column": null,
+      "definition": "docs/METRICS.md#release-4-site-metrics",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "A value from a row with coverage_pct under 50 is withheld (null) with withheld_reason. A zero denominator gives no coverage figure and is withheld too.",
+      "columns": [
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line."
+        },
+        {
+          "name": "window_label",
+          "type": "string",
+          "nullable": false,
+          "description": "last_24h or last_7d, ending at the latest hour of the export (metrics_as_of)."
+        },
+        {
+          "name": "n_scheduled_trips",
+          "type": "integer",
+          "nullable": true,
+          "description": "Scheduled trips of the line, outage trips excluded."
+        },
+        {
+          "name": "n_excluded_outage",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trips left out because an end stop's hour is a data outage."
+        },
+        {
+          "name": "n_implausible",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trips with an ETT beyond 3600 seconds, left out of the statistics."
+        },
+        {
+          "name": "n_trips",
+          "type": "integer",
+          "nullable": false,
+          "description": "Trips behind the statistics."
+        },
+        {
+          "name": "n_disruption",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trips behind the statistics with a service-disruption alert at either end stop (kept)."
+        },
+        {
+          "name": "median_ett_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Median ETT in seconds; positive is slower than schedule."
+        },
+        {
+          "name": "p90_ett_s",
+          "type": "double",
+          "nullable": true,
+          "description": "90th percentile of ETT in seconds."
+        },
+        {
+          "name": "coverage_numerator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Numerator of coverage."
+        },
+        {
+          "name": "coverage_denominator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Denominator of coverage."
+        },
+        {
+          "name": "coverage_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "Coverage as a percentage (0-100); null when the denominator is zero."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"line\",\"window_label\"]"
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "window_label",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "n_trips",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
       "name": "agg_forecast_gate_status",
       "description": "Training gate per line as the Forecast page shows it (Release 3): the training job's counts, or the build's own agg_forecast_gate for a line the job has not seen. Exported with the R3 gold tables.",
       "grain": "line",
@@ -772,6 +1014,178 @@
         },
         {
           "scope": "forecast_status",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "name": "agg_headway_adherence_hourly",
+      "description": "Headway adherence per line, direction, service date and hour of the later train's scheduled arrival: share of valid headways within 0.5-1.5 times the scheduled headway, bunched and gaps, with dropped headways counted by reason and coverage against scheduled headways. Outage hours keep a row with empty statistics.",
+      "grain": "line x direction_id x service_date x hour_local",
+      "endpoints": [
+        "/v1/lines/{line}/spacing-by-hour"
+      ],
+      "value_columns": [],
+      "n_column": null,
+      "definition": "docs/METRICS.md#release-4-site-metrics",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "A value from a row with coverage_pct under 50 is withheld (null) with withheld_reason. A zero denominator gives no coverage figure and is withheld too.",
+      "columns": [
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line."
+        },
+        {
+          "name": "direction_id",
+          "type": "integer",
+          "nullable": true,
+          "description": "Direction of travel (0 or 1)."
+        },
+        {
+          "name": "service_date",
+          "type": "date",
+          "nullable": false,
+          "description": "Service date."
+        },
+        {
+          "name": "hour_local",
+          "type": "integer",
+          "nullable": false,
+          "description": "Local clock hour (0-23)."
+        },
+        {
+          "name": "data_outage",
+          "type": "unclassified",
+          "nullable": false,
+          "description": "True when the hour is a data outage; statistics are empty."
+        },
+        {
+          "name": "service_disruption",
+          "type": "unclassified",
+          "nullable": false,
+          "description": "True when the line had an active service-disruption alert in the hour."
+        },
+        {
+          "name": "n_headways",
+          "type": "integer",
+          "nullable": false,
+          "description": "Valid headways behind the shares."
+        },
+        {
+          "name": "pct_within_band",
+          "type": "double",
+          "nullable": true,
+          "description": "Percentage of valid headways with ratio 0.5 to 1.5."
+        },
+        {
+          "name": "pct_bunched",
+          "type": "double",
+          "nullable": true,
+          "description": "Percentage with ratio below 0.5."
+        },
+        {
+          "name": "pct_gap",
+          "type": "double",
+          "nullable": true,
+          "description": "Percentage with ratio above 1.5."
+        },
+        {
+          "name": "median_ratio",
+          "type": "double",
+          "nullable": true,
+          "description": "Median of actual over scheduled headway."
+        },
+        {
+          "name": "n_dropped_train_between",
+          "type": "integer",
+          "nullable": true,
+          "description": "Pairs dropped because another train could lie between."
+        },
+        {
+          "name": "n_dropped_unproven_order",
+          "type": "integer",
+          "nullable": true,
+          "description": "Pairs dropped because no neighbouring stop proved the order."
+        },
+        {
+          "name": "n_dropped_no_scheduled_headway",
+          "type": "integer",
+          "nullable": true,
+          "description": "Pairs dropped for lack of a scheduled headway."
+        },
+        {
+          "name": "n_dropped_implausible",
+          "type": "integer",
+          "nullable": true,
+          "description": "Pairs dropped as implausibly long."
+        },
+        {
+          "name": "n_excluded_outage",
+          "type": "integer",
+          "nullable": true,
+          "description": "Candidate headways left out because the hour is an outage."
+        },
+        {
+          "name": "scheduled_headways",
+          "type": "integer",
+          "nullable": true,
+          "description": "Scheduled stop times of the hour with a predecessor at their stop."
+        },
+        {
+          "name": "coverage_numerator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Numerator of coverage."
+        },
+        {
+          "name": "coverage_denominator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Denominator of coverage."
+        },
+        {
+          "name": "coverage_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "Coverage as a percentage (0-100); null when the denominator is zero or the hour is an outage."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"line\",\"direction_id\",\"service_date\",\"hour_local\"]"
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "service_date",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "hour_local",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "data_outage",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "service_disruption",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "n_headways",
           "name": "not_null",
           "detail": null
         }
@@ -1782,6 +2196,236 @@
         },
         {
           "scope": "quarantine_other",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "name": "agg_quality_checks_hourly",
+      "description": "Hourly data-quality checks (prediction_coverage and schedule_join_coverage consider observable trip stops only) with warn/fail status from the quality_thresholds seed. Values are percentages except missed_runs and duplicate_deliveries (counts per hour; duplicate_deliveries is the number of extra scheduler deliveries). implausible_deviation_share is the percentage of last-snapshot picks more than 3600 s from the schedule. late_event_share counts records fetched more than 300 seconds after their event_ts. vehicle_count_drop compares with the same hour one week earlier and is no_baseline when that hour was not observed.",
+      "grain": "service_date x hour_local x check_name",
+      "endpoints": [
+        "/v1/pipeline/checks"
+      ],
+      "value_columns": [],
+      "n_column": null,
+      "definition": "docs/METRICS.md#release-4-site-metrics",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "No coverage column. Values are served as stored.",
+      "columns": [
+        {
+          "name": "service_date",
+          "type": "date",
+          "nullable": false,
+          "description": "Service date."
+        },
+        {
+          "name": "hour_local",
+          "type": "integer",
+          "nullable": false,
+          "description": "Local clock hour (0-23)."
+        },
+        {
+          "name": "check_name",
+          "type": "string",
+          "nullable": false,
+          "description": "Name of the check."
+        },
+        {
+          "name": "value",
+          "type": "unclassified",
+          "nullable": true,
+          "description": "Measured value; null when it cannot be computed."
+        },
+        {
+          "name": "direction",
+          "type": "unclassified",
+          "nullable": false,
+          "description": "above: bad when the value is at or above the thresholds; below: bad when under them."
+        },
+        {
+          "name": "warn_threshold",
+          "type": "unclassified",
+          "nullable": false,
+          "description": "Value at which the check warns."
+        },
+        {
+          "name": "fail_threshold",
+          "type": "unclassified",
+          "nullable": false,
+          "description": "Value at which the check fails."
+        },
+        {
+          "name": "scheduled_trip_stops",
+          "type": "integer",
+          "nullable": false,
+          "description": "Scheduled subway trip-stops in the hour (from the timetable); decides no_service."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "nullable": false,
+          "description": "ok, warn, fail, no_baseline, no_data or no_service (the hour has fewer scheduled subway trip-stops than no_service_min_trip_stops; content checks only)."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"service_date\",\"hour_local\",\"check_name\"]"
+        },
+        {
+          "scope": "service_date",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "hour_local",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "hour_local",
+          "name": "accepted_range",
+          "detail": "min_value=0, max_value=23"
+        },
+        {
+          "scope": "check_name",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "check_name",
+          "name": "accepted_values",
+          "detail": "values=[\"missed_runs\",\"feed_gap_min\",\"duplicate_deliveries\",\"duplicate_share\",\"invalid_coordinate_share\",\"missing_trip_id_share\",\"prediction_coverage\",\"schedule_join_coverage\",\"implausible_deviation_share\",\"late_event_share\",\"vehicle_count_drop\"]"
+        },
+        {
+          "scope": "direction",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "warn_threshold",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "fail_threshold",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "scheduled_trip_stops",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "status",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "status",
+          "name": "accepted_values",
+          "detail": "values=[\"ok\",\"warn\",\"fail\",\"no_baseline\",\"no_data\",\"no_service\"]"
+        }
+      ]
+    },
+    {
+      "name": "agg_service_disruptions",
+      "description": "Line-scope service-disruption alerts of the last 24 hours, one row per line and alert, with the public MBTA header text, the first and last affected station and the segments affected (Release 4). Exported with the R4 gold tables.",
+      "grain": "line x alert_id",
+      "endpoints": [
+        "/v1/lines/{line}/disruptions",
+        "/v1/lines/{line}/segments"
+      ],
+      "value_columns": [],
+      "n_column": null,
+      "definition": "docs/METRICS.md#release-4-site-metrics",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "No coverage column. Values are served as stored.",
+      "columns": [
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line."
+        },
+        {
+          "name": "alert_id",
+          "type": "string",
+          "nullable": false,
+          "description": "MBTA alert identifier."
+        },
+        {
+          "name": "effect",
+          "type": "unclassified",
+          "nullable": true,
+          "description": "GTFS-realtime alert effect."
+        },
+        {
+          "name": "header_text",
+          "type": "string",
+          "nullable": true,
+          "description": "Header text of the alert as published by the MBTA (public text), from its latest sighting."
+        },
+        {
+          "name": "first_seen",
+          "type": "unclassified",
+          "nullable": true,
+          "description": "First capture in the window in which the alert was active (UTC)."
+        },
+        {
+          "name": "last_seen",
+          "type": "unclassified",
+          "nullable": true,
+          "description": "Last capture in the window in which the alert was active (UTC)."
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "nullable": true,
+          "description": "True when the alert was active in the latest hour of the window."
+        },
+        {
+          "name": "n_stations",
+          "type": "integer",
+          "nullable": true,
+          "description": "Stations the alert covers."
+        },
+        {
+          "name": "from_station_name",
+          "type": "string",
+          "nullable": true,
+          "description": "First affected station along direction 0 of the line; null when it is not on a segment."
+        },
+        {
+          "name": "to_station_name",
+          "type": "string",
+          "nullable": true,
+          "description": "Last affected station along direction 0 of the line; null when it is not on a segment."
+        },
+        {
+          "name": "segment_keys",
+          "type": "unclassified",
+          "nullable": true,
+          "description": "Affected segments of agg_headway_segment_window (last_24h) as direction_id:from_stop_id:to_stop_id: segments starting or ending at an affected station."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"line\",\"alert_id\"]"
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "alert_id",
           "name": "not_null",
           "detail": null
         }

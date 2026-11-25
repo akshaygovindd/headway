@@ -19,7 +19,10 @@ WINDOWS = ("last_24h", "last_7d")
 MAX_INCIDENT_DAYS = 31
 MAX_HEALTH_DAYS = 30
 MAX_HEARTBEAT_HOURS = 720  # the export keeps 30 days
+MAX_CHECK_HOURS = 720
 TZ = "America/New_York"
+SERVICE_DAY_CUTOFF_HOUR = 3  # dbt var service_day_cutoff_hour: hours before 03:00 close the day
+TIME_BANDS = ("am_peak", "midday", "pm_peak", "evening", "other")
 
 
 class InputError(ValueError):
@@ -118,7 +121,9 @@ API_TABLES = tuple(
         {s.table for secs in SECTIONS.values() for s in secs}
         | {"agg_incidents", "agg_forecast_next_hour", "agg_forecast_gate_status",
            "agg_slo_rollup", "agg_pipeline_health", "agg_headway_segment_window",
-           "agg_marey_last_hour", "agg_capture_heartbeat_hourly"}
+           "agg_marey_last_hour", "agg_capture_heartbeat_hourly", "agg_ett_band_window",
+           "agg_ett_window", "agg_headway_adherence_hourly", "agg_quality_checks_hourly",
+           "agg_service_disruptions"}
     )
 )  # fmt: skip
 
@@ -436,10 +441,23 @@ class Query:
             )
 
         rows, more, shown = self.run(build)
+        tables, sqls = ["agg_headway_segment_window"], [shown]
+        headers: dict[str, str] = {}
+        if "agg_service_disruptions" in self.tables:
+            alerts, _, ashown = self.disruption_rows(line)
+            tables.append("agg_service_disruptions")
+            sqls.append(ashown)
+            for a in reversed(alerts):  # active and latest first: they are written last and win
+                for seg in a["segments"]:
+                    if a["header_text"]:
+                        key = f"{seg['direction_id']}:{seg['from_stop_id']}:{seg['to_stop_id']}"
+                        headers[key] = a["header_text"]
         for r in rows:
             r["withheld_reason"] = self._reason(r) if r.pop("withheld") else None
+            key = f"{r['direction_id']}:{r['from_stop_id']}:{r['to_stop_id']}"
+            r["disruption_header"] = headers.get(key) if r["disrupted"] else None
         data = {"line": line, "window": window, "direction": direction, "rows": rows}
-        return Result(data, ["agg_headway_segment_window"], [shown], "release-4-site-metrics",
+        return Result(data, tables, sqls, "release-4-site-metrics",
                       "Headway adherence per segment (two neighbouring stops) with a health bucket",
                       rows, more)  # fmt: skip
 
@@ -496,6 +514,203 @@ class Query:
                       "release-4-site-metrics",
                       "Hourly capture heartbeat: expected and missed runs, feed gap, data outage",
                       [], more)  # fmt: skip
+
+    def disruption_rows(self, line: str) -> tuple[list[dict[str, Any]], bool, str]:
+        """Line-scope disruption alerts of the last 24 hours: active first, then latest first."""
+        fmt = "'%Y-%m-%dT%H:%M:%SZ'"
+
+        def build(base: str) -> str:
+            p = self.path(base, "agg_service_disruptions")
+            return (
+                "select alert_id, effect, header_text, "
+                f"strftime(first_seen at time zone 'UTC', {fmt}) as first_seen, "
+                f"strftime(last_seen at time zone 'UTC', {fmt}) as last_seen, is_active, "
+                "n_stations, from_station_name, to_station_name, segment_keys "
+                f"from read_parquet('{p}') where line = '{line}' "
+                f"order by is_active desc, last_seen desc, alert_id limit {self.max_rows + 1}"
+            )
+
+        rows, more, shown = self.run(build)
+        for r in rows:
+            keys = r.pop("segment_keys") or []
+            r["segments"] = [
+                {"direction_id": int(d), "from_stop_id": f, "to_stop_id": t}
+                for d, f, t in (k.split(":", 2) for k in keys)
+            ]
+        return rows, more, shown
+
+    def disruptions(self, line: str) -> Result:
+        """Line-scope service disruptions (public MBTA alert text) of the last 24 hours."""
+        self.need("agg_service_disruptions")
+        rows, more, shown = self.disruption_rows(line)
+        return Result({"line": line, "window": "last_24h", "rows": rows},
+                      ["agg_service_disruptions"], [shown], "release-4-site-metrics",
+                      "Line-scope service-disruption alerts of the last 24 hours: the public MBTA "
+                      "header text, the affected stations and segments", [], more)  # fmt: skip
+
+    @staticmethod
+    def _ett_status(r: dict[str, Any]) -> tuple[str, str | None, str | None]:
+        """status, withheld_reason, no_trips_reason of an ETT row."""
+        if not r["n_trips"]:
+            n = r["n_scheduled_trips"] or 0
+            why = (
+                f"no trips measured: {n} scheduled, none with a usable ETT"
+                if n
+                else "no trips measured: every scheduled trip fell in a data-outage hour"
+            )
+            return "no_trips", None, why
+        reason = Query._reason(r)
+        return ("withheld", reason, None) if reason else ("measured", None, None)
+
+    def trip_time(self, line: str, window: str) -> Result:
+        """Trip time against the timetable per direction and time band (ETT approximation)."""
+        self.need("agg_ett_band_window")
+        ok = f"coalesce(coverage_pct, 0) >= {MIN_COV:g} and n_trips > 0"
+        band_order = "case time_band " + " ".join(
+            f"when '{b}' then {i}" for i, b in enumerate(TIME_BANDS)) + " else 9 end"  # fmt: skip
+
+        def build(base: str) -> str:
+            p = self.path(base, "agg_ett_band_window")
+            vals = ", ".join(
+                f"round(case when {ok} then {v} end, 1) as {v}"
+                for v in ("median_ett_s", "p90_ett_s", "median_scheduled_s", "median_actual_s")
+            )
+            return (
+                f"select direction_id, time_band, n_trips, n_scheduled_trips, n_excluded_outage, "
+                f"n_implausible, n_disruption, {vals}, round(coverage_pct, 1) as coverage_pct "
+                f"from read_parquet('{p}') where line = '{line}' and window_label = '{window}' "
+                f"order by direction_id, {band_order}, time_band limit {self.max_rows + 1}"
+            )
+
+        rows, more, shown = self.run(build)
+        for r in rows:
+            r["status"], r["withheld_reason"], r["no_trips_reason"] = self._ett_status(r)
+        tables, sqls = ["agg_ett_band_window"], [shown]
+        overall = None
+        if "agg_ett_window" in self.tables:
+
+            def build_all(base: str) -> str:
+                p = self.path(base, "agg_ett_window")
+                vals = ", ".join(
+                    f"round(case when {ok} then {v} end, 1) as {v}"
+                    for v in ("median_ett_s", "p90_ett_s")
+                )
+                return (
+                    f"select n_trips, n_scheduled_trips, n_excluded_outage, n_implausible, "
+                    f"n_disruption, {vals}, round(coverage_pct, 1) as coverage_pct "
+                    f"from read_parquet('{p}') where line = '{line}' and window_label = '{window}'"
+                )
+
+            orows, _, oshown = self.run(build_all)
+            tables.append("agg_ett_window")
+            sqls.append(oshown)
+            if orows:
+                overall = orows[0]
+                overall["status"], overall["withheld_reason"], overall["no_trips_reason"] = (
+                    self._ett_status(overall)
+                )
+        data = {"line": line, "window": window, "unit": "seconds",
+                "rows": rows, "overall": overall}  # fmt: skip
+        return Result(data, tables, sqls, "release-4-site-metrics",
+                      "Trip time against the timetable (ETT approximation) per direction and time "
+                      "band", rows, more)  # fmt: skip
+
+    def spacing_by_hour(self, line: str, date: str | None) -> Result:
+        """Headway adherence per service hour of one service day, directions combined."""
+        self.need("agg_headway_adherence_hourly")
+        day = _day(date, "date")
+        ok = f"coalesce(coverage_pct, 0) >= {MIN_COV:g}"
+        start = (f"(cast(service_date as timestamp) + to_hours(hour_local + case when hour_local < "
+                 f"{SERVICE_DAY_CUTOFF_HOUR} then 24 else 0 end)) at time zone '{TZ}'")  # fmt: skip
+
+        def build(base: str) -> str:
+            p = self.path(base, "agg_headway_adherence_hourly")
+            when = f"service_date = '{day}'" if day else (
+                f"service_date = (select max(service_date) from read_parquet('{p}') "
+                f"where line = '{line}')")  # fmt: skip
+            pct = ", ".join(
+                f"round(case when {ok} and not data_outage then {v} end, 2) as {v}"
+                for v in ("pct_within_band", "pct_bunched", "pct_gap")
+            )
+            w = ", ".join(
+                f"sum({c} * n_headways) filter (where n_headways > 0) / "
+                f"nullif(sum(n_headways) filter (where n_headways > 0), 0) as {c}"
+                for c in ("pct_within_band", "pct_bunched", "pct_gap")
+            )
+            return (
+                f"with t as (select service_date, hour_local, {start} as hour_start, direction_id, "
+                f"n_headways, pct_within_band, pct_bunched, pct_gap, scheduled_headways, "
+                f"coverage_numerator, coverage_denominator, data_outage "
+                f"from read_parquet('{p}') where line = '{line}' and {when}), "
+                f"g as (select service_date, hour_local, any_value(hour_start) as hour_start, "
+                f"sum(n_headways) as n_headways, {w}, sum(scheduled_headways) as "
+                f"scheduled_headways, 100.0 * sum(coverage_numerator) / "
+                f"nullif(sum(coverage_denominator), 0) as coverage_pct, bool_or(data_outage) as "
+                f"data_outage from t group by service_date, hour_local) "
+                f"select strftime(service_date, '%Y-%m-%d') as service_date, hour_local, "
+                f"strftime(hour_start at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as hour_start, "
+                f"n_headways, {pct}, scheduled_headways, round(coverage_pct, 1) as coverage_pct, "
+                f"data_outage from g order by hour_start limit {self.max_rows + 1}"
+            )
+
+        rows, more, shown = self.run(build)
+        for r in rows:
+            if r["data_outage"]:
+                r["status"], r["withheld_reason"] = (
+                    "outage",
+                    "data outage: our capture, not the trains",
+                )
+            elif not r["n_headways"]:
+                r["status"], r["withheld_reason"] = "no_headways", None
+            elif (reason := self._reason(r)) is not None:
+                r["status"], r["withheld_reason"] = "withheld", reason
+            else:
+                r["status"], r["withheld_reason"] = "measured", None
+        day_out = rows[0]["service_date"] if rows else (day.isoformat() if day else None)
+        data = {"line": line, "service_date": day_out, "hours": rows}
+        covs = [r for r in rows if not r["data_outage"]]
+        return Result(data, ["agg_headway_adherence_hourly"], [shown], "release-4-site-metrics",
+                      "Headway adherence per service hour (05:00 to 01:00 local), directions "
+                      "combined", covs, more)  # fmt: skip
+
+    def checks(self, hours: int) -> Result:
+        """Pipeline quality checks over the last N hours: fail and warn hours per check."""
+        self.need("agg_quality_checks_hourly")
+        if not 1 <= hours <= MAX_CHECK_HOURS:
+            raise InputError(f"hours must be between 1 and {MAX_CHECK_HOURS}")
+        start = (f"(cast(service_date as timestamp) + to_hours(hour_local + case when hour_local < "
+                 f"{SERVICE_DAY_CUTOFF_HOUR} then 24 else 0 end)) at time zone '{TZ}'")  # fmt: skip
+
+        def build(base: str) -> str:
+            p = self.path(base, "agg_quality_checks_hourly")
+            return (
+                f"with t as (select check_name, status, {start} as hour_start from "
+                f"read_parquet('{p}')), w as (select * from t where hour_start > "
+                f"(select max(hour_start) from t) - to_hours({int(hours)})) "
+                "select check_name, "
+                "count(*) filter (where status in ('ok', 'warn', 'fail')) as n_hours_evaluated, "
+                "count(*) filter (where status = 'fail') as n_fail_hours, "
+                "count(*) filter (where status = 'warn') as n_warn_hours, "
+                "count(*) filter (where status = 'ok') as n_ok_hours, "
+                "case when count(*) filter (where status = 'fail') > 0 then 'fail' "
+                "when count(*) filter (where status = 'warn') > 0 then 'warn' "
+                "when count(*) filter (where status = 'ok') > 0 then 'ok' "
+                "else 'not_evaluated' end as worst_status "
+                f"from w group by check_name order by check_name limit {self.max_rows + 1}"
+            )
+
+        rows, more, shown = self.run(build)
+        worst = [r["worst_status"] for r in rows]
+        data = {
+            "hours": hours,
+            "n_checks": len(rows),
+            "n_failing_checks": worst.count("fail"),
+            "n_warning_checks": worst.count("warn"),
+            "checks": rows,
+        }
+        return Result(data, ["agg_quality_checks_hourly"], [shown], "release-4-site-metrics",
+                      "Pipeline data-quality checks: hours in fail and warn per check, hours with "
+                      "no service left out", [], more)  # fmt: skip
 
 
 def metrics_catalog() -> list[dict[str, Any]]:

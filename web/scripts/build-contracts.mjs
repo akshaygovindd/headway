@@ -29,6 +29,11 @@ const ENDPOINTS = {
   agg_headway_segment_window: ["/v1/lines/{line}/segments"],
   agg_marey_last_hour: ["/v1/lines/{line}/marey"],
   agg_capture_heartbeat_hourly: ["/v1/pipeline/heartbeat"],
+  agg_ett_band_window: ["/v1/lines/{line}/trip-time"],
+  agg_ett_window: ["/v1/lines/{line}/trip-time"],
+  agg_headway_adherence_hourly: ["/v1/lines/{line}/spacing-by-hour"],
+  agg_service_disruptions: ["/v1/lines/{line}/disruptions", "/v1/lines/{line}/segments"],
+  agg_quality_checks_hourly: ["/v1/pipeline/checks"],
   agg_countdown_accuracy_window: ["/v1/lines/{line}/countdown"],
   agg_incidents: ["/v1/incidents"],
   agg_forecast_next_hour: ["/v1/forecast/{line}"],
@@ -46,6 +51,11 @@ const EXTRA_DOCS = {
   agg_headway_segment_window: "release-4-site-metrics",
   agg_marey_last_hour: "release-4-site-metrics",
   agg_capture_heartbeat_hourly: "release-4-site-metrics",
+  agg_ett_band_window: "release-4-site-metrics",
+  agg_ett_window: "release-4-site-metrics",
+  agg_headway_adherence_hourly: "release-4-site-metrics",
+  agg_service_disruptions: "release-4-site-metrics",
+  agg_quality_checks_hourly: "release-4-site-metrics",
 };
 
 const TYPE_RULES = [

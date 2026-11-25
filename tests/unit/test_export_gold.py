@@ -117,7 +117,13 @@ def test_release_4_site_tables_have_rows_and_columns(gold_r2: Path) -> None:
     beat = _table(gold_r2, "agg_capture_heartbeat_hourly")
     assert beat and {"expected_runs", "missed_runs", "feed_gap_min", "data_outage"} <= set(beat[0])
     ett_cols = set(pq.read_schema(gold_r2 / "agg_ett_band_window.parquet").names)
-    assert {"direction_id", "time_band", "n_trips", "median_scheduled_s", "coverage_pct"} <= ett_cols
+    assert {
+        "direction_id",
+        "time_band",
+        "n_trips",
+        "median_scheduled_s",
+        "coverage_pct",
+    } <= ett_cols
     dis_cols = set(pq.read_schema(gold_r2 / "agg_service_disruptions.parquet").names)
     assert {"alert_id", "header_text", "is_active", "segment_keys"} <= dis_cols
 

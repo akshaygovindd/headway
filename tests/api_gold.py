@@ -222,6 +222,91 @@ def build(base: Path, exported_at: str = EXPORTED_AT, shift: float = 0.0) -> str
                 (DAY, 9, "09", 60, 22, 18.0, "true"),
             ],
         ),
+        "agg_ett_band_window": _rows(
+            "select '{0}' line, {1} direction_id, '{2}' time_band, 'last_24h' window_label,"
+            " {3} n_scheduled_trips, 0 n_excluded_outage, 0 n_implausible, {4} n_trips,"
+            " 0 n_disruption, {5}::double median_ett_s, {6}::double p90_ett_s,"
+            " {7}::double median_scheduled_s, {8}::double median_actual_s,"
+            " {4} coverage_numerator, {3} coverage_denominator, {9}::double coverage_pct",
+            [
+                # Red: a band with trips, a band with zero trips, a withheld band (40% coverage)
+                ("Red", 1, "pm_peak", 5, 2, 70.0, 130.0, 900.0, 970.0, 40.0),
+                ("Red", 0, "midday", 5, 0, "null", "null", "null", "null", 0.0),
+                ("Red", 0, "am_peak", 10, 8, 90.0, 150.0, 1800.0, 1890.0, 80.0),
+                ("Red", 0, "evening", 0, 0, "null", "null", "null", "null", "null"),
+                ("Orange", 0, "am_peak", 4, 4, -20.0, 30.0, 1500.0, 1480.0, 100.0),
+            ],
+        ),
+        "agg_ett_window": _rows(
+            "select '{0}' line, 'last_24h' window_label, 20 n_scheduled_trips,"
+            " 0 n_excluded_outage, 0 n_implausible, {1} n_trips, 0 n_disruption,"
+            " 80.0::double median_ett_s, 140.0::double p90_ett_s, {1} coverage_numerator,"
+            " 20 coverage_denominator, {2}::double coverage_pct",
+            [("Red", 10, 50.0), ("Blue", 0, 0.0)],
+        ),
+        "agg_headway_adherence_hourly": _rows(
+            "select '{0}' line, {1} direction_id, date '{2}' service_date, {3} hour_local,"
+            " {4} data_outage, false service_disruption, {5} n_headways,"
+            " {6}::double pct_within_band, {7}::double pct_bunched, {8}::double pct_gap,"
+            " {9} scheduled_headways, {10} coverage_numerator, {9} coverage_denominator,"
+            " {11}::double coverage_pct",
+            [
+                # service day 2026-11-22: hours 5 and 6 measured, 7 a data outage, 8 without any
+                # valid headway, and hour 1 (after midnight, still that service day) at 40%
+                ("Red", 0, DAY, 5, "false", 8, 75.0, 12.5, 12.5, 10, 8, 80.0),
+                ("Red", 1, DAY, 5, "false", 2, 100.0, 0.0, 0.0, 2, 2, 100.0),
+                ("Red", 0, DAY, 6, "false", 9, 88.9, 0.0, 11.1, 10, 9, 90.0),
+                ("Red", 0, DAY, 7, "true", 0, "null", "null", "null", 10, 0, "null"),
+                ("Red", 0, DAY, 8, "false", 0, "null", "null", "null", 10, 0, 0.0),
+                ("Red", 0, DAY, 1, "false", 4, 50.0, 25.0, 25.0, 10, 4, 40.0),
+                ("Red", 0, date(2026, 11, 21), 6, "false", 5, 60.0, 20.0, 20.0, 5, 5, 100.0),
+                ("Orange", 0, DAY, 5, "false", 6, 50.0, 25.0, 25.0, 6, 6, 100.0),
+            ],
+        ),
+        "agg_quality_checks_hourly": _rows(
+            "select date '{0}' service_date, {1} hour_local, '{2}' check_name,"
+            " 1.0::double as \"value\", '{3}' status",
+            [
+                (DAY, 7, "missed_runs", "fail"),
+                (DAY, 8, "missed_runs", "warn"),
+                (DAY, 9, "missed_runs", "ok"),
+                (DAY, 7, "feed_gap_min", "ok"),
+                (DAY, 9, "feed_gap_min", "ok"),
+                (DAY, 8, "prediction_coverage", "warn"),
+                (DAY, 9, "prediction_coverage", "no_service"),
+                (DAY, 9, "late_event_share", "no_service"),
+                (DAY, 9, "vehicle_count_drop", "no_baseline"),
+                (DAY, 9, "duplicate_share", "ok"),
+                # two days earlier: outside the 24 hour window
+                (date(2026, 11, 20), 9, "feed_gap_min", "fail"),
+            ],
+        ),
+        "agg_service_disruptions": _rows(
+            "select '{0}' line, '{1}' alert_id, 'SIGNIFICANT_DELAYS' effect, '{2}' header_text,"
+            " timestamptz '{3}' first_seen, timestamptz '{4}' last_seen, {5} is_active,"
+            " 2 n_stations, 'Beta' from_station_name, 'Gamma' to_station_name,"
+            " {6}::varchar[] segment_keys",
+            [
+                (
+                    "Red",
+                    "a0",
+                    "Old shuttle notice",
+                    "2026-11-22 03:00:00-05",
+                    "2026-11-22 04:00:00-05",
+                    "false",
+                    "['0:a1:b1']",
+                ),
+                (
+                    "Red",
+                    "a1",
+                    "Shuttle buses replace trains between Beta and Gamma",
+                    "2026-11-22 09:00:00-05",
+                    "2026-11-22 09:40:00-05",
+                    "true",
+                    "['0:b1:c1', '1:d2:c2']",
+                ),
+            ],
+        ),
         "agg_slo_rollup": (
             "select 'transform_success' slo_name, 'last_7d' window_label, 99.0::double target_pct,"
             " 98 good_events, 99 total_events, 98.99::double actual_pct, true met,"
