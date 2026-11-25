@@ -1,0 +1,1567 @@
+{
+  "sources": [
+    "dbt/headway/models/marts/_aggregates.yml",
+    "src/headway_api/queries.py",
+    "docs/METRICS.md"
+  ],
+  "type_note": "Types are derived (naming convention) because the dbt YAML declares none; nullability is derived from not_null tests. Authoritative types will come from the export manifest.",
+  "tables": [
+    {
+      "name": "agg_accuracy_window",
+      "description": "Prediction accuracy per line and horizon bucket over the last 24 hours and the last 7 days, computed over every error in the window (not from daily medians). Outage hours are excluded and counted.",
+      "grain": "line x window_label x horizon_bucket",
+      "endpoints": [
+        "/v1/lines/{line}/accuracy"
+      ],
+      "value_columns": [
+        "median_abs_error_s",
+        "p90_abs_error_s",
+        "mae_s",
+        "pct_within_60s",
+        "pct_within_120s"
+      ],
+      "n_column": "n",
+      "definition": "docs/METRICS.md#release-2-metrics-shared-rules",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "A value from a row with coverage_pct under 50 is withheld (null) with withheld_reason. A zero denominator gives no coverage figure and is withheld too.",
+      "columns": [
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line."
+        },
+        {
+          "name": "window_label",
+          "type": "string",
+          "nullable": false,
+          "description": "last_24h or last_7d, ending at the latest hour of the export (metrics_as_of)."
+        },
+        {
+          "name": "horizon_bucket",
+          "type": "string",
+          "nullable": false,
+          "description": "Horizon bucket in minutes: 0-5, 5-10, 10-20 or 20-30."
+        },
+        {
+          "name": "n",
+          "type": "integer",
+          "nullable": false,
+          "description": "Errors behind the statistics."
+        },
+        {
+          "name": "n_excluded_outage",
+          "type": "integer",
+          "nullable": true,
+          "description": "Errors left out because the arrival hour was a data outage."
+        },
+        {
+          "name": "n_disruption",
+          "type": "integer",
+          "nullable": true,
+          "description": "Errors from hours with an active service-disruption alert (kept in the statistics)."
+        },
+        {
+          "name": "median_abs_error_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Median absolute error in seconds."
+        },
+        {
+          "name": "p90_abs_error_s",
+          "type": "double",
+          "nullable": true,
+          "description": "90th percentile of absolute error in seconds."
+        },
+        {
+          "name": "mae_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Mean absolute error in seconds."
+        },
+        {
+          "name": "pct_within_60s",
+          "type": "double",
+          "nullable": true,
+          "description": "Percentage of errors within 60 seconds."
+        },
+        {
+          "name": "pct_within_120s",
+          "type": "double",
+          "nullable": true,
+          "description": "Percentage of errors within 120 seconds."
+        },
+        {
+          "name": "coverage_numerator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Numerator of coverage."
+        },
+        {
+          "name": "coverage_denominator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Denominator of coverage."
+        },
+        {
+          "name": "coverage_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "Coverage as a percentage (0-100); null when the denominator is zero."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"line\",\"window_label\",\"horizon_bucket\"]"
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "window_label",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "horizon_bucket",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "n",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "name": "agg_actual_deviation_window",
+      "description": "Actual deviation from the timetable per line over the last 24 hours and the last 7 days, all directions combined, computed over every reconstructed arrival in the window.",
+      "grain": "line x window_label",
+      "endpoints": [
+        "/v1/lines/{line}/reliability"
+      ],
+      "value_columns": [
+        "median_deviation_s",
+        "p90_deviation_s",
+        "pct_on_time_window"
+      ],
+      "n_column": "n_arrivals",
+      "definition": "docs/METRICS.md#7-actual-schedule-deviation-release-2",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "A value from a row with coverage_pct under 50 is withheld (null) with withheld_reason. A zero denominator gives no coverage figure and is withheld too.",
+      "columns": [
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line."
+        },
+        {
+          "name": "window_label",
+          "type": "string",
+          "nullable": false,
+          "description": "last_24h or last_7d, ending at the latest hour of the export (metrics_as_of)."
+        },
+        {
+          "name": "n_arrivals",
+          "type": "integer",
+          "nullable": false,
+          "description": "High and medium arrivals behind the statistics."
+        },
+        {
+          "name": "n_excluded_outage",
+          "type": "integer",
+          "nullable": true,
+          "description": "Arrivals left out because the scheduled hour was a data outage."
+        },
+        {
+          "name": "n_implausible",
+          "type": "integer",
+          "nullable": true,
+          "description": "Arrivals beyond an hour from the schedule, left out of the statistics."
+        },
+        {
+          "name": "n_disruption",
+          "type": "integer",
+          "nullable": true,
+          "description": "Arrivals from hours with an active service-disruption alert (kept in the statistics)."
+        },
+        {
+          "name": "median_deviation_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Median actual minus scheduled arrival in seconds."
+        },
+        {
+          "name": "p90_deviation_s",
+          "type": "double",
+          "nullable": true,
+          "description": "90th percentile of deviation in seconds."
+        },
+        {
+          "name": "pct_on_time_window",
+          "type": "string",
+          "nullable": true,
+          "description": "Percentage of arrivals within -60 to +300 seconds of the schedule."
+        },
+        {
+          "name": "scheduled_trip_stops",
+          "type": "integer",
+          "nullable": true,
+          "description": "Scheduled trip stops of the non-outage hours in the window."
+        },
+        {
+          "name": "coverage_numerator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Numerator of coverage."
+        },
+        {
+          "name": "coverage_denominator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Denominator of coverage."
+        },
+        {
+          "name": "coverage_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "Coverage as a percentage (0-100); null when the denominator is zero."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"line\",\"window_label\"]"
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "window_label",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "n_arrivals",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "name": "agg_countdown_accuracy_window",
+      "description": "Countdown accuracy of MBTA's published predictions per line, station and countdown bucket over the last 24 hours and the last 7 days, exact over every countdown in the window. Confirmed non-arrivals are misses; unknown outcomes are excluded and counted.",
+      "grain": "line x station_id x window_label x countdown_min",
+      "endpoints": [
+        "/v1/lines/{line}/countdown"
+      ],
+      "value_columns": [
+        "pct_within_60s",
+        "pct_within_120s"
+      ],
+      "n_column": "n",
+      "definition": "docs/METRICS.md#release-2-metrics-shared-rules",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "A value from a row with coverage_pct under 50 is withheld (null) with withheld_reason. A zero denominator gives no coverage figure and is withheld too.",
+      "columns": [
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line."
+        },
+        {
+          "name": "station_id",
+          "type": "string",
+          "nullable": false,
+          "description": "Station (parent station or the stop itself)."
+        },
+        {
+          "name": "station_name",
+          "type": "string",
+          "nullable": true,
+          "description": "Station name."
+        },
+        {
+          "name": "window_label",
+          "type": "string",
+          "nullable": false,
+          "description": "last_24h or last_7d, ending at the latest hour of the export (metrics_as_of)."
+        },
+        {
+          "name": "countdown_min",
+          "type": "integer",
+          "nullable": false,
+          "description": "Countdown bucket in minutes: 1, 3, 5 or 10."
+        },
+        {
+          "name": "n",
+          "type": "integer",
+          "nullable": false,
+          "description": "Countdowns counted: arrived plus confirmed non-arrivals, outage hours excluded."
+        },
+        {
+          "name": "n_arrived",
+          "type": "integer",
+          "nullable": true,
+          "description": "Counted countdowns with a reconstructed arrival."
+        },
+        {
+          "name": "n_non_arrival",
+          "type": "integer",
+          "nullable": true,
+          "description": "Counted countdowns that were confirmed non-arrivals (misses)."
+        },
+        {
+          "name": "n_unknown",
+          "type": "integer",
+          "nullable": true,
+          "description": "Countdowns with neither an arrival nor a confirmed non-arrival; excluded from n."
+        },
+        {
+          "name": "n_excluded_outage",
+          "type": "integer",
+          "nullable": true,
+          "description": "Countdowns left out because the hour was a data outage."
+        },
+        {
+          "name": "n_disruption",
+          "type": "integer",
+          "nullable": true,
+          "description": "Counted countdowns from hours with an active service-disruption alert (kept)."
+        },
+        {
+          "name": "n_within_60s",
+          "type": "integer",
+          "nullable": true,
+          "description": "Counted countdowns whose train arrived within 60 seconds of the predicted time."
+        },
+        {
+          "name": "n_within_120s",
+          "type": "integer",
+          "nullable": true,
+          "description": "Counted countdowns whose train arrived within 120 seconds of the predicted time."
+        },
+        {
+          "name": "pct_within_60s",
+          "type": "double",
+          "nullable": true,
+          "description": "Percentage of counted countdowns within 60 seconds (0-100)."
+        },
+        {
+          "name": "pct_within_120s",
+          "type": "double",
+          "nullable": true,
+          "description": "Percentage of counted countdowns within 120 seconds (0-100)."
+        },
+        {
+          "name": "coverage_numerator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Numerator of coverage."
+        },
+        {
+          "name": "coverage_denominator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Denominator of coverage."
+        },
+        {
+          "name": "coverage_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "Coverage as a percentage (0-100); null when the denominator is zero."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"line\",\"station_id\",\"window_label\",\"countdown_min\"]"
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "station_id",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "window_label",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "countdown_min",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "countdown_min",
+          "name": "accepted_values",
+          "detail": "values=[1,3,5,10]"
+        },
+        {
+          "scope": "n",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "name": "agg_forecast_gate_status",
+      "description": "Training gate per line as the Forecast page shows it (Release 3): the training job's counts, or the build's own agg_forecast_gate for a line the job has not seen. Exported with the R3 gold tables.",
+      "grain": "line",
+      "endpoints": [
+        "/v1/forecast/{line}"
+      ],
+      "value_columns": [],
+      "n_column": null,
+      "definition": "docs/METRICS.md#forecast-serving-and-comparison-release-3",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "No coverage column. Values are served as stored.",
+      "columns": [
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line."
+        },
+        {
+          "name": "n_days",
+          "type": "integer",
+          "nullable": false,
+          "description": "Service days that meet the coverage threshold."
+        },
+        {
+          "name": "n_weekend_days",
+          "type": "integer",
+          "nullable": false,
+          "description": "Counting days that are weekend days."
+        },
+        {
+          "name": "min_days",
+          "type": "integer",
+          "nullable": false,
+          "description": "Counting days the gate needs."
+        },
+        {
+          "name": "min_weekend_days",
+          "type": "integer",
+          "nullable": false,
+          "description": "Counting weekend days the gate needs."
+        },
+        {
+          "name": "gate_passed",
+          "type": "boolean",
+          "nullable": false,
+          "description": "True when the line may be trained and compared."
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "nullable": false,
+          "description": "training_job (all closed days) or transform_build (lookback window only)."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "nullable": true,
+          "description": "When the training job computed the row; null for transform_build."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"line\"]"
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "n_days",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "n_weekend_days",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "min_days",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "min_weekend_days",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "gate_passed",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "source",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "name": "agg_forecast_next_hour",
+      "description": "Forecast of the arrival delay for the next hour (Release 3): per line, direction, stop, prediction time and horizon, the model forecast where one is approved, the three baselines and the MBTA reference, with the counts that give coverage and the age of the features. Exported with the R3 gold tables.",
+      "grain": "line x direction_id x stop_id x prediction_ts x horizon_min",
+      "endpoints": [
+        "/v1/forecast/{line}"
+      ],
+      "value_columns": [],
+      "n_column": null,
+      "definition": "docs/METRICS.md#forecast-serving-and-comparison-release-3",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "No coverage column. Values are served as stored.",
+      "columns": [
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line."
+        },
+        {
+          "name": "direction_id",
+          "type": "integer",
+          "nullable": true,
+          "description": "Direction of travel."
+        },
+        {
+          "name": "stop_id",
+          "type": "string",
+          "nullable": false,
+          "description": "Stop of the trip stops in the slot."
+        },
+        {
+          "name": "prediction_ts",
+          "type": "timestamp",
+          "nullable": false,
+          "description": "Prediction time t (UTC), on the quarter hour."
+        },
+        {
+          "name": "horizon_min",
+          "type": "integer",
+          "nullable": false,
+          "description": "Minutes from t to the start of the slot: 15, 30 or 60."
+        },
+        {
+          "name": "n_trips",
+          "type": "integer",
+          "nullable": false,
+          "description": "Scheduled trip stops in the slot [t + horizon, t + horizon + 15 min): the coverage denominator."
+        },
+        {
+          "name": "model_forecast_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Model forecast of the mean delay in the slot, seconds (positive is late); null unless the line has an approved model and a passed gate."
+        },
+        {
+          "name": "n_model",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trip stops of the slot with a model forecast."
+        },
+        {
+          "name": "persistence",
+          "type": "double",
+          "nullable": true,
+          "description": "Baseline: mean last known delay of the same trips upstream, seconds."
+        },
+        {
+          "name": "n_persistence",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trip stops with a persistence value."
+        },
+        {
+          "name": "daytype_hour",
+          "type": "double",
+          "nullable": true,
+          "description": "Baseline: mean delay of the line by day type and hour over the examples in the build, seconds."
+        },
+        {
+          "name": "n_daytype_hour",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trip stops with a daytype_hour value."
+        },
+        {
+          "name": "rolling_median_60m",
+          "type": "double",
+          "nullable": true,
+          "description": "Baseline: the line's median delay over the previous 60 minutes, seconds."
+        },
+        {
+          "name": "n_rolling_median_60m",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trip stops with a rolling-median value."
+        },
+        {
+          "name": "mbta_reference",
+          "type": "double",
+          "nullable": true,
+          "description": "MBTA's own predicted deviation, seconds: a labelled reference, not a baseline."
+        },
+        {
+          "name": "n_mbta_reference",
+          "type": "integer",
+          "nullable": true,
+          "description": "Trip stops with an MBTA prediction."
+        },
+        {
+          "name": "latest_arrival_known_at",
+          "type": "timestamp",
+          "nullable": true,
+          "description": "The latest arrival of the line that was known at t."
+        },
+        {
+          "name": "feature_age_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Seconds from the latest known arrival to t."
+        },
+        {
+          "name": "forecast_status",
+          "type": "string",
+          "nullable": false,
+          "description": "model when model_forecast_s is set, else baselines_only."
+        },
+        {
+          "name": "status_reason",
+          "type": "string",
+          "nullable": true,
+          "description": "Why a line has no model forecast, or the model version used."
+        },
+        {
+          "name": "model_version",
+          "type": "string",
+          "nullable": true,
+          "description": "Registry version of the model that produced model_forecast_s."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"line\",\"direction_id\",\"stop_id\",\"prediction_ts\",\"horizon_min\"]"
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "stop_id",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "prediction_ts",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "horizon_min",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "n_trips",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "forecast_status",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "name": "agg_headway_window",
+      "description": "Headway adherence per line over the last 24 hours and the last 7 days, all directions and stops combined, computed over every candidate headway whose later train is scheduled in the window.",
+      "grain": "line x window_label",
+      "endpoints": [
+        "/v1/lines/{line}/headways"
+      ],
+      "value_columns": [
+        "pct_within_band",
+        "pct_bunched",
+        "pct_gap",
+        "median_ratio",
+        "p90_ratio"
+      ],
+      "n_column": "n_headways",
+      "definition": "docs/METRICS.md#8-headway-adherence-release-2",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "A value from a row with coverage_pct under 50 is withheld (null) with withheld_reason. A zero denominator gives no coverage figure and is withheld too.",
+      "columns": [
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line."
+        },
+        {
+          "name": "window_label",
+          "type": "string",
+          "nullable": false,
+          "description": "last_24h or last_7d, ending at the latest hour of the export (metrics_as_of)."
+        },
+        {
+          "name": "n_headways",
+          "type": "integer",
+          "nullable": false,
+          "description": "Valid headways behind the shares."
+        },
+        {
+          "name": "n_disruption",
+          "type": "integer",
+          "nullable": true,
+          "description": "Valid headways from hours with an active service-disruption alert (kept)."
+        },
+        {
+          "name": "pct_within_band",
+          "type": "double",
+          "nullable": true,
+          "description": "Percentage of valid headways with a ratio of 0.5 to 1.5."
+        },
+        {
+          "name": "pct_bunched",
+          "type": "double",
+          "nullable": true,
+          "description": "Percentage below 0.5."
+        },
+        {
+          "name": "pct_gap",
+          "type": "double",
+          "nullable": true,
+          "description": "Percentage above 1.5."
+        },
+        {
+          "name": "median_ratio",
+          "type": "double",
+          "nullable": true,
+          "description": "Median ratio of actual to scheduled headway."
+        },
+        {
+          "name": "p90_ratio",
+          "type": "double",
+          "nullable": true,
+          "description": "90th percentile of the ratio."
+        },
+        {
+          "name": "n_dropped_train_between",
+          "type": "integer",
+          "nullable": true,
+          "description": "Headways dropped because another train was between the pair."
+        },
+        {
+          "name": "n_dropped_unproven_order",
+          "type": "integer",
+          "nullable": true,
+          "description": "Headways dropped because the order could not be proven."
+        },
+        {
+          "name": "n_dropped_no_scheduled_headway",
+          "type": "integer",
+          "nullable": true,
+          "description": "Headways dropped without a scheduled headway."
+        },
+        {
+          "name": "n_dropped_implausible",
+          "type": "integer",
+          "nullable": true,
+          "description": "Headways dropped as implausible."
+        },
+        {
+          "name": "n_excluded_outage",
+          "type": "integer",
+          "nullable": true,
+          "description": "Candidate headways left out because the hour was a data outage."
+        },
+        {
+          "name": "scheduled_headways",
+          "type": "integer",
+          "nullable": true,
+          "description": "Scheduled headways of the non-outage hours in the window."
+        },
+        {
+          "name": "coverage_numerator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Numerator of coverage."
+        },
+        {
+          "name": "coverage_denominator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Denominator of coverage."
+        },
+        {
+          "name": "coverage_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "Coverage as a percentage (0-100); null when the denominator is zero."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"line\",\"window_label\"]"
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "window_label",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "n_headways",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "name": "agg_incidents",
+      "description": "Incident list for the Incidents page (Release 3): the incident, thresholds crossed, evidence JSON, match status against alerts and the summary with its template and number-check state, filled by the transform. Exported with the R3 gold tables.",
+      "grain": "incident_id",
+      "endpoints": [
+        "/v1/incidents"
+      ],
+      "value_columns": [],
+      "n_column": null,
+      "definition": "docs/METRICS.md#incidents-release-3",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "No coverage column. Values are served as stored.",
+      "columns": [
+        {
+          "name": "incident_id",
+          "type": "string",
+          "nullable": false,
+          "description": "Incident id."
+        },
+        {
+          "name": "evidence_hash",
+          "type": "string",
+          "nullable": false,
+          "description": "Incident version."
+        },
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line."
+        },
+        {
+          "name": "direction_id",
+          "type": "integer",
+          "nullable": true,
+          "description": "Direction of travel."
+        },
+        {
+          "name": "incident_start_ts",
+          "type": "timestamp",
+          "nullable": false,
+          "description": "Start (UTC)."
+        },
+        {
+          "name": "incident_end_ts",
+          "type": "timestamp",
+          "nullable": false,
+          "description": "End of the last breach hour (UTC)."
+        },
+        {
+          "name": "n_hours",
+          "type": "integer",
+          "nullable": false,
+          "description": "Breach hours."
+        },
+        {
+          "name": "is_open",
+          "type": "boolean",
+          "nullable": false,
+          "description": "Whether the incident is still open."
+        },
+        {
+          "name": "thresholds_crossed",
+          "type": "string",
+          "nullable": false,
+          "description": "Comma-separated rules crossed."
+        },
+        {
+          "name": "min_coverage_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "Lowest hourly coverage (0-100)."
+        },
+        {
+          "name": "mean_coverage_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "Mean hourly coverage (0-100)."
+        },
+        {
+          "name": "n_outage_hours_inside",
+          "type": "integer",
+          "nullable": true,
+          "description": "Data-outage hours inside the window."
+        },
+        {
+          "name": "evidence_json",
+          "type": "string",
+          "nullable": false,
+          "description": "Evidence JSON."
+        },
+        {
+          "name": "match_status",
+          "type": "string",
+          "nullable": false,
+          "description": "matched or unmatched_incident."
+        },
+        {
+          "name": "alert_lag_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Seconds from incident start to the first matching alert."
+        },
+        {
+          "name": "first_alert_id",
+          "type": "string",
+          "nullable": true,
+          "description": "First matching alert."
+        },
+        {
+          "name": "matched_alert_ids",
+          "type": "string",
+          "nullable": true,
+          "description": "Comma-separated matching alert ids."
+        },
+        {
+          "name": "summary_text",
+          "type": "string",
+          "nullable": true,
+          "description": "The summary shown; null until the transform fills it."
+        },
+        {
+          "name": "template_used",
+          "type": "string",
+          "nullable": true,
+          "description": "True when the deterministic template wrote the summary."
+        },
+        {
+          "name": "number_check",
+          "type": "string",
+          "nullable": true,
+          "description": "passed, rejected (LLM text refused, template used) or not_run (no LLM call)."
+        },
+        {
+          "name": "rejection_reason",
+          "type": "string",
+          "nullable": true,
+          "description": "Why the LLM text was refused."
+        },
+        {
+          "name": "llm_model",
+          "type": "string",
+          "nullable": true,
+          "description": "Model that wrote the summary, null for the template."
+        },
+        {
+          "name": "summary_generated_at",
+          "type": "timestamp",
+          "nullable": true,
+          "description": "When the summary was generated."
+        },
+        {
+          "name": "summary_evidence_hash",
+          "type": "string",
+          "nullable": true,
+          "description": "Incident version the summary describes."
+        },
+        {
+          "name": "summary_stale",
+          "type": "unclassified",
+          "nullable": true,
+          "description": "True when the summary describes an earlier version of an open incident."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"incident_id\"]"
+        },
+        {
+          "scope": "incident_id",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "evidence_hash",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "incident_start_ts",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "incident_end_ts",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "n_hours",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "is_open",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "thresholds_crossed",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "evidence_json",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "match_status",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "name": "agg_line_reliability_window",
+      "description": "Reliability per line over the last 24 hours before metrics_as_of (the latest hour in agg_line_reliability_hourly), all directions combined. Medians and p90 are exact over eligible predictions, not averages of hourly values.",
+      "grain": "line x window_label",
+      "endpoints": [
+        "/v1/lines/{line}/reliability"
+      ],
+      "value_columns": [
+        "median_predicted_deviation_s",
+        "p90_predicted_deviation_s",
+        "median_abs_revision_s",
+        "skipped_share"
+      ],
+      "n_column": "n_eligible",
+      "definition": "docs/METRICS.md#1-predicted-schedule-deviation",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "A value from a row with coverage_pct under 50 is withheld (null) with withheld_reason. A zero denominator gives no coverage figure and is withheld too.",
+      "columns": [
+        {
+          "name": "line",
+          "type": "string",
+          "nullable": false,
+          "description": "Reporting line (route_id)."
+        },
+        {
+          "name": "window_label",
+          "type": "string",
+          "nullable": false,
+          "description": "Window name; only last_24h."
+        },
+        {
+          "name": "median_predicted_deviation_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Exact median predicted minus scheduled arrival in seconds over the window's eligible predictions."
+        },
+        {
+          "name": "p90_predicted_deviation_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Exact 90th percentile of predicted deviation in seconds."
+        },
+        {
+          "name": "median_abs_revision_s",
+          "type": "double",
+          "nullable": true,
+          "description": "Exact median absolute revision in seconds over eligible predictions with a prior snapshot."
+        },
+        {
+          "name": "n_eligible",
+          "type": "integer",
+          "nullable": false,
+          "description": "Eligible predictions in the window."
+        },
+        {
+          "name": "implausible_deviation_count",
+          "type": "integer",
+          "nullable": false,
+          "description": "Sum of hourly implausible_deviation_count over the window."
+        },
+        {
+          "name": "coverage_numerator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Sum of hourly coverage_numerator over the window."
+        },
+        {
+          "name": "coverage_denominator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Sum of hourly observable_trip_stops over the window."
+        },
+        {
+          "name": "coverage_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "100 * coverage_numerator / coverage_denominator."
+        },
+        {
+          "name": "skipped_stop_count",
+          "type": "integer",
+          "nullable": true,
+          "description": "Covered trip stops in the window whose latest usable snapshot is SKIPPED."
+        },
+        {
+          "name": "skipped_share",
+          "type": "double",
+          "nullable": true,
+          "description": "skipped_stop_count / coverage_denominator, a fraction between 0 and 1."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"line\",\"window_label\"]"
+        },
+        {
+          "scope": "line",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "window_label",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "n_eligible",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "implausible_deviation_count",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "coverage_pct",
+          "name": "accepted_range",
+          "detail": "min_value=0, max_value=100"
+        },
+        {
+          "scope": "skipped_share",
+          "name": "accepted_range",
+          "detail": "min_value=0, max_value=1"
+        }
+      ]
+    },
+    {
+      "name": "agg_pipeline_health",
+      "description": "One row per ingest run: per-feed capture status, size and duplication, vehicle count and quarantine counts by reason. Records filtered out of scope are not persisted by curation and so are not reported.",
+      "grain": "run_id",
+      "endpoints": [
+        "/v1/pipeline/health"
+      ],
+      "value_columns": [],
+      "n_column": null,
+      "definition": "docs/SLO.md",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "No coverage column. Values are served as stored.",
+      "columns": [
+        {
+          "name": "run_id",
+          "type": "string",
+          "nullable": false,
+          "description": "Ingest run identifier."
+        },
+        {
+          "name": "scheduled_at",
+          "type": "timestamp",
+          "nullable": false,
+          "description": "UTC time the run was scheduled for."
+        },
+        {
+          "name": "n_captures",
+          "type": "integer",
+          "nullable": false,
+          "description": "Captures recorded for the run: one per feed at poll 0, plus up to three 15 s vehicle polls."
+        },
+        {
+          "name": "vehicle_polls_ok",
+          "type": "integer",
+          "nullable": false,
+          "description": "Successful vehicle_positions captures in the run (1 before 15 s sampling, up to 4 after)."
+        },
+        {
+          "name": "vehicle_polls_error",
+          "type": "integer",
+          "nullable": false,
+          "description": "Failed vehicle_positions captures in the run."
+        },
+        {
+          "name": "duplicate_delivery_count",
+          "type": "integer",
+          "nullable": false,
+          "description": "Extra deliveries of this run's scheduled minute beyond the first (flagged by ingest, dropped by the capture_id dedupe, or a separate run for the same minute), reported on the earliest kept run of the minute; 0 when the minute was delivered once."
+        },
+        {
+          "name": "trip_updates_status",
+          "type": "string",
+          "nullable": true,
+          "description": "Capture status of the trip_updates feed in the run (ok or error)."
+        },
+        {
+          "name": "trip_updates_bytes",
+          "type": "integer",
+          "nullable": true,
+          "description": "Payload bytes of the trip_updates capture."
+        },
+        {
+          "name": "trip_updates_entity_count",
+          "type": "integer",
+          "nullable": true,
+          "description": "Entities in the trip_updates payload."
+        },
+        {
+          "name": "trip_updates_is_duplicate",
+          "type": "unclassified",
+          "nullable": false,
+          "description": "True when the trip_updates payload equals the previous capture's."
+        },
+        {
+          "name": "vehicle_positions_status",
+          "type": "string",
+          "nullable": true,
+          "description": "Capture status of the vehicle_positions feed in the run (ok or error)."
+        },
+        {
+          "name": "vehicle_positions_bytes",
+          "type": "integer",
+          "nullable": true,
+          "description": "Payload bytes of the vehicle_positions capture."
+        },
+        {
+          "name": "vehicle_positions_entity_count",
+          "type": "integer",
+          "nullable": true,
+          "description": "Entities in the vehicle_positions payload."
+        },
+        {
+          "name": "vehicle_positions_is_duplicate",
+          "type": "unclassified",
+          "nullable": false,
+          "description": "True when the vehicle_positions payload equals the previous capture's."
+        },
+        {
+          "name": "alerts_status",
+          "type": "string",
+          "nullable": true,
+          "description": "Capture status of the alerts feed in the run (ok or error)."
+        },
+        {
+          "name": "alerts_bytes",
+          "type": "integer",
+          "nullable": true,
+          "description": "Payload bytes of the alerts capture."
+        },
+        {
+          "name": "alerts_entity_count",
+          "type": "integer",
+          "nullable": true,
+          "description": "Entities in the alerts payload."
+        },
+        {
+          "name": "alerts_is_duplicate",
+          "type": "unclassified",
+          "nullable": false,
+          "description": "True when the alerts payload equals the previous capture's."
+        },
+        {
+          "name": "subway_vehicle_count",
+          "type": "integer",
+          "nullable": false,
+          "description": "Distinct vehicles in the run's vehicle_positions capture."
+        },
+        {
+          "name": "quarantine_total",
+          "type": "integer",
+          "nullable": false,
+          "description": "Records quarantined from the run's captures."
+        },
+        {
+          "name": "quarantine_missing_trip_id",
+          "type": "integer",
+          "nullable": false,
+          "description": "Quarantined for a missing trip_id."
+        },
+        {
+          "name": "quarantine_invalid_coordinates",
+          "type": "integer",
+          "nullable": false,
+          "description": "Quarantined for invalid coordinates."
+        },
+        {
+          "name": "quarantine_protobuf_parse_error",
+          "type": "integer",
+          "nullable": false,
+          "description": "Whole captures quarantined for a protobuf parse error."
+        },
+        {
+          "name": "quarantine_other",
+          "type": "integer",
+          "nullable": false,
+          "description": "Quarantined for any other reason."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"run_id\"]"
+        },
+        {
+          "scope": "run_id",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "scheduled_at",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "n_captures",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "vehicle_polls_ok",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "vehicle_polls_error",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "duplicate_delivery_count",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "trip_updates_is_duplicate",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "vehicle_positions_is_duplicate",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "alerts_is_duplicate",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "subway_vehicle_count",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "quarantine_total",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "quarantine_missing_trip_id",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "quarantine_invalid_coordinates",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "quarantine_protobuf_parse_error",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "quarantine_other",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "name": "agg_slo_rollup",
+      "description": "Service level objectives over the last 7 and 30 service dates ending at the latest date of agg_slo_daily, computed from the summed events.",
+      "grain": "slo_name x window_label",
+      "endpoints": [
+        "/v1/slo"
+      ],
+      "value_columns": [],
+      "n_column": null,
+      "definition": "docs/SLO.md",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "No coverage column. Values are served as stored.",
+      "columns": [
+        {
+          "name": "slo_name",
+          "type": "string",
+          "nullable": false,
+          "description": "Objective name, as in agg_slo_daily."
+        },
+        {
+          "name": "window_label",
+          "type": "string",
+          "nullable": false,
+          "description": "last_7d or last_30d."
+        },
+        {
+          "name": "target_pct",
+          "type": "double",
+          "nullable": false,
+          "description": "Target share of good events (0-100) from the slo_targets seed."
+        },
+        {
+          "name": "good_events",
+          "type": "integer",
+          "nullable": false,
+          "description": "Good events: minutes, hours, runs or trip stops, depending on the objective."
+        },
+        {
+          "name": "total_events",
+          "type": "integer",
+          "nullable": false,
+          "description": "Events measured."
+        },
+        {
+          "name": "actual_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "Share of good events (0-100)."
+        },
+        {
+          "name": "met",
+          "type": "boolean",
+          "nullable": true,
+          "description": "True when actual_pct reaches the target."
+        },
+        {
+          "name": "error_budget_used",
+          "type": "double",
+          "nullable": true,
+          "description": "Bad events over the bad events the target allows: 1 is the whole budget, above 1 is overspent."
+        },
+        {
+          "name": "days_covered",
+          "type": "integer",
+          "nullable": false,
+          "description": "Dates of the window that have events."
+        },
+        {
+          "name": "counts_toward_slo",
+          "type": "boolean",
+          "nullable": false,
+          "description": "False for the informational arrival_coverage_disrupted row."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"slo_name\",\"window_label\"]"
+        },
+        {
+          "scope": "slo_name",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "window_label",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "target_pct",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "good_events",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "total_events",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "days_covered",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "counts_toward_slo",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    }
+  ]
+}

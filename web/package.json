@@ -13,7 +13,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build:mock": "node scripts/with-mock-api.mjs next build",
-    "ci": "npm run lint && npm run typecheck && npm test && npm run build:mock"
+    "ci": "npm run lint && npm run typecheck && npm test && npm run build:mock",
+    "contracts": "node scripts/build-contracts.mjs",
+    "contracts:check": "node scripts/build-contracts.mjs --check"
   },
   "dependencies": {
     "next": "16.4.6",
@@ -24,12 +26,15 @@
     "@tailwindcss/postcss": "4.3.5",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "^14.6.13",
     "@types/node": "^22.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "6.3.0",
+    "axe-core": "^4.14.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.4.6",
+    "js-yaml": "^5.5.0",
     "jsdom": "31.0.1",
     "tailwindcss": "4.3.5",
     "typescript": "^5.9.3",
