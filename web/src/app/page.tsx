@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pageMeta } from "@/lib/site";
 import { CoverageBadge, DisruptionChip, Freshness, Metric } from "@/components/trust";
 import { PageHeader } from "@/components/ui";
 import { getApi } from "@/lib/api";
@@ -8,6 +9,11 @@ import type { LineSummary } from "@/lib/types";
 import { ErrorState } from "@/components/ui";
 
 export const revalidate = 300;
+export const metadata = pageMeta(
+  "Lines",
+  "How reliable is the Boston subway right now? Open measurements with their coverage and freshness shown beside every number.",
+  "/",
+);
 
 export default async function Home() {
   const lines = await getApi<LineSummary[]>("/lines");

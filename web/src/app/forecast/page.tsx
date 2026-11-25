@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/site";
 import { Metric } from "@/components/trust";
 import { Card, ErrorState, PageHeader, Table, Td } from "@/components/ui";
 import { getApi } from "@/lib/api";
@@ -6,7 +7,7 @@ import { GATE_TEXT, gateProgress, LINES } from "@/lib/map";
 import type { ForecastData } from "@/lib/types";
 
 export const revalidate = 300;
-export const metadata: Metadata = { title: "Forecast" };
+export const metadata: Metadata = pageMeta("Forecast", "Next-hour arrival forecasts for each MBTA subway line, compared with simple baselines and the MBTA's own predictions.", "/forecast");
 
 const METHODS = [
   ["persistence", "Persistence"],

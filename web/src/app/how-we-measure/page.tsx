@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/site";
 import { Card, ErrorState, PageHeader } from "@/components/ui";
 import { getApi } from "@/lib/api";
 import { methodologyUrl } from "@/lib/map";
 import type { MetricDef } from "@/lib/types";
 
 export const revalidate = 300;
-export const metadata: Metadata = { title: "How we measure" };
+export const metadata: Metadata = pageMeta("How we measure", "Definitions of every Headway metric, the minimum-coverage rule and how freshness is reported.", "/how-we-measure");
 
 export default async function HowWeMeasure() {
   const r = await getApi<MetricDef[]>("/metrics");

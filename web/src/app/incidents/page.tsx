@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/site";
 import { CsvButton } from "@/components/CsvButton";
 import { DisruptionChip, Metric, OutageLabel, Withheld } from "@/components/trust";
 import { ErrorState, LineLink, PageHeader } from "@/components/ui";
@@ -8,7 +9,7 @@ import { shown } from "@/lib/map";
 import type { IncidentsData } from "@/lib/types";
 
 export const revalidate = 300;
-export const metadata: Metadata = { title: "Incidents" };
+export const metadata: Metadata = pageMeta("Incidents", "Stretches of at least two hours where an MBTA subway line was clearly off, with coverage and data-outage hours marked.", "/incidents");
 
 const when = (ts: string | null) =>
   ts ? new Date(ts).toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" }) : "ongoing";

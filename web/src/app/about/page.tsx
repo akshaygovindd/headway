@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/site";
 import { PageHeader } from "@/components/ui";
 import { REPO_URL } from "@/lib/map";
 
-export const metadata: Metadata = { title: "About" };
+export const metadata: Metadata = pageMeta("About", "What Headway is, who it is not affiliated with, and where the source and data live.", "/about");
 
 export default function About() {
   return (

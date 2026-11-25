@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/site";
 import { PageHeader } from "@/components/ui";
 import contracts from "@/data/contracts.json";
 import { REPO_URL } from "@/lib/map";
 
-export const metadata: Metadata = {
-  title: "Data contracts",
-  description:
-    "Schema, grain, freshness, coverage rule and quality checks for every public gold table the Headway API serves.",
-  alternates: { canonical: "/data" },
-};
+export const metadata: Metadata = pageMeta(
+  "Data contracts",
+  "Schema, grain, freshness, coverage rule and quality checks for every public gold table the Headway API serves.",
+  "/data",
+);
 
 const blobUrl = (definition: string) => `${REPO_URL}/blob/main/${definition}`;
 

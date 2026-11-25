@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/site";
 import { Card, ErrorState, PageHeader, Table, Td } from "@/components/ui";
 import { getApi } from "@/lib/api";
 import { formatNumber } from "@/lib/map";
 import type { HealthData, SloData } from "@/lib/types";
 
 export const revalidate = 300;
-export const metadata: Metadata = { title: "Pipeline health and SLOs" };
+export const metadata: Metadata = pageMeta("Pipeline health and SLOs", "How the Headway data pipeline is doing: runs, data quality and service-level objectives.", "/pipeline");
 
 export default async function PipelinePage() {
   const [health, slo] = await Promise.all([

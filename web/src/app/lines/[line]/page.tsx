@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/site";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { CsvButton } from "@/components/CsvButton";
@@ -18,7 +19,9 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ line: string }> }): Promise<Metadata> {
   const { line } = await params;
-  return { title: isLine(line) ? `${line} line` : "Line" };
+  if (!isLine(line)) return { title: "Line" };
+  const name = line === "Mattapan" ? "Mattapan trolley" : `${line} line`;
+  return pageMeta(name, `How reliable the ${name} is right now: headway adherence, on-time share and prediction accuracy, each with its coverage.`, `/lines/${line}`);
 }
 
 const cellOf = (row: CoveredRow, value: number | null): Cell => ({

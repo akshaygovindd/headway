@@ -2,12 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { siteUrl } from "@/lib/site";
 import "./globals.css";
 
+const DESCRIPTION =
+  "How reliable is the Boston subway right now? Open measurements with their coverage and freshness shown beside every number.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: { default: "Headway: MBTA subway reliability", template: "%s | Headway" },
-  description:
-    "How reliable is the Boston subway right now? Open measurements with their coverage and freshness shown beside every number.",
+  description: DESCRIPTION,
+  openGraph: { siteName: "Headway", type: "website", description: DESCRIPTION },
+  twitter: { card: "summary_large_image" },
 };
 
 const NAV = [
