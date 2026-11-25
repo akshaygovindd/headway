@@ -13,7 +13,7 @@
      "median_predicted_deviation_s": 3.0,
      "p90_predicted_deviation_s": 221.0,
      "median_abs_revision_s": 2.0,
-     "skipped_share": 0.61,
+     "skipped_share": 0.013,
      "n_observations": 36,
      "coverage_pct": 71.8,
      "withheld_reason": null

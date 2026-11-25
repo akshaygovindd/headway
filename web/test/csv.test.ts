@@ -85,3 +85,21 @@ describe("withheldReason", () => {
     expect(withheldReason({ value: 1, coverage_pct: 80 })).toBe("");
   });
 });
+
+describe("skipped-stop share unit", () => {
+  it("the API fraction shows as percent on the page and exports as percent points", async () => {
+    const { formatValue } = await import("@/lib/map");
+    expect(formatValue(0.013, "share")).toBe("1.3%");
+    const out = lines(buildCsv(base([{ labels: { metric: "skipped" }, cell: { value: 0.013, coverage_pct: 68 }, unit: "share" }]), AT));
+    expect(out[2]).toBe("skipped,1.3,pct,68,,2026-11-24T11:45:00Z");
+  });
+  it("a withheld share keeps the percent unit", () => {
+    const out = lines(buildCsv(base([{ labels: { metric: "skipped" }, cell: { value: null, coverage_pct: 30 }, unit: "share" }]), AT));
+    expect(out[2]).toMatch(/^skipped,,pct,30,/);
+  });
+  it("the Orange fixture holds a fraction near 1.3%, not a percent", async () => {
+    const { respond } = await import("../scripts/mock-api.mjs");
+    const rows = respond("/v1/lines/Orange/reliability", "").body.data.predicted_deviation.rows;
+    for (const r of rows) if (r.skipped_share != null) expect(r.skipped_share).toBeLessThan(0.05);
+  });
+});

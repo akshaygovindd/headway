@@ -39,6 +39,14 @@ export function withheldReason(cell: Cell): string {
   return `${coverageText(s.coverage)} is below the minimum for showing a value`;
 }
 
+/**
+ * The API sends a skipped-stop share as a fraction (0.013). A CSV cell says what it holds: shares
+ * are written as percent points with unit "pct", like every other percentage.
+ */
+export function csvValue(value: number, unit: Unit): { value: number; unit: Unit } {
+  return unit === "share" ? { value: round(value * 100, 4), unit: "pct" } : { value, unit };
+}
+
 export function buildCsv(spec: CsvSpec, exportedAt: string): string {
   const eol = "\r\n";
   const lines: string[] = [
@@ -47,10 +55,11 @@ export function buildCsv(spec: CsvSpec, exportedAt: string): string {
   ];
   for (const row of spec.rows) {
     const s = shown(row.cell);
+    const out = s.kind === "value" ? csvValue(s.value, row.unit) : null;
     const fields = [
       ...spec.labelColumns.map((c) => csvField(row.labels[c])),
-      s.kind === "value" ? String(round(s.value, 6)) : "",
-      csvField(row.unit),
+      out ? String(round(out.value, 6)) : "",
+      csvField(out ? out.unit : row.unit === "share" ? "pct" : row.unit),
       row.cell.coverage_pct == null ? "" : String(round(row.cell.coverage_pct, 2)),
       csvField(withheldReason(row.cell)),
       csvField(spec.freshness),

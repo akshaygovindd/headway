@@ -69,6 +69,13 @@ def test_reliability_values_and_window(client: TestClient) -> None:
     assert row["median_predicted_deviation_s"] == 60.0 and row["withheld_reason"] is None
 
 
+def test_skipped_share_is_a_fraction_not_a_percent(client: TestClient) -> None:
+    """The API unit is a 0..1 fraction (the dbt column is a ratio); the site multiplies by 100."""
+    row = rows(client.get("/v1/lines/Red/reliability").json(), "predicted_deviation")[0]
+    assert row["skipped_share"] == 0.1  # the gold fixture's ratio, passed through unchanged
+    assert 0 <= row["skipped_share"] <= 1
+
+
 def test_low_coverage_values_are_null_with_a_reason(client: TestClient) -> None:
     body = client.get("/v1/lines/Blue/reliability").json()
     row = rows(body, "predicted_deviation")[0]
