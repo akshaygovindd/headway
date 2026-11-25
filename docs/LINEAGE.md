@@ -171,6 +171,10 @@ flowchart LR
     CDO --> CDD[agg_countdown_accuracy_daily]
     WH --> DEVW[agg_actual_deviation_window]
     WH --> HWW[agg_headway_window]
+    WH --> HSW[agg_headway_segment_window<br/>R4]
+    HW --> HSW
+    WH --> MLH[agg_marey_last_hour<br/>R4]
+    RA --> MLH
     WH --> ETTW[agg_ett_window]
     PE --> ACCW
     UA --> DEVW

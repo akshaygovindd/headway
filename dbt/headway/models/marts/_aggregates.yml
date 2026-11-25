@@ -1807,3 +1807,129 @@ models:
         description: "Denominator of coverage."
       - name: coverage_pct
         description: "Coverage as a percentage (0-100); null when the denominator is zero."
+  - name: agg_headway_segment_window
+    description: "Headway adherence per segment (two neighbouring stops of a scheduled trip, one direction) over the last 24 hours and the last 7 days, with the same bands as agg_headway_window, a disruption flag from line-scope alerts and a health bucket (Release 4). A headway belongs to the segment ending at the stop where it is measured. Exported with the R4 gold tables."
+    config:
+      meta:
+        grain: "line x direction_id x from_stop_id x to_stop_id x window_label"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, from_stop_id, to_stop_id, window_label]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "GTFS direction of the trips."
+      - name: from_stop_id
+        description: "Platform stop id at the start of the segment (the stop before in the trip)."
+      - name: to_stop_id
+        description: "Platform stop id at the end of the segment, where the headways are measured."
+      - name: window_label
+        description: "last_24h or last_7d, ending at the latest hour of the export (metrics_as_of)."
+        data_tests:
+          - not_null
+      - name: from_stop_name
+        description: "Station name of the from stop."
+      - name: to_stop_name
+        description: "Station name of the to stop."
+      - name: segment_order
+        description: "Position of the segment along its line and direction (1 first): rank by the typical stop_sequence of the to stop; branches share positions."
+      - name: n_headways
+        description: "Valid headways behind the shares."
+      - name: pct_within_band
+        description: "Percentage of valid headways with a ratio of 0.5 to 1.5 (0-100)."
+      - name: pct_bunched
+        description: "Percentage of valid headways below 0.5 (0-100)."
+      - name: pct_gap
+        description: "Percentage of valid headways above 1.5 (0-100)."
+      - name: n_excluded_outage
+        description: "Candidate headways left out because the hour was a data outage."
+      - name: n_disruption
+        description: "Valid headways from hours in which a line-scope service-disruption alert covered either station of the segment (kept)."
+      - name: disrupted
+        description: "True when, in any non-outage hour of the window, a line-scope service-disruption alert covered the station of either stop."
+      - name: scheduled_headways
+        description: "Scheduled headways of the segment in the non-outage hours of the window."
+      - name: coverage_numerator
+        description: "Numerator of coverage."
+      - name: coverage_denominator
+        description: "Denominator of coverage."
+      - name: coverage_pct
+        description: "Valid headways over scheduled headways as a percentage (0-100); null when the denominator is zero."
+      - name: health
+        description: "even when pct_within_band is 80 or more, some_bunching from 60, else bunched_gaps; null without valid headways. Withheld by the API below 50 percent coverage."
+  - name: agg_marey_last_hour
+    description: "Reconstructed arrivals of the last complete hour (the hour before the latest hour of the export) for the Marey chart: one row per line, direction, trip run and stop. Bracketed arrivals are shown as estimated; missing ones are dropped (Release 4). Exported with the R4 gold tables."
+    config:
+      meta:
+        grain: "line x direction_id x trip_instance_key x segment x stop_sequence"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, trip_instance_key, segment, stop_sequence]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "GTFS direction of the trip."
+      - name: trip_instance_key
+        description: "Trip id, service date and start time of the trip instance."
+      - name: segment
+        description: "Run of a reused trip id (usually 0)."
+      - name: trip_id
+        description: "GTFS trip id."
+      - name: stop_id
+        description: "Platform stop id."
+      - name: stop_name
+        description: "Stop name."
+      - name: stop_sequence
+        description: "Position of the stop in the trip."
+      - name: arrival_ts
+        description: "Reconstructed arrival time (UTC)."
+        data_tests:
+          - not_null
+      - name: method
+        description: "observed (the vehicle was seen at the stop) or estimated (interpolated between observations)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [observed, estimated]
+      - name: confidence
+        description: "high, medium or low confidence of the reconstructed arrival."
+      - name: scheduled_ts
+        description: "Scheduled arrival time (UTC)."
+      - name: hour_start
+        description: "Start of the hour shown (UTC instant of the start of the local service hour)."
+  - name: agg_capture_heartbeat_hourly
+    description: "Capture heartbeat per local service hour: expected and missed one-minute runs, the longest stretch without fresh data and the data-outage flag (Release 4). Exported (last 30 days) with the R4 gold tables."
+    config:
+      meta:
+        grain: "service_date x hour_local"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [service_date, hour_local]
+    columns:
+      - name: service_date
+        description: "Service date (local)."
+        data_tests:
+          - not_null
+      - name: hour_local
+        description: "Local hour of the day (0-23)."
+        data_tests:
+          - not_null
+      - name: hour_start
+        description: "Start of the hour as an instant (UTC)."
+      - name: expected_runs
+        description: "One-minute runs expected in the hour: observed plus missed."
+      - name: missed_runs
+        description: "Runs that never happened (see agg_quality_checks_hourly)."
+      - name: feed_gap_min
+        description: "Longest run of minutes without fresh trip_updates and vehicle_positions."
+      - name: data_outage
+        description: "True when the hour is a data outage (int_hour_flags); metrics leave it out."

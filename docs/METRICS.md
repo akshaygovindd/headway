@@ -483,6 +483,48 @@ The metrics below (6-10) are computed from reconstructed arrivals.
   `period_type` (`alert_active` when a line-scope disruption alert is active at t, else `normal`,
   and `all`). Errors are against reconstructed arrivals (15 to 120 s), so they include that error.
 
+## Release 4 site metrics
+
+Three tables feed the public site (`HEADWAY_ENABLE_R4=true`, with R2; tag `r4`). They add no new
+measure: they re-cut the headways, the reconstructed arrivals and the capture checks above.
+
+### Segment health (`agg_headway_segment_window`)
+- **What:** headway adherence per segment over `last_24h` and `last_7d`, with the bands, outage
+  exclusion and coverage of section 8 (within 0.5 to 1.5 of the scheduled headway, bunched below,
+  a gap above). Percentages are 0-100.
+- **Segment:** two neighbouring stops of a scheduled trip, `from_stop` (the stop before) to
+  `to_stop`, in one direction (platform stop ids; names are the station names). A headway of
+  `fct_headways` belongs to the segment that ends at the stop where it is measured, so the first
+  stop of a trip has no segment. `segment_order` ranks a line's segments by the typical
+  `stop_sequence` of the to stop; branches (Red, Green) share positions.
+- **Grain:** line x direction_id x from_stop_id x to_stop_id x window_label.
+- **Coverage:** valid headways over scheduled headways of the segment (scheduled stop times with a
+  predecessor at the to stop) in non-outage hours. The API withholds the shares and `health` of a
+  segment below 50 % coverage, with `withheld_reason`.
+- **Health bucket:** from `pct_within_band`: `even` at 80 or more, `some_bunching` at 60 or more,
+  else `bunched_gaps`; null without valid headways. The thresholds are fixed, not tuned.
+- **Disruption:** `disrupted` is true when, in a non-outage hour of the window, a line-scope
+  service-disruption alert (`int_alert_scopes`, scope `line`) named the station of either stop
+  among the stations it covers. An alert without stops (a whole-line alert) is not placed on
+  segments. Disrupted segments are kept in the shares (`n_disruption` counts their valid
+  headways), as in the other window tables. Alert text is not exported.
+- **Limitations:** the shares are per stop pair and so noisier than the line figure; a
+  short-turn or branch trip only counts for the segments it runs.
+
+### Last hour of arrivals (`agg_marey_last_hour`)
+- **What:** reconstructed arrivals (section 5) of the last complete hour, one row per trip and
+  stop, for the Marey chart. The hour is the one before the latest hour of the export: the latest
+  hour (`metrics_as_of`) is still running. `observed` stays `observed`; `bracketed` becomes
+  `estimated`; `missing` stops are dropped. Confidence and the scheduled time are kept.
+- **Grain:** line x direction_id x trip_instance_key x segment x stop_sequence.
+
+### Capture heartbeat (`agg_capture_heartbeat_hourly`)
+- **What:** per local hour, `expected_runs` (observed plus missed one-minute runs), `missed_runs`,
+  `feed_gap_min` (longest stretch without fresh trip updates and vehicle positions, section 4) and
+  `data_outage` (the flag that excludes the hour from every metric). The export keeps 30 days. The
+  per-run `agg_pipeline_health` is finer but not needed for an hourly heartbeat.
+- **Grain:** service_date x hour_local.
+
 ## Known limitations
 
 - Trip updates are sampled once a minute. A prediction can change between samples, so the

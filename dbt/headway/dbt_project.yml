@@ -134,6 +134,12 @@ models:
       agg_incidents: *r3
       agg_alert_matching_daily: *r3
       agg_weather_comparison: *r3
+      # Release 4 models: tag r4, skipped by the transform Lambda unless HEADWAY_ENABLE_R4=true (they
+      # also need R2); local builds and CI build everything.
+      agg_headway_segment_window: &r4
+        +tags: ["r4"]
+      agg_marey_last_hour: *r4
+      agg_capture_heartbeat_hourly: *r4
 
 seeds:
   headway:
