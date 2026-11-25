@@ -121,7 +121,7 @@ sys.exit(0 if 'errorMessage' not in r and ($check) else 1)"; then
     done
     EXPECT_LOG=
     EVENT='{}'
-    echo "ok   $handler: $out" | cut -c1-300
+    echo "ok   $handler: $out" | cut -c1-"${SMOKE_WIDTH:-300}"
     docker rm -f "$name" >/dev/null
 }
 
