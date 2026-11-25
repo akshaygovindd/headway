@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build:mock": "node scripts/with-mock-api.mjs next build",
-    "ci": "npm run lint && npm run typecheck && npm test && npm run build:mock",
+    "test:e2e": "playwright test",
+    "ci": "npm run lint && npm run typecheck && npm test && npm run build:mock && npm run test:e2e",
     "contracts": "node scripts/build-contracts.mjs",
     "contracts:check": "node scripts/build-contracts.mjs --check"
   },
@@ -23,6 +24,7 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.1",
     "@tailwindcss/postcss": "4.3.5",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.3",

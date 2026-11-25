@@ -41,6 +41,8 @@ import type {
 } from "@/lib/types";
 
 export const revalidate = 300;
+// Only the eight known lines exist: anything else is a real 404 without calling the API.
+export const dynamicParams = false;
 
 export function generateStaticParams() {
   return LINES.map((line) => ({ line }));

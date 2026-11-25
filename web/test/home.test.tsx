@@ -90,3 +90,21 @@ describe("home page without the new endpoints", () => {
     expect(within(cards[0]!).getByTestId("disruption")).toHaveTextContent("Shuttle buses replace Red Line trains");
   });
 });
+
+describe("pages when the API has nothing", () => {
+  it("/forecast shows an error state per line instead of waiting on data", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "not_found" }), { status: 404 })));
+    const page = PAGES.find((p) => p.name === "/forecast")!;
+    render(await shell(await page.load()));
+    expect(screen.getAllByTestId("error-state").length).toBe(8);
+    expect(screen.queryByText("Loading")).toBeNull();
+  });
+
+  it("/data lists the contracts without the API", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 503 })));
+    const page = PAGES.find((p) => p.name === "/data")!;
+    render(await shell(await page.load()));
+    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(screen.queryByText("Loading")).toBeNull();
+  });
+});
