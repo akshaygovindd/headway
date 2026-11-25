@@ -2,7 +2,7 @@
 
 Release 1 reports four metrics (1-4) for the subway routes of a city (Boston: Red, Orange,
 Blue, Green-B/C/D/E, Mattapan). Release 2 adds reconstructed arrivals (5) and four metrics built on
-them (6-9). They are Headway approximations computed from public GTFS and GTFS-realtime feeds.
+them (6-9) and countdown accuracy (10). They are Headway approximations computed from public GTFS and GTFS-realtime feeds.
 They are not official MBTA measures.
 
 All times are UTC in storage; hours and service dates are local (America/New_York) with
@@ -175,7 +175,7 @@ not official arrival times, and bracketing runs late when the vehicle dwelled at
 
 ## Release 2 metrics: shared rules
 
-The four metrics below (6-9) are computed from reconstructed arrivals.
+The metrics below (6-10) are computed from reconstructed arrivals.
 
 - **High and medium arrivals only.** Low-confidence and missing arrivals never enter a value.
   They are used for one purpose: proving that no train sits between two others (metric 8).
@@ -215,7 +215,7 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
   Release 2 aggregates are not adjusted for stop flags.
 - **Observation window.** Hours outside the `vehicle_positions` observation window have no rows.
 - **Windows are exact.** `agg_accuracy_window`, `agg_actual_deviation_window`,
-  `agg_headway_window` and `agg_ett_window` hold the last 24 hours (`last_24h`) and the last 7
+  `agg_headway_window`, `agg_ett_window` and `agg_countdown_accuracy_window` hold the last 24 hours (`last_24h`) and the last 7
   days (`last_7d`) per line (accuracy also per horizon bucket), ending at the latest hour of
   `agg_line_reliability_hourly`. Medians, 90th percentiles and shares are computed over every
   eligible row of the window, not by averaging per-hour or per-day medians, which would weight a
@@ -348,6 +348,54 @@ The four metrics below (6-9) are computed from reconstructed arrivals.
   which favours well-observed trips.
 - **Label:** "ETT approximation, adapted from the excess trip time idea. Not an official
   MBTA measure."
+
+## 10. Countdown accuracy (Release 2)
+
+- **Business meaning:** how often the countdown a rider could see (1, 3, 5 or 10 minutes) was
+  right: the share of countdowns after which the train arrived within a minute of the predicted
+  time. It is about MBTA's published predictions (the data behind apps and signs), not about
+  any particular sign or app.
+- **Formula:** the countdown at a snapshot is `predicted_arrival_ts - collected_at`. Buckets are
+  centred on 1, 3, 5 and 10 minutes and take countdowns within 30 s of the centre (60, 180, 300
+  and 600 s). Per bucket, `pct_within_60s` is the share of counted countdowns whose train arrived
+  within 60 s of the predicted time (`pct_within_120s`: 120 s), computed as counts
+  (`n_within_60s / n`).
+- **One snapshot per trip stop per bucket:** the snapshot whose countdown is closest to the bucket
+  centre (the later one on a tie), from a non-duplicate, schedule-matched capture with a
+  predicted arrival; SKIPPED and NO_DATA rows carry none. Unlike metric 6 a snapshot collected
+  after the train arrived is kept: a countdown still showing then is a miss.
+- **Outcomes** (`fct_countdown_outcomes.outcome`):
+  - `arrived`: a high or medium confidence reconstructed arrival exists (the run closest to the
+    schedule when a trip id was reused). Hit or miss by the error.
+  - `non_arrival`: no such arrival and the train confirmably did not come: the feed marked the stop
+    SKIPPED in a snapshot at or after the countdown, or the vehicle was observed on another trip
+    after its last observation of this one without having reached the stop. Counted as a miss.
+  - `unknown`: neither an arrival nor a confirmed non-arrival (the vehicle was not seen, or the
+    arrival is low confidence). Excluded from the accuracy and counted beside it (`n_unknown`):
+    "N countdowns could not be checked".
+- **Grain:** `agg_countdown_accuracy_window`: line x station x countdown_min x window_label
+  (`last_24h`, `last_7d`; exact over every countdown in the window). `agg_countdown_accuracy_daily`:
+  line x station x service_date x countdown_min, kept as immutable history (family
+  `countdown_accuracy`, version 1). A station is the parent station of a stop (platforms count
+  once). The service date and window hours are those of the predicted arrival. Every figure is a
+  count, so rows add up exactly across the stations of a line.
+- **Numerator / denominator (coverage):** counted countdowns in the bucket (`n`: arrived plus
+  non-arrivals) over the scheduled trip stops of the station (line x station) in the window or
+  day, outage hours excluded, the same basis as metric 6. Below 50 % coverage the value is
+  withheld everywhere in the app; 50 to 80 % is labelled low.
+- **Exclusion:** unknown outcomes, ADDED trips, duplicate captures, data-outage hours (hour of the
+  predicted arrival; counted in `n_excluded_outage`). Service-disruption hours are kept and counted
+  in `n_disruption`.
+- **Source models:** `fct_stop_predictions`, `int_usable_arrivals`, `int_vehicle_stop_events`,
+  `int_hour_flags`, `int_scheduled_stop_times`.
+- **Limitations:** the truth is a reconstruction (see metric 5), so differences under about a minute
+  are not resolved. A trip-level CANCELED is not visible: the ingest keeps stop-level
+  relationships, so a cancelled trip with no stop updates is `unknown`, not a miss. The
+  vehicle-left-the-trip rule relies on the vehicle being sampled once a minute and can
+  miss a non-arrival (counted unknown), not invent one. Only R2 deployments with vehicle
+  positions have it.
+- **Label:** "MBTA's published predictions (the data behind apps and signs), checked against
+  reconstructed arrivals. A Headway approximation, not an official MBTA measure."
 
 ## Forecast examples (Release 3, internal)
 
