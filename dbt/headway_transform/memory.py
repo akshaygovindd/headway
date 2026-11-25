@@ -42,9 +42,10 @@ def cgroup_peak_mb() -> float | None:
 
 
 def peak_mb() -> float:
-    """The larger of the process and cgroup high-water marks."""
-    cgroup = cgroup_peak_mb()
-    return max(rss_peak_mb(), cgroup or 0.0)
+    """The run's memory high-water mark: the process's peak resident set (DuckDB, dbt and Python
+    share one process). The cgroup peak also counts reclaimable page cache, so it is reported
+    next to this and never alarmed on."""
+    return rss_peak_mb()
 
 
 def used_pct(peak: float | None = None, limit: int | None = None) -> float:
@@ -99,10 +100,12 @@ class Tracker:
 
     def report(self) -> dict[str, object]:
         peak = peak_mb()
+        cgroup = cgroup_peak_mb()
         return {
             "peak_memory_mb": round(peak),
             "memory_limit_mb": limit_mb(),
             "memory_used_pct": used_pct(peak),
+            "cgroup_peak_mb": None if cgroup is None else round(cgroup),
             "spill_peak_mb": round(self._spill_total_max),
             "step_peak_mb": self.step_peak_mb,
             "step_spill_mb": self.step_spill_mb,

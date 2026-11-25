@@ -83,6 +83,23 @@ resource "aws_cloudwatch_metric_alarm" "transform_errors" {
   alarm_actions       = [aws_sns_topic.alerts.arn]
 }
 
+# Fires before the hard OutOfMemory (the account caps Lambda memory at 3008 MB, ADR-024). The
+# metric is the run's own peak memory as a percentage of the configured limit (EMF, emitted by
+# the transform); an out-of-memory run emits nothing, and transform_errors catches that.
+resource "aws_cloudwatch_metric_alarm" "transform_memory_high" {
+  alarm_name          = "${local.transform_name}-memory-high"
+  alarm_description   = "Transform Lambda peak memory exceeded 85% of its limit. Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-transform-memory-high"
+  namespace           = "Headway"
+  metric_name         = "TransformMemoryUsedPct"
+  statistic           = "Maximum"
+  period              = 3600
+  evaluation_periods  = 1
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = 85
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+}
+
 resource "aws_cloudwatch_metric_alarm" "transform_stale" {
   alarm_name          = "${local.transform_name}-not-succeeded"
   alarm_description   = "Transform Lambda has not completed successfully in 2 hours. Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-transform-not-succeeded"

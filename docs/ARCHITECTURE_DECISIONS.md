@@ -26,6 +26,9 @@ stable: other documents and code comments cite them as `ADR-NNN`.
 | 019 | Forecasting design: target, horizons, leakage rule, gate, baselines | Proposed |
 | 020 | Analyst data access through the public gold tables | Accepted (R3, Phase 3.5) |
 | 021 | LLM cost and abuse controls | Accepted (R3, Phase 3.5) |
+| 022 | Weather source for the weather comparison | Accepted |
+| 023 | Public read-only metric API | Accepted (R4) |
+| 024 | Account Lambda memory cap | Accepted |
 
 Template: Status, Context, Decision, Consequences, Revisit when.
 
@@ -692,3 +695,26 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 - **Revisit when:** traffic exceeds the throttle (a CDN in front, or longer max-age), a consumer
   needs history or station-level data beyond the countdown table, or the Next.js app needs
   authentication (none today: the data is public).
+
+### ADR-024: Account Lambda memory cap
+
+- **Status:** Accepted
+- **Context:** This account cannot configure a Lambda above 3008 MB (the default quota for new
+  accounts; it is not ours to raise from the code). The transform runs at the cap. In production it
+  ran at 3005-3006 MB and then failed with `Runtime.OutOfMemory` (see
+  [INCIDENTS](INCIDENTS.md#transform-out-of-memory-at-the-account-memory-cap)).
+- **Decision:** treat 3008 MB as a fixed budget and bound the work to it instead of asking for more.
+  Budget: peak memory at most 85% of the configured limit (2557 MB at 3008). DuckDB gets
+  `memory_limit` 2200 MB so the rest (Python, dbt, boto3, Elementary, the runtime) fits in about
+  350 MB of headroom below the budget; it uses 2 threads and spills to `/tmp` (ephemeral storage
+  10240 MB, spill cap 8 GB, `preserve_insertion_order=false`). Everything that reads a table into
+  Python does so in chunks or streams to disk. The limits are variables
+  (`transform_duckdb_memory_limit`, `transform_duckdb_threads`, `transform_duckdb_max_temp`) so a
+  setting can be tuned without a code change, never raised past what leaves the headroom.
+- **Consequences:** a slower run when a step spills (measured in
+  [MEASUREMENTS](MEASUREMENTS.md#transform-memory-under-the-account-cap)); more `/tmp` use, which is
+  billed above 512 MB at a small rate; a guard in `make images-smoke` and an alarm at 85%.
+- **Revisit when:** the quota is raised (then the budget scales with it and the DuckDB limit can
+  rise), the 7-day window or sampling grows past what fits at the limit, or a measured run needs
+  more than the 85% budget. The next step then is the incremental closed-day design of ADR-015:
+  closed days are computed once and read back from history, and each run builds only the open day.

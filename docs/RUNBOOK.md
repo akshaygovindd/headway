@@ -165,6 +165,32 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
   failed slot stays bad in the history of that day); the alarm clears after the next successful
   hour.
 
+### Alarm: headway-transform-memory-high
+
+- **Meaning:** a transform run peaked above 85% of the function's memory limit
+  (`TransformMemoryUsedPct`, from the run's own `peak_memory_mb`). The account caps Lambda memory
+  at 3008 MB and cannot go higher ([ADR-024](ARCHITECTURE_DECISIONS.md#adr-024-account-lambda-memory-cap)),
+  so the next step past this alarm is `Runtime.OutOfMemory`
+  ([INCIDENTS](INCIDENTS.md#transform-out-of-memory-at-the-account-memory-cap)). An out-of-memory
+  run emits no metric: that shows as `headway-transform-errors`.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-transform --since 3h --filter-pattern '?peak_memory_mb ?OutOfMemory ?"Max Memory Used"'
+  aws logs tail /aws/lambda/headway-transform --since 3h --filter-pattern 'step_peak_mb'
+  aws lambda get-function-configuration --function-name headway-transform --query '{mem:MemorySize,disk:EphemeralStorage.Size,env:Environment.Variables}'
+  ```
+  The summary line has `step_peak_mb` (process peak after each step), `step_spill_mb`
+  (DuckDB spill per step) and `spill_peak_mb`.
+- **Likely causes:** the window grew (`LOOKBACK_DAYS`, or `vehicle_polls = 4` quadrupling vehicle
+  rows); a step that was streaming now materialises a table; the daily Elementary report step;
+  `HEADWAY_DUCKDB_MEMORY_LIMIT` raised so that DuckDB plus Python no longer fit.
+- **Fix:** never raise `memory_size` (the cap is 3008 MB). Lower `transform_duckdb_memory_limit`
+  or `transform_duckdb_threads` (more spill, slower), or lower `lookback_days`, then redeploy. If
+  the run no longer fits at any setting, build the incremental closed-day design
+  ([ADR-015](ARCHITECTURE_DECISIONS.md#adr-015-immutable-history-of-daily-aggregates-versioned-per-metric-family)).
+- **Recovery:** the next run's `memory_used_pct` is under 85, `spill_peak_mb` is under the 8 GB
+  budget and `duration_ms` is well under 900000; the alarm clears after the next hour.
+
 ### Alarm: headway-transform-not-succeeded
 
 - **Meaning:** no transform run completed successfully in 2 hours (successful runs =

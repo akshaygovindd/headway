@@ -198,6 +198,37 @@ and what now prevents a repeat. Newest last.
 - **Guard:** the checks above are in the script, so a leaked server or stale state fails fast
   with its cause.
 
+## Transform out of memory at the account memory cap
+
+- **Symptom:** the hourly transform failed with `Runtime.OutOfMemory` at 02:20 UTC on 25 Nov
+  (`headway-transform-errors`). The `Max Memory Used` of the previous runs had been 3005-3006 MB
+  of the 3008 MB limit.
+- **Timeline (UTC):** the runs before 25 Nov 02:20 finished at 3005-3006 MB with no alarm (the
+  limit was not far enough off to look like a problem and nothing watched memory); 02:20 the run
+  hit the limit and was killed; the account cannot be given more than 3008 MB per function, so the
+  limit could not be raised; the fix and guard below were built the same day and not deployed from
+  this change.
+- **Root cause:** no DuckDB memory limit anywhere. DuckDB sizes itself from the host's RAM, not
+  the function's cgroup, so each connection (dbt's, plus about 16 more in the transform package)
+  was allowed about 80% of the host and four dbt threads built every table in memory. Two things
+  grew the working set: the 7-day window (`LOOKBACK_DAYS`) filled up, and Release 2 quadruples
+  vehicle rows (ADR-014). The account's 3008 MB cap removed the usual escape of a bigger function.
+  Python added to it: the forecast serving features were read whole into a DataFrame, history and
+  state objects were read whole into bytes, and the Elementary report runs in the same process.
+- **Fix:** every connection goes through `headway_transform.duckdb_limits.connect`
+  (`memory_limit` 2200 MB, 2 threads, spill to `/tmp/duckdb_spill`, 8 GB spill cap,
+  `preserve_insertion_order=false`; all from `HEADWAY_DUCKDB_*` environment variables, the same
+  in the dbt `lambda` profile); transform ephemeral storage 4096 to 10240 MB; forecast scoring in
+  chunks with per-slot partial sums; history and state objects streamed to and from disk. The run
+  reports `peak_memory_mb`, `step_peak_mb` and `spill_peak_mb`. Measurements are in
+  [MEASUREMENTS.md](MEASUREMENTS.md#transform-memory-under-the-account-cap).
+- **Guard:** `make images-smoke` runs the transform in a container with `--memory` equal to the
+  function's configured memory and fails when its peak is above 85% of it; the run emits
+  `TransformMemoryUsedPct` and the alarm `headway-transform-memory-high` fires above 85%
+  ([RUNBOOK](RUNBOOK.md#alarm-headway-transform-memory-high)); `tests/unit/test_duckdb_limits.py`
+  fails on any unbounded `duckdb.connect` in the package. See
+  [ADR-024](ARCHITECTURE_DECISIONS.md#adr-024-account-lambda-memory-cap).
+
 ## Drills
 
 Failures caused on purpose with the chaos switch ([ADR-017](ARCHITECTURE_DECISIONS.md), how to
