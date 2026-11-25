@@ -716,6 +716,10 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 - **Consequences:** a slower run when a step spills (measured in
   [MEASUREMENTS](MEASUREMENTS.md#transform-memory-under-the-account-cap)); more `/tmp` use, which is
   billed above 512 MB at a small rate; a guard in `make images-smoke` and an alarm at 85%.
+- **REPORT versus the metric:** after the deploy, the Lambda `REPORT` shows `Max Memory Used` of
+  2992 to 3008 MB while `TransformMemoryUsedPct` is 62 to 63% and runs succeed (140 to 220 s). The
+  REPORT figure includes page cache from DuckDB spilling to `/tmp` (reclaimable); the alarm
+  deliberately uses process RSS, so it does not fire on the cache.
 - **Revisit when:** the quota is raised (then the budget scales with it and the DuckDB limit can
   rise), the 7-day window or sampling grows past what fits at the limit, or a measured run needs
   more than the 85% budget. The next step then is the incremental closed-day design of ADR-015:

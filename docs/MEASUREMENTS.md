@@ -79,6 +79,14 @@ Headroom: the 7-day x4 window leaves 8 points to the budget and 3 GB of spill bu
 grows with the window is `dbt_build` (spill 4.8 GB). A longer window or more feeds needs the
 incremental closed-day design of ADR-015.
 
+### Lambda REPORT `Max Memory Used` after the memory fix deploy
+
+After the deploy, the Lambda `REPORT` line shows `Max Memory Used` of 2992 to 3008 MB while
+`TransformMemoryUsedPct` reads 62 to 63% and runs succeed (140 to 220 s). Both are right: the REPORT
+figure includes page cache from DuckDB spilling to `/tmp` (reclaimable: the kernel drops it under
+pressure instead of killing the function), whereas the metric is the process RSS high-water mark.
+The alarm deliberately uses process RSS, so a REPORT near 3008 MB alone is not a sign of trouble.
+
 ## Ingest memory and duration
 
 Source: Lambda REPORT lines of `headway-ingest` after the 15 s polling deploy.

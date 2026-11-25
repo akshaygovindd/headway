@@ -181,6 +181,10 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
   ```
   The summary line has `step_peak_mb` (process peak after each step), `step_spill_mb`
   (DuckDB spill per step) and `spill_peak_mb`.
+- **REPORT versus the metric:** a `REPORT` `Max Memory Used` of 2992 to 3008 MB with
+  `TransformMemoryUsedPct` at 62 to 63% and a succeeding run is expected. The REPORT figure
+  includes page cache from DuckDB spilling to `/tmp` (reclaimable); the alarm deliberately uses
+  process RSS. Judge by `memory_used_pct` and `Runtime.OutOfMemory`, not by the REPORT line.
 - **Likely causes:** the window grew (`LOOKBACK_DAYS`, or `vehicle_polls = 4` quadrupling vehicle
   rows); a step that was streaming now materialises a table; the daily Elementary report step;
   `HEADWAY_DUCKDB_MEMORY_LIMIT` raised so that DuckDB plus Python no longer fit.
