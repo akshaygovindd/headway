@@ -122,6 +122,7 @@ to the public gold bucket. Deploying your own copy is described in [docs/DEPLOY.
 | `src/headway_mcp/` | AI analyst: five read-only MCP tools over public gold, orchestration, budgets |
 | `src/headway_api/` | public read-only metric API (FastAPI on Lambda, R4; [docs/API.md](docs/API.md), ADR-023) |
 | `app/` | Streamlit app (`Home.py` navigation, `overview_page.py`, `pages/`, `lib/`, tests) |
+| `web/` | public Next.js site over the metric API (not deployed; [web/README.md](web/README.md): `make api-dev`, `make web-dev`) |
 | `infra/` | Terraform: `bootstrap/` (state bucket) and `main/` (stack) |
 | `docker/` | container images for curate, transform, train and the API |
 | `config/cities/` | city configuration (feeds, lines, timezone) |

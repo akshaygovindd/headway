@@ -418,3 +418,15 @@ so the variable is your statement of it: `enable_r4 = true` fails validation whi
 5. Turning it off is `enable_r4 = false`: the function, gateway and alarm are destroyed; nothing else
    depends on them.
 
+## Public site on Vercel (not executed)
+
+The site in `web/` is built and tested locally only. When the API is live (`enable_r4`):
+
+1. Create a Vercel project from this repository with root directory `web` (framework: Next.js, Node 20 or newer).
+2. Set `HEADWAY_API_URL` to `terraform output -raw api_url` (no trailing slash). Pages are rendered on the
+   server, so the API's `API_CORS_ORIGINS` does not need the site's origin unless a browser calls the API directly.
+3. Pages revalidate every 300 s, matching the API's `Cache-Control: public, max-age=300`.
+4. Check `/`, `/lines/Red` and `/pipeline` against the live API, then attach the domain.
+
+See [web/README.md](../web/README.md).
+
