@@ -1,6 +1,6 @@
 # Headway public site
 
-Next.js (App Router, TypeScript strict, Tailwind) site that renders the Release 4 metric API
+Next.js (App Router, TypeScript strict, Tailwind) site, design system v2, that renders the Release 4 metric API
 ([docs/API.md](../docs/API.md)). Server components fetch the API and revalidate every 300 s, the
 cache lifetime of the gold export. Not deployed yet; see the Vercel note in
 [docs/DEPLOY.md](../docs/DEPLOY.md#public-site-on-vercel-not-executed).
@@ -43,8 +43,8 @@ npm run build:mock   # production build against the fixtures, no network
 
 | Page | Endpoints |
 | --- | --- |
-| `/` line cards | `/lines`, `/lines/{line}/headways` (Red, Orange, Blue) or `/reliability` (others), `/incidents` |
-| `/lines/[line]` | `headways`, `reliability`, `accuracy`, `countdown`; the trend compares `last_24h` with `last_7d` |
+| `/` hero, network, trust strip, line cards, accuracy | `/meta`, `/lines`, `/lines/{line}/headways` (Red, Orange, Blue) or `/reliability` (others), `/lines/{line}/segments`, `/lines/{line}/accuracy`, `/incidents`, `/pipeline/heartbeat`, `/slo` |
+| `/lines/[line]` | `headways`, `reliability`, `accuracy`, `countdown`, `segments` (24 h and 7 d), `marey?direction=0`, `/pipeline/heartbeat`, `/pipeline/health`, `/incidents` |
 | `/incidents` | `/incidents` |
 | `/forecast` | `/forecast/{line}` |
 | `/pipeline` | `/pipeline/health`, `/slo` |
@@ -52,11 +52,36 @@ npm run build:mock   # production build against the fixtures, no network
 | `/data` | none (generated from `src/data/contracts.json`) |
 | `/about` | none |
 
+The three R4 endpoints (`segments`, `marey`, `heartbeat`) answer 404 `not_available` until the transform
+runs with `enable_r4`; the sections that need them then show "not published yet" and the rest of the page renders.
+
+## Design system v2
+
+Light only. Tokens live in `src/app/globals.css`: page `#F4F5F7`, surfaces `#FFFFFF`, ink `#10141A`, muted
+`#566070`. Overpass 700/800 for headings, Inter for body text and every number (`tabular-nums`),
+JetBrains Mono only for ids, SQL and timestamps (class `mono`). The variable-font subsets are committed in
+`src/fonts` and loaded with `next/font/local`, so the build needs no network. Line colours (`src/lib/lines.ts`)
+are fills and badges only (RL OL BL B C D E M). The spacing ramp (even `#3346B8`, some bunching `#8F6BD6`,
+bunched or gaps `#C93A8B`) always has a text legend. Status patterns each come with words: partial is an amber
+dot and "partial", withheld is a grey hatch and "Not enough data · N% cov.", our data gap is a darker hatch,
+a service disruption is a dashed brown outline with a bus icon on cream.
+
+Pure, unit-tested logic is in `src/lib`: `coverage.ts` (full, partial 50 to under 70, withheld), `health.ts`
+(bucket and legend), `hero.ts` (the generated sentence; it gives ranges and never orders lines), `network.ts`
+(segment rows and disrupted stretches), `marey.ts` (geometry, bunching and long-wait annotations),
+`heartbeat.ts` (capture share and the checks count), `time.ts` (everything is Eastern).
+
+The 24 h / 7 d toggle and the Marey phone view need no script: both windows are rendered and radios (`:has`)
+or `:target` pick one. The hourly strip shows measured hours and our data gaps; hourly spacing values and trip
+time against the plan are not served by the API yet, so the trip-time table says "No trips measured yet".
+
 ## Trust rules
 
-- A number reaches the page only through `Metric` (`src/components/trust`), which renders it with a
-  `CoverageBadge`. A value that is null, has a `withheld_reason`, or sits on a row under 50% coverage
-  renders `Not enough data: coverage X%` and none of the value. Tests in `test/trust.test.tsx` enforce this.
+- A number reaches the page only through `Metric` (`src/components/trust`), which renders it as a button
+  that opens the "How this was measured" popover, with the coverage glyph (`CoverageBadge`: a five-segment
+  meter and "N% cov.") under it. A value that is null, has a `withheld_reason`, or sits on a row under 50%
+  coverage renders a hatched `Not enough data · N% cov.` and none of the value. Counts of Headway's own runs
+  (`OwnMetric`) are buttons too but have no coverage glyph. Tests in `test/trust.test.tsx` enforce this.
 - `Freshness` says "updated N min ago" from `freshness.age_minutes` and marks data older than 60 minutes as stale.
 - `DisruptionChip` and `OutageLabel` state their meaning in words. Outage hours are Headway's own data gaps,
   not service failures.
@@ -91,37 +116,45 @@ Columns: the row's identifying labels, then `value`, `unit`, `coverage_pct`, `wi
 number. Text cells starting with `=`, `+`, `-` or `@` get a leading apostrophe so spreadsheets do
 not run them. The builder is `src/lib/csv.ts`.
 
+## "How this was measured" popover
+
+`MetricPopover` (client) sits once in the layout and listens for clicks on `button[data-k]`. A native
+`<dialog>` shows the definition from `src/lib/definitions.ts`, n, coverage, window, what was left out, the
+METRICS.md anchor and the SQL of the gold model. Tab stays inside, Escape closes, focus returns to the number,
+and at 480 px or less it is a bottom sheet. Per-line notes live in `src/data/metric-notes.json` (Blue's note
+links to the MEASUREMENTS.md entry).
+
 ## Accessibility and keyboard tests
 
 `test/a11y.test.tsx` runs axe-core on every page (rendered with the fixture API, inside the real
-layout). `test/keyboard.test.tsx` checks tab order through the skip link, main nav and theme
-toggle, and Enter/Space on the toggle. jsdom cannot compute layout, so axe's colour-contrast rule
-is off in tests.
+layout). `test/keyboard.test.tsx` checks tab order through the skip link and main nav, and
+`test/popover.test.tsx` the popover (open with Enter and Space, focus trap, Escape, focus return). jsdom cannot compute layout, so axe's colour-contrast rule
+is off in tests, so the contrast of the v2 tokens is a design decision checked by eye, not by CI.
 
 ## Performance
 
 Pages are server-rendered and prerendered (revalidated every 5 minutes). The only client
-components are the theme toggle, the CSV button and `error.tsx` (Next requires error boundaries to be client components; it renders nothing unless a page fails). `test/client-js.test.ts` enforces this list. The
-JavaScript below is the Next.js and React runtime needed to hydrate those two; the CSV button adds
-about 1 kB on the pages that have it. Sizes from `npm run build:mock` then
-`node scripts/page-sizes.mjs` (gzip):
+components are the CSV button, the metric popover and `error.tsx` (Next requires error boundaries to be client components; it renders nothing unless a page fails). `test/client-js.test.ts` enforces this list. The
+JavaScript below is the Next.js and React runtime needed to hydrate them. HTML is larger than before because the
+network diagram, station strips and Marey chart are server-rendered SVG and markup. Sizes from `npm run build:mock`
+then `node scripts/page-sizes.mjs` (gzip):
 
 | Route | HTML (gzip) | First-load JS (gzip) | Scripts |
 | --- | --- | --- | --- |
-| `/about` | 3.4 kB | 174.9 kB | 9 |
-| `/data` | 20.9 kB | 174.9 kB | 9 |
-| `/forecast` | 6.8 kB | 174.9 kB | 9 |
-| `/how-we-measure` | 4.1 kB | 174.9 kB | 9 |
-| `/incidents` | 4.4 kB | 176.0 kB | 10 |
-| `/` | 4.2 kB | 174.9 kB | 9 |
-| `/lines/Blue` | 6.0 kB | 176.0 kB | 10 |
-| `/lines/Green-B` | 6.7 kB | 176.0 kB | 10 |
-| `/lines/Green-C` | 6.7 kB | 176.0 kB | 10 |
-| `/lines/Green-D` | 6.7 kB | 176.0 kB | 10 |
-| `/lines/Green-E` | 6.7 kB | 176.0 kB | 10 |
-| `/lines/Mattapan` | 6.7 kB | 176.0 kB | 10 |
-| `/lines/Orange` | 6.7 kB | 176.0 kB | 10 |
-| `/lines/Red` | 6.7 kB | 176.0 kB | 10 |
-| `/pipeline` | 4.2 kB | 174.9 kB | 9 |
+| `/about` | 3.7 kB | 177.1 kB | 9 |
+| `/data` | 25.2 kB | 177.1 kB | 9 |
+| `/forecast` | 8.1 kB | 177.1 kB | 9 |
+| `/how-we-measure` | 4.4 kB | 177.1 kB | 9 |
+| `/incidents` | 5.1 kB | 177.9 kB | 10 |
+| `/` | 21.1 kB | 177.1 kB | 9 |
+| `/lines/Blue` | 22.9 kB | 177.9 kB | 10 |
+| `/lines/Green-B` | 28.6 kB | 177.9 kB | 10 |
+| `/lines/Green-C` | 28.1 kB | 177.9 kB | 10 |
+| `/lines/Green-D` | 29.5 kB | 177.9 kB | 10 |
+| `/lines/Green-E` | 29.5 kB | 177.9 kB | 10 |
+| `/lines/Mattapan` | 19.3 kB | 177.9 kB | 10 |
+| `/lines/Orange` | 27.5 kB | 177.9 kB | 10 |
+| `/lines/Red` | 23.5 kB | 177.9 kB | 10 |
+| `/pipeline` | 4.5 kB | 177.1 kB | 9 |
 
 The share image (`/opengraph-image`, `/twitter-image`) is rendered at build time with `next/og`.

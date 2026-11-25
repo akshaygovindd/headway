@@ -525,6 +525,17 @@ measure: they re-cut the headways, the reconstructed arrivals and the capture ch
   per-run `agg_pipeline_health` is finer but not needed for an hourly heartbeat.
 - **Grain:** service_date x hour_local.
 
+### How the site shows them
+- **Coverage glyph:** a five-segment meter and "N% cov." under every number. 70% and over is shown, 50 to
+  under 70 is shown as partial (amber dot and the word), under 50 is withheld.
+- **Spacing colours** (even, some bunching, bunched or gaps) apply to segment health only; they are not line
+  colours. Withheld segments are hatched, data-outage hours are hatched darker, and a disrupted stretch is
+  dashed.
+- **Capture and checks** on the trust strip count Headway's own runs: captures is `1 - missed_runs / expected_runs`
+  over the last 24 hourly heartbeat rows; checks are the 7-day SLOs (failing: not met; warning: met with 75% or
+  more of the error budget used, or too few days to count).
+- **Prediction error** below the 20 s timing floor of the reconstruction is shown as "~20 s".
+
 ## Known limitations
 
 - Trip updates are sampled once a minute. A prediction can change between samples, so the

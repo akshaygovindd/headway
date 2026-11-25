@@ -193,6 +193,11 @@ flowchart LR
   (`n_excluded_outage`). `int_disrupted_line_hours` marks line hours with an active detour,
   suspension or shuttle alert: those hours stay in the statistics and are counted
   (`service_disruption`, `n_disruption`).
+- **Public site (R4).** `web/` reads three R4 tables through `/v1`: `agg_headway_segment_window`
+  (network diagram, station strips, the `disrupted` flag), `agg_marey_last_hour` (Marey chart) and
+  `agg_capture_heartbeat_hourly` (trust strip and the hourly capture strip). Every other number on the
+  site comes from the Release 2 and 3 tables above. The site adds no metric of its own: its hero sentence
+  and checks count are computed from API values (`web/src/lib/hero.ts`, `heartbeat.ts`).
 - **Windows.** `int_window_hours` lists the service hours of `last_24h` (24 hours) and `last_7d`
   (168 hours) ending at the latest hour of `agg_line_reliability_hourly` (the export's
   `metrics_as_of`). The four `agg_*_window` marts compute medians, p90 and shares over every
