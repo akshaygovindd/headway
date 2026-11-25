@@ -49,6 +49,15 @@ jobs:
       - run: npm test
       - name: Build against the mock API fixtures
         run: npm run build:mock
+      - name: Cache the Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+      - name: Install Chromium only (system libraries too)
+        run: npx playwright install --with-deps chromium
+      - name: Browser checks (page width at 375 and 1440, layout, 404, console errors)
+        run: npm run test:e2e
 
   tf-validate:
     runs-on: ubuntu-latest

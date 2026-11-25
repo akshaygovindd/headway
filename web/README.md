@@ -35,9 +35,14 @@ for this site when it is rendered by Next.js.
 cd web
 npm run lint && npm run typecheck && npm test
 npm run build:mock   # production build against the fixtures, no network
+npm run e2e:install  # Chromium only, once (a no-op when it is already there)
+npm run test:e2e     # Playwright against the built site and the mock API
 ```
 
-`npm run ci` runs all four. The CI `web` job does the same.
+`npm run ci` runs all of them, so it works from a clean clone. The browser checks cover the page
+width at 375 and 1440 px (no horizontal page scroll on any page), the phone layout, tap targets,
+the unknown-line 404 and console errors. The CI `web` job runs the same steps and caches
+`~/.cache/ms-playwright`.
 
 ## Pages and the API
 
