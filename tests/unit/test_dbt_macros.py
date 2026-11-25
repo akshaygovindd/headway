@@ -128,3 +128,25 @@ def test_manifest_timestamps_are_tz_aware_on_every_duckdb(tmp_path: Path) -> Non
     assert row["typ"] == "TIMESTAMP WITH TIME ZONE"
     expected = [f"{t:%Y-%m-%dT%H:%M:%S}.250" for t in stamps]
     assert sorted(row["fetched"].split(",")) == sorted(expected)
+
+
+R4_TABLES = {"agg_headway_segment_window", "agg_marey_last_hour", "agg_capture_heartbeat_hourly"}
+
+
+def _allowlist_keys(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, **env: str) -> set[str]:
+    for name in ("HEADWAY_ENABLE_R2", "HEADWAY_ENABLE_R3", "HEADWAY_ENABLE_R4"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    sql = "select '{{ gold_allowlist().keys() | list | join(',') }}' as keys"
+    return set(_dbt_show(sql, tmp_path)[0]["keys"].split(","))
+
+
+def test_release_4_allowlist_needs_r2_and_the_r4_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert not R4_TABLES & _allowlist_keys(tmp_path, monkeypatch)
+    assert not R4_TABLES & _allowlist_keys(tmp_path, monkeypatch, HEADWAY_ENABLE_R2="true")
+    assert not R4_TABLES & _allowlist_keys(tmp_path, monkeypatch, HEADWAY_ENABLE_R4="true")
+    on = _allowlist_keys(tmp_path, monkeypatch, HEADWAY_ENABLE_R2="true", HEADWAY_ENABLE_R4="true")
+    assert on >= R4_TABLES and "agg_incidents" not in on  # independent of R3

@@ -363,14 +363,17 @@ def set_gold_cache_control(s3: Any, bucket: str, gold_prefix: str) -> list[str]:
 
 
 def r2_exclusions() -> list[str]:
-    """Selectors keeping Release 2 models (tag r2) out, and Release 3 (tag r3) unless enabled.
+    """Selectors keeping Release 2 models (tag r2) out, and Release 3 and 4 (r3, r4) unless enabled.
 
     Release 2 selectors apply unless HEADWAY_ENABLE_R2=true; Release 3 models (internal, built on
-    the Release 2 ones) need HEADWAY_ENABLE_R3=true and Release 2 on.
+    the Release 2 ones) need HEADWAY_ENABLE_R3=true and Release 2 on; likewise Release 4 (the public
+    site's segment, Marey and heartbeat tables) with HEADWAY_ENABLE_R4=true.
     """
     out = [] if publish.r2_enabled() else ["tag:r2"]
     if not (publish.r3_enabled() and publish.r2_enabled()):
         out.append("tag:r3")
+    if not (publish.r4_enabled() and publish.r2_enabled()):
+        out.append("tag:r4")
     return out
 
 

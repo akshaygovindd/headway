@@ -46,6 +46,14 @@ R3_GOLD_TABLES = (
     "agg_alert_matching_daily",
 )
 R3_OPTIONAL_TABLES = ("agg_forecast_backtest",)
+# Release 4 (HEADWAY_ENABLE_R4=true, with R2; independent of R3): the public site's segment health,
+# last-hour Marey arrivals and hourly capture heartbeat. (Known R3 drift left alone:
+# agg_weather_comparison is in the macro's R3 allowlist but not in R3_GOLD_TABLES.)
+R4_GOLD_TABLES = (
+    "agg_headway_segment_window",
+    "agg_marey_last_hour",
+    "agg_capture_heartbeat_hourly",
+)
 # cost_daily is written by cost.py, not dbt, so it is published only when it exists. The R3
 # backtest is exported by dbt only when it has rows.
 OPTIONAL_TABLES = ("cost_daily", *R3_OPTIONAL_TABLES)
@@ -61,11 +69,20 @@ def r3_enabled() -> bool:
     return os.environ.get("HEADWAY_ENABLE_R3", "").lower() == "true"
 
 
+def r4_enabled() -> bool:
+    """Release 4 models (tag r4) build only when set (with R2); the site tables are exported."""
+    return os.environ.get("HEADWAY_ENABLE_R4", "").lower() == "true"
+
+
 def gold_tables() -> tuple[str, ...]:
     """The gold tables this deployment always exports: the base set, plus Release 2 when enabled,
-    plus the Release 3 forecast tables when enabled with it."""
-    tables = GOLD_TABLES + R2_GOLD_TABLES if r2_enabled() else GOLD_TABLES
-    return tables + R3_GOLD_TABLES if r2_enabled() and r3_enabled() else tables
+    plus the Release 3 forecast tables and the Release 4 site tables when enabled with it."""
+    tables: tuple[str, ...] = GOLD_TABLES + R2_GOLD_TABLES if r2_enabled() else GOLD_TABLES
+    if r2_enabled() and r3_enabled():
+        tables += R3_GOLD_TABLES
+    if r2_enabled() and r4_enabled():
+        tables += R4_GOLD_TABLES
+    return tables
 
 
 def _connect(token: str) -> Any:

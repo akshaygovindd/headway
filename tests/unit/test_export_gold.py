@@ -52,7 +52,16 @@ R3_ALLOWLIST = {
 }
 
 
-def _build(tmp_path_factory: pytest.TempPathFactory, enable_r2: bool) -> Path:
+R4_ALLOWLIST = {
+    "agg_headway_segment_window",
+    "agg_marey_last_hour",
+    "agg_capture_heartbeat_hourly",
+}
+
+
+def _build(
+    tmp_path_factory: pytest.TempPathFactory, enable_r2: bool, enable_r4: bool = True
+) -> Path:
     if shutil.which("uv") is None:
         pytest.skip("uv is required to run dbt")
     spec = importlib.util.spec_from_file_location("build_demo", ROOT / "scripts" / "build_demo.py")
@@ -60,7 +69,11 @@ def _build(tmp_path_factory: pytest.TempPathFactory, enable_r2: bool) -> Path:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     public: Path = module.build(
-        tmp_path_factory.mktemp("demo"), "samples/boston", "boston", enable_r2=enable_r2
+        tmp_path_factory.mktemp("demo"),
+        "samples/boston",
+        "boston",
+        enable_r2=enable_r2,
+        enable_r4=enable_r4,
     )
     return public / "gold"
 
@@ -68,6 +81,12 @@ def _build(tmp_path_factory: pytest.TempPathFactory, enable_r2: bool) -> Path:
 @pytest.fixture(scope="module")
 def gold_r2(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return _build(tmp_path_factory, True)
+
+
+@pytest.fixture(scope="module")
+def gold_r2_no_r4(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Releases 2 and 3 on, Release 4 off: production before the R4 switch."""
+    return _build(tmp_path_factory, True, enable_r4=False)
 
 
 @pytest.fixture(scope="module")
@@ -81,8 +100,24 @@ def test_only_allowlisted_files_are_written(gold: Path) -> None:
     assert names == {f"{t}.parquet" for t in ALLOWLIST} | {"manifest.json"}
 
 
-def test_release_2_and_3_tables_are_added_when_enabled(gold_r2: Path) -> None:
-    everything = ALLOWLIST | R2_ALLOWLIST | R3_ALLOWLIST
+def test_release_4_tables_are_absent_when_r4_is_off(gold_r2_no_r4: Path) -> None:
+    names = {p.name for p in gold_r2_no_r4.rglob("*")}
+    assert names == {f"{t}.parquet" for t in ALLOWLIST | R2_ALLOWLIST | R3_ALLOWLIST} | {
+        "manifest.json", "analyst_examples.json"}  # fmt: skip
+
+
+def test_release_4_site_tables_have_rows_and_columns(gold_r2: Path) -> None:
+    seg = _table(gold_r2, "agg_headway_segment_window")
+    assert seg and {r["window_label"] for r in seg} == {"last_24h", "last_7d"}
+    assert {"from_stop_name", "segment_order", "health", "disrupted", "coverage_pct"} <= set(seg[0])
+    marey = _table(gold_r2, "agg_marey_last_hour")
+    assert marey and {r["method"] for r in marey} <= {"observed", "estimated"}
+    beat = _table(gold_r2, "agg_capture_heartbeat_hourly")
+    assert beat and {"expected_runs", "missed_runs", "feed_gap_min", "data_outage"} <= set(beat[0])
+
+
+def test_release_2_3_and_4_tables_are_added_when_enabled(gold_r2: Path) -> None:
+    everything = ALLOWLIST | R2_ALLOWLIST | R3_ALLOWLIST | R4_ALLOWLIST
     names = {p.name for p in gold_r2.rglob("*")}
     # analyst_examples.json is written by build_demo (the transform does so on AWS), not by dbt
     extra = {"manifest.json", "analyst_examples.json"}

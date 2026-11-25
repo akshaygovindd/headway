@@ -24,10 +24,13 @@ def _env(**extra: str) -> dict[str, str]:
     return env
 
 
-def build(out: Path, source: str, city: str, enable_r2: bool = True) -> Path:
+def build(
+    out: Path, source: str, city: str, enable_r2: bool = True, enable_r4: bool = True
+) -> Path:
     """Return <out>/public/<city>, the HEADWAY_DATA_URL root.
 
-    enable_r2 sets HEADWAY_ENABLE_R2: the Release 2 aggregates are exported only then.
+    enable_r2 sets HEADWAY_ENABLE_R2: the Release 2 aggregates are exported only then. enable_r4
+    (with R2) adds the Release 4 site tables; R3 follows R2.
     """
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from dbt_deps import ensure
@@ -52,6 +55,7 @@ def build(out: Path, source: str, city: str, enable_r2: bool = True) -> Path:
         "HEADWAY_DUCKDB_PATH": str(out / "headway.duckdb"),
         "HEADWAY_ENABLE_R2": "true" if enable_r2 else "false",
         "HEADWAY_ENABLE_R3": "true" if enable_r2 else "false",
+        "HEADWAY_ENABLE_R4": "true" if enable_r2 and enable_r4 else "false",
     }
     run_vars = f'{{"curated_root": "{replay_dir}"}}'
     run([*DBT, "build", *DBT_ARGS, "--vars", run_vars], **env)

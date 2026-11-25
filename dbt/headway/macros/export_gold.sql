@@ -7,7 +7,8 @@
   the httpfs extension and credentials are available. Only the tables in the
   allowlist below are written; nothing else leaves the warehouse. The Release 2 aggregates
   (gold_r2_allowlist) are added only when HEADWAY_ENABLE_R2=true, the Release 3 forecast tables
-  (gold_r3_allowlist: forecasts, incidents, alert matching, weather comparison) only with HEADWAY_ENABLE_R3=true as well.
+  (gold_r3_allowlist: forecasts, incidents, alert matching, weather comparison) only with HEADWAY_ENABLE_R3=true as well. The Release 4 tables (gold_r4_allowlist: segment health,
+  last-hour Marey arrivals, capture heartbeat) are added with HEADWAY_ENABLE_R4=true and R2, independent of R3.
 
   agg_pipeline_health is limited to the 30 days before its latest run.
   dbt_run_at is the start time of this dbt invocation (run the export right after
@@ -58,6 +59,18 @@
 {{ return(tables) }}
 {%- endmacro %}
 
+{#
+  Release 4 tables (HEADWAY_ENABLE_R4=true, with R2) for the public site: segment health, the last
+  complete hour of reconstructed arrivals (Marey chart) and the hourly capture heartbeat (last 30 days).
+#}
+{% macro gold_r4_allowlist() -%}
+{{ return({
+    'agg_headway_segment_window': "select * from " ~ ref('agg_headway_segment_window'),
+    'agg_marey_last_hour': "select * from " ~ ref('agg_marey_last_hour'),
+    'agg_capture_heartbeat_hourly': "select * from " ~ ref('agg_capture_heartbeat_hourly') ~ " where hour_start >= (select max(hour_start) from " ~ ref('agg_capture_heartbeat_hourly') ~ ") - interval 30 day",
+}) }}
+{%- endmacro %}
+
 {% macro gold_allowlist() -%}
 {% set tables = {
     'agg_line_reliability_hourly': "select * from " ~ ref('agg_line_reliability_hourly'),
@@ -75,6 +88,9 @@
 {% do tables.update(gold_r2_allowlist()) %}
 {% if env_var('HEADWAY_ENABLE_R3', 'false') | lower == 'true' %}
 {% do tables.update(gold_r3_allowlist()) %}
+{% endif %}
+{% if env_var('HEADWAY_ENABLE_R4', 'false') | lower == 'true' %}
+{% do tables.update(gold_r4_allowlist()) %}
 {% endif %}
 {% endif %}
 {{ return(tables) }}

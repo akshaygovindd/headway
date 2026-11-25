@@ -583,7 +583,8 @@ def test_r2_exclusion_helper() -> None:
 
     os.environ.pop("HEADWAY_ENABLE_R2", None)
     os.environ.pop("HEADWAY_ENABLE_R3", None)
-    assert handler.r2_exclusions() == ["tag:r2", "tag:r3"]
+    os.environ.pop("HEADWAY_ENABLE_R4", None)
+    assert handler.r2_exclusions() == ["tag:r2", "tag:r3", "tag:r4"]
 
 
 def test_r3_models_are_built_only_when_enabled_with_r2(
@@ -591,12 +592,41 @@ def test_r3_models_are_built_only_when_enabled_with_r2(
 ) -> None:
     monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
     monkeypatch.delenv("HEADWAY_ENABLE_R3", raising=False)
-    assert handler.r2_exclusions() == ["tag:r3"]
+    monkeypatch.delenv("HEADWAY_ENABLE_R4", raising=False)
+    assert handler.r2_exclusions() == ["tag:r3", "tag:r4"]
     monkeypatch.setenv("HEADWAY_ENABLE_R3", "true")
-    assert handler.r2_exclusions() == []
+    assert handler.r2_exclusions() == ["tag:r4"]
     # R3 reads R2 models: without R2 both stay out
     monkeypatch.setenv("HEADWAY_ENABLE_R2", "false")
-    assert handler.r2_exclusions() == ["tag:r2", "tag:r3"]
+    assert handler.r2_exclusions() == ["tag:r2", "tag:r3", "tag:r4"]
+
+
+def test_r4_models_are_built_only_when_enabled_with_r2(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
+    monkeypatch.setenv("HEADWAY_ENABLE_R3", "true")
+    monkeypatch.delenv("HEADWAY_ENABLE_R4", raising=False)
+    assert handler.r2_exclusions() == ["tag:r4"]  # R4 off: production is unchanged
+    monkeypatch.setenv("HEADWAY_ENABLE_R4", "false")
+    assert handler.r2_exclusions() == ["tag:r4"]
+    monkeypatch.setenv("HEADWAY_ENABLE_R4", "true")
+    assert handler.r2_exclusions() == []
+    monkeypatch.setenv("HEADWAY_ENABLE_R3", "false")  # R4 does not depend on R3
+    assert handler.r2_exclusions() == ["tag:r3"]
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "false")  # but it reads R2 models
+    assert handler.r2_exclusions() == ["tag:r2", "tag:r3", "tag:r4"]
+
+
+def test_r4_site_tables_are_exported_only_with_r2_and_r4(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
+    monkeypatch.setenv("HEADWAY_ENABLE_R3", "true")
+    monkeypatch.delenv("HEADWAY_ENABLE_R4", raising=False)
+    before = publish.gold_tables()
+    assert not set(publish.R4_GOLD_TABLES) & set(before)
+    assert before == publish.GOLD_TABLES + publish.R2_GOLD_TABLES + publish.R3_GOLD_TABLES
+    monkeypatch.setenv("HEADWAY_ENABLE_R4", "true")
+    assert publish.gold_tables() == before + publish.R4_GOLD_TABLES
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "false")
+    assert not set(publish.R4_GOLD_TABLES) & set(publish.gold_tables())
 
 
 def test_r3_forecast_tables_are_exported_only_with_r2_and_r3(
