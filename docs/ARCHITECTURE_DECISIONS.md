@@ -666,10 +666,10 @@ Template: Status, Context, Decision, Consequences, Revisit when.
     and the image rides the existing `images-build`/`images-smoke` path. Cost: a larger image and a
     slightly longer cold start than a zip.
   - **Concurrency:** the function has `reserved_concurrent_executions = api_reserved_concurrency`
-    (default 3). A reservation is taken from the account pool, and AWS keeps 10 unreserved, so with
-    the 10-execution limit new accounts start with the API would starve ingest, curate and transform
-    or fail to deploy. `enable_r4` is therefore refused (variable validation and a Lambda
-    precondition) until `api_confirmed_concurrency_limit` is set to a value of at least 100, the
+    (default 3). A reservation is taken from the account pool and Lambda keeps 100 unreserved, so at
+    the 10-execution limit new accounts start with a reservation cannot be made at all, and one
+    that could would starve ingest, curate and transform. `enable_r4` is therefore refused (variable validation and a Lambda
+    precondition) until `api_confirmed_concurrency_limit` is set to a value of at least 100 plus the reservation (request 1000), the
     number `aws lambda get-account-settings` prints. The variable is a statement, not a lookup;
     Terraform cannot read the quota, so DEPLOY makes the check the first step.
   - **Warm-container cache:** a container downloads the small gold tables the API uses (the

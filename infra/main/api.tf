@@ -80,8 +80,8 @@ resource "aws_lambda_function" "api" {
 
   lifecycle {
     precondition {
-      condition     = var.api_confirmed_concurrency_limit >= 100
-      error_message = "The account's Lambda concurrency limit must be at least 100 before the API is deployed (aws lambda get-account-settings; docs/DEPLOY.md, Release 4)."
+      condition     = var.api_confirmed_concurrency_limit >= 100 + var.api_reserved_concurrency
+      error_message = "The account's Lambda concurrency limit must be at least 100 plus the reservation before the API is deployed (aws lambda get-account-settings; docs/DEPLOY.md, Release 4)."
     }
   }
 

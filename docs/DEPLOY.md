@@ -379,8 +379,10 @@ alarm (ADR-023, `docs/API.md`). It needs no new secrets and no access to any buc
 
 **Hard prerequisite: do not enable R4 until the account's Lambda concurrency limit is at least 100.**
 The API function reserves concurrency (`api_reserved_concurrency`, default 3) out of the account
-pool, and AWS keeps 10 unreserved. On an account still at the default limit of 10 the reservation
-cannot be made, and a larger one would starve ingest, curate and transform.
+pool, and Lambda keeps 100 unreserved. On an account still at the default limit of 10 the reservation
+cannot be made, and one that could would starve ingest, curate and transform. Terraform therefore
+requires the confirmed limit to be at least 100 plus `api_reserved_concurrency` (103 by default;
+request 1000).
 
 ```sh
 aws lambda get-account-settings --query 'AccountLimit.[ConcurrentExecutions,UnreservedConcurrentExecutions]'
@@ -390,7 +392,7 @@ If `ConcurrentExecutions` prints less than 100: Service Quotas > AWS Lambda > Co
 executions > request an increase to 1000, and wait for approval. Then set the value the command
 prints in `terraform.tfvars` as `api_confirmed_concurrency_limit`. Terraform cannot read the quota,
 so the variable is your statement of it: `enable_r4 = true` fails validation while it is below
-100, and the Lambda has a matching precondition, so the step cannot be skipped silently.
+100 plus the reservation, and the Lambda has a matching precondition, so the step cannot be skipped silently.
 
 1. Check the prerequisite above and set `api_confirmed_concurrency_limit`.
 2. Create the repository: it is part of the Terraform with `enable_r4`
