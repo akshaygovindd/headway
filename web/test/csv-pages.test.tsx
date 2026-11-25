@@ -29,17 +29,22 @@ async function downloaded(name: string) {
 }
 
 describe("CSV on the Line page", () => {
-  it("has one data row per number shown, with the comment and header", async () => {
+  it("has a data row for every number shown plus the segment rows, with the comment and header", async () => {
     const shownCount = () => screen.queryAllByTestId("metric").length;
     const lines = await downloaded("/lines/Blue");
     expect(lines[0]).toMatch(/^# metric definition: .*METRICS\.md#.*; exported \d{4}-/);
     expect(lines[1]).toBe("line,section,metric,key,value,unit,coverage_pct,withheld_reason,freshness");
-    expect(lines.length - 2).toBe(shownCount());
+    const data = lines.slice(2);
+    const segments = data.filter((l) => l.includes(",Segment health,"));
+    expect(segments.length).toBeGreaterThan(20);
+    expect(data.length - segments.length).toBeGreaterThan(0);
+    expect(data.length).toBeGreaterThanOrEqual(shownCount());
+    expect(segments[0]).toMatch(/,pct,\d+(\.\d+)?,,/);
   });
 
   it("exports withheld numbers as empty with a reason (Red fixture is 35% cov.)", async () => {
     const lines = await downloaded("/lines/Red (withheld, shuttle)");
-    const data = lines.slice(2);
+    const data = lines.slice(2).filter((l) => !l.includes(",Segment health,"));
     expect(data.length).toBeGreaterThan(0);
     const withheld = data.filter((l) => l.includes("below 50%"));
     expect(withheld.length).toBeGreaterThan(0);

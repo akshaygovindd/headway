@@ -3,13 +3,36 @@ import { pageMeta } from "@/lib/site";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { CsvButton } from "@/components/CsvButton";
-import { Metric } from "@/components/trust";
-import { Card, ErrorState, PageHeader, Table, Td } from "@/components/ui";
+import { LineBadge } from "@/components/LineBadge";
+import { HourStrip } from "@/components/line/HourStrip";
+import { KeyNumbers } from "@/components/line/KeyNumbers";
+import { MareyChart } from "@/components/line/MareyChart";
+import { StationStrip } from "@/components/line/StationStrip";
+import { RampLegend } from "@/components/home/NetworkDiagram";
+import { DisruptionChip, Freshness, Metric } from "@/components/trust";
+import { Card, ErrorState, Table, Td } from "@/components/ui";
 import type { ApiResult } from "@/lib/api";
 import type { CsvRow, CsvSpec } from "@/lib/csv";
 import { headwayCell, lineSections, onTimeCell } from "@/lib/data";
+import { getApi } from "@/lib/api";
+import { docUrl } from "@/lib/definitions";
+import { lineName, LINE_STYLE } from "@/lib/lines";
 import { isHeavyRail, isLine, LINES, trend, type Cell, type Trend } from "@/lib/map";
-import type { CoveredRow, Section } from "@/lib/types";
+import { termini } from "@/lib/network";
+import { openIncidentsByLine, segmentsOf } from "@/lib/site-data";
+import { hhmmET } from "@/lib/time";
+import notes from "@/data/metric-notes.json";
+import type {
+  AccuracyData,
+  ActualRow,
+  HeadwayRow,
+  CoveredRow,
+  HealthData,
+  HeartbeatData,
+  IncidentsData,
+  MareyData,
+  Section,
+} from "@/lib/types";
 
 export const revalidate = 300;
 
@@ -56,8 +79,9 @@ function csvRows(
   s: Awaited<ReturnType<typeof lineSections>>,
   dayCell: Cell,
   weekCell: Cell,
+  segments: CsvRow[],
 ): CsvRow[] {
-  const out: CsvRow[] = [];
+  const out: CsvRow[] = [...segments];
   const add = (section: string, metric: string, key: string, cell: Cell, unit: CsvRow["unit"]) =>
     out.push({ labels: { line, section, metric, key }, cell, unit });
   if (s.h24.ok) {
@@ -101,28 +125,30 @@ function csvRows(
 export default async function LinePage({ params }: { params: Promise<{ line: string }> }) {
   const { line } = await params;
   if (!isLine(line)) notFound();
-  const sections = await lineSections(line);
-  const { h24, h7, rel24, rel7, acc, cd } = sections;
   const heavy = isHeavyRail(line);
+  const [sections, seg24, seg7, marey, heartbeat, incidents, acc7, health] = await Promise.all([
+    lineSections(line),
+    segmentsOf(line, "last_24h"),
+    segmentsOf(line, "last_7d"),
+    getApi<MareyData>(`/lines/${line}/marey?direction=0`),
+    getApi<HeartbeatData>("/pipeline/heartbeat?hours=24"),
+    getApi<IncidentsData>("/incidents"),
+    getApi<AccuracyData>(`/lines/${line}/accuracy?window=last_7d`),
+    getApi<HealthData>("/pipeline/health?days=7"),
+  ]);
+  const { h24, h7, rel24, rel7, acc, cd } = sections;
   const fresh = [h24, rel24, acc].find((r) => r.ok);
+  const style = LINE_STYLE[line];
+  const ends = termini(seg24.segs);
+  const asOf = fresh?.ok ? hhmmET(fresh.body.freshness.metrics_as_of) : null;
+  const daysAvailable = health.ok ? health.body.data.daily.length : null;
+  const open = openIncidentsByLine(incidents)?.get(line) ?? [];
+  const disrupted = open.length > 0 || seg24.segs.some((x) => x.row.disrupted);
+  const note = (notes as Record<string, { text: string; href: string }>)[line];
 
-  const headwaysCard = (
-    <Card key="headways" title="Headway adherence" definition="8-headway-adherence-release-2">
-      <Missing r={h24} what="Headway adherence">
-        {(d) => (
-          <Rows s={d.headway_adherence}>
-            {(r) => (
-              <dl key="h" className="grid gap-3 sm:grid-cols-3">
-                <div><dt className="text-sm text-muted">Within the expected spacing</dt><dd><Metric cell={cellOf(r, r.pct_within_band)} unit="pct" /></dd></div>
-                <div><dt className="text-sm text-muted">Bunched trains</dt><dd><Metric cell={cellOf(r, r.pct_bunched)} unit="pct" /></dd></div>
-                <div><dt className="text-sm text-muted">Gaps</dt><dd><Metric cell={cellOf(r, r.pct_gap)} unit="pct" /></dd></div>
-              </dl>
-            )}
-          </Rows>
-        )}
-      </Missing>
-    </Card>
-  );
+  const accRow = (r: typeof acc) => (r.ok ? r.body.data.prediction_accuracy?.rows.find((x) => x.horizon_bucket === "0-5") : undefined);
+  const hRow = (r: typeof h24): HeadwayRow | undefined => (r.ok ? r.body.data.headway_adherence?.rows[0] : undefined);
+  const aRow = (r: typeof rel24): ActualRow | undefined => (r.ok ? r.body.data.actual_deviation?.rows[0] : undefined);
 
   const reliabilityCard = (
     <Card key="reliability" title="Reliability" definition="7-actual-schedule-deviation-release-2">
@@ -132,18 +158,18 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
             <Rows s={d.actual_deviation}>
               {(r) => (
                 <dl key="a" className="grid gap-3">
-                  <div><dt className="text-sm text-muted">Arrivals on time (last 24 hours)</dt><dd><Metric cell={cellOf(r, r.pct_on_time_window)} unit="pct" /></dd></div>
-                  <div><dt className="text-sm text-muted">Median deviation from the timetable</dt><dd><Metric cell={cellOf(r, r.median_deviation_s)} unit="s" /></dd></div>
-                  <div><dt className="text-sm text-muted">90th percentile deviation</dt><dd><Metric cell={cellOf(r, r.p90_deviation_s)} unit="s" /></dd></div>
+                  <div><dt className="text-sm text-muted">Arrivals on time (last 24 hours)</dt><dd><Metric cell={cellOf(r, r.pct_on_time_window)} unit="pct" info={{ k: "on_time", line, n: r.n_observations, window: "last_24h" }} /></dd></div>
+                  <div><dt className="text-sm text-muted">Median deviation from the timetable</dt><dd><Metric cell={cellOf(r, r.median_deviation_s)} unit="s" info={{ k: "deviation", line, n: r.n_observations, window: "last_24h" }} /></dd></div>
+                  <div><dt className="text-sm text-muted">90th percentile deviation</dt><dd><Metric cell={cellOf(r, r.p90_deviation_s)} unit="s" info={{ k: "deviation", line, n: r.n_observations, window: "last_24h", label: "90th percentile deviation" }} /></dd></div>
                 </dl>
               )}
             </Rows>
             <Rows s={d.predicted_deviation}>
               {(r) => (
                 <dl key="p" className="grid gap-3">
-                  <div><dt className="text-sm text-muted">Median predicted deviation</dt><dd><Metric cell={cellOf(r, r.median_predicted_deviation_s)} unit="s" /></dd></div>
-                  <div><dt className="text-sm text-muted">Median prediction revision</dt><dd><Metric cell={cellOf(r, r.median_abs_revision_s)} unit="s" /></dd></div>
-                  <div><dt className="text-sm text-muted">Skipped stops</dt><dd><Metric cell={cellOf(r, r.skipped_share)} unit="share" /></dd></div>
+                  <div><dt className="text-sm text-muted">Median predicted deviation</dt><dd><Metric cell={cellOf(r, r.median_predicted_deviation_s)} unit="s" info={{ k: "predicted", line, n: r.n_observations, window: "last_24h" }} /></dd></div>
+                  <div><dt className="text-sm text-muted">Median prediction revision</dt><dd><Metric cell={cellOf(r, r.median_abs_revision_s)} unit="s" info={{ k: "predicted", line, n: r.n_observations, window: "last_24h", label: "Prediction revision" }} /></dd></div>
+                  <div><dt className="text-sm text-muted">Skipped stops</dt><dd><Metric cell={cellOf(r, r.skipped_share)} unit="share" info={{ k: "predicted", line, n: r.n_observations, window: "last_24h", label: "Skipped stops" }} /></dd></div>
                 </dl>
               )}
             </Rows>
@@ -157,13 +183,13 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
     <Card key="accuracy" title="Accuracy of MBTA predictions" definition="release-2-metrics-shared-rules">
       <Missing r={acc} what="Prediction accuracy">
         {(d) => (
-          <Table caption={`Prediction accuracy by horizon, ${line} line`} head={["Minutes ahead", "Within 60 s", "Within 120 s", "Median error"]}>
+          <Table caption={`Prediction accuracy by horizon, ${lineName(line)}`} head={["Minutes ahead", "Within 60 s", "Within 120 s", "Median error"]}>
             {(d.prediction_accuracy?.rows ?? []).map((r) => (
               <tr key={r.horizon_bucket}>
                 <Td>{r.horizon_bucket}</Td>
-                <Td><Metric cell={cellOf(r, r.pct_within_60s)} unit="pct" /></Td>
-                <Td><Metric cell={cellOf(r, r.pct_within_120s)} unit="pct" /></Td>
-                <Td><Metric cell={cellOf(r, r.median_abs_error_s)} unit="s" /></Td>
+                <Td><Metric cell={cellOf(r, r.pct_within_60s)} unit="pct" info={{ k: "accuracy", line, n: r.n_observations, window: "last_24h", label: `Within 60 s, ${r.horizon_bucket} min ahead` }} /></Td>
+                <Td><Metric cell={cellOf(r, r.pct_within_120s)} unit="pct" info={{ k: "accuracy", line, n: r.n_observations, window: "last_24h", label: `Within 120 s, ${r.horizon_bucket} min ahead` }} /></Td>
+                <Td><Metric cell={cellOf(r, r.median_abs_error_s)} unit="s20" info={{ k: "accuracy", line, n: r.n_observations, window: "last_24h", label: `Median error, ${r.horizon_bucket} min ahead` }} /></Td>
               </tr>
             ))}
           </Table>
@@ -176,13 +202,13 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
     <Card key="countdown" title="Countdown accuracy" definition="10-countdown-accuracy-release-2">
       <Missing r={cd} what="Countdown accuracy">
         {(d) => (
-          <Table caption={`Countdown accuracy by station, ${line} line`} head={["Station", "Countdown", "Within 60 s", "Within 120 s"]}>
+          <Table caption={`Countdown accuracy by station, ${lineName(line)}`} head={["Station", "Countdown", "Within 60 s", "Within 120 s"]}>
             {(d.countdown_accuracy?.rows ?? []).slice(0, 40).map((r) => (
               <tr key={`${r.station_id}-${r.countdown_min}`}>
                 <Td>{r.station_name}</Td>
                 <Td>{r.countdown_min} min</Td>
-                <Td><Metric cell={cellOf(r, r.pct_within_60s)} unit="pct" /></Td>
-                <Td><Metric cell={cellOf(r, r.pct_within_120s)} unit="pct" /></Td>
+                <Td><Metric cell={cellOf(r, r.pct_within_60s)} unit="pct" info={{ k: "countdown", line, n: r.n_observations, window: "last_24h", label: `Within 60 s at ${r.station_name}` }} /></Td>
+                <Td><Metric cell={cellOf(r, r.pct_within_120s)} unit="pct" info={{ k: "countdown", line, n: r.n_observations, window: "last_24h", label: `Within 120 s at ${r.station_name}` }} /></Td>
               </tr>
             ))}
           </Table>
@@ -201,36 +227,135 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
   const trendCard = (
     <Card key="trend" title="Trend: last 24 hours against 7 days">
       <div className="grid gap-3 sm:grid-cols-3">
-        <div><p className="text-sm text-muted">Last 24 hours</p><Metric cell={dayCell} unit="pct" /></div>
-        <div><p className="text-sm text-muted">Last 7 days</p><Metric cell={weekCell} unit="pct" /></div>
+        <div><p className="text-sm text-muted">Last 24 hours</p><Metric cell={dayCell} unit="pct" info={{ k: heavy ? "within_band" : "on_time", line, window: "last_24h" }} /></div>
+        <div><p className="text-sm text-muted">Last 7 days</p><Metric cell={weekCell} unit="pct" info={{ k: heavy ? "within_band" : "on_time", line, window: "last_7d" }} /></div>
         <p aria-live="polite"><TrendText t={trend(dayCell, weekCell, 1)} goodWhenUp unit="points" /></p>
       </div>
     </Card>
   );
 
+  const segCsv: CsvRow[] = [
+    ...seg24.segs.map((x) => ({ w: "last 24 hours", x })),
+    ...seg7.segs.map((x) => ({ w: "last 7 days", x })),
+  ].map(({ w, x }) => ({
+    labels: { line, section: "Segment health", metric: `Within the band, ${w}`, key: `${x.row.from_stop_name} to ${x.row.to_stop_name}` },
+    cell: { value: x.row.pct_within_band, coverage_pct: x.row.coverage_pct, withheld_reason: x.row.withheld_reason },
+    unit: "pct" as const,
+  }));
   const csv: CsvSpec = {
     labelColumns: ["line", "section", "metric", "key"],
-    rows: csvRows(line, sections, dayCell, weekCell),
+    rows: csvRows(line, sections, dayCell, weekCell, segCsv),
     definition: "8-headway-adherence-release-2",
     freshness: fresh?.ok ? fresh.body.freshness.exported_at : null,
   };
 
+  const mareyRows = marey.ok ? marey.body.data.rows.filter((r) => r.direction_id === 0) : [];
+  const stopsInOrder = [...new Map(mareyRows.map((r) => [r.stop_id, r])).values()].sort((a, b) => a.stop_sequence - b.stop_sequence);
+  const toward = stopsInOrder.length ? (stopsInOrder[stopsInOrder.length - 1] as { stop_name: string }).stop_name : (ends?.[1] ?? "the end of the line");
+  const hourStart = marey.ok ? marey.body.data.hour_start : null;
+  const hourText = hourStart ? `${hhmmET(hourStart)}\u2013${hhmmET(new Date(Date.parse(hourStart) + 3600000).toISOString())} ET` : "";
+
+  const strips = (label: string, segs: typeof seg24) => (
+    <StationStrip segs={segs.segs} label={`${lineName(line)} stations, ${label}, coloured by spacing`} />
+  );
+
   return (
-    <>
-      <PageHeader
-        title={line === "Mattapan" ? "Mattapan trolley" : `${line} line`}
-        intro={heavy ? "Heavy rail runs to headways, so spacing between trains comes first." : "Light rail: on-time share against the timetable comes first."}
-        freshness={fresh?.ok ? fresh.body.freshness : null}
-      />
-      <p className="mb-4">
-        <CsvButton spec={csv} filename={`headway-${line}.csv`} />
-      </p>
-      <div className="grid gap-4">
-        {heavy ? [headwaysCard, reliabilityCard] : [reliabilityCard, headwaysCard]}
-        {accuracyCard}
-        {countdownCard}
-        {trendCard}
+    <div className="win-root">
+      <header className="rounded-t-lg border border-b-0 border-line bg-card p-4 sm:p-5" style={{ borderBottom: `6px solid ${style?.fill ?? "#10141A"}` }} data-testid="banner">
+        <div className="flex flex-wrap items-center gap-3">
+          <LineBadge line={line} size={44} />
+          <div>
+            <h1 className="text-2xl sm:text-3xl">{lineName(line)}</h1>
+            <p className="text-sm text-muted">
+              {ends ? `${ends[0]} to ${ends[1]}` : heavy ? "Heavy rail" : "Light rail"}
+              {asOf ? ` · as of ${asOf} ET` : ""}
+            </p>
+          </div>
+          <fieldset className="ml-auto flex gap-1" data-testid="window-toggle">
+            <legend className="sr-only">Time window</legend>
+            <input type="radio" name="win" id="win-24" defaultChecked className="peer/a sr-only" />
+            <label htmlFor="win-24" className="inline-flex min-h-11 cursor-pointer items-center rounded-l border border-fg px-4 text-sm font-semibold peer-checked/a:bg-fg peer-checked/a:text-white peer-focus-visible/a:outline peer-focus-visible/a:outline-[3px] peer-focus-visible/a:outline-offset-2">24 h</label>
+            <input type="radio" name="win" id="win-7" className="peer/b sr-only" />
+            <label htmlFor="win-7" className="inline-flex min-h-11 cursor-pointer items-center rounded-r border border-fg px-4 text-sm font-semibold peer-checked/b:bg-fg peer-checked/b:text-white peer-focus-visible/b:outline peer-focus-visible/b:outline-[3px] peer-focus-visible/b:outline-offset-2">
+              7 d{daysAvailable != null ? ` (${daysAvailable} ${daysAvailable === 1 ? "day" : "days"} available)` : ""}
+            </label>
+          </fieldset>
+        </div>
+        <p className="mt-3 flex flex-wrap items-center gap-3">
+          {disrupted ? <DisruptionChip open label={open[0]?.summary_text ? `Service disruption: ${open[0].summary_text}` : undefined} /> : null}
+          {fresh?.ok ? <Freshness ageMinutes={fresh.body.freshness.age_minutes} exportedAt={fresh.body.freshness.exported_at} /> : null}
+          <CsvButton spec={csv} filename={`headway-${line}.csv`} />
+        </p>
+      </header>
+
+      <div className="mt-6 grid gap-6">
+        <section aria-labelledby="key-h">
+          <h2 id="key-h" className="mb-2 text-xl">Key numbers</h2>
+          <p className="mb-2 text-sm text-muted">{heavy ? "Heavy rail runs to headways, so spacing between trains comes first." : "Light rail: on-time share against the timetable comes first."} Press a number to see how it was measured.</p>
+          <div className="win-24"><KeyNumbers line={line} heavy={heavy} window="last_24h" h={hRow(h24)} a={aRow(rel24)} acc={accRow(acc)} /></div>
+          <div className="win-7"><KeyNumbers line={line} heavy={heavy} window="last_7d" h={hRow(h7)} a={aRow(rel7)} acc={accRow(acc7)} /></div>
+          {note ? (
+            <p className="mt-3 rounded border border-line bg-card p-3 text-sm" data-testid="line-note">
+              {note.text} <a href={docUrl(note.href)}>See the measurement</a>
+            </p>
+          ) : null}
+        </section>
+
+        <section aria-labelledby="strip-h">
+          <h2 id="strip-h" className="mb-2 text-xl">Station by station</h2>
+          <div className="rounded-lg border border-line bg-card p-4">
+            <div className="win-24">{strips("last 24 hours", seg24)}</div>
+            <div className="win-7">{strips("last 7 days", seg7)}</div>
+            <RampLegend />
+          </div>
+        </section>
+
+        <section aria-labelledby="marey-h">
+          <h2 id="marey-h" className="mb-2 text-xl">Trains over the last hour</h2>
+          <div className="rounded-lg border border-line bg-card p-4">
+            {marey.ok && mareyRows.length && hourStart ? (
+              <>
+                <p className="mb-3 text-sm text-muted">Trains toward {toward}, {hourText}. Each line is one train; steeper is faster.</p>
+                <MareyChart rows={mareyRows} hourStart={hourStart} toward={toward} />
+              </>
+            ) : marey.ok ? (
+              <p className="text-sm text-muted">No arrivals were reconstructed for the last complete hour.</p>
+            ) : (
+              <ErrorState failure={marey} what="The last-hour chart" />
+            )}
+          </div>
+        </section>
+
+        <section aria-labelledby="hours-h">
+          <h2 id="hours-h" className="mb-2 text-xl">Hours we could measure</h2>
+          <div className="rounded-lg border border-line bg-card p-4">
+            {heartbeat.ok ? <HourStrip rows={heartbeat.body.data.rows} /> : <ErrorState failure={heartbeat} what="The capture heartbeat" />}
+          </div>
+        </section>
+
+        <section aria-labelledby="trip-h">
+          <h2 id="trip-h" className="mb-2 text-xl">Trip time against the plan</h2>
+          <div className="rounded-lg border border-line bg-card p-4">
+            <Table caption={`Trip time against the timetable, ${lineName(line)}`} head={["Direction", "Trip time vs plan", "Trips measured"]}>
+              {[0, 1].map((dir) => (
+                <tr key={dir}>
+                  <Td>{dir === 0 ? `Toward ${ends?.[1] ?? "the end of the line"}` : `Toward ${ends?.[0] ?? "the start of the line"}`}</Td>
+                  <Td><span className="text-muted">No trips measured yet</span></Td>
+                  <Td>0</Td>
+                </tr>
+              ))}
+            </Table>
+            <p className="mt-2 text-sm text-muted">Trip-time figures are not in the public API yet, so this table stays empty rather than showing a number we cannot back.</p>
+          </div>
+        </section>
+
+        <section aria-labelledby="more-h">
+          <h2 id="more-h" className="mb-2 text-xl">All measurements</h2>
+          <div className="grid gap-4">
+            {[reliabilityCard, accuracyCard, countdownCard, trendCard]}
+          </div>
+        </section>
       </div>
-    </>
+    </div>
   );
 }

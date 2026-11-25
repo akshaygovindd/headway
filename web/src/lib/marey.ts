@@ -6,6 +6,7 @@ import type { MareyRow } from "./types";
 
 export type MareyAnnotation = {
   kind: "bunching" | "long_wait";
+  stop_id: string;
   stop_name: string;
   /** ISO time of the later of the two trains. */
   at: string;
@@ -39,16 +40,17 @@ export function annotateMarey(rows: MareyRow[], perKind = 2): MareyAnnotation[] 
     const expected = median(gaps);
     if (expected <= 0) continue;
     const name = (stopRows[0] as MareyRow).stop_name;
+    const stopId = (stopRows[0] as MareyRow).stop_id;
     let bunch: (typeof found)[number] | null = null;
     let long: (typeof found)[number] | null = null;
     gaps.forEach((g, i) => {
       const at = new Date(times[i + 1] as number).toISOString().replace(".000Z", "Z");
       if (g < expected * BUNCH_BELOW) {
         const severity = expected / Math.max(g, 1);
-        if (!bunch || severity > bunch.severity) bunch = { kind: "bunching", stop_name: name, at, gap_s: g, expected_s: expected, severity };
+        if (!bunch || severity > bunch.severity) bunch = { kind: "bunching", stop_id: stopId, stop_name: name, at, gap_s: g, expected_s: expected, severity };
       } else if (g > expected * LONG_ABOVE) {
         const severity = g / expected;
-        if (!long || severity > long.severity) long = { kind: "long_wait", stop_name: name, at, gap_s: g, expected_s: expected, severity };
+        if (!long || severity > long.severity) long = { kind: "long_wait", stop_id: stopId, stop_name: name, at, gap_s: g, expected_s: expected, severity };
       }
     });
     if (bunch) found.push(bunch);
@@ -56,7 +58,7 @@ export function annotateMarey(rows: MareyRow[], perKind = 2): MareyAnnotation[] 
   }
   const top = (k: MareyAnnotation["kind"]) =>
     found.filter((a) => a.kind === k).sort((a, b) => b.severity - a.severity).slice(0, perKind);
-  return [...top("bunching"), ...top("long_wait")].map((a) => ({ kind: a.kind, stop_name: a.stop_name, at: a.at, gap_s: a.gap_s, expected_s: a.expected_s }));
+  return [...top("bunching"), ...top("long_wait")].map((a) => ({ kind: a.kind, stop_id: a.stop_id, stop_name: a.stop_name, at: a.at, gap_s: a.gap_s, expected_s: a.expected_s }));
 }
 
 export type MareyPoint = { x: number; y: number; method: "observed" | "estimated" };
