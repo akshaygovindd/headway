@@ -90,7 +90,7 @@ def write_closed_days(
                         f"to '{path}' (format parquet)",
                         [day],
                     )
-                    created = history._put_once(s3, bucket, key, path.read_bytes())  # noqa: SLF001
+                    created = history._put_once(s3, bucket, key, path)  # noqa: SLF001
                 if created:
                     result.written.setdefault(table, []).append(day.isoformat())
                 else:

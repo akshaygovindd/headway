@@ -31,6 +31,9 @@ def _prefix_patterns() -> list[str]:
 def test_state_module_actions_are_the_ones_checked() -> None:
     src = Path(state.__file__).read_text()
     used = set(re.findall(r"s3\.(put_object|get_object|delete_object|head_object)\(", src))
+    # download_file streams to disk: it issues GetObject (and a HeadObject, also s3:GetObject)
+    if "s3.download_file(" in src:
+        used.add("get_object")
     used.add("list_objects_v2")
     assert used == {"put_object", "get_object", "list_objects_v2"}, used
 

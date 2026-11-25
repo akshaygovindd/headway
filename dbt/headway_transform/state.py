@@ -78,11 +78,15 @@ def slot_of(started_at: datetime, minute: int = 20) -> datetime:
     )
 
 
-def _get(s3: Any, bucket: str, key: str) -> bytes | None:
+def _download(s3: Any, bucket: str, key: str, path: Path) -> bool:
+    """Stream an object to `path` (never whole into memory); False when it does not exist."""
     try:
-        return bytes(s3.get_object(Bucket=bucket, Key=key)["Body"].read())
-    except s3.exceptions.NoSuchKey:
-        return None
+        s3.download_file(bucket, key, str(path))
+    except s3.exceptions.ClientError as exc:
+        if exc.response["Error"]["Code"] in ("404", "NoSuchKey"):
+            return False
+        raise
+    return True
 
 
 def fetch_files(s3: Any, bucket: str, table: StateTable, now: datetime, into: Path) -> list[Path]:
@@ -95,12 +99,11 @@ def fetch_files(s3: Any, bucket: str, table: StateTable, now: datetime, into: Pa
     files: list[Path] = []
     for i, key in enumerate(sorted(keys)):
         day = date.fromisoformat(key.split("/dt=")[1].split("/")[0])
-        body = _get(s3, bucket, key)
-        if day < first or body is None:
+        if day < first:
             continue
         path = into / f"{i}.parquet"
-        path.write_bytes(body)
-        files.append(path)
+        if _download(s3, bucket, key, path):
+            files.append(path)
     return files
 
 
@@ -169,18 +172,18 @@ def append(
     with tempfile.TemporaryDirectory() as tmp:
         old = Path(tmp) / "old.parquet"
         out = Path(tmp) / "rows.parquet"
-        existing = _get(s3, bucket, key)
+        existing = _download(s3, bucket, key, old)
         con = duckdb_limits.connect()
         try:
             con.execute("set TimeZone = 'UTC'")
             con.execute(table.ddl.replace("main.", "", 1))
-            if existing is not None:
-                old.write_bytes(existing)
+            if existing:
                 _insert_files(con, table, [old], table.name)
             marks = ", ".join("?" for _ in table.columns)
             con.executemany(f"insert into {table.name} values ({marks})", list(new_rows))  # noqa: S608
             con.execute(f"copy {table.name} to '{out}' (format parquet)")
         finally:
             con.close()
-        s3.put_object(Bucket=bucket, Key=key, Body=out.read_bytes(), ContentType=PARQUET)
+        with out.open("rb") as body:
+            s3.put_object(Bucket=bucket, Key=key, Body=body, ContentType=PARQUET)
     return key

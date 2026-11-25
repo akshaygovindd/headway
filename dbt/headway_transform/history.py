@@ -11,6 +11,7 @@ bumps the metric version of its family (``METRIC_VERSIONS``, the only place vers
 writes next to the old version instead of over it; ``rebuild_history`` backfills it.
 """
 
+import contextlib
 import logging
 import os
 import tempfile
@@ -118,14 +119,19 @@ def _exists(s3: Any, bucket: str, key: str) -> bool:
     return True
 
 
-def _put_once(s3: Any, bucket: str, key: str, body: bytes) -> bool:
-    """Create the object unless it exists (conditional put); True when this call created it."""
+def _put_once(s3: Any, bucket: str, key: str, body: bytes | Path) -> bool:
+    """Create the object unless it exists (conditional put); True when this call created it.
+
+    A ``Path`` is streamed from disk rather than read whole into memory (ADR-024).
+    """
     try:
-        s3.put_object(
-            Bucket=bucket, Key=key, Body=body, IfNoneMatch="*",
-            ContentType="application/vnd.apache.parquet",
-            CacheControl="max-age=31536000, immutable",
-        )  # fmt: skip
+        with contextlib.ExitStack() as stack:
+            data = stack.enter_context(body.open("rb")) if isinstance(body, Path) else body
+            s3.put_object(
+                Bucket=bucket, Key=key, Body=data, IfNoneMatch="*",
+                ContentType="application/vnd.apache.parquet",
+                CacheControl="max-age=31536000, immutable",
+            )  # fmt: skip
     except s3.exceptions.ClientError as exc:
         if exc.response["Error"]["Code"] in _CONFLICT:
             return False
@@ -189,7 +195,7 @@ def write_closed_days(
                         f"to '{path}' (format parquet)",
                         [day],
                     )
-                    created = _put_once(s3, bucket, key, path.read_bytes())
+                    created = _put_once(s3, bucket, key, path)
                 if created:
                     result.written.setdefault(table, []).append(day.isoformat())
                 else:
