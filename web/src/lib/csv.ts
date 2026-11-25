@@ -47,12 +47,14 @@ export function csvValue(value: number, unit: Unit): { value: number; unit: Unit
   return unit === "share" ? { value: round(value * 100, 4), unit: "pct" } : { value, unit };
 }
 
+/**
+ * The CSV is data only: a header row, then rows. The definition link and export time are in a
+ * separate metadata file (buildMetadata), so spreadsheet and pandas imports never meet a comment.
+ */
 export function buildCsv(spec: CsvSpec, exportedAt: string): string {
+  void exportedAt;
   const eol = "\r\n";
-  const lines: string[] = [
-    `# metric definition: ${methodologyUrl(spec.definition)}; exported ${exportedAt}`,
-    [...spec.labelColumns, ...VALUE_COLUMNS].map(csvField).join(","),
-  ];
+  const lines: string[] = [[...spec.labelColumns, ...VALUE_COLUMNS].map(csvField).join(",")];
   for (const row of spec.rows) {
     const s = shown(row.cell);
     const out = s.kind === "value" ? csvValue(s.value, row.unit) : null;
@@ -67,4 +69,19 @@ export function buildCsv(spec: CsvSpec, exportedAt: string): string {
     lines.push(fields.join(","));
   }
   return lines.join(eol) + eol;
+}
+
+/** The plain-text companion of a CSV: where the metric is defined, when it was exported, the rule. */
+export function buildMetadata(spec: CsvSpec, exportedAt: string, filename: string): string {
+  return (
+    [
+      `file: ${filename}`,
+      `metric_definition: ${methodologyUrl(spec.definition)}`,
+      `exported_at: ${exportedAt}`,
+      `data_freshness (exported_at of the gold data): ${spec.freshness ?? "unknown"}`,
+      `rows: ${spec.rows.length}`,
+      "columns: " + [...spec.labelColumns, ...VALUE_COLUMNS].join(", "),
+      "rule: a value from a row whose coverage is under 50% is left empty, with the reason in withheld_reason; percentages are percent points (a skipped-stop share of 0.013 is written 1.3)",
+    ].join("\r\n") + "\r\n"
+  );
 }

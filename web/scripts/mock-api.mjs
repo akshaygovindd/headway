@@ -49,6 +49,8 @@ function forLine(body, line, window) {
           if (k.startsWith("pct_")) out[k] = clamp(n + ((idx * 37) % 11) - 5);
           else if (k.endsWith("_s") && k !== "countdown_min") out[k] = Math.round(n * (1 + (((idx * 37) % 11) - 5) / 20));
         }
+        // Observation counts differ by line (Red keeps the fixture's own numbers).
+        for (const k of Object.keys(out)) if (k.startsWith("n_") && typeof out[k] === "number" && k !== "n_excluded_outage") out[k] = Math.round(out[k] * (1 + idx * 0.17));
         if (typeof out.pct_within_band === "number") {
           out.pct_bunched = Math.round((100 - out.pct_within_band) * 4) / 10;
           out.pct_gap = Math.round((100 - out.pct_within_band - out.pct_bunched) * 10) / 10;

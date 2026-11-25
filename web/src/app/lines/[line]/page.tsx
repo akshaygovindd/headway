@@ -21,9 +21,9 @@ import { lineName, LINE_STYLE } from "@/lib/lines";
 import { isHeavyRail, isLine, LINES, shown, trend, type Cell, type Trend } from "@/lib/map";
 import { disruptionLabel, lineDisruptionHeader, termini } from "@/lib/network";
 import { branchPaths, coveredStops, rowsForBranch } from "@/lib/marey";
-import { bandLabel, countdownRowsFor, sortBuckets } from "@/lib/linedata";
+import { bandLabel, countdownRowsFor, hourState, orderHours, sortBuckets } from "@/lib/linedata";
 import { openIncidentsByLine, segmentsOf, thresholds } from "@/lib/site-data";
-import { hhmmET } from "@/lib/time";
+import { hhmmET, hourLabel } from "@/lib/time";
 import notes from "@/data/metric-notes.json";
 import type {
   AccuracyData,
@@ -269,17 +269,36 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
     ...(trip24.ok ? trip24.body.data.rows.map((r) => ({ w: "last 24 hours", r })) : []),
     ...(trip7.ok ? trip7.body.data.rows.map((r) => ({ w: "last 7 days", r })) : []),
   ]
-    .filter(({ r }) => r.status !== "no_trips")
     .flatMap(({ w, r }) => {
       const key = `Toward ${ends?.[r.direction_id === 0 ? 1 : 0] ?? "the end of the line"}, ${bandLabel(r.time_band)}`;
-      const cell = (v: number | null) => ({ value: v, coverage_pct: r.coverage_pct, withheld_reason: r.withheld_reason });
+      // A band with no trips is still a row, with its reason: an empty cell never means "forgotten".
+      const noTrips = r.status === "no_trips";
+      const cell = (v: number | null) => ({
+        value: noTrips ? null : v,
+        coverage_pct: r.coverage_pct,
+        withheld_reason: noTrips ? (r.no_trips_reason ?? "no trips measured in this band") : r.withheld_reason,
+      });
       return ([["Median vs plan", r.median_ett_s], ["90th percentile vs plan", r.p90_ett_s], ["Planned run", r.median_scheduled_s], ["Actual run", r.median_actual_s]] as const).map(
         ([m, v]) => ({ labels: { line, section: "Trip time against the plan", metric: `${m}, ${w}`, key }, cell: cell(v), unit: "s" as const }),
       );
     });
+  const spacingCsv: CsvRow[] = spacing.ok
+    ? orderHours(spacing.body.data.hours).map((h) => {
+        const st = hourState(h);
+        const reason =
+          st === "outage" ? "our data gap: capture was down, hour left out of every number"
+          : st === "no_headways" ? "no valid headways measured in this hour"
+          : h.withheld_reason;
+        return {
+          labels: { line, section: "Spacing by hour", metric: "Within the expected spacing", key: `${h.service_date} ${hourLabel(h.hour_local)}` },
+          cell: { value: st === "outage" || st === "no_headways" ? null : h.pct_within_band, coverage_pct: h.coverage_pct, withheld_reason: reason },
+          unit: "pct" as const,
+        };
+      })
+    : [];
   const csv: CsvSpec = {
     labelColumns: ["line", "section", "metric", "key"],
-    rows: csvRows(line, sections, stopIds, dayCell, weekCell, [...segCsv, ...tripCsv]),
+    rows: csvRows(line, sections, stopIds, dayCell, weekCell, [...segCsv, ...spacingCsv, ...tripCsv]),
     definition: "8-headway-adherence-release-2",
     freshness: fresh?.ok ? fresh.body.freshness.exported_at : null,
   };

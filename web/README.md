@@ -119,8 +119,10 @@ Column types are **derived from naming conventions** (dbt declares none) and nul
 ## CSV export
 
 The Line and Incidents pages have a "Download CSV" button for exactly the rows on the page. The
-first line is a comment with the metric definition URL and the export time; then the header.
-Columns: the row's identifying labels, then `value`, `unit`, `coverage_pct`, `withheld_reason`,
+file is data only (a header row, then rows, no comment line); the metric definition URL and the
+export time are in a separate `*.metadata.txt` from the "Metadata" button. Bands with no trips are
+rows with a reason, and the Line CSV includes spacing by hour (outage hours too). Percentages are
+percent points: a skipped-stop share of 0.013 is written `1.3` with unit `pct`. Columns: the row's identifying labels, then `value`, `unit`, `coverage_pct`, `withheld_reason`,
 `freshness` (the data's `exported_at`). A withheld value is an empty cell with the reason, never a
 number. Text cells starting with `=`, `+`, `-` or `@` get a leading apostrophe so spreadsheets do
 not run them. The builder is `src/lib/csv.ts`.

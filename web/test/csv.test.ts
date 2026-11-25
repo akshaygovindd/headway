@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCsv, csvField, withheldReason, type CsvSpec } from "@/lib/csv";
+import { buildCsv, buildMetadata, csvField, withheldReason, type CsvSpec } from "@/lib/csv";
 
 const AT = "2026-11-24T12:00:00.000Z";
 const base = (rows: CsvSpec["rows"]): CsvSpec => ({
@@ -11,15 +11,22 @@ const base = (rows: CsvSpec["rows"]): CsvSpec => ({
 const lines = (csv: string) => csv.trimEnd().split("\r\n");
 
 describe("buildCsv", () => {
-  it("starts with a comment carrying the definition URL and export time, then the header", () => {
+  it("is data only: the header row first, no comment line", () => {
     const out = lines(buildCsv(base([]), AT));
-    expect(out[0]).toMatch(/^# metric definition: https:\/\/.+\/docs\/METRICS\.md#8-headway-adherence-release-2; exported 2026-11-24T12:00:00\.000Z$/);
-    expect(out[1]).toBe("metric,value,unit,coverage_pct,withheld_reason,freshness");
+    expect(out).toEqual(["metric,value,unit,coverage_pct,withheld_reason,freshness"]);
+    expect(buildCsv(base([{ labels: { metric: "m" }, cell: { value: 1, coverage_pct: 99 }, unit: "count" }]), AT)).not.toContain("#");
+  });
+
+  it("the definition URL and export time go in a separate metadata file", () => {
+    const meta = buildMetadata(base([]), AT, "headway-Red.csv");
+    expect(meta).toMatch(/metric_definition: https:\/\/.+\/docs\/METRICS\.md#8-headway-adherence-release-2/);
+    expect(meta).toContain("exported_at: 2026-11-24T12:00:00.000Z");
+    expect(meta).toContain("file: headway-Red.csv");
   });
 
   it("writes a shown value with its coverage and freshness", () => {
     const out = lines(buildCsv(base([{ labels: { metric: "within band" }, cell: { value: 82.4, coverage_pct: 88.2 }, unit: "pct" }]), AT));
-    expect(out[2]).toBe("within band,82.4,pct,88.2,,2026-11-24T11:45:00Z");
+    expect(out[1]).toBe("within band,82.4,pct,88.2,,2026-11-24T11:45:00Z");
   });
 
   it("exports a withheld value as empty with the reason, never a number", () => {
@@ -33,10 +40,10 @@ describe("buildCsv", () => {
         AT,
       ),
     );
-    expect(out[2]).toBe('a,,pct,30,coverage 30% is below 50%,2026-11-24T11:45:00Z');
-    expect(out[3]).toMatch(/^b,,pct,30,coverage 30.0% is below/);
-    expect(out[4]).toMatch(/^c,,s,,data unavailable,/);
-    expect(out.slice(2).join("\n")).not.toContain("71");
+    expect(out[1]).toBe('a,,pct,30,coverage 30% is below 50%,2026-11-24T11:45:00Z');
+    expect(out[2]).toMatch(/^b,,pct,30,coverage 30.0% is below/);
+    expect(out[3]).toMatch(/^c,,s,,data unavailable,/);
+    expect(out.slice(1).join("\n")).not.toContain("71");
   });
 
   it("keeps zero as a number and applies the 50% boundary", () => {
@@ -50,20 +57,20 @@ describe("buildCsv", () => {
         AT,
       ),
     );
-    expect(out[2]).toMatch(/^zero,0,count,90,,/);
-    expect(out[3]).toMatch(/^edge,5,s,50,,/);
-    expect(out[4]).toMatch(/^below,,s,49.9,/);
+    expect(out[1]).toMatch(/^zero,0,count,90,,/);
+    expect(out[2]).toMatch(/^edge,5,s,50,,/);
+    expect(out[3]).toMatch(/^below,,s,49.9,/);
   });
 
   it("exports exactly the rows given, in order", () => {
     const rows = ["x", "y", "z"].map((m) => ({ labels: { metric: m }, cell: { value: 1, coverage_pct: 99 }, unit: "count" as const }));
-    expect(lines(buildCsv(base(rows), AT)).slice(2).map((l) => l[0])).toEqual(["x", "y", "z"]);
-    expect(lines(buildCsv(base(rows.slice(0, 1)), AT))).toHaveLength(3);
+    expect(lines(buildCsv(base(rows), AT)).slice(1).map((l) => l[0])).toEqual(["x", "y", "z"]);
+    expect(lines(buildCsv(base(rows.slice(0, 1)), AT))).toHaveLength(2);
   });
 
   it("leaves freshness empty when unknown", () => {
     const out = lines(buildCsv({ ...base([{ labels: { metric: "m" }, cell: { value: 1, coverage_pct: 99 }, unit: "count" }]), freshness: null }, AT));
-    expect(out[2]).toBe("m,1,count,99,,");
+    expect(out[1]).toBe("m,1,count,99,,");
   });
 });
 
@@ -91,11 +98,11 @@ describe("skipped-stop share unit", () => {
     const { formatValue } = await import("@/lib/map");
     expect(formatValue(0.013, "share")).toBe("1.3%");
     const out = lines(buildCsv(base([{ labels: { metric: "skipped" }, cell: { value: 0.013, coverage_pct: 68 }, unit: "share" }]), AT));
-    expect(out[2]).toBe("skipped,1.3,pct,68,,2026-11-24T11:45:00Z");
+    expect(out[1]).toBe("skipped,1.3,pct,68,,2026-11-24T11:45:00Z");
   });
   it("a withheld share keeps the percent unit", () => {
     const out = lines(buildCsv(base([{ labels: { metric: "skipped" }, cell: { value: null, coverage_pct: 30 }, unit: "share" }]), AT));
-    expect(out[2]).toMatch(/^skipped,,pct,30,/);
+    expect(out[1]).toMatch(/^skipped,,pct,30,/);
   });
   it("the Orange fixture holds a fraction near 1.3%, not a percent", async () => {
     const { respond } = await import("../scripts/mock-api.mjs");
