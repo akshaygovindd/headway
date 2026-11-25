@@ -10,12 +10,12 @@ function walk(dir: string): string[] {
 }
 
 describe("client JavaScript budget", () => {
-  it("only the theme toggle and the CSV button are client components", () => {
+  it("only the theme toggle, the CSV button and Next's required error boundary are client components", () => {
     const clients = walk(path.join(process.cwd(), "src"))
       .filter((f) => /\.(tsx?|jsx?)$/.test(f))
       .filter((f) => /^\s*["']use client["']/.test(readFileSync(f, "utf8")))
       .map((f) => path.basename(f))
       .sort();
-    expect(clients).toEqual(["CsvButton.tsx", "ThemeToggle.tsx"]);
+    expect(clients).toEqual(["CsvButton.tsx", "ThemeToggle.tsx", "error.tsx"]);
   });
 });

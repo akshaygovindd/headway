@@ -101,7 +101,7 @@ is off in tests.
 ## Performance
 
 Pages are server-rendered and prerendered (revalidated every 5 minutes). The only client
-components are the theme toggle and the CSV button (`test/client-js.test.ts` enforces this). The
+components are the theme toggle, the CSV button and `error.tsx` (Next requires error boundaries to be client components; it renders nothing unless a page fails). `test/client-js.test.ts` enforces this list. The
 JavaScript below is the Next.js and React runtime needed to hydrate those two; the CSV button adds
 about 1 kB on the pages that have it. Sizes from `npm run build:mock` then
 `node scripts/page-sizes.mjs` (gzip):
