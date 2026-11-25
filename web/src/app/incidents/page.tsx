@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { CsvButton } from "@/components/CsvButton";
 import { DisruptionChip, Metric, OutageLabel, Withheld } from "@/components/trust";
 import { ErrorState, LineLink, PageHeader } from "@/components/ui";
 import { getApi } from "@/lib/api";
+import type { CsvSpec } from "@/lib/csv";
 import { shown } from "@/lib/map";
 import type { IncidentsData } from "@/lib/types";
 
@@ -10,6 +12,27 @@ export const metadata: Metadata = { title: "Incidents" };
 
 const when = (ts: string | null) =>
   ts ? new Date(ts).toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" }) : "ongoing";
+
+function csvFor(incidents: IncidentsData["incidents"], freshness: string | null): CsvSpec {
+  return {
+    labelColumns: ["incident_id", "line", "start", "end", "is_open", "n_outage_hours_inside"],
+    rows: incidents.map((i) => ({
+      labels: {
+        incident_id: i.incident_id,
+        line: i.line,
+        start: i.start_ts,
+        end: i.end_ts,
+        is_open: i.is_open,
+        n_outage_hours_inside: i.n_outage_hours_inside,
+      },
+      // The value shown on the page is the duration, withheld by the same minimum-coverage rule.
+      cell: { value: i.n_hours, coverage_pct: i.min_coverage_pct },
+      unit: "h" as const,
+    })),
+    definition: "incidents-release-3",
+    freshness,
+  };
+}
 
 export default async function IncidentsPage() {
   const r = await getApi<IncidentsData>("/incidents");
@@ -25,6 +48,10 @@ export default async function IncidentsPage() {
       ) : r.body.data.incidents.length === 0 ? (
         <p>No incidents between {r.body.data.from} and {r.body.data.to}.</p>
       ) : (
+        <>
+        <p className="mb-4">
+          <CsvButton spec={csvFor(r.body.data.incidents, r.body.freshness.exported_at)} filename="headway-incidents.csv" />
+        </p>
         <ul className="grid gap-4">
           {r.body.data.incidents.map((i) => {
             const summaryOk = shown({ value: 1, coverage_pct: i.min_coverage_pct }).kind === "value";
@@ -48,6 +75,7 @@ export default async function IncidentsPage() {
             );
           })}
         </ul>
+        </>
       )}
     </>
   );

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { CsvButton } from "@/components/CsvButton";
 import { Metric } from "@/components/trust";
 import { Card, ErrorState, PageHeader, Table, Td } from "@/components/ui";
 import type { ApiResult } from "@/lib/api";
+import type { CsvRow, CsvSpec } from "@/lib/csv";
 import { headwayCell, lineSections, onTimeCell } from "@/lib/data";
 import { isHeavyRail, isLine, LINES, trend, type Cell, type Trend } from "@/lib/map";
 import type { CoveredRow, Section } from "@/lib/types";
@@ -45,10 +47,59 @@ function Rows<R extends CoveredRow>({ s, children }: { s: Section<R> | undefined
   return <>{s.rows.map(children)}</>;
 }
 
+/** The rows the cards show, one per displayed number. Section names match the card titles. */
+function csvRows(
+  line: string,
+  s: Awaited<ReturnType<typeof lineSections>>,
+  dayCell: Cell,
+  weekCell: Cell,
+): CsvRow[] {
+  const out: CsvRow[] = [];
+  const add = (section: string, metric: string, key: string, cell: Cell, unit: CsvRow["unit"]) =>
+    out.push({ labels: { line, section, metric, key }, cell, unit });
+  if (s.h24.ok) {
+    for (const r of s.h24.body.data.headway_adherence?.rows ?? []) {
+      add("Headway adherence", "Within the expected spacing", "", cellOf(r, r.pct_within_band), "pct");
+      add("Headway adherence", "Bunched trains", "", cellOf(r, r.pct_bunched), "pct");
+      add("Headway adherence", "Gaps", "", cellOf(r, r.pct_gap), "pct");
+    }
+  }
+  if (s.rel24.ok) {
+    for (const r of s.rel24.body.data.actual_deviation?.rows ?? []) {
+      add("Reliability", "Arrivals on time (last 24 hours)", "", cellOf(r, r.pct_on_time_window), "pct");
+      add("Reliability", "Median deviation from the timetable", "", cellOf(r, r.median_deviation_s), "s");
+      add("Reliability", "90th percentile deviation", "", cellOf(r, r.p90_deviation_s), "s");
+    }
+    for (const r of s.rel24.body.data.predicted_deviation?.rows ?? []) {
+      add("Reliability", "Median predicted deviation", "", cellOf(r, r.median_predicted_deviation_s), "s");
+      add("Reliability", "Median prediction revision", "", cellOf(r, r.median_abs_revision_s), "s");
+      add("Reliability", "Skipped stops", "", cellOf(r, r.skipped_share), "share");
+    }
+  }
+  if (s.acc.ok) {
+    for (const r of s.acc.body.data.prediction_accuracy?.rows ?? []) {
+      add("Accuracy of MBTA predictions", "Within 60 s", r.horizon_bucket, cellOf(r, r.pct_within_60s), "pct");
+      add("Accuracy of MBTA predictions", "Within 120 s", r.horizon_bucket, cellOf(r, r.pct_within_120s), "pct");
+      add("Accuracy of MBTA predictions", "Median error", r.horizon_bucket, cellOf(r, r.median_abs_error_s), "s");
+    }
+  }
+  if (s.cd.ok) {
+    for (const r of (s.cd.body.data.countdown_accuracy?.rows ?? []).slice(0, 40)) {
+      const key = `${r.station_name} @ ${r.countdown_min} min`;
+      add("Countdown accuracy", "Within 60 s", key, cellOf(r, r.pct_within_60s), "pct");
+      add("Countdown accuracy", "Within 120 s", key, cellOf(r, r.pct_within_120s), "pct");
+    }
+  }
+  add("Trend", "Last 24 hours", "", dayCell, "pct");
+  add("Trend", "Last 7 days", "", weekCell, "pct");
+  return out;
+}
+
 export default async function LinePage({ params }: { params: Promise<{ line: string }> }) {
   const { line } = await params;
   if (!isLine(line)) notFound();
-  const { h24, h7, rel24, rel7, acc, cd } = await lineSections(line);
+  const sections = await lineSections(line);
+  const { h24, h7, rel24, rel7, acc, cd } = sections;
   const heavy = isHeavyRail(line);
   const fresh = [h24, rel24, acc].find((r) => r.ok);
 
@@ -154,6 +205,13 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
     </Card>
   );
 
+  const csv: CsvSpec = {
+    labelColumns: ["line", "section", "metric", "key"],
+    rows: csvRows(line, sections, dayCell, weekCell),
+    definition: "8-headway-adherence-release-2",
+    freshness: fresh?.ok ? fresh.body.freshness.exported_at : null,
+  };
+
   return (
     <>
       <PageHeader
@@ -161,6 +219,9 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
         intro={heavy ? "Heavy rail runs to headways, so spacing between trains comes first." : "Light rail: on-time share against the timetable comes first."}
         freshness={fresh?.ok ? fresh.body.freshness : null}
       />
+      <p className="mb-4">
+        <CsvButton spec={csv} filename={`headway-${line}.csv`} />
+      </p>
       <div className="grid gap-4">
         {heavy ? [headwaysCard, reliabilityCard] : [reliabilityCard, headwaysCard]}
         {accuracyCard}

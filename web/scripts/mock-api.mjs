@@ -4,7 +4,11 @@ import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 
-const dir = fileURLToPath(new URL("../test/fixtures/", import.meta.url));
+// Under vitest (jsdom) the global URL is not Node's, so file URLs fail; tests run from web/.
+const dir =
+  typeof window === "undefined"
+    ? fileURLToPath(new URL("../test/fixtures/", import.meta.url))
+    : `${process.cwd()}/test/fixtures/`;
 const load = (name) => JSON.parse(readFileSync(`${dir}${name}.json`, "utf8"));
 const LINES = ["Red", "Orange", "Blue", "Green-B", "Green-C", "Green-D", "Green-E", "Mattapan"];
 
@@ -29,7 +33,7 @@ function forLine(body, line) {
   return walk(body);
 }
 
-function respond(path) {
+export function respond(path) {
   if (path === "/v1/lines") {
     const b = load("lines");
     return { status: 200, body: b };
