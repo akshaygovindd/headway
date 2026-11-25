@@ -16,6 +16,7 @@ const NAV = [
   ["/forecast", "Forecast"],
   ["/pipeline", "Pipeline health"],
   ["/how-we-measure", "How we measure"],
+  ["/data", "Data"],
   ["/about", "About"],
 ] as const;
 
