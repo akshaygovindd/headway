@@ -27,9 +27,24 @@ def limit_mb() -> int:
 
 
 def rss_peak_mb() -> float:
-    """High-water resident set of this process so far, in MB."""
+    """High-water resident set of this process since the last reset, in MB (``VmHWM``)."""
+    try:
+        for line in Path("/proc/self/status").read_text().splitlines():
+            if line.startswith("VmHWM:"):
+                return int(line.split()[1]) / 1024
+    except OSError:
+        pass
     peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     return peak / (1024 * 1024) if sys.platform == "darwin" else peak / 1024
+
+
+def reset_rss_peak() -> bool:
+    """Restart the high-water mark (Linux: writing 5 to clear_refs), to attribute peaks to steps."""
+    try:
+        Path("/proc/self/clear_refs").write_text("5")
+    except OSError:
+        return False
+    return True
 
 
 def cgroup_peak_mb() -> float | None:
@@ -73,6 +88,7 @@ class Tracker:
     def __init__(self, spill_dir: str, interval_s: float = 0.5) -> None:
         self.spill_dir = spill_dir
         self.interval_s = interval_s
+        self.run_peak_mb = 0.0
         self.step_peak_mb: dict[str, float] = {}
         self.step_spill_mb: dict[str, float] = {}
         self._spill_max = 0.0
@@ -91,7 +107,10 @@ class Tracker:
             self._spill_total_max = max(self._spill_total_max, size)
 
     def mark(self, step: str) -> None:
-        self.step_peak_mb[step] = round(peak_mb())
+        step_peak = peak_mb()
+        self.run_peak_mb = max(self.run_peak_mb, step_peak)
+        self.step_peak_mb[step] = round(step_peak)
+        reset_rss_peak()
         self.step_spill_mb[step] = round(max(self._spill_max, dir_size_mb(self.spill_dir)))
         self._spill_max = 0.0
 
@@ -99,7 +118,7 @@ class Tracker:
         self._stop.set()
 
     def report(self) -> dict[str, object]:
-        peak = peak_mb()
+        peak = max(self.run_peak_mb, peak_mb())
         cgroup = cgroup_peak_mb()
         return {
             "peak_memory_mb": round(peak),

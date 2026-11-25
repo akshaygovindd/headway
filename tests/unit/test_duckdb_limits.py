@@ -92,3 +92,4 @@ def test_tracker_reports_spill_per_step(tmp_path: Path) -> None:
     tracker.stop()
     assert tracker.report()["step_spill_mb"] == {"a": 3}
     assert tracker.report()["peak_memory_mb"] > 0
+    assert tracker.report()["memory_limit_mb"] > 0
