@@ -1,0 +1,146 @@
+{
+ "data": {
+  "line": "Blue",
+  "window": "last_24h",
+  "unit": "seconds",
+  "rows": [
+   {
+    "direction_id": 0,
+    "time_band": "am_peak",
+    "n_trips": 8,
+    "n_scheduled_trips": 10,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_ett_s": 90,
+    "p90_ett_s": 190,
+    "median_scheduled_s": 2280,
+    "median_actual_s": 2370,
+    "coverage_pct": 77,
+    "status": "measured",
+    "withheld_reason": null,
+    "no_trips_reason": null
+   },
+   {
+    "direction_id": 0,
+    "time_band": "midday",
+    "n_trips": 12,
+    "n_scheduled_trips": 14,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_ett_s": 90,
+    "p90_ett_s": 190,
+    "median_scheduled_s": 2280,
+    "median_actual_s": 2370,
+    "coverage_pct": 77,
+    "status": "measured",
+    "withheld_reason": null,
+    "no_trips_reason": null
+   },
+   {
+    "direction_id": 0,
+    "time_band": "pm_peak",
+    "n_trips": 9,
+    "n_scheduled_trips": 12,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_ett_s": 90,
+    "p90_ett_s": 190,
+    "median_scheduled_s": 2280,
+    "median_actual_s": 2370,
+    "coverage_pct": 77,
+    "status": "measured",
+    "withheld_reason": null,
+    "no_trips_reason": null
+   },
+   {
+    "direction_id": 1,
+    "time_band": "am_peak",
+    "n_trips": 8,
+    "n_scheduled_trips": 10,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_ett_s": 100,
+    "p90_ett_s": 190,
+    "median_scheduled_s": 2280,
+    "median_actual_s": 2380,
+    "coverage_pct": 77,
+    "status": "measured",
+    "withheld_reason": null,
+    "no_trips_reason": null
+   },
+   {
+    "direction_id": 1,
+    "time_band": "midday",
+    "n_trips": 12,
+    "n_scheduled_trips": 14,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_ett_s": 100,
+    "p90_ett_s": 190,
+    "median_scheduled_s": 2280,
+    "median_actual_s": 2380,
+    "coverage_pct": 77,
+    "status": "measured",
+    "withheld_reason": null,
+    "no_trips_reason": null
+   },
+   {
+    "direction_id": 1,
+    "time_band": "pm_peak",
+    "n_trips": 0,
+    "n_scheduled_trips": 12,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_ett_s": null,
+    "p90_ett_s": null,
+    "median_scheduled_s": null,
+    "median_actual_s": null,
+    "coverage_pct": null,
+    "status": "no_trips",
+    "withheld_reason": null,
+    "no_trips_reason": "no trip was observed outside data-outage hours"
+   }
+  ],
+  "overall": {
+   "n_trips": 50,
+   "n_scheduled_trips": 72,
+   "n_excluded_outage": 0,
+   "n_implausible": 0,
+   "n_disruption": 0,
+   "median_ett_s": 94,
+   "p90_ett_s": 190,
+   "coverage_pct": 77,
+   "status": "measured",
+   "withheld_reason": null,
+   "no_trips_reason": null
+  }
+ },
+ "coverage": {
+  "rows": 6,
+  "mean_coverage_pct": null,
+  "min_coverage_pct": null,
+  "withheld_rows": 0,
+  "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+ },
+ "freshness": {
+  "exported_at": "2026-11-24T12:00:00Z",
+  "metrics_as_of": "2026-11-24T11:45:00Z",
+  "age_minutes": 12.0
+ },
+ "provenance": {
+  "tables": [
+   "agg_ett_band_window"
+  ],
+  "definition": "trip-time-per-direction-and-band-agg_ett_band_window",
+  "metrics_md": "docs/METRICS.md#trip-time-per-direction-and-band-agg_ett_band_window",
+  "row_limit": 500,
+  "truncated": false,
+  "served_from": "remote"
+ }
+}

@@ -73,6 +73,8 @@ function segmentsFor(line, params) {
   if (d != null) body.data.rows = body.data.rows.filter((r) => String(r.direction_id) === d);
   body.data.window = params.get("window") ?? "last_24h";
   body.data.direction = d == null ? null : Number(d);
+  // The API only joins alert text for the last 24 hours: on last_7d it can be null while disrupted.
+  if (body.data.window === "last_7d") for (const r of body.data.rows) r.disruption_header = null;
   return body;
 }
 
@@ -90,11 +92,17 @@ export function respond(path, search = "") {
     const b = load("lines");
     return { status: 200, body: b };
   }
-  let m = path.match(/^\/v1\/lines\/([^/]+)\/(reliability|headways|accuracy|countdown|segments|marey)$/);
+  let m = path.match(/^\/v1\/lines\/([^/]+)\/(reliability|headways|accuracy|countdown|segments|marey|trip-time|spacing-by-hour|disruptions)$/);
   if (m) {
     const [, line, what] = m;
     if (!LINES.includes(line)) return { status: 422, body: { error: "validation_error" } };
     if (what === "segments") return { status: 200, body: segmentsFor(line, params) };
+    if (what === "trip-time" || what === "spacing-by-hour" || what === "disruptions") {
+      const body = load(`lines_${line}_${what}`);
+      if (what === "trip-time") body.data.window = params.get("window") ?? "last_24h";
+      if (what === "spacing-by-hour" && params.get("date")) body.data.service_date = params.get("date");
+      return { status: 200, body };
+    }
     if (what === "marey") return { status: 200, body: mareyFor(line, params) };
     return { status: 200, body: forLine(load(`lines_Red_${what}`), line, params.get("window")) };
   }
@@ -105,6 +113,11 @@ export function respond(path, search = "") {
     const hours = Number(params.get("hours") ?? 24);
     body.data.rows = body.data.rows.slice(-hours);
     body.data.hours = hours;
+    return { status: 200, body };
+  }
+  if (path === "/v1/pipeline/checks") {
+    const body = load("pipeline_checks");
+    body.data.hours = Number(params.get("hours") ?? 24);
     return { status: 200, body };
   }
   const flat = { "/v1/incidents": "incidents", "/v1/slo": "slo", "/v1/metrics": "metrics", "/v1/meta": "meta", "/v1/pipeline/health": "pipeline_health" };
