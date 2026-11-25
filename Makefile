@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: images-list api-dev web-dev api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
+.PHONY: images-list push-images-list api-dev web-dev api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -107,20 +107,27 @@ TFVARS := infra/main/terraform.tfvars
 tfvar_flag = $(shell sed -nE 's/^$(1)[[:space:]]*=[[:space:]]*(true|false)([[:space:]]*\#.*)?[[:space:]]*$$/\1/p' $(TFVARS) 2>/dev/null | tail -n 1)
 ENABLE_R3 ?= $(call tfvar_flag,enable_r3)
 ENABLE_R4 ?= $(call tfvar_flag,enable_r4)
-IMAGES := $(strip curate transform $(if $(filter true,$(ENABLE_R3)),train) $(if $(filter true,$(ENABLE_R4)),api))
-PUSH_IMAGES := $(IMAGES)
+# Smoke tests and `make images-build` always cover every image. Only what is pushed is filtered.
+IMAGES := curate transform train api
+PUSH_IMAGES := $(strip curate transform $(if $(filter true,$(ENABLE_R3)),train) $(if $(filter true,$(ENABLE_R4)),api))
+# images-build builds BUILD_IMAGES: everything by default, only what is pushed for push and deploy.
+BUILD_IMAGES = $(IMAGES)
+images-push deploy: BUILD_IMAGES = $(PUSH_IMAGES)
 
-# Prints the image list for the current flags (tests/unit/test_makefile_images.py runs it).
+# Prints the smoke/build list and the push list (tests/unit/test_makefile_images.py runs it).
 images-list:
 	@echo "$(IMAGES)"
 
+push-images-list:
+	@echo "$(PUSH_IMAGES)"
+
 images-build:
-	@set -e; for name in $(IMAGES); do \
+	@set -e; for name in $(BUILD_IMAGES); do \
 		args=; if [ $$name = train ]; then args="--build-arg GIT_SHA=$(IMAGE_TAG)"; fi; \
 		docker buildx build --platform linux/arm64 --provenance=false --sbom=false --load -f docker/$$name.Dockerfile \
 			$$args -t headway-$$name:$(IMAGE_TAG) -t headway-$$name:local .; \
 	done
-	@for name in $(IMAGES); do \
+	@for name in $(BUILD_IMAGES); do \
 		docker image inspect headway-$$name:local --format "headway-$$name:$(IMAGE_TAG) {{.Size}}" \
 			| awk '{printf "%s  %.0f MB\n", $$1, $$2 / 1000000}'; \
 	done
