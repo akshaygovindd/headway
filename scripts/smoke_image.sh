@@ -159,7 +159,7 @@ transform)
         -H "Authorization: AWS4-HMAC-SHA256 Credential=smoke/20260101/us-east-1/s3/aws4_request"
     EXPECT_LOG="GoldAgeMinutes MissedRunsLastHour ArrivalCoveragePct"
     invoke headway-transform:local headway_transform.handler.lambda_handler \
-        "r['smoke'] and r['r2_enabled'] and r['tests_failed'] == 0 and r['r2_tables_exported'] == 14 \
+        "r['smoke'] and r['r2_enabled'] and r['tests_failed'] == 0 and r['r2_tables_exported'] == 16 \
          and r['history_written'] > 0 and r['history_rewritten'] == 0 \
          and r['history_existing_on_rewrite'] == r['history_written'] and r['history_objects_unchanged'] \
          and r['state_rows_loaded'] == 1 and r['slo_daily_rows'] > 0 and r['slo_rollup_rows'] > 0 \
