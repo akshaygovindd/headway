@@ -38,6 +38,8 @@ R2_ALLOWLIST = {
     "agg_headway_adherence_daily",
     "agg_slo_daily",
     "agg_slo_rollup",
+    "agg_countdown_accuracy_window",
+    "agg_countdown_accuracy_daily",
 }
 
 

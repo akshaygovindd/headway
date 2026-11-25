@@ -39,6 +39,8 @@ TABLES = [
     "agg_headway_adherence_daily",
     "agg_slo_daily",
     "agg_slo_rollup",
+    "agg_countdown_accuracy_window",
+    "agg_countdown_accuracy_daily",
     "agg_forecast_gate",
     "agg_forecast_gate_status",
     "agg_forecast_next_hour",

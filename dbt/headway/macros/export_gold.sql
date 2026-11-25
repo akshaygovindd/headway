@@ -26,6 +26,8 @@
     'agg_actual_deviation_window': "select * from " ~ ref('agg_actual_deviation_window'),
     'agg_headway_window': "select * from " ~ ref('agg_headway_window'),
     'agg_ett_window': "select * from " ~ ref('agg_ett_window'),
+    'agg_countdown_accuracy_window': "select * from " ~ ref('agg_countdown_accuracy_window'),
+    'agg_countdown_accuracy_daily': "select * from " ~ ref('agg_countdown_accuracy_daily'),
     'agg_actual_deviation_daily': "select * from " ~ ref('agg_actual_deviation_daily'),
     'agg_headway_adherence_daily': "select * from " ~ ref('agg_headway_adherence_daily'),
     'agg_slo_daily': "select * from " ~ ref('agg_slo_daily'),

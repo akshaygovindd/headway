@@ -1689,3 +1689,121 @@ models:
         description: "Bootstrap resamples behind the intervals."
       - name: min_days
         description: "Fewest days per group before the row is published."
+  - name: agg_countdown_accuracy_window
+    description: "Countdown accuracy of MBTA's published predictions per line, station and countdown bucket over the last 24 hours and the last 7 days, exact over every countdown in the window. Confirmed non-arrivals are misses; unknown outcomes are excluded and counted."
+    config:
+      meta:
+        grain: "line x station_id x window_label x countdown_min"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, station_id, window_label, countdown_min]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: station_id
+        description: "Station (parent station or the stop itself)."
+        data_tests:
+          - not_null
+      - name: station_name
+        description: "Station name."
+      - name: window_label
+        description: "last_24h or last_7d, ending at the latest hour of the export (metrics_as_of)."
+        data_tests:
+          - not_null
+      - name: countdown_min
+        description: "Countdown bucket in minutes: 1, 3, 5 or 10."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 3, 5, 10]
+      - name: n
+        description: "Countdowns counted: arrived plus confirmed non-arrivals, outage hours excluded."
+        data_tests:
+          - not_null
+      - name: n_arrived
+        description: "Counted countdowns with a reconstructed arrival."
+      - name: n_non_arrival
+        description: "Counted countdowns that were confirmed non-arrivals (misses)."
+      - name: n_unknown
+        description: "Countdowns with neither an arrival nor a confirmed non-arrival; excluded from n."
+      - name: n_excluded_outage
+        description: "Countdowns left out because the hour was a data outage."
+      - name: n_disruption
+        description: "Counted countdowns from hours with an active service-disruption alert (kept)."
+      - name: n_within_60s
+        description: "Counted countdowns whose train arrived within 60 seconds of the predicted time."
+      - name: n_within_120s
+        description: "Counted countdowns whose train arrived within 120 seconds of the predicted time."
+      - name: pct_within_60s
+        description: "Percentage of counted countdowns within 60 seconds (0-100)."
+      - name: pct_within_120s
+        description: "Percentage of counted countdowns within 120 seconds (0-100)."
+      - name: coverage_numerator
+        description: "Numerator of coverage."
+      - name: coverage_denominator
+        description: "Denominator of coverage."
+      - name: coverage_pct
+        description: "Coverage as a percentage (0-100); null when the denominator is zero."
+  - name: agg_countdown_accuracy_daily
+    description: "Countdown accuracy of MBTA's published predictions per line, station, service date and countdown bucket: the daily history of agg_countdown_accuracy_window."
+    config:
+      meta:
+        grain: "line x station_id x service_date x countdown_min"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, station_id, service_date, countdown_min]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: station_id
+        description: "Station (parent station or the stop itself)."
+        data_tests:
+          - not_null
+      - name: station_name
+        description: "Station name."
+      - name: service_date
+        description: "Service date of the predicted arrival."
+        data_tests:
+          - not_null
+      - name: countdown_min
+        description: "Countdown bucket in minutes: 1, 3, 5 or 10."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 3, 5, 10]
+      - name: n
+        description: "Countdowns counted: arrived plus confirmed non-arrivals, outage hours excluded."
+        data_tests:
+          - not_null
+      - name: n_arrived
+        description: "Counted countdowns with a reconstructed arrival."
+      - name: n_non_arrival
+        description: "Counted countdowns that were confirmed non-arrivals (misses)."
+      - name: n_unknown
+        description: "Countdowns with neither an arrival nor a confirmed non-arrival; excluded from n."
+      - name: n_excluded_outage
+        description: "Countdowns left out because the hour was a data outage."
+      - name: n_disruption
+        description: "Counted countdowns from hours with an active service-disruption alert (kept)."
+      - name: n_within_60s
+        description: "Counted countdowns whose train arrived within 60 seconds of the predicted time."
+      - name: n_within_120s
+        description: "Counted countdowns whose train arrived within 120 seconds of the predicted time."
+      - name: pct_within_60s
+        description: "Percentage of counted countdowns within 60 seconds (0-100)."
+      - name: pct_within_120s
+        description: "Percentage of counted countdowns within 120 seconds (0-100)."
+      - name: coverage_numerator
+        description: "Numerator of coverage."
+      - name: coverage_denominator
+        description: "Denominator of coverage."
+      - name: coverage_pct
+        description: "Coverage as a percentage (0-100); null when the denominator is zero."

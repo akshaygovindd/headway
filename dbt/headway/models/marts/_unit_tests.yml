@@ -1055,3 +1055,144 @@ unit_tests:
         - {condition: heavy_rain, metric: headway_within_band, n_days_condition: 0, n_days_other: 10, withheld: true, withheld_reason: "fewer than 5 heavy-rain days", value_condition: null, value_other: null}
         - {condition: extreme_heat, metric: on_time, n_days_condition: 0, n_days_other: 10, withheld: true, withheld_reason: "fewer than 5 extreme-heat days", value_condition: null, value_other: null}
         - {condition: extreme_heat, metric: headway_within_band, n_days_condition: 0, n_days_other: 10, withheld: true, withheld_reason: "fewer than 5 extreme-heat days", value_condition: null, value_other: null}
+
+  - name: countdown_snapshots_bucket_assignment_one_per_bucket
+    config:
+      tags: [r2]
+    description: >-
+      Countdowns are centred on 1, 3, 5 and 10 minutes with 30 s either side. Of two snapshots in
+      the same bucket the one closest to the centre is kept: 75 s beats 40 s (1 min), 180 s beats
+      210 s (3 min), 290 s beats 330 s (5 min). 25 s, 91 s, 211 s and 640 s fall in no bucket. A
+      duplicate capture (62 s), a SKIPPED row (61 s) and a snapshot not matched to the schedule
+      (59 s) never count, though each is closer to a centre than the one kept. A second trip stop
+      gets its own snapshot (181 s beats 184 s).
+    model: int_countdown_snapshots
+    given:
+      - input: ref('fct_stop_predictions')
+        rows:
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "a", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:00:25+00", horizon_s: 25, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "b", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:00:40+00", horizon_s: 40, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "c", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:01:15+00", horizon_s: 75, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "d", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:01:31+00", horizon_s: 91, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "e", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:03:00+00", horizon_s: 180, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "f", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:03:30+00", horizon_s: 210, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "g", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:03:31+00", horizon_s: 211, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "h", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:04:50+00", horizon_s: 290, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "i", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:05:30+00", horizon_s: 330, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "j", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:10:00+00", horizon_s: 600, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "k", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:10:40+00", horizon_s: 640, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "l", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:01:02+00", horizon_s: 62, schedule_matched: true, is_duplicate_capture: true, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "m", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:01:01+00", horizon_s: 61, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SKIPPED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, capture_id: "n", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:00:59+00", horizon_s: 59, schedule_matched: false, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 2, capture_id: "o", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:03:01+00", horizon_s: 181, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+          - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 2, capture_id: "p", collected_at: "2026-11-22 14:00:00+00", predicted_arrival_ts: "2026-11-22 14:03:04+00", horizon_s: 184, schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SCHEDULED"}
+    expect:
+      rows:
+        - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, countdown_min: 1, capture_id: "c"}
+        - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, countdown_min: 3, capture_id: "e"}
+        - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, countdown_min: 5, capture_id: "h"}
+        - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 1, countdown_min: 10, capture_id: "j"}
+        - {trip_instance_key: "T|2026-11-22|08:00:00", stop_sequence: 2, countdown_min: 3, capture_id: "o"}
+
+  - name: countdown_outcomes_miss_versus_unknown
+    config:
+      tags: [r2]
+    description: >-
+      Six countdowns. T1 stop 1 arrived 50 s before the prediction (hit at 60 s; a second run of the
+      trip id arriving later is ignored) and T1 stop 2 90 s before it (hit at 120 s only). T2 was
+      marked SKIPPED in the feed after the countdown: a confirmed non-arrival, a miss. T3 was left
+      by its vehicle at stop 2, for another trip, before stop 3: a confirmed non-arrival, a miss.
+      T4 was also left for another trip but its vehicle had reached stop 3: no arrival and no
+      confirmation, unknown. T5 has only a SKIPPED row from a duplicate capture, which does not
+      count: unknown.
+    model: fct_countdown_outcomes
+    given:
+      - input: ref('int_countdown_snapshots')
+        rows:
+          - {trip_instance_key: "T1|2026-11-22|08:00:00", stop_sequence: 1, countdown_min: 3, capture_id: "a", collected_at: "2026-11-22 14:07:00+00", countdown_s: 180, line: "Red", stop_id: "s1", predicted_arrival_ts: "2026-11-22 14:10:00+00"}
+          - {trip_instance_key: "T1|2026-11-22|08:00:00", stop_sequence: 2, countdown_min: 5, capture_id: "b", collected_at: "2026-11-22 14:07:00+00", countdown_s: 180, line: "Red", stop_id: "s1", predicted_arrival_ts: "2026-11-22 14:10:00+00"}
+          - {trip_instance_key: "T2|2026-11-22|08:00:00", stop_sequence: 1, countdown_min: 1, capture_id: "c", collected_at: "2026-11-22 14:07:00+00", countdown_s: 180, line: "Red", stop_id: "s1", predicted_arrival_ts: "2026-11-22 14:10:00+00"}
+          - {trip_instance_key: "T3|2026-11-22|08:00:00", stop_sequence: 3, countdown_min: 3, capture_id: "d", collected_at: "2026-11-22 14:07:00+00", countdown_s: 180, line: "Red", stop_id: "s1", predicted_arrival_ts: "2026-11-22 14:10:00+00"}
+          - {trip_instance_key: "T4|2026-11-22|08:00:00", stop_sequence: 3, countdown_min: 3, capture_id: "e", collected_at: "2026-11-22 14:07:00+00", countdown_s: 180, line: "Red", stop_id: "s1", predicted_arrival_ts: "2026-11-22 14:10:00+00"}
+          - {trip_instance_key: "T5|2026-11-22|08:00:00", stop_sequence: 3, countdown_min: 3, capture_id: "f", collected_at: "2026-11-22 14:07:00+00", countdown_s: 180, line: "Red", stop_id: "s1", predicted_arrival_ts: "2026-11-22 14:10:00+00"}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {trip_instance_key: "T1|2026-11-22|08:00:00", segment: 0, stop_sequence: 1, arrival_ts: "2026-11-22 14:10:50+00", is_nearest_segment: true}
+          - {trip_instance_key: "T1|2026-11-22|08:00:00", segment: 1, stop_sequence: 1, arrival_ts: "2026-11-22 14:20:00+00", is_nearest_segment: false}
+          - {trip_instance_key: "T1|2026-11-22|08:00:00", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-22 14:11:30+00", is_nearest_segment: true}
+      - input: ref('fct_stop_predictions')
+        rows:
+          - {trip_instance_key: "T2|2026-11-22|08:00:00", stop_sequence: 1, collected_at: "2026-11-22 14:09:00+00", schedule_matched: true, is_duplicate_capture: false, schedule_relationship: "SKIPPED"}
+          - {trip_instance_key: "T5|2026-11-22|08:00:00", stop_sequence: 3, collected_at: "2026-11-22 14:09:00+00", schedule_matched: true, is_duplicate_capture: true, schedule_relationship: "SKIPPED"}
+      - input: ref('int_vehicle_stop_events')
+        rows:
+          - {vehicle_id: "v3", trip_instance_key: "T3|2026-11-22|08:00:00", current_stop_sequence: 2, event_ts: "2026-11-22 14:05:00+00", capture_id: "x1"}
+          - {vehicle_id: "v3", trip_instance_key: "T9|2026-11-22|08:00:00", current_stop_sequence: 1, event_ts: "2026-11-22 14:20:00+00", capture_id: "x2"}
+          - {vehicle_id: "v4", trip_instance_key: "T4|2026-11-22|08:00:00", current_stop_sequence: 3, event_ts: "2026-11-22 14:06:00+00", capture_id: "y1"}
+          - {vehicle_id: "v4", trip_instance_key: "T9|2026-11-22|08:00:00", current_stop_sequence: 1, event_ts: "2026-11-22 14:30:00+00", capture_id: "y2"}
+      - input: ref('int_stop_stations')
+        rows:
+          - {stop_id: "s1", station_id: "place-a", station_name: "Alpha"}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 9, data_outage: false}
+      - input: ref('int_disrupted_line_hours')
+        rows:
+          - {line: "Orange", service_date: "2026-11-22", hour_local: 9}
+    expect:
+      rows:
+        - {trip_instance_key: "T1|2026-11-22|08:00:00", stop_sequence: 1, countdown_min: 3, station_id: "place-a", outcome: arrived, non_arrival_reason: null, hit_60: true, hit_120: true, error_s: -50}
+        - {trip_instance_key: "T1|2026-11-22|08:00:00", stop_sequence: 2, countdown_min: 5, station_id: "place-a", outcome: arrived, non_arrival_reason: null, hit_60: false, hit_120: true, error_s: -90}
+        - {trip_instance_key: "T2|2026-11-22|08:00:00", stop_sequence: 1, countdown_min: 1, station_id: "place-a", outcome: non_arrival, non_arrival_reason: skipped, hit_60: false, hit_120: false, error_s: null}
+        - {trip_instance_key: "T3|2026-11-22|08:00:00", stop_sequence: 3, countdown_min: 3, station_id: "place-a", outcome: non_arrival, non_arrival_reason: vehicle_ended_trip, hit_60: false, hit_120: false, error_s: null}
+        - {trip_instance_key: "T4|2026-11-22|08:00:00", stop_sequence: 3, countdown_min: 3, station_id: "place-a", outcome: unknown, non_arrival_reason: null, hit_60: null, hit_120: null, error_s: null}
+        - {trip_instance_key: "T5|2026-11-22|08:00:00", stop_sequence: 3, countdown_min: 3, station_id: "place-a", outcome: unknown, non_arrival_reason: null, hit_60: null, hit_120: null, error_s: null}
+
+  - name: countdown_accuracy_window_counts_misses_and_unknowns
+    config:
+      tags: [r2]
+    description: >-
+      Red, Alpha, the 3 minute countdown, last_7d. Of seven rows, one is outside the window and one
+      sits in an outage hour (excluded and counted). Of the rest, three arrived (two within 60 s, the
+      third within 120 s only), one is a confirmed non-arrival (a miss) and one is unknown
+      (excluded from n, counted in n_unknown). So n 4: 50% within 60 s, 75% within 120 s, one
+      countdown in a disrupted hour. Coverage is 4 of 8 scheduled trip stops at the two platforms of
+      the station (the two scheduled in the outage hour are not in the denominator).
+    model: agg_countdown_accuracy_window
+    given:
+      - input: ref('int_window_hours')
+        rows:
+          - {window_label: last_7d, service_date: "2026-11-22", hour_local: 8}
+          - {window_label: last_7d, service_date: "2026-11-22", hour_local: 9}
+      - input: ref('fct_countdown_outcomes')
+        rows:
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: false}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: true}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, outcome: arrived, hit_60: false, hit_120: true, data_outage: false, service_disruption: false}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, outcome: non_arrival, hit_60: false, hit_120: false, data_outage: false, service_disruption: false}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, outcome: unknown, hit_60: null, hit_120: null, data_outage: false, service_disruption: false}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 9, outcome: arrived, hit_60: true, hit_120: true, data_outage: true, service_disruption: false}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-01", hour_local: 8, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: false}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, stop_id: s1}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, stop_id: s1}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, stop_id: s1}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, stop_id: s1}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, stop_id: s1}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, stop_id: s2}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, stop_id: s2}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, stop_id: s2}
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, stop_id: s1}
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, stop_id: s1}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 8, data_outage: false}
+          - {service_date: "2026-11-22", hour_local: 9, data_outage: true}
+      - input: ref('int_stop_stations')
+        rows:
+          - {stop_id: s1, station_id: place-a, station_name: Alpha}
+          - {stop_id: s2, station_id: place-a, station_name: Alpha}
+    expect:
+      rows:
+        - {line: Red, station_id: place-a, window_label: last_7d, countdown_min: 3, n: 4, n_arrived: 3, n_non_arrival: 1, n_unknown: 1, n_excluded_outage: 1, n_disruption: 1, n_within_60s: 2, n_within_120s: 3, pct_within_60s: 50.0, pct_within_120s: 75.0, coverage_numerator: 4, coverage_denominator: 8, coverage_pct: 50.0}

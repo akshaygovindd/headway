@@ -47,6 +47,8 @@ R2_TABLES = (
     "agg_headway_adherence_daily",
     "agg_slo_daily",
     "agg_slo_rollup",
+    "agg_countdown_accuracy_window",
+    "agg_countdown_accuracy_daily",
 )
 # Release 3 forecast tables; present only when the deployment has enabled them. The backtest is
 # exported only once a line has passed the training gate.

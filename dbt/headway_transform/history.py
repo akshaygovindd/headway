@@ -41,6 +41,7 @@ METRIC_VERSIONS: dict[str, int] = {
     "ett": 2,
     "stop_deviation": 1,
     "slo": 2,
+    "countdown_accuracy": 1,
 }
 # Daily aggregate -> metric family.
 HISTORY_TABLES: dict[str, str] = {
@@ -53,6 +54,7 @@ HISTORY_TABLES: dict[str, str] = {
     "agg_ett_daily": "ett",
     "agg_stop_deviation_daily": "stop_deviation",
     "agg_slo_daily": "slo",
+    "agg_countdown_accuracy_daily": "countdown_accuracy",
 }
 
 

@@ -33,6 +33,8 @@ R2_GOLD_TABLES = (
     "agg_headway_adherence_daily",
     "agg_slo_daily",
     "agg_slo_rollup",
+    "agg_countdown_accuracy_window",
+    "agg_countdown_accuracy_daily",
 )
 # Release 3 (HEADWAY_ENABLE_R3=true, with R2): the next-hour forecasts, the gate status, incidents
 # and alert matching. The backtest summary joins them only once a line has passed the training

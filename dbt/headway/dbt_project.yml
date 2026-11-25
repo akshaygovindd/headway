@@ -85,6 +85,8 @@ models:
       int_stop_alert_flags: *r2
       int_usable_arrivals: *r2
       int_window_hours: *r2
+      int_stop_stations: *r2
+      int_countdown_snapshots: *r2
       int_scheduled_headways: *r2
       # Release 3 models: tag r3, skipped by the transform Lambda unless HEADWAY_ENABLE_R3=true (they
       # also need R2); local builds and CI build everything.
@@ -113,6 +115,9 @@ models:
       agg_headway_adherence_hourly: *r2
       agg_ett_daily: *r2
       agg_accuracy_window: *r2
+      fct_countdown_outcomes: *r2
+      agg_countdown_accuracy_window: *r2
+      agg_countdown_accuracy_daily: *r2
       agg_actual_deviation_window: *r2
       agg_headway_window: *r2
       agg_ett_window: *r2
