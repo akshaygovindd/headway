@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { CsvButton } from "@/components/CsvButton";
 import { LineBadge } from "@/components/LineBadge";
 import { HourStrip } from "@/components/line/HourStrip";
+import { TripTimeTable } from "@/components/line/TripTimeTable";
 import { KeyNumbers } from "@/components/line/KeyNumbers";
 import { MareyChart } from "@/components/line/MareyChart";
 import { StationStrip } from "@/components/line/StationStrip";
@@ -18,8 +19,9 @@ import { getApi } from "@/lib/api";
 import { docUrl } from "@/lib/definitions";
 import { lineName, LINE_STYLE } from "@/lib/lines";
 import { isHeavyRail, isLine, LINES, trend, type Cell, type Trend } from "@/lib/map";
-import { termini } from "@/lib/network";
-import { openIncidentsByLine, segmentsOf } from "@/lib/site-data";
+import { disruptionLabel, lineDisruptionHeader, termini } from "@/lib/network";
+import { bandLabel } from "@/lib/linedata";
+import { openIncidentsByLine, segmentsOf, thresholds } from "@/lib/site-data";
 import { hhmmET } from "@/lib/time";
 import notes from "@/data/metric-notes.json";
 import type {
@@ -28,7 +30,9 @@ import type {
   HeadwayRow,
   CoveredRow,
   HealthData,
-  HeartbeatData,
+  DisruptionsData,
+  SpacingData,
+  TripTimeData,
   IncidentsData,
   MareyData,
   Section,
@@ -126,12 +130,15 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
   const { line } = await params;
   if (!isLine(line)) notFound();
   const heavy = isHeavyRail(line);
-  const [sections, seg24, seg7, marey, heartbeat, incidents, acc7, health] = await Promise.all([
+  const [sections, seg24, seg7, marey, spacing, trip24, trip7, disruptions, incidents, acc7, health] = await Promise.all([
     lineSections(line),
     segmentsOf(line, "last_24h"),
     segmentsOf(line, "last_7d"),
     getApi<MareyData>(`/lines/${line}/marey?direction=0`),
-    getApi<HeartbeatData>("/pipeline/heartbeat?hours=24"),
+    getApi<SpacingData>(`/lines/${line}/spacing-by-hour`),
+    getApi<TripTimeData>(`/lines/${line}/trip-time?window=last_24h`),
+    getApi<TripTimeData>(`/lines/${line}/trip-time?window=last_7d`),
+    getApi<DisruptionsData>(`/lines/${line}/disruptions`),
     getApi<IncidentsData>("/incidents"),
     getApi<AccuracyData>(`/lines/${line}/accuracy?window=last_7d`),
     getApi<HealthData>("/pipeline/health?days=7"),
@@ -143,7 +150,9 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
   const asOf = fresh?.ok ? hhmmET(fresh.body.freshness.metrics_as_of) : null;
   const daysAvailable = health.ok ? health.body.data.daily.length : null;
   const open = openIncidentsByLine(incidents)?.get(line) ?? [];
-  const disrupted = open.length > 0 || seg24.segs.some((x) => x.row.disrupted);
+  const header = lineDisruptionHeader(disruptions.ok ? disruptions.body.data.rows : null, seg24.all);
+  const disrupted = open.length > 0 || header != null || seg24.segs.some((x) => x.row.disrupted);
+  const chipLabel = disruptionLabel(header, header == null && open.some((i) => thresholds(i).includes("skipped")));
   const note = (notes as Record<string, { text: string; href: string }>)[line];
 
   const accRow = (r: typeof acc) => (r.ok ? r.body.data.prediction_accuracy?.rows.find((x) => x.horizon_bucket === "0-5") : undefined);
@@ -242,9 +251,21 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
     cell: { value: x.row.pct_within_band, coverage_pct: x.row.coverage_pct, withheld_reason: x.row.withheld_reason },
     unit: "pct" as const,
   }));
+  const tripCsv: CsvRow[] = [
+    ...(trip24.ok ? trip24.body.data.rows.map((r) => ({ w: "last 24 hours", r })) : []),
+    ...(trip7.ok ? trip7.body.data.rows.map((r) => ({ w: "last 7 days", r })) : []),
+  ]
+    .filter(({ r }) => r.status !== "no_trips")
+    .flatMap(({ w, r }) => {
+      const key = `Toward ${ends?.[r.direction_id === 0 ? 1 : 0] ?? "the end of the line"}, ${bandLabel(r.time_band)}`;
+      const cell = (v: number | null) => ({ value: v, coverage_pct: r.coverage_pct, withheld_reason: r.withheld_reason });
+      return ([["Median vs plan", r.median_ett_s], ["90th percentile vs plan", r.p90_ett_s], ["Planned run", r.median_scheduled_s], ["Actual run", r.median_actual_s]] as const).map(
+        ([m, v]) => ({ labels: { line, section: "Trip time against the plan", metric: `${m}, ${w}`, key }, cell: cell(v), unit: "s" as const }),
+      );
+    });
   const csv: CsvSpec = {
     labelColumns: ["line", "section", "metric", "key"],
-    rows: csvRows(line, sections, dayCell, weekCell, segCsv),
+    rows: csvRows(line, sections, dayCell, weekCell, [...segCsv, ...tripCsv]),
     definition: "8-headway-adherence-release-2",
     freshness: fresh?.ok ? fresh.body.freshness.exported_at : null,
   };
@@ -282,7 +303,7 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
           </fieldset>
         </div>
         <p className="mt-3 flex flex-wrap items-center gap-3">
-          {disrupted ? <DisruptionChip open label={open[0]?.summary_text ? `Service disruption: ${open[0].summary_text}` : undefined} /> : null}
+          {disrupted ? <DisruptionChip open label={chipLabel.text} /> : null}
           {fresh?.ok ? <Freshness ageMinutes={fresh.body.freshness.age_minutes} exportedAt={fresh.body.freshness.exported_at} /> : null}
           <CsvButton spec={csv} filename={`headway-${line}.csv`} />
         </p>
@@ -327,25 +348,46 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
         </section>
 
         <section aria-labelledby="hours-h">
-          <h2 id="hours-h" className="mb-2 text-xl">Hours we could measure</h2>
+          <h2 id="hours-h" className="mb-2 text-xl">Spacing by hour</h2>
           <div className="rounded-lg border border-line bg-card p-4">
-            {heartbeat.ok ? <HourStrip rows={heartbeat.body.data.rows} /> : <ErrorState failure={heartbeat} what="The capture heartbeat" />}
+            {spacing.ok ? (
+              spacing.body.data.hours.length ? (
+                <>
+                  <p className="mb-3 text-sm text-muted">Service day {spacing.body.data.service_date}, 05:00 to 01:00 Eastern, both directions combined.</p>
+                  <HourStrip hours={spacing.body.data.hours} date={spacing.body.data.service_date} />
+                </>
+              ) : (
+                <p className="text-sm text-muted">No hourly spacing rows for this service day.</p>
+              )
+            ) : (
+              <ErrorState failure={spacing} what="Spacing by hour" />
+            )}
           </div>
         </section>
 
         <section aria-labelledby="trip-h">
           <h2 id="trip-h" className="mb-2 text-xl">Trip time against the plan</h2>
           <div className="rounded-lg border border-line bg-card p-4">
-            <Table caption={`Trip time against the timetable, ${lineName(line)}`} head={["Direction", "Trip time vs plan", "Trips measured"]}>
-              {[0, 1].map((dir) => (
-                <tr key={dir}>
-                  <Td>{dir === 0 ? `Toward ${ends?.[1] ?? "the end of the line"}` : `Toward ${ends?.[0] ?? "the start of the line"}`}</Td>
-                  <Td><span className="text-muted">No trips measured yet</span></Td>
-                  <Td>0</Td>
-                </tr>
-              ))}
-            </Table>
-            <p className="mt-2 text-sm text-muted">Trip-time figures are not in the public API yet, so this table stays empty rather than showing a number we cannot back.</p>
+            {[
+              ["win-24", "last_24h", "last 24 hours", trip24],
+              ["win-7", "last_7d", "last 7 days", trip7],
+            ].map(([cls, win, label, r]) => {
+              const res = r as typeof trip24;
+              return (
+                <div key={win as string} className={cls as string}>
+                  {res.ok ? (
+                    res.body.data.rows.length ? (
+                      <TripTimeTable line={line} rows={res.body.data.rows} window={win as string} towards={[ends?.[0] ?? "the start of the line", ends?.[1] ?? "the end of the line"]} caption={`Trip time against the timetable, ${lineName(line)}, ${label as string}`} />
+                    ) : (
+                      <p className="text-sm text-muted">No scheduled trips in this window.</p>
+                    )
+                  ) : (
+                    <ErrorState failure={res} what="Trip time" />
+                  )}
+                </div>
+              );
+            })}
+            <p className="mt-2 text-sm text-muted">Median and 90th percentile are actual running time minus the planned running time of the same trips (positive is slower). An adapted approximation, not an official measure.</p>
           </div>
         </section>
 

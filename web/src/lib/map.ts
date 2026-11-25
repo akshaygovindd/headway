@@ -64,12 +64,14 @@ export function formatNumber(value: number, digits = 0): string {
 
 export const TIMING_FLOOR_S = 20;
 
-export type Unit = "s" | "s20" | "pct" | "pct0" | "share" | "ratio" | "count" | "h";
+export type Unit = "s" | "min" | "s20" | "pct" | "pct0" | "share" | "ratio" | "count" | "h";
 
 export function formatValue(value: number, unit: Unit): string {
   switch (unit) {
     case "s":
       return `${formatNumber(value, 0)} s`;
+    case "min":
+      return `${formatNumber(value / 60, 1)} min`;
     case "s20":
       // Timing is about +/-20 s, so anything under that floor reads "~20 s", not a false precision.
       return value <= TIMING_FLOOR_S ? `~${TIMING_FLOOR_S} s` : `${formatNumber(value, 0)} s`;

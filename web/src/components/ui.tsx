@@ -103,8 +103,8 @@ export function Table({
   );
 }
 
-export function Td({ children }: { children: ReactNode }) {
-  return <td className="border-b border-line py-2 pr-4 align-top">{children}</td>;
+export function Td({ children, colSpan }: { children: ReactNode; colSpan?: number }) {
+  return <td colSpan={colSpan} className="border-b border-line py-2 pr-4 align-top">{children}</td>;
 }
 
 export function LineLink({ line }: { line: string }) {

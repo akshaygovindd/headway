@@ -1,0 +1,50 @@
+// Trip-time and spacing-by-hour rows turned into what the line page draws. Pure.
+
+import { healthBucket, STATE_LABEL, type Health } from "./health";
+import { hourLabel } from "./time";
+import type { SpacingHour, TripTimeRow } from "./types";
+
+const BAND_LABEL: Record<string, string> = {
+  am_peak: "AM peak",
+  midday: "Midday",
+  pm_peak: "PM peak",
+  evening: "Evening",
+  other: "Other hours",
+};
+export const bandLabel = (b: string): string => BAND_LABEL[b] ?? b;
+
+export type TripCell =
+  | { kind: "no_trips"; reason: string | null }
+  | { kind: "withheld"; coverage: number | null; reason: string | null }
+  | { kind: "measured" };
+
+/** `no_trips` is the only state that may say "No trips measured yet"; withheld is its own state. */
+export function tripCell(r: TripTimeRow): TripCell {
+  if (r.status === "no_trips") return { kind: "no_trips", reason: r.no_trips_reason };
+  if (r.status === "withheld" || r.median_ett_s == null) return { kind: "withheld", coverage: r.coverage_pct, reason: r.withheld_reason };
+  return { kind: "measured" };
+}
+
+export type HourState = "outage" | "withheld" | "no_headways" | Health;
+
+export function hourState(h: SpacingHour): HourState {
+  if (h.status === "outage" || h.data_outage) return "outage";
+  if (h.status === "no_headways") return "no_headways";
+  if (h.status === "withheld") return "withheld";
+  return healthBucket(h.pct_within_band) ?? "withheld";
+}
+
+export function hourText(h: SpacingHour): string {
+  const st = hourState(h);
+  const t = hourLabel(h.hour_local);
+  if (st === "outage") return `${t}: our data gap, capture was down, left out of every number`;
+  if (st === "no_headways") return `${t}: no valid headways measured`;
+  if (st === "withheld") return `${t}: not enough data${h.coverage_pct != null ? `, ${Math.round(h.coverage_pct)}% cov.` : ""}`;
+  return `${t}: ${STATE_LABEL[st]}, ${Math.round(h.pct_within_band ?? 0)}% within the band, ${Math.round(h.coverage_pct ?? 0)}% cov.`;
+}
+
+/** Order 05:00 to 01:00 whatever the API sent. */
+export function orderHours(hours: SpacingHour[]): SpacingHour[] {
+  const key = (h: number) => (h < 5 ? h + 24 : h);
+  return [...hours].sort((a, b) => key(a.hour_local) - key(b.hour_local));
+}

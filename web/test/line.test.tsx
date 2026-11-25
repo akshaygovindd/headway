@@ -64,13 +64,49 @@ describe("line page", () => {
     expect(within(screen.getByTestId("marey-notes")).getAllByRole("listitem").length).toBeGreaterThan(0);
   });
 
-  it("hatches the outage hour and says no trips are measured yet", async () => {
+  it("colours spacing by hour with the ramp and keeps outage, withheld and no-headway hours distinct", async () => {
     await open("/lines/Blue");
     const hours = screen.getByTestId("hour-strip");
+    expect(hours.querySelectorAll("li")).toHaveLength(20);
+    const first = hours.querySelectorAll("li")[0]!;
+    expect(first).toHaveTextContent("05:00");
+    expect(hours.querySelectorAll("li")[19]).toHaveTextContent("00:00");
+    expect(first).toHaveAttribute("data-state", "even");
     const outage = hours.querySelectorAll('[data-state="outage"]');
     expect(outage).toHaveLength(1);
     expect(outage[0]).toHaveTextContent("21:00");
     expect(outage[0]).toHaveTextContent("our data gap");
-    expect(screen.getAllByText("No trips measured yet")).toHaveLength(2);
+    expect(outage[0]!.querySelector(".hatch-outage")).not.toBeNull();
+    expect(hours.querySelectorAll('[data-state="withheld"]')).toHaveLength(1);
+    expect(hours.querySelectorAll('[data-state="no_headways"]')).toHaveLength(1);
+    expect(first).toHaveTextContent(/evenly spaced.*% within the band, 77% cov\./);
+    expect(screen.getByTestId("hour-legend")).toHaveTextContent("Our data gap");
+    expect(screen.getByTestId("hour-legend")).toHaveTextContent("No headways");
+  });
+
+  it("tells no trips, withheld and measured trip-time rows apart", async () => {
+    await open("/lines/Blue");
+    const rows = [...document.querySelectorAll('tr[data-status]')];
+    expect(rows.some((r) => r.getAttribute("data-status") === "measured")).toBe(true);
+    const none = screen.getAllByTestId("no-trips");
+    expect(none).toHaveLength(2); // pm peak toward Wonderland, in both windows
+    const measured = rows.find((r) => r.getAttribute("data-status") === "measured")!;
+    expect(within(measured as HTMLElement).getAllByRole("button").length).toBe(4);
+    expect(within(measured as HTMLElement).getAllByTestId("coverage-badge")[0]).toHaveTextContent("77% cov.");
+  });
+
+  it("shows Red trip time as withheld, never as no trips", async () => {
+    await open("/lines/Red (withheld, shuttle)");
+    expect(screen.queryByText("No trips measured yet")).toBeNull();
+    const rows = [...document.querySelectorAll('tr[data-status="withheld"]')];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0]).toHaveTextContent("Not enough data · 35% cov.");
+    const hours = screen.getByTestId("hour-strip");
+    expect(hours.querySelectorAll('[data-state="withheld"]').length).toBeGreaterThan(10);
+  });
+
+  it("puts the alert text in the banner chip", async () => {
+    await open("/lines/Red (withheld, shuttle)");
+    expect(screen.getByTestId("banner")).toHaveTextContent("Service disruption: Shuttle buses replace Red Line trains between Broadway and North Quincy");
   });
 });
