@@ -21,10 +21,12 @@ describe("shown", () => {
   it("withholds below 50% even if the API sent a number", () => {
     expect(shown({ value: 80, coverage_pct: 49.9 }).kind).toBe("withheld");
   });
-  it("withholds null values, missing coverage and a stated reason", () => {
-    expect(shown({ value: null, coverage_pct: 90 }).kind).toBe("withheld");
-    expect(shown({ value: 5, coverage_pct: null }).kind).toBe("withheld");
+  it("withholds only low coverage or a stated reason; missing values are unavailable", () => {
+    expect(shown({ value: null, coverage_pct: 40 }).kind).toBe("withheld");
     expect(shown({ value: 5, coverage_pct: 90, withheld_reason: "x" }).kind).toBe("withheld");
+    expect(shown({ value: null, coverage_pct: 90 }).kind).toBe("unavailable");
+    expect(shown({ value: 5, coverage_pct: null }).kind).toBe("unavailable");
+    expect(shown({ value: null, coverage_pct: null }).kind).toBe("unavailable");
   });
   it("keeps zero as a value", () => {
     expect(shown({ value: 0, coverage_pct: 90 }).kind).toBe("value");

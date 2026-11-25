@@ -15,7 +15,6 @@ export default async function HowWeMeasure() {
       <PageHeader
         title="How we measure"
         intro="Each figure on this site has a written definition. Headway approximates MBTA service from public feeds; it is not an official MBTA measure."
-        freshness={r.ok ? r.body.freshness : null}
       />
       <div className="grid gap-4">
         <Card title="The coverage rule">

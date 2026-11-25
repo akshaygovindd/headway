@@ -10,7 +10,7 @@ import { KeyNumbers } from "@/components/line/KeyNumbers";
 import { MareyChart } from "@/components/line/MareyChart";
 import { StationStrip } from "@/components/line/StationStrip";
 import { RampLegend } from "@/components/home/NetworkDiagram";
-import { DisruptionChip, Freshness, Metric } from "@/components/trust";
+import { DisruptionChip, Metric } from "@/components/trust";
 import { Card, ErrorState, Table, Td } from "@/components/ui";
 import type { ApiResult } from "@/lib/api";
 import type { CsvRow, CsvSpec } from "@/lib/csv";
@@ -36,6 +36,7 @@ import type {
   TripTimeData,
   IncidentsData,
   MareyData,
+  MetaData,
   Section,
 } from "@/lib/types";
 
@@ -59,6 +60,7 @@ const cellOf = (row: CoveredRow, value: number | null): Cell => ({
 });
 
 function TrendText({ t, goodWhenUp, unit }: { t: Trend; goodWhenUp: boolean; unit: string }) {
+  if (t.kind === "unavailable") return <span className="text-sm italic text-muted">Data unavailable right now</span>;
   if (t.kind === "withheld") return <span className="text-sm italic text-muted">Trend withheld: one of the two periods has too little data</span>;
   if (t.kind === "flat") return <span>Steady: last 24 hours within {unit} of the 7-day figure</span>;
   const better = (t.kind === "up") === goodWhenUp;
@@ -132,7 +134,7 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
   const { line } = await params;
   if (!isLine(line)) notFound();
   const heavy = isHeavyRail(line);
-  const [sections, seg24, seg7, marey, spacing, trip24, trip7, disruptions, incidents, acc7, health] = await Promise.all([
+  const [sections, seg24, seg7, marey, spacing, trip24, trip7, disruptions, incidents, acc7, health, meta] = await Promise.all([
     lineSections(line),
     segmentsOf(line, "last_24h"),
     segmentsOf(line, "last_7d"),
@@ -144,12 +146,13 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
     getApi<IncidentsData>("/incidents"),
     getApi<AccuracyData>(`/lines/${line}/accuracy?window=last_7d`),
     getApi<HealthData>("/pipeline/health?days=7"),
+    getApi<MetaData>("/meta"),
   ]);
   const { h24, h7, rel24, rel7, acc, cd } = sections;
   const fresh = [h24, rel24, acc].find((r) => r.ok);
   const style = LINE_STYLE[line];
   const ends = termini(seg24.segs);
-  const asOf = fresh?.ok ? hhmmET(fresh.body.freshness.metrics_as_of) : null;
+  const asOf = meta.ok ? hhmmET(meta.body.freshness.metrics_as_of) : null;
   const daysAvailable = health.ok ? health.body.data.daily.length : null;
   const open = openIncidentsByLine(incidents)?.get(line) ?? [];
   const header = lineDisruptionHeader(disruptions.ok ? disruptions.body.data.rows : null, seg24.all);
@@ -315,7 +318,6 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
         </div>
         <p className="mt-3 flex flex-wrap items-center gap-3">
           {disrupted ? <DisruptionChip open label={chipLabel.text} /> : null}
-          {fresh?.ok ? <Freshness ageMinutes={fresh.body.freshness.age_minutes} exportedAt={fresh.body.freshness.exported_at} /> : null}
           <CsvButton spec={csv} filename={`headway-${line}.csv`} />
         </p>
       </header>

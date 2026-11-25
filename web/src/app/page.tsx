@@ -50,11 +50,14 @@ export default async function Home() {
   const hero = heroSentence(
     d.perLine.map(({ stat }, i) => {
       const s = shown(stat.cell);
+      const why = s.kind === "value" ? null : withheldWhy(stat.cell, cards[i]?.chips.disrupted ?? false);
       return {
         line: stat.line,
         kind: stat.kind,
         value: s.kind === "value" ? s.value : null,
-        reason: s.kind === "value" ? null : withheldWhy(stat.cell, cards[i]?.chips.disrupted ?? false),
+        reason: why?.text ?? null,
+        // An API error is missing data even when the cell is empty.
+        state: stat.ok ? why?.state : ("unavailable" as const),
       };
     }),
   );

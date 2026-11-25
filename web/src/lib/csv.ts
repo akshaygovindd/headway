@@ -34,8 +34,8 @@ export function csvField(v: string | number | boolean | null | undefined): strin
 export function withheldReason(cell: Cell): string {
   const s = shown(cell);
   if (s.kind === "value") return "";
+  if (s.kind === "unavailable") return "data unavailable";
   if (s.reason) return s.reason;
-  if (cell.value == null) return `no value; ${coverageText(s.coverage)}`;
   return `${coverageText(s.coverage)} is below the minimum for showing a value`;
 }
 

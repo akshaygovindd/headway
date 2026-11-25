@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 import {
   CoverageBadge,
   DisruptionChip,
@@ -26,9 +27,10 @@ describe("Metric", () => {
     expect(screen.queryByTestId("coverage-badge")).toBeNull();
   });
 
-  it("withholds a null value and a value with a stated reason", () => {
+  it("says data unavailable (not withheld) for a missing value, and withholds a stated reason", () => {
     const a = render(<Metric cell={{ value: null, coverage_pct: 80 }} unit="s" />);
-    expect(a.container.textContent).toBe("Not enough data \u00b7 80% cov.");
+    expect(a.container.textContent).toBe("Data unavailable right now");
+    expect(a.container.textContent).not.toMatch(/coverage|Not enough/i);
     a.unmount();
     const b = render(
       <Metric cell={{ value: 42, coverage_pct: 80, withheld_reason: "coverage 30% is below 50%" }} unit="s" />,
@@ -36,9 +38,11 @@ describe("Metric", () => {
     expect(b.container.textContent).not.toMatch(/42/);
   });
 
-  it("withholds when coverage is missing", () => {
+  it("is unavailable, not withheld, when there is no coverage figure", () => {
     const { container } = render(<Metric cell={{ value: 12, coverage_pct: null }} unit="s" />);
-    expect(container.textContent).toBe("Not enough data \u00b7 cov. unknown");
+    expect(container.textContent).toBe("Data unavailable right now");
+    expect(screen.getByTestId("unavailable")).toBeInTheDocument();
+    expect(screen.queryByTestId("withheld")).toBeNull();
   });
 
   it("shows exactly at the 50% boundary and withholds just under", () => {
@@ -86,13 +90,32 @@ describe("other trust components", () => {
     expect(screen.getByTestId("withheld")).toHaveTextContent("Not enough data \u00b7 12% cov.");
   });
 
-  it("Freshness says N min ago and flags stale data", () => {
-    const a = render(<Freshness ageMinutes={12.7} exportedAt="2026-11-23T23:54:06Z" />);
-    expect(screen.getByTestId("freshness")).toHaveTextContent("updated 12 min ago");
-    expect(screen.getByTestId("freshness")).toHaveAttribute("data-stale", "false");
-    a.unmount();
-    render(<Freshness ageMinutes={400} />);
-    expect(screen.getByTestId("freshness")).toHaveTextContent("updated 6 h ago (stale)");
+  it("Freshness is worked out at view time from the export time, not frozen at build", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-11-24T00:06:06Z"));
+      const a = render(<Freshness exportedAt="2026-11-23T23:54:06Z" />);
+      expect(screen.getByTestId("freshness")).toHaveTextContent("updated 12 min ago");
+      expect(screen.getByTestId("freshness")).toHaveAttribute("data-stale", "false");
+      // Time passes with the page open: the text moves on by itself.
+      act(() => {
+        vi.advanceTimersByTime(60 * 60000);
+      });
+      expect(screen.getByTestId("freshness")).toHaveTextContent("updated 1 h ago (stale)");
+      a.unmount();
+      // Same markup viewed much later says so: nothing from the build leaks in.
+      vi.setSystemTime(new Date("2026-11-24T06:00:00Z"));
+      render(<Freshness exportedAt="2026-11-23T23:54:06Z" />);
+      expect(screen.getByTestId("freshness")).toHaveTextContent("updated 6 h ago (stale)");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("Freshness before the browser clock is known shows the fixed export time only", () => {
+    const html = renderToString(<Freshness exportedAt="2026-11-23T23:54:06Z" />);
+    expect(html).toContain("exported 18:54 ET");
+    expect(html).not.toMatch(/min ago|h ago/);
   });
 
   it("DisruptionChip states open, none and unknown in words", () => {

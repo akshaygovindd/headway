@@ -32,11 +32,11 @@ describe("getApi", () => {
 describe("ErrorState", () => {
   it("shows a friendly message when the service is down", () => {
     render(<ErrorState failure={{ ok: false, kind: "unavailable", status: null, message: "x" }} />);
-    expect(screen.getByRole("alert")).toHaveTextContent("We can't reach the data service right now.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Data unavailable right now");
   });
 
   it("says not published yet for a missing table", () => {
     render(<ErrorState failure={{ ok: false, kind: "not_available", status: 404, message: "x" }} what="Incidents" />);
-    expect(screen.getByRole("status")).toHaveTextContent("Incidents is not published yet.");
+    expect(screen.getByRole("status")).toHaveTextContent("Data unavailable right now: Incidents");
   });
 });

@@ -1,13 +1,13 @@
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PAGES, Shell, stubFixtureApi } from "./helpers";
+import { PAGES, shell, stubFixtureApi } from "./helpers";
 
 beforeEach(stubFixtureApi);
 afterEach(() => vi.unstubAllGlobals());
 
 async function home() {
   const page = PAGES.find((p) => p.name === "/")!;
-  render(<Shell>{await page.load()}</Shell>);
+  render(await shell(await page.load()));
 }
 
 describe("home page", () => {

@@ -9,6 +9,8 @@ export type HeroLine = {
   value: number | null;
   /** Why it is withheld, in a few words. Used only when value is null. */
   reason?: string | null;
+  /** "unavailable" is missing data (no coverage figure), not a withheld value: it never says "withheld". */
+  state?: "withheld" | "unavailable";
 };
 
 const dash = "–";
@@ -47,11 +49,13 @@ export function heroSentence(lines: HeroLine[]): string {
   if (withheld.length) {
     // Group lines that share a reason so the sentence stays short.
     const groups = new Map<string, string[]>();
-    for (const l of withheld) {
+    for (const l of withheld.filter((x) => x.state !== "unavailable")) {
       const k = l.reason?.trim() || "not enough data";
       groups.set(k, [...(groups.get(k) ?? []), l.line]);
     }
     const text = [...groups].map(([reason, names]) => `${nameList(names)} withheld (${reason})`);
+    const missing = withheld.filter((x) => x.state === "unavailable").map((x) => x.line);
+    if (missing.length) text.push(`Data unavailable right now for ${nameList(missing)}`);
     parts.push(`${text.join("; ")}.`);
   }
   return parts.join(" ");

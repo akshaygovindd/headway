@@ -64,11 +64,15 @@ export function thresholds(i: Incident): string[] {
   return Array.isArray(t) ? t : t ? [t] : [];
 }
 
-/** The short reason a line is withheld, for the hero sentence. */
-export function withheldWhy(cell: Cell, disrupted: boolean): string {
+/**
+ * The short reason a line has no number, for the hero sentence. Only a known coverage under the
+ * minimum is "withheld"; no coverage figure at all is missing data, and says so.
+ */
+export function withheldWhy(cell: Cell, disrupted: boolean): { state: "withheld" | "unavailable"; text: string } {
   const s = shown(cell);
-  const cov = s.kind === "withheld" && s.coverage != null ? `${Math.round(s.coverage)}% coverage` : "too little coverage";
-  return disrupted ? `${cov} during a service disruption` : `${cov}, under the 50% minimum`;
+  if (s.kind !== "withheld" || s.coverage == null) return { state: "unavailable", text: "data unavailable right now" };
+  const cov = `${Math.round(s.coverage)}% coverage`;
+  return { state: "withheld", text: disrupted ? `${cov} during a service disruption` : `${cov}, under the 50% minimum` };
 }
 
 export async function homeData() {

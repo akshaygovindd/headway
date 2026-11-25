@@ -35,7 +35,7 @@ describe("buildCsv", () => {
     );
     expect(out[2]).toBe('a,,pct,30,coverage 30% is below 50%,2026-11-24T11:45:00Z');
     expect(out[3]).toMatch(/^b,,pct,30,coverage 30.0% is below/);
-    expect(out[4]).toMatch(/^c,,s,,no value; coverage unknown,/);
+    expect(out[4]).toMatch(/^c,,s,,data unavailable,/);
     expect(out.slice(2).join("\n")).not.toContain("71");
   });
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AsOf } from "@/components/AsOf";
 import { MetricPopover } from "@/components/MetricPopover";
 import { docUrl } from "@/lib/definitions";
 import { REPO_URL } from "@/lib/map";
@@ -32,7 +33,7 @@ const NAV = [
   ["/how-we-measure", "Methodology"],
 ] as const;
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${overpass.variable} ${inter.variable} ${mono.variable}`}>
       <body className="min-h-screen">
@@ -50,7 +51,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               </Link>
               <p className="text-xs text-muted">Independent project · not affiliated with the MBTA</p>
             </div>
-            <nav aria-label="Main" className="ml-auto">
+            <div className="sm:ml-auto sm:text-right">
+              <AsOf />
+            </div>
+            <nav aria-label="Main" className="w-full">
               <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium">
                 {NAV.map(([href, label]) => (
                   <li key={href}>

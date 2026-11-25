@@ -42,7 +42,6 @@ export default async function IncidentsPage() {
       <PageHeader
         title="Incidents"
         intro="Stretches of at least two hours where a line was clearly off. An incident is a rule result, not a verdict. Hours when Headway itself had no data are marked and never counted against service."
-        freshness={r.ok ? r.body.freshness : null}
       />
       {!r.ok ? (
         <ErrorState failure={r} what="Incidents" />

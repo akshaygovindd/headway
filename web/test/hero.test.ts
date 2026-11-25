@@ -49,3 +49,17 @@ describe("heroSentence", () => {
     expect(heroSentence(eight())).not.toMatch(/best|worst|better|worse|highest|lowest|rank/i);
   });
 });
+
+describe("heroSentence: missing data is not withheld", () => {
+  it("says data unavailable for a line with no coverage figure and withheld only for low coverage", async () => {
+    const { heroSentence } = await import("@/lib/hero");
+    const s = heroSentence([
+      { line: "Red", kind: "heavy", value: null, reason: "35% coverage, under the 50% minimum", state: "withheld" },
+      { line: "Blue", kind: "heavy", value: null, reason: "data unavailable right now", state: "unavailable" },
+      { line: "Orange", kind: "heavy", value: 80 },
+    ]);
+    expect(s).toContain("Red withheld (35% coverage, under the 50% minimum)");
+    expect(s).toContain("Data unavailable right now for Blue");
+    expect(s).not.toMatch(/Blue withheld|too little coverage/);
+  });
+});

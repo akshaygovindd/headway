@@ -2,27 +2,18 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { ApiFailure } from "@/lib/api";
 import { methodologyUrl } from "@/lib/map";
-import { Freshness } from "@/components/trust";
-import type { Freshness as FreshnessT } from "@/lib/types";
 
 export function PageHeader({
   title,
   intro,
-  freshness,
 }: {
   title: string;
   intro?: ReactNode;
-  freshness?: FreshnessT | null;
 }) {
   return (
     <header className="mb-6">
       <h1 className="text-2xl font-bold sm:text-3xl">{title}</h1>
       {intro ? <p className="mt-2 max-w-3xl text-muted">{intro}</p> : null}
-      {freshness ? (
-        <p className="mt-2">
-          <Freshness ageMinutes={freshness.age_minutes} exportedAt={freshness.exported_at} />
-        </p>
-      ) : null}
     </header>
   );
 }
@@ -49,14 +40,12 @@ export function ErrorState({ failure, what }: { failure: ApiFailure; what?: stri
   return (
     <div role={notYet ? "status" : "alert"} className="rounded-lg border border-line bg-card p-4" data-testid="error-state">
       <p className="font-semibold">
-        {notYet
-          ? `${what ?? "This data"} is not published yet.`
-          : "We can't reach the data service right now."}
+        Data unavailable right now{what ? `: ${what}` : ""}
       </p>
       <p className="mt-1 text-sm text-muted">
         {notYet
-          ? "It will appear here once the pipeline has produced it."
-          : "Nothing is wrong with your connection. Try again in a few minutes; this page refreshes itself."}
+          ? "It has not been published yet and will appear here once the pipeline has produced it."
+          : "We can't reach the data service. Nothing is wrong with your connection. Try again in a few minutes; this page refreshes itself."}
       </p>
     </div>
   );

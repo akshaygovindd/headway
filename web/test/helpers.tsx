@@ -1,4 +1,4 @@
-import { Children, type ReactElement, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import RootLayout from "@/app/layout";
 import { vi } from "vitest";
 import { respond } from "../scripts/mock-api.mjs";
@@ -30,11 +30,25 @@ export const PAGES: { name: string; load: () => Promise<ReactElement> }[] = [
   { name: "/data", load: async () => (await import("@/app/data/page")).default() },
 ];
 
-/** The layout's body children (header, main, footer, popover) as a fragment, for rendering in a div. */
-export function Shell({ children }: { children: ReactNode }) {
-  const tree = RootLayout({ children }) as ReactElement<{ children: ReactNode }>;
+/** Evaluate async server components (the layout's "as of") so jsdom can render the tree. */
+async function resolve(node: ReactNode): Promise<ReactNode> {
+  if (Array.isArray(node)) return Promise.all(node.map(resolve));
+  if (!isValidElement(node)) return node;
+  const el = node as ReactElement<{ children?: ReactNode }>;
+  if (typeof el.type === "function" && el.type.constructor.name === "AsyncFunction") {
+    return resolve(await (el.type as (p: unknown) => Promise<ReactNode>)(el.props));
+  }
+  const kids = el.props.children;
+  if (kids == null || typeof kids === "string") return el;
+  const done = Array.isArray(kids) ? await Promise.all(kids.map(resolve)) : [await resolve(kids)];
+  return cloneElement(el, undefined, ...done);
+}
+
+/** The layout's body children (header, main, footer, popover), with async parts resolved, for rendering in a div. */
+export async function shell(children: ReactNode): Promise<ReactElement> {
+  const tree = (await RootLayout({ children })) as ReactElement<{ children: ReactNode }>;
   const body = Children.toArray(tree.props.children).find(
     (c) => (c as ReactElement).type === "body",
   ) as ReactElement<{ children: ReactNode }>;
-  return <div lang="en">{body.props.children}</div>;
+  return <div lang="en">{await resolve(body.props.children)}</div>;
 }

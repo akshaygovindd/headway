@@ -19,7 +19,6 @@ export default async function PipelinePage() {
       <PageHeader
         title="Pipeline health and SLOs"
         intro="How Headway's own data collection is doing. These figures count Headway's runs and events, not train observations, so each shows the days or events it is based on instead of a coverage badge."
-        freshness={fresh}
       />
       <div className="grid gap-4">
         <Card title="Service level objectives" definition="release-2-slos">

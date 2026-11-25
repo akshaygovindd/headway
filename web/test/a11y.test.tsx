@@ -2,7 +2,7 @@ import { render } from "@testing-library/react";
 import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import NotFound from "@/app/not-found";
-import { PAGES, Shell, stubFixtureApi } from "./helpers";
+import { PAGES, shell, stubFixtureApi } from "./helpers";
 
 beforeEach(() => {
   stubFixtureApi();
@@ -30,10 +30,9 @@ describe("axe: every page inside the real layout", () => {
     it(page.name, async () => {
       const el = await page.load();
       // The layout renders <html>; mount only its chrome plus the page by rendering into a wrapper.
-      const { container } = render(<RootLayoutShell>{el}</RootLayoutShell>);
+      const { container } = render(await shell(el));
       expect(await violations(container)).toEqual([]);
     });
   }
 });
 
-const RootLayoutShell = Shell;

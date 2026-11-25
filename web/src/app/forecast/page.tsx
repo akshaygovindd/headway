@@ -24,7 +24,6 @@ export default async function ForecastPage() {
       <PageHeader
         title="Forecast"
         intro="Next-hour delay by direction, from simple baselines. The learned model is shown only after it passes a training gate."
-        freshness={first?.ok ? first.body.freshness : null}
       />
       <p className="mb-6 rounded-lg border border-line bg-card p-4 font-medium" data-testid="gate-text">
         {GATE_TEXT}

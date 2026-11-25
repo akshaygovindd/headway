@@ -1,6 +1,6 @@
 import { formatValue, shown, type Cell, type Unit } from "@/lib/map";
 import { CoverageBadge } from "./CoverageBadge";
-import { Withheld } from "./Withheld";
+import { Unavailable, Withheld } from "./Withheld";
 
 /** What the "How this was measured" popover needs beyond the cell itself. */
 export type MetricInfo = {
@@ -36,6 +36,13 @@ export function Metric({
   block?: boolean;
 }) {
   const s = shown(cell);
+  if (s.kind === "unavailable") {
+    return (
+      <span className={block ? "flex min-w-0 flex-1 sm:block" : "inline-flex"} data-testid="metric">
+        <Unavailable block={block} />
+      </span>
+    );
+  }
   if (s.kind !== "value") {
     return (
       <span className={block ? "flex min-w-0 flex-1 sm:block" : "inline-flex"} data-testid="metric">
