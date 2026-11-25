@@ -77,6 +77,8 @@ class GoldSource:
     def fallback(self) -> None:
         """A query on the local copy failed: read over HTTPS until the next re-check."""
         with self._lock:
+            if self._local:  # drop the suspect copy so the next re-check downloads it afresh
+                shutil.rmtree(self._local[len("file://") :], ignore_errors=True)
             self._local = self._local_exported = None
             if self._snap is not None:
                 self._snap = Snapshot(self.remote, self.remote, self._snap.manifest, "remote")

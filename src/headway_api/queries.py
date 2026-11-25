@@ -345,7 +345,8 @@ class Query:
             def gate_sql(base: str) -> str:
                 return (
                     "select line, n_days, n_weekend_days, min_days, min_weekend_days, gate_passed, "
-                    f"source from read_parquet('{self.path(base, 'agg_forecast_gate_status')}') "
+                    '"source" from '
+                    f"read_parquet('{self.path(base, 'agg_forecast_gate_status')}') "
                     f"where line = '{line}'"
                 )
 

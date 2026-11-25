@@ -76,7 +76,7 @@ def build(base: Path, exported_at: str = EXPORTED_AT, shift: float = 0.0) -> str
         ),
         "agg_forecast_gate_status": (
             "select 'Red' line, 5 n_days, 1 n_weekend_days, 21 min_days, 6 min_weekend_days,"
-            " false gate_passed, 'training_job' source"
+            " false gate_passed, 'training_job' as source"
         ),
         "agg_slo_rollup": (
             "select 'transform_success' slo_name, 'last_7d' window_label, 99.0::double target_pct,"
@@ -92,7 +92,9 @@ def build(base: Path, exported_at: str = EXPORTED_AT, shift: float = 0.0) -> str
     counts: dict[str, int] = {}
     for name, sql in tables.items():
         _w(con, gold / f"{name}.parquet", sql)
-        counts[name] = con.execute(f"select count(*) from '{gold / f'{name}.parquet'}'").fetchone()[0]  # type: ignore[index]
+        counts[name] = con.execute(f"select count(*) from '{gold / f'{name}.parquet'}'").fetchone()[
+            0
+        ]  # type: ignore[index]
     (gold / "manifest.json").write_text(json.dumps({
         "exported_at": exported_at,
         "metrics_as_of": f"{DAY}T15:00:00Z",

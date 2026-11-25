@@ -1,4 +1,4 @@
-"""Write the synthetic gold fixture of the API tests for the image smoke: smoke_api_seed.py <dir>."""
+"""Write the API tests' synthetic gold fixture for the image smoke: smoke_api_seed.py <dir>."""
 
 import sys
 from pathlib import Path
