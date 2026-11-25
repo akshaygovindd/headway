@@ -418,6 +418,19 @@ so the variable is your statement of it: `enable_r4 = true` fails validation whi
 5. Turning it off is `enable_r4 = false`: the function, gateway and alarm are destroyed; nothing else
    depends on them.
 
+**Site tables (the public site's data).** `enable_r4 = true` together with `enable_r2 = true` also
+sets `HEADWAY_ENABLE_R4=true` on the transform Lambda (`tostring(var.enable_r4 && var.enable_r2)`;
+false by default, so a plan with R4 off changes nothing). The transform then also builds the dbt
+models tagged `r4` and exports `agg_headway_segment_window`, `agg_marey_last_hour` and
+`agg_capture_heartbeat_hourly` with the gold tables; the API serves them as
+`/v1/lines/{line}/segments`, `/v1/lines/{line}/marey` and `/v1/pipeline/heartbeat` (404
+`not_available` before). Switch-on: set `enable_r4 = true` next to `enable_r2 = true` and deploy
+(`make deploy ENABLE_R4=true`); after the next transform run check that the export has the
+tables (`curl -s "$API/v1/meta"` lists them in `tables_in_export`, and `/v1/lines/Red/segments`
+answers 200) and read the logged step times as for R2. Turning them off is `enable_r4 = false`:
+the next run builds and exports without them, and the API answers 404 for them as soon as the
+manifest no longer lists the tables (old objects are not deleted).
+
 ## Public site on Vercel (not executed)
 
 The site in `web/` is built and tested locally only. When the API is live (`enable_r4`):

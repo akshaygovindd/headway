@@ -81,3 +81,9 @@ def test_every_train_resource_is_behind_enable_r3() -> None:
     assert resources
     for _, body in resources:
         assert "count = var.enable_r3 ? 1 : 0" in body
+
+
+def test_the_transform_lambda_gets_release_4_only_with_r2() -> None:
+    assert "HEADWAY_ENABLE_R4 = tostring(var.enable_r4 && var.enable_r2)" in PIPELINE
+    transform = PIPELINE[PIPELINE.index('resource "aws_lambda_function" "transform"') :]
+    assert "HEADWAY_ENABLE_R4" in transform.split("logging_config")[0]

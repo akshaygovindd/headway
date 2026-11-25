@@ -368,6 +368,9 @@ resource "aws_lambda_function" "transform" {
       HEADWAY_ENABLE_R2 = tostring(var.enable_r2)
       # Release 3 dbt models (tag r3) are skipped unless this is "true"; they need enable_r2
       HEADWAY_ENABLE_R3 = tostring(var.enable_r3)
+      # Release 4 dbt models (tag r4: segment health, Marey, heartbeat) are skipped unless "true";
+      # they need enable_r2
+      HEADWAY_ENABLE_R4 = tostring(var.enable_r4 && var.enable_r2)
     }
   }
 
