@@ -15,7 +15,7 @@ export function DisruptionChip({ open, label }: { open: boolean | null; label?: 
   return open ? (
     <span data-testid="disruption" className="chip-disruption max-w-full" title={text}>
       <BusIcon />
-      <span className="truncate">{text}</span>
+      <span className="min-w-0 break-words">{text}</span>
     </span>
   ) : (
     <span data-testid="disruption" className="text-xs text-muted">
@@ -29,7 +29,7 @@ export function StopsSkippedChip({ label = "Possible stop skipped (inferred from
   return (
     <span data-testid="skipped" className="chip-disruption max-w-full" title={label}>
       <span aria-hidden="true">!</span>
-      <span className="truncate">{label}</span>
+      <span className="min-w-0 break-words">{label}</span>
     </span>
   );
 }

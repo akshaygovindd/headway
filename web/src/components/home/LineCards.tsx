@@ -14,17 +14,17 @@ export function LineCards({ cards }: { cards: { stat: LineStat; chips: CardChips
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Lines">
       {cards.map(({ stat, chips }) => {
         return (
-          <li key={stat.line} className="flex items-center gap-3 rounded-lg border border-line bg-card p-3 sm:block sm:p-4">
-            <div className="flex items-center gap-2 sm:mb-2">
+          <li key={stat.line} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-line bg-card p-3 sm:block sm:p-4">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:mb-2">
               <LineBadge line={stat.line} size={32} />
               <div>
                 <h3 className="text-base leading-tight">
-                  <Link href={`/lines/${stat.line}`}>{lineName(stat.line)}</Link>
+                  <Link href={`/lines/${stat.line}`} className="line-link">{lineName(stat.line)}</Link>
                 </h3>
                 <p className="text-xs text-muted">{stat.label}</p>
               </div>
             </div>
-            <div className="ml-auto sm:ml-0">
+            <div className="ml-auto min-w-0 sm:ml-0">
               <Metric
                 cell={stat.cell}
                 unit="pct0"
@@ -33,7 +33,7 @@ export function LineCards({ cards }: { cards: { stat: LineStat; chips: CardChips
                 info={{ k: stat.k, line: stat.line, n: stat.n, window: "last_24h", label: `${lineName(stat.line)}: ${stat.label.toLowerCase()}` }}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-1.5 sm:mt-2">
+            <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 empty:hidden sm:mt-2">
               {chips.disrupted ? <DisruptionChip open label={disruptionLabel(chips.header, false).text} /> : null}
               {chips.skipped ? <StopsSkippedChip /> : null}
             </div>

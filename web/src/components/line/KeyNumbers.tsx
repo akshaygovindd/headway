@@ -66,7 +66,7 @@ export function KeyNumbers({
   ];
   const order = heavy ? tiles : [tiles[2], tiles[0], tiles[1], tiles[3]];
   return (
-    <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-testid="key-numbers">
+    <dl className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4" data-testid="key-numbers">
       {order.map((t) => (
         <div key={t!.key} className="rounded-lg border border-line bg-card p-3">
           <dt className="mb-1 text-sm text-muted">{t!.label}</dt>

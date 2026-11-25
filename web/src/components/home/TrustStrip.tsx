@@ -78,7 +78,7 @@ export function TrustStrip({
           </p>
         </div>
       ) : null}
-      <p className="mt-3 text-sm"><Link href="/pipeline">Pipeline health and checks</Link></p>
+      <p className="mt-3 text-sm"><Link href="/pipeline" className="tap">Pipeline health and checks</Link></p>
     </section>
   );
 }

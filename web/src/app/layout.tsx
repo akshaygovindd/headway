@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AsOf } from "@/components/AsOf";
+import { NavLinks } from "@/components/NavLinks";
 import { MetricPopover } from "@/components/MetricPopover";
 import { docUrl } from "@/lib/definitions";
 import { REPO_URL } from "@/lib/map";
@@ -44,7 +45,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           Skip to content
         </a>
         <header className="border-b border-line bg-card">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-4 pt-3">
             <div>
               <Link href="/" className="font-display text-xl font-extrabold text-fg no-underline">
                 Headway
@@ -54,21 +55,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <div className="sm:ml-auto sm:text-right">
               <AsOf />
             </div>
-            <nav aria-label="Main" className="w-full">
-              <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium">
-                {NAV.map(([href, label]) => (
-                  <li key={href}>
-                    <Link href={href} className="inline-block py-2">
-                      {label}
-                    </Link>
-                  </li>
-                ))}
-                <li>
-                  <a href={REPO_URL} className="inline-block py-2">
-                    GitHub
-                  </a>
-                </li>
-              </ul>
+            <nav aria-label="Main" className="w-full min-w-0">
+              <NavLinks items={NAV} repoUrl={REPO_URL} />
             </nav>
           </div>
         </header>
@@ -77,12 +65,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         </main>
         <footer className="mx-auto max-w-6xl border-t border-line px-4 py-6 text-sm text-muted">
           <p>Headway approximates MBTA service from public feeds. It is not an official MBTA measure. Times in ET.</p>
-          <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
-            <li><a href={REPO_URL}>GitHub</a></li>
-            <li><Link href="/how-we-measure">Methodology</Link></li>
-            <li><a href={docUrl("docs/API.md")}>API</a></li>
-            <li><Link href="/data">Data contracts</Link></li>
-            <li><Link href="/about">About</Link></li>
+          <ul className="mt-2 flex flex-wrap gap-x-5">
+            <li><a href={REPO_URL} className="tap">GitHub</a></li>
+            <li><Link href="/how-we-measure" className="tap">Methodology</Link></li>
+            <li><a href={docUrl("docs/API.md")} className="tap">API</a></li>
+            <li><Link href="/data" className="tap">Data contracts</Link></li>
+            <li><Link href="/about" className="tap">About</Link></li>
           </ul>
         </footer>
         <MetricPopover />

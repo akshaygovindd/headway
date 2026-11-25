@@ -60,3 +60,17 @@ export function heroSentence(lines: HeroLine[]): string {
   }
   return parts.join(" ");
 }
+
+/** The hero as runs of text: the figures (49%, 80–95%, 3 of 8) are bold, everything else is regular. */
+export function heroRuns(text: string): { text: string; bold: boolean }[] {
+  const out: { text: string; bold: boolean }[] = [];
+  const re = /\d+(?:\u2013\d+)?%|\d+ of \d+/g;
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    if (m.index > last) out.push({ text: text.slice(last, m.index), bold: false });
+    out.push({ text: m[0], bold: true });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push({ text: text.slice(last), bold: false });
+  return out;
+}

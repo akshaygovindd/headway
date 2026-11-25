@@ -10,12 +10,12 @@ function walk(dir: string): string[] {
 }
 
 describe("client JavaScript budget", () => {
-  it("only the CSV button, the view-time freshness, the metric popover and Next's required error boundary are client components", () => {
+  it("only the CSV button, the view-time freshness, the nav (current page), the metric popover and Next's required error boundary are client components", () => {
     const clients = walk(path.join(process.cwd(), "src"))
       .filter((f) => /\.(tsx?|jsx?)$/.test(f))
       .filter((f) => /^\s*["']use client["']/.test(readFileSync(f, "utf8")))
       .map((f) => path.basename(f))
       .sort();
-    expect(clients).toEqual(["CsvButton.tsx", "Freshness.tsx", "MetricPopover.tsx", "error.tsx"]);
+    expect(clients).toEqual(["CsvButton.tsx", "Freshness.tsx", "MetricPopover.tsx", "NavLinks.tsx", "error.tsx"]);
   });
 });

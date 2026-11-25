@@ -98,7 +98,7 @@ export function Td({ children, colSpan }: { children: ReactNode; colSpan?: numbe
 
 export function LineLink({ line }: { line: string }) {
   return (
-    <Link href={`/lines/${line}`} className="font-medium">
+    <Link href={`/lines/${line}`} className="line-link font-medium">
       {line}
     </Link>
   );

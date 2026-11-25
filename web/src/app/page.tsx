@@ -8,7 +8,7 @@ import { ErrorState } from "@/components/ui";
 import { checksSummary } from "@/lib/checks";
 import { capturePct } from "@/lib/heartbeat";
 import { lineDisruptionHeader } from "@/lib/network";
-import { heroSentence } from "@/lib/hero";
+import { heroRuns, heroSentence } from "@/lib/hero";
 import { shown } from "@/lib/map";
 import { homeData, openIncidentsByLine, thresholds, withheldWhy } from "@/lib/site-data";
 import { hhmmET } from "@/lib/time";
@@ -79,7 +79,9 @@ export default async function Home() {
       <p className="text-sm font-semibold uppercase tracking-wide text-muted" data-testid="eyebrow">
         Boston subway · last 24 hours{time ? ` · as of ${time} ET` : ""}
       </p>
-      <h1 className="mt-2 max-w-4xl text-2xl leading-snug sm:text-4xl" data-testid="hero">{hero}</h1>
+      <h1 className="hero mt-2 text-2xl leading-snug sm:text-3xl" data-testid="hero">
+        {heroRuns(hero).map((r, i) => (r.bold ? <strong key={i} className="font-bold">{r.text}</strong> : <span key={i}>{r.text}</span>))}
+      </h1>
 
       <section className="mt-8" aria-labelledby="network-h">
         <h2 id="network-h" className="text-xl">Spacing along every line</h2>
