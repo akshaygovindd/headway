@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import ui
-from lib import accuracy
+from lib import accuracy, countdown
 from lib.coverage import coverage_badge
 from lib.lines import line_color
 
@@ -21,6 +21,8 @@ recon = ui.gold_table_optional(base, "agg_arrival_reconstruction_daily")
 acc_win = ui.gold_table_optional(base, "agg_accuracy_window")
 dev_win = ui.gold_table_optional(base, "agg_actual_deviation_window")
 alerts = ui.gold_table_optional(base, "agg_active_alerts")
+cd_win = ui.gold_table_optional(base, "agg_countdown_accuracy_window")
+cd_daily = ui.gold_table_optional(base, "agg_countdown_accuracy_daily")
 if acc is None or dev is None:
     st.info(
         "Accuracy metrics are not enabled in this deployment yet. They need the Release 2 "
@@ -144,4 +146,74 @@ else:
             unit = "arrivals in service-disruption hours" if exact else "service-disruption hours"
             disruption = f", {int(n_disrupted):,} {unit} included" if n_disrupted else ""
             st.caption(f"{ui.coverage_text(cov, row['n'])}{extra}{disruption}")
+
+st.subheader("Countdown accuracy")
+st.caption(
+    f"{countdown.LABEL}. How often a 1, 3, 5 or 10 minute countdown was right: the share of "
+    "countdowns after which the train arrived within a minute (or two) of the predicted time. A "
+    "train that never came counts as a miss. Checked against reconstructed arrivals, so a "
+    "Headway approximation."
+)
+cd = countdown.source(cd_win, cd_daily, window)
+if cd.empty:
+    st.info("Countdown accuracy is not available for this window in this export yet.")
+else:
+    for line in sorted(cd["line"].unique()):
+        rows = countdown.by_line(cd, line)
+        with st.container(border=True):
+            st.markdown(f"**{line}**")
+            cov = rows["coverage_pct"]
+            view = pd.DataFrame(
+                {
+                    "Countdown": [f"{int(m)} min" for m in rows["countdown_min"]],
+                    "Within ±60 s": [ui.cell_pct(v, c) for v, c in zip(rows["pct_within_60s"], cov, strict=True)],
+                    "Within ±120 s": [ui.cell_pct(v, c) for v, c in zip(rows["pct_within_120s"], cov, strict=True)],
+                    "n": rows["n"],
+                    "Could not be checked": rows["n_unknown"],
+                    "Coverage": [ui.fmt_pct(c) for c in cov],
+                }
+            )  # fmt: skip
+            st.dataframe(view, hide_index=True, width="stretch")
+            extra = (
+                f", {int(rows['n_excluded_outage'].sum()):,} left out for data outages"
+                if rows["n_excluded_outage"].sum()
+                else ""
+            )
+            disrupted_n = int(rows["n_disruption"].sum())
+            disruption = (
+                f", {disrupted_n:,} in service-disruption hours (kept)" if disrupted_n else ""
+            )
+            st.caption(countdown.unchecked_note(rows) + extra + disruption)
+            with st.expander(f"{line}: stations"):
+                stations = countdown.by_station(cd, line)
+                scov = stations["coverage_pct"]
+                st.dataframe(
+                    pd.DataFrame(
+                        {
+                            "Station": stations["station_name"],
+                            "Countdown": [f"{int(m)} min" for m in stations["countdown_min"]],
+                            "Within ±60 s": [
+                                ui.cell_pct(v, c)
+                                for v, c in zip(stations["pct_within_60s"], scov, strict=True)
+                            ],
+                            "Within ±120 s": [
+                                ui.cell_pct(v, c)
+                                for v, c in zip(stations["pct_within_120s"], scov, strict=True)
+                            ],
+                            "n": stations["n"],
+                            "Could not be checked": stations["n_unknown"],
+                            "Coverage": [ui.fmt_pct(c) for c in scov],
+                        }
+                    ),  # fmt: skip
+                    hide_index=True,
+                    width="stretch",
+                )
+                st.caption(
+                    "Coverage is the share of the station's scheduled trip stops with a counted "
+                    "countdown in the bucket; values below 50% are withheld."
+                )
+    st.caption(
+        "Coverage is the share of scheduled trip stops with a counted countdown in the bucket; "
+        "values below 50% are withheld. Lines and windows add up counts, so they are exact."
+    )
 st.caption(ui.DISCLAIMER)

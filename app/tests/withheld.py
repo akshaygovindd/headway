@@ -11,6 +11,7 @@ from lib.coverage import LOW_MIN, WITHHELD_TEXT
 IDENTIFIER_COLUMNS = {
     "Line", "Minutes ahead", "Time band", "Coverage", "n", "Trips",
     "of which service disruption", "Horizon", "Method", "Hour",
+    "Countdown", "Station", "Could not be checked",
 }  # fmt: skip
 
 

@@ -81,7 +81,27 @@ def _gold(tmp_path: Path, cov: dict[str, float] | None = None) -> Path:
          "coverage_denominator": 50 / cov[ln] * 100}
         for ln in cov
     ]  # fmt: skip
+    # Countdown accuracy: Red 777 of 1,000 within 60 s (78%) and 888 within 120 s (89%) must
+    # never appear (35% coverage); Blue is two stations with 100 countdowns, 50% and 60%.
+    stations = {
+        "Red": [("place-a", "Alpha", 1000, 777, 888)],
+        "Blue": [("place-x", "Xray", 60, 30, 36), ("place-y", "Yankee", 40, 20, 24)],
+    }
+
+    def countdown_rows(key: str, value: object) -> list[dict[str, object]]:
+        return [
+            {"line": ln, "station_id": sid, "station_name": name, key: value, "countdown_min": m,
+             "n": n, "n_arrived": n, "n_non_arrival": 0, "n_unknown": 5, "n_excluded_outage": 0,
+             "n_disruption": 0, "n_within_60s": w60, "n_within_120s": w120,
+             "coverage_numerator": n, "coverage_denominator": n / cov[ln] * 100}
+            for ln in cov for sid, name, n, w60, w120 in stations[ln] for m in (1, 3)
+        ]  # fmt: skip
+
     tables = {
+        "agg_countdown_accuracy_window": [
+            r for w in ("last_24h", "last_7d") for r in countdown_rows("window_label", w)
+        ],
+        "agg_countdown_accuracy_daily": countdown_rows("service_date", date(2026, 11, 23)),
         "agg_accuracy_window": acc_win,
         "agg_actual_deviation_window": dev_win,
         "agg_prediction_accuracy_daily": acc_daily,
@@ -121,6 +141,8 @@ def test_value_below_half_coverage_is_rendered_nowhere(
         assert "7771" not in text and "7772" not in text, window
         assert WITHHELD_TEXT in text
         assert "Service disruption: detour" in text, window
+        assert "78%" not in text and "89%" not in text, window  # Red's countdown accuracy
+        assert "Countdown accuracy" in text and "MBTA's published predictions" in text
         assert sum(1 for m in at.metric if m.label == "Median deviation") == 1  # Blue only
 
 
