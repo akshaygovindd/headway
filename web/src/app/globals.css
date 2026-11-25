@@ -155,6 +155,14 @@ dialog.metric-sheet::backdrop {
   display: none;
 }
 
+/* Station strip: horizontal with labels at the stop points; a vertical list on phones. */
+.strip-phone {
+  display: none;
+}
+.strip-phone > li > p {
+  margin: 0;
+}
+
 /* Marey: the full-hour chart on desktop, the last 30 minutes on phones. */
 .marey-phone {
   display: none;
@@ -166,19 +174,11 @@ dialog.metric-sheet::backdrop {
   .marey-phone {
     display: block;
   }
-  .strip {
-    flex-direction: column;
+  .strip-desktop {
+    display: none;
   }
-  .strip-item {
-    flex-direction: row;
-    align-items: center;
-    min-width: 0;
-    gap: 0.75rem;
-  }
-  .strip-bar {
-    width: 10px;
-    height: 36px;
-    flex: none;
+  .strip-phone {
+    display: block;
   }
   /* On a phone the full-hour chart opens from the link and replaces the 30-minute one. */
   .marey-desktop:target {

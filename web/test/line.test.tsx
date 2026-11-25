@@ -154,3 +154,22 @@ describe("line page", () => {
     expect(within(table).getByText("Alewife").closest("tr")).toHaveTextContent("30% cov.");
   });
 });
+
+describe("station strip", () => {
+  it("Green-C shows Cleveland Circle and North Station once each, at the stop points", async () => {
+    const { Page } = await greenC();
+    render(await shell(Page));
+    const labels = screen.getAllByTestId("strip-labels")[0]!;
+    const names = within(labels).getAllByTestId("strip-label").map((l) => l.textContent);
+    expect(names.filter((n) => n === "Cleveland Circle")).toHaveLength(1);
+    expect(names[0]).toBe("North Station");
+    expect(names[names.length - 1]).toBe("Cleveland Circle");
+    const segments = document.querySelectorAll('[data-testid="station-strip"]')[0]!.children.length;
+    expect(names).toHaveLength(segments + 1);
+  });
+});
+
+async function greenC() {
+  const mod = await import("@/app/lines/[line]/page");
+  return { Page: await mod.default({ params: Promise.resolve({ line: "Green-C" }) }) };
+}
