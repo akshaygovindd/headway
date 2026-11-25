@@ -18,8 +18,9 @@ import { headwayCell, lineSections, onTimeCell } from "@/lib/data";
 import { getApi } from "@/lib/api";
 import { docUrl } from "@/lib/definitions";
 import { lineName, LINE_STYLE } from "@/lib/lines";
-import { isHeavyRail, isLine, LINES, trend, type Cell, type Trend } from "@/lib/map";
+import { isHeavyRail, isLine, LINES, shown, trend, type Cell, type Trend } from "@/lib/map";
 import { disruptionLabel, lineDisruptionHeader, termini } from "@/lib/network";
+import { branchPaths, coveredStops, rowsForBranch } from "@/lib/marey";
 import { bandLabel } from "@/lib/linedata";
 import { openIncidentsByLine, segmentsOf, thresholds } from "@/lib/site-data";
 import { hhmmET } from "@/lib/time";
@@ -270,9 +271,17 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
     freshness: fresh?.ok ? fresh.body.freshness.exported_at : null,
   };
 
-  const mareyRows = marey.ok ? marey.body.data.rows.filter((r) => r.direction_id === 0) : [];
-  const stopsInOrder = [...new Map(mareyRows.map((r) => [r.stop_id, r])).values()].sort((a, b) => a.stop_sequence - b.stop_sequence);
-  const toward = stopsInOrder.length ? (stopsInOrder[stopsInOrder.length - 1] as { stop_name: string }).stop_name : (ends?.[1] ?? "the end of the line");
+  const mareyAll = marey.ok ? marey.body.data.rows.filter((r) => r.direction_id === 0) : [];
+  const branches = branchPaths(seg24.all, 0);
+  const covered = coveredStops(disruptions.ok ? disruptions.body.data.rows : null, seg24.all, 0);
+  // A withheld line (under 50% coverage) shows its chart as observations only.
+  const scored = shown(dayCell).kind !== "withheld";
+  const mareyViews = (branches.length > 1 ? branches : [null]).map((b) => {
+    const rows = b ? rowsForBranch(mareyAll, b, branches) : mareyAll;
+    const ordered = [...new Map(rows.map((r) => [r.stop_id, r])).values()].sort((x, y) => x.stop_sequence - y.stop_sequence);
+    const last = b ? b.stops[b.stops.length - 1]?.name : ordered[ordered.length - 1]?.stop_name;
+    return { label: b?.label ?? null, rows, path: b?.stops ?? (branches[0]?.stops), toward: last ?? ends?.[1] ?? "the end of the line" };
+  });
   const hourStart = marey.ok ? marey.body.data.hour_start : null;
   const hourText = hourStart ? `${hhmmET(hourStart)}\u2013${hhmmET(new Date(Date.parse(hourStart) + 3600000).toISOString())} ET` : "";
 
@@ -334,10 +343,17 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
         <section aria-labelledby="marey-h">
           <h2 id="marey-h" className="mb-2 text-xl">Trains over the last hour</h2>
           <div className="rounded-lg border border-line bg-card p-4">
-            {marey.ok && mareyRows.length && hourStart ? (
+            {marey.ok && mareyAll.length && hourStart ? (
               <>
-                <p className="mb-3 text-sm text-muted">Trains toward {toward}, {hourText}. Each line is one train; steeper is faster.</p>
-                <MareyChart rows={mareyRows} hourStart={hourStart} toward={toward} />
+                {mareyViews.map((v) => (
+                  <div key={v.label ?? "all"} className="mb-6 last:mb-0" data-testid="marey-branch">
+                    <p className="mb-3 text-sm text-muted">
+                      {v.label ? <strong className="text-fg">{v.label} branch. </strong> : null}
+                      Trains toward {v.toward}, {hourText}. Each line is one train; steeper is faster.
+                    </p>
+                    <MareyChart rows={v.rows} hourStart={hourStart} toward={v.toward} path={v.path} covered={covered} scored={scored} />
+                  </div>
+                ))}
               </>
             ) : marey.ok ? (
               <p className="text-sm text-muted">No arrivals were reconstructed for the last complete hour.</p>

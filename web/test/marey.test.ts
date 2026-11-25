@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { annotateMarey, layoutMarey } from "@/lib/marey";
+import { annotateMarey, branchPaths, coveredStops, layoutMarey, rowsForBranch } from "@/lib/marey";
 import type { MareyRow } from "@/lib/types";
 
 const T0 = Date.parse("2026-11-24T10:00:00Z");
@@ -46,5 +46,33 @@ describe("layoutMarey", () => {
     const l = layoutMarey(rows, { ...opts, orientation: "down" });
     expect(l.stops[1]!.x - l.stops[0]!.x).toBe(40);
     expect(l.trips[0]!.points[1]!.y).toBeGreaterThan(l.trips[0]!.points[0]!.y);
+  });
+});
+
+describe("shuttle stretches and branches", () => {
+  const path = ["a", "b", "c", "d"].map((id) => ({ id, name: id.toUpperCase() }));
+  it("never draws a train through covered stops: the run is cut and the band spans them", () => {
+    const rows = [row("t", "a", 1, 0), row("t", "d", 4, 12)];
+    const l = layoutMarey(rows, { orientation: "across", t0: 0, t1: 3600000, timeLength: 760, stopGap: 22, labelSize: 170, path, covered: new Set(["b", "c"]) });
+    expect(l.trips[0]!.runs).toHaveLength(2);
+    expect(l.trips[0]!.runs.every((r) => r.length === 1)).toBe(true);
+    expect(l.band).not.toBeNull();
+    expect(l.band!.names).toEqual(["B", "C"]);
+  });
+  it("drops rows at covered stops even when the data has them", () => {
+    const rows = [row("t", "a", 1, 0), row("t", "b", 2, 3), row("t", "d", 4, 12)];
+    const l = layoutMarey(rows, { orientation: "across", t0: 0, t1: 3600000, timeLength: 760, stopGap: 22, labelSize: 170, path, covered: new Set(["b", "c"]) });
+    expect(l.trips[0]!.points).toHaveLength(2);
+  });
+  const seg = (f: string, t: string, o: number) => ({ direction_id: 0, from_stop_id: f, from_stop_name: f, to_stop_id: t, to_stop_name: t, segment_order: o });
+  it("finds both branches of a fork and splits the trains", () => {
+    const bs = branchPaths([seg("a", "b", 1), seg("b", "x", 2), seg("b", "y", 2)]);
+    expect(bs.map((b) => b.label)).toEqual(["x", "y"]);
+    const rows = [row("t1", "a", 1, 0), row("t1", "x", 3, 5), row("t2", "a", 1, 1), row("t2", "y", 3, 6), row("t3", "a", 1, 2)];
+    expect(new Set(rowsForBranch(rows, bs[0]!, bs).map((r) => r.trip_id))).toEqual(new Set(["t1", "t3"]));
+  });
+  it("covers the stops of active alerts and disrupted segments only", () => {
+    const c = coveredStops([{ is_active: true, segments: [{ direction_id: 0, from_stop_id: "a", to_stop_id: "b" }] }, { is_active: false, segments: [{ direction_id: 0, from_stop_id: "x", to_stop_id: "y" }] }], [{ direction_id: 0, disrupted: true, from_stop_id: "c", to_stop_id: "d" }]);
+    expect([...c].sort()).toEqual(["a", "b", "c", "d"]);
   });
 });

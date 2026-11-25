@@ -60,7 +60,7 @@ describe("line page", () => {
     expect(marey.querySelector('[data-kind="observed"]')).not.toBeNull();
     expect(marey.querySelector('[data-kind="estimated"]')).not.toBeNull();
     expect(marey.querySelector('[data-kind="timetable"]')).not.toBeNull();
-    expect(within(marey).getByRole("link", { name: /Open full chart/ })).toHaveAttribute("href", "#marey-full");
+    expect(within(marey).getByRole("link", { name: /Open full chart/ })).toHaveAttribute("href", expect.stringMatching(/^#marey-full-/));
     expect(within(screen.getByTestId("marey-notes")).getAllByRole("listitem").length).toBeGreaterThan(0);
   });
 
@@ -108,5 +108,34 @@ describe("line page", () => {
   it("puts the alert text in the banner chip", async () => {
     await open("/lines/Red (withheld, shuttle)");
     expect(screen.getByTestId("banner")).toHaveTextContent("Service disruption: Shuttle buses replace Red Line trains between Broadway and North Quincy");
+  });
+
+  it("Red: shuttle band, no train through it, both branches, observations only (withheld)", async () => {
+    await open("/lines/Red (withheld, shuttle)");
+    const charts = screen.getAllByTestId("marey");
+    expect(charts).toHaveLength(2);
+    const branchText = screen.getAllByTestId("marey-branch").map((b) => b.textContent);
+    expect(branchText.some((t) => /Ashmont branch/.test(t ?? ""))).toBe(true);
+    expect(branchText.some((t) => /Braintree branch/.test(t ?? ""))).toBe(true);
+    for (const c of charts) {
+      expect(within(c).getAllByTestId("shuttle-band")[0]).toHaveTextContent("Shuttle buses");
+      // Every drawn segment ends outside the band: none starts before it and ends after it.
+      const band = c.querySelector('[data-testid="shuttle-band"] rect')!;
+      const y0 = Number(band.getAttribute("y"));
+      const y1 = y0 + Number(band.getAttribute("height"));
+      const d = (c.querySelector('[data-testid="marey-desktop"] [data-kind="observed"]') as SVGPathElement).getAttribute("d")!;
+      for (const [, ya, yb] of d.matchAll(/M[\d.]+ ([\d.]+)L[\d.]+ ([\d.]+)/g)) {
+        const [lo, hi] = [Number(ya), Number(yb)].sort((a, b) => a - b);
+        expect(lo! >= y1 - 0.5 || hi! <= y0 + 0.5).toBe(true);
+      }
+      expect(within(c).getByTestId("marey-unscored")).toHaveTextContent("Observations only, not scored");
+      expect(within(c).queryByTestId("marey-notes")).toBeNull();
+    }
+  });
+
+  it("a shown line keeps its bunching and long-wait notes", async () => {
+    await open("/lines/Blue");
+    expect(screen.queryByTestId("marey-unscored")).toBeNull();
+    expect(screen.queryByTestId("shuttle-band")).toBeNull();
   });
 });
