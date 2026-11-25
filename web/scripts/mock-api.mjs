@@ -97,8 +97,9 @@ export function respond(path, search = "") {
     const [, line, what] = m;
     if (!LINES.includes(line)) return { status: 422, body: { error: "validation_error" } };
     if (what === "segments") return { status: 200, body: segmentsFor(line, params) };
-    if (what === "trip-time" || what === "spacing-by-hour" || what === "disruptions") {
+    if (what === "trip-time" || what === "spacing-by-hour" || what === "disruptions" || what === "countdown") {
       const body = load(`lines_${line}_${what}`);
+      if (what === "countdown") body.data.window = params.get("window") ?? "last_24h";
       if (what === "trip-time") body.data.window = params.get("window") ?? "last_24h";
       if (what === "spacing-by-hour" && params.get("date")) body.data.service_date = params.get("date");
       return { status: 200, body };

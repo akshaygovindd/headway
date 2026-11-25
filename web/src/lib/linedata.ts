@@ -48,3 +48,12 @@ export function orderHours(hours: SpacingHour[]): SpacingHour[] {
   const key = (h: number) => (h < 5 ? h + 24 : h);
   return [...hours].sort((a, b) => key(a.hour_local) - key(b.hour_local));
 }
+
+/**
+ * Countdown rows that belong to this line: the station must be one of the line's own stops (from
+ * /segments) and the row must name this line. A guard: the API already filters by line, but a
+ * station of another line must never be shown under this one.
+ */
+export function countdownRowsFor<R extends { station_id: string; line?: string }>(rows: R[], line: string, stopIds: Set<string>): R[] {
+  return rows.filter((r) => (r.line == null || r.line === line) && (stopIds.size === 0 || stopIds.has(r.station_id)));
+}

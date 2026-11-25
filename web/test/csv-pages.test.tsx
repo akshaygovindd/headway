@@ -44,11 +44,26 @@ describe("CSV on the Line page", () => {
 
   it("exports withheld numbers as empty with a reason (Red fixture is 35% cov.)", async () => {
     const lines = await downloaded("/lines/Red (withheld, shuttle)");
-    const data = lines.slice(2).filter((l) => !l.includes(",Segment health,"));
+    const data = lines.slice(2).filter((l) => !l.includes(",Segment health,") && !l.includes(",Countdown accuracy,"));
     expect(data.length).toBeGreaterThan(0);
     const withheld = data.filter((l) => l.includes("below 50%"));
     expect(withheld.length).toBeGreaterThan(0);
     for (const l of withheld) expect(l).toMatch(/,[a-z]+,35,coverage 35% is below 50%,/);
+  });
+});
+
+describe("CSV agrees with the page on countdown rows", () => {
+  it("each station row exports its own coverage and reason, as the page shows them", async () => {
+    const lines = await downloaded("/lines/Red (withheld, shuttle)");
+    const cd = lines.filter((l) => l.includes(",Countdown accuracy,"));
+    const davis = cd.filter((l) => l.includes("Davis"));
+    const alewife = cd.filter((l) => l.includes("Alewife"));
+    expect(davis.length).toBe(2);
+    for (const l of davis) expect(l).toMatch(/,pct,82,,/);
+    for (const l of alewife) expect(l).toMatch(/,,pct,30,coverage 30% is below 50%,/);
+    const table = screen.getByRole("table", { name: /Countdown accuracy by station, Red/ });
+    expect(table).toHaveTextContent("82% cov.");
+    expect(table).toHaveTextContent("30% cov.");
   });
 });
 

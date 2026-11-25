@@ -21,7 +21,7 @@ import { lineName, LINE_STYLE } from "@/lib/lines";
 import { isHeavyRail, isLine, LINES, shown, trend, type Cell, type Trend } from "@/lib/map";
 import { disruptionLabel, lineDisruptionHeader, termini } from "@/lib/network";
 import { branchPaths, coveredStops, rowsForBranch } from "@/lib/marey";
-import { bandLabel } from "@/lib/linedata";
+import { bandLabel, countdownRowsFor } from "@/lib/linedata";
 import { openIncidentsByLine, segmentsOf, thresholds } from "@/lib/site-data";
 import { hhmmET } from "@/lib/time";
 import notes from "@/data/metric-notes.json";
@@ -82,6 +82,7 @@ function Rows<R extends CoveredRow>({ s, children }: { s: Section<R> | undefined
 function csvRows(
   line: string,
   s: Awaited<ReturnType<typeof lineSections>>,
+  stopIds: Set<string>,
   dayCell: Cell,
   weekCell: Cell,
   segments: CsvRow[],
@@ -116,7 +117,7 @@ function csvRows(
     }
   }
   if (s.cd.ok) {
-    for (const r of (s.cd.body.data.countdown_accuracy?.rows ?? []).slice(0, 40)) {
+    for (const r of countdownRowsFor(s.cd.body.data.countdown_accuracy?.rows ?? [], line, stopIds).slice(0, 40)) {
       const key = `${r.station_name} @ ${r.countdown_min} min`;
       add("Countdown accuracy", "Within 60 s", key, cellOf(r, r.pct_within_60s), "pct");
       add("Countdown accuracy", "Within 120 s", key, cellOf(r, r.pct_within_120s), "pct");
@@ -154,6 +155,7 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
   const header = lineDisruptionHeader(disruptions.ok ? disruptions.body.data.rows : null, seg24.all);
   const disrupted = open.length > 0 || header != null || seg24.segs.some((x) => x.row.disrupted);
   const chipLabel = disruptionLabel(header, header == null && open.some((i) => thresholds(i).includes("skipped")));
+  const stopIds = new Set(seg24.all.flatMap((r) => [r.from_stop_id, r.to_stop_id]));
   const note = (notes as Record<string, { text: string; href: string }>)[line];
 
   const accRow = (r: typeof acc) => (r.ok ? r.body.data.prediction_accuracy?.rows.find((x) => x.horizon_bucket === "0-5") : undefined);
@@ -213,7 +215,7 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
       <Missing r={cd} what="Countdown accuracy">
         {(d) => (
           <Table caption={`Countdown accuracy by station, ${lineName(line)}`} head={["Station", "Countdown", "Within 60 s", "Within 120 s"]}>
-            {(d.countdown_accuracy?.rows ?? []).slice(0, 40).map((r) => (
+            {countdownRowsFor(d.countdown_accuracy?.rows ?? [], line, stopIds).slice(0, 40).map((r) => (
               <tr key={`${r.station_id}-${r.countdown_min}`}>
                 <Td>{r.station_name}</Td>
                 <Td>{r.countdown_min} min</Td>
@@ -266,7 +268,7 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
     });
   const csv: CsvSpec = {
     labelColumns: ["line", "section", "metric", "key"],
-    rows: csvRows(line, sections, dayCell, weekCell, [...segCsv, ...tripCsv]),
+    rows: csvRows(line, sections, stopIds, dayCell, weekCell, [...segCsv, ...tripCsv]),
     definition: "8-headway-adherence-release-2",
     freshness: fresh?.ok ? fresh.body.freshness.exported_at : null,
   };

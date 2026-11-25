@@ -138,4 +138,19 @@ describe("line page", () => {
     expect(screen.queryByTestId("marey-unscored")).toBeNull();
     expect(screen.queryByTestId("shuttle-band")).toBeNull();
   });
+
+  it("countdown table lists only this line's stations, each with its own coverage", async () => {
+    await open("/lines/Orange (partial)");
+    const table = screen.getByRole("table", { name: /Countdown accuracy by station, Orange/ });
+    expect(table).not.toHaveTextContent(/Davis|Alewife/);
+    expect(table).toHaveTextContent("Malden Center");
+  });
+
+  it("Red keeps its row-level coverage rather than the line-wide figure", async () => {
+    await open("/lines/Red (withheld, shuttle)");
+    const table = screen.getByRole("table", { name: /Countdown accuracy by station, Red/ });
+    const davis = within(table).getByText("Davis").closest("tr")!;
+    expect(davis).toHaveTextContent("82% cov.");
+    expect(within(table).getByText("Alewife").closest("tr")).toHaveTextContent("30% cov.");
+  });
 });

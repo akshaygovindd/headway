@@ -99,7 +99,7 @@ describe("skipped-stop share unit", () => {
   });
   it("the Orange fixture holds a fraction near 1.3%, not a percent", async () => {
     const { respond } = await import("../scripts/mock-api.mjs");
-    const rows = respond("/v1/lines/Orange/reliability", "").body.data.predicted_deviation.rows;
+    const rows = (respond("/v1/lines/Orange/reliability", "").body as any).data.predicted_deviation.rows as { skipped_share: number | null }[];
     for (const r of rows) if (r.skipped_share != null) expect(r.skipped_share).toBeLessThan(0.05);
   });
 });

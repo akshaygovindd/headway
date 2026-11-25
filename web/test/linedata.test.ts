@@ -62,3 +62,16 @@ describe("disruption text", () => {
     expect(disruptionLabel(null, false)).toMatchObject({ kind: "generic", text: "Service disruption" });
   });
 });
+
+describe("countdownRowsFor", () => {
+  it("drops stations that are not stops of the line and rows naming another line", async () => {
+    const { countdownRowsFor } = await import("@/lib/linedata");
+    const rows = [
+      { station_id: "place-mlmnl", line: "Orange" },
+      { station_id: "place-davis", line: "Orange" },
+      { station_id: "place-asmnl", line: "Red" },
+    ];
+    expect(countdownRowsFor(rows, "Orange", new Set(["place-mlmnl", "place-asmnl"]))).toEqual([rows[0]]);
+    expect(countdownRowsFor(rows, "Orange", new Set())).toHaveLength(2); // no stop list: only the line check
+  });
+});
