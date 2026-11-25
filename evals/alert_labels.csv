@@ -1,51 +1,51 @@
 alert_id,effect,cause,route_ids,header_text,label
-1046980,OTHER_EFFECT,MEDICAL_EMERGENCY,Red,Red Line: Delays of about 15 minutes due to a medical emergency at Broadway.,
-1045909,ACCESSIBILITY_ISSUE,MAINTENANCE,Orange,Ruggles Escalator 136 (Orange Line platform to upper lobby) is unavailable due to maintenance.,
-1047011,ACCESSIBILITY_ISSUE,MAINTENANCE,Orange;Red,Downtown Crossing Escalator 113 (Alewife platform to Hawley Street) is unavailable due to maintenance.,
-1030394,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,South Station Escalator 388 (Lobby to CSA area) is unavailable due to maintenance.,
-1041230,ACCESSIBILITY_ISSUE,MAINTENANCE,Mattapan;Red,"Ashmont Escalator 438 (Ashmont platform to Mattapan Line, busway) is unavailable due to maintenance.",
-1047119,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 15 minutes due to a disabled train at Malden Center. Trains may stand by at stations.,
-1032947,UNKNOWN_EFFECT,UNKNOWN_CAUSE,Red,"Due to construction, the staircase at the north end of the Savin Hill platform is out of service. Riders should follow station personnel and signage to the alternate staircase located in the center of the platform.",
-1039759,DETOUR,MAINTENANCE,Red,"Red Line: To allow for switch and rail upgrades, shuttle buses will replace service between Broadway and North Quincy from Nov 20 - 22. Trains will operate between JFK/UMass & Ashmont. Commuter Rail will be fare-free between Braintree and South Station.",
-1047119,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 25 minutes due to a disabled train at Malden Center. Trains may stand by at stations.,
-1001814,UNKNOWN_EFFECT,UNKNOWN_CAUSE,Orange,"The platform at Jackson Square is undergoing renovations to improve safety and accessibility. Sections of the platform are unlevel, which may make it difficult for some riders to board and exit trains.",
-1046615,OTHER_EFFECT,UNKNOWN_CAUSE,Red,"The west bike cage at Alewife will be closed due to maintenance beginning Monday, December 14. Bikers may use the east bike cage.",
-1047083,OTHER_EFFECT,UNKNOWN_CAUSE,Green-C,"Green Line C Branch: The outbound Hawes St platform is now fully accessible, but there is no accessible connection to the Beacon St eastbound sidewalk. This path is expected to be available after December 12.",
-1042451,OTHER_EFFECT,UNKNOWN_CAUSE,Red,"Quincy Adams Garage Notice: Beginning Tuesday, November 3, MBTA parking at Quincy Adams will be limited to the A side of the Garage. The B side of the garage will be reserved for Logan Express Braintree.",
-1047119,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 20 minutes due to a disabled train at Malden Center. Trains may stand by at stations.,
-1039759,DETOUR,MAINTENANCE,Red,"Red Line: To allow for switch and rail upgrades, shuttle buses are replacing service between Broadway and North Quincy through Nov 22. Trains are operating between JFK/UMass & Ashmont. Commuter Rail is fare-free between Braintree and South Station.",
-1044547,NO_SERVICE,CONSTRUCTION,Green-C,"Green Line C Branch: Inbound trains are not stopping at Hawes St through December 10, while accessibility upgrades are being done. The closest stops with service are Saint Mary’s St and Kent St, which are 0.2-0.3 miles away (about a 4 - 6 minute walk).",
-1046961,ACCESSIBILITY_ISSUE,MAINTENANCE,Orange,Assembly Escalator 443 (Platform to Foley Street paid lobby) is unavailable due to maintenance.,
-1001820,ACCESSIBILITY_ISSUE,UNKNOWN_CAUSE,Blue;Orange,State Escalator 6 (Oak Grove platform to Old State House lobby) is unavailable.,
-1044549,NO_SERVICE,CONSTRUCTION,Green-C,"Green Line C Branch: Inbound trains are not stopping at Summit Ave through Dec 10, while accessibility upgrades are being done. The closest stops with service are Coolidge Corner and Brandon Hall, which are each 0.2 miles away (about a 4 - 6 minute walk).",
-1046967,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,JFK/UMass Escalator 322 (Ashmont platform to Columbia Road) is unavailable due to maintenance.,
-1001861,UNKNOWN_EFFECT,CONSTRUCTION,Orange,The stairway connecting the Jackson Square lobby and the south end of the platform is closed until winter 2026. Use the stairway at the north end of the platform. This closure is for the construction of a new stairway and a second elevator.,
-1046120,ACCESSIBILITY_ISSUE,UNKNOWN_CAUSE,Blue,Maverick Escalator 428 (Unpaid lobby to Lewis Mall) is unavailable.,
-1009001,ACCESSIBILITY_ISSUE,UNKNOWN_CAUSE,Red,Andrew Escalator 124 (Ashmont/Braintree platform to busway) is unavailable.,
-1045514,REDUCED_SERVICE,MAINTENANCE,Green-B;Green-C;Green-D;Green-E,"Green Line: Dec 4–7, no trains between North Station & Babcock St (B), St. Mary's St (C), Brookline Hills (D) & Heath St (E). Use buses between Babcock St, St. Mary's, Brookline Hills, Heath St & Back Bay. Use Orange Line between Back Bay & North Station.",
-1037420,OTHER_EFFECT,UNKNOWN_CAUSE,Green-D,Riverside Station notice: Premium parking is available at this location. You can buy premium passes and permits using SpotHero.,
-1001819,ACCESSIBILITY_ISSUE,UNKNOWN_CAUSE,Orange,Oak Grove Escalator 105 (Commuter Rail platform to unpaid lobby) is unavailable.,
-1047068,ACCESSIBILITY_ISSUE,MAINTENANCE,Blue;Orange,State Escalator 374 (Oak Grove platform to City Hall Plaza) is unavailable due to maintenance.,
-1009729,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,Alewife Escalator 353 (Main concourse to busway) is unavailable due to maintenance.,
-1047084,OTHER_EFFECT,TECHNICAL_PROBLEM,Red,Red Line: Delays of about 15 minutes due to a signal problem at JFK/UMass. Trains may stand by at stations.,
-1047120,OTHER_EFFECT,MEDICAL_EMERGENCY,Red,Red Line Ashmont Branch: Delays of about 15 minutes due to an earlier medical emergency at JFK/UMass. Service is proceeding.,
-1046805,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,Alewife Escalator 354 (Main concourse to garage level 2) is unavailable due to maintenance.,
-1047129,ACCESSIBILITY_ISSUE,MAINTENANCE,Green-E,Medford/Tufts Elevator 770 (Platform to lobby) is unavailable due to maintenance.,
-1037418,OTHER_EFFECT,UNKNOWN_CAUSE,Red,Braintree Station notice: Premium parking is available at this location. You can buy premium passes and permits using SpotHero.,
-1031518,ACCESSIBILITY_ISSUE,MAINTENANCE,Orange;Red,"Downtown Crossing Elevator 869 (Alewife platform to Summer Street Concourse) is unavailable due to maintenance through Tuesday, December 1.",
-1047192,ACCESSIBILITY_ISSUE,MAINTENANCE,Blue,Orient Heights Escalator 441 (Wonderland platform to pedestrian bridge) is unavailable due to maintenance.,
-1047119,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 15 minutes due to an earlier disabled train at Malden Center. Service is proceeding.,
-1043689,NO_SERVICE,UNKNOWN_CAUSE,Green-C,"Fairbanks Street Station permanently closed as of November 7. The station is being consolidated with the upgraded Brandon Hall stop, which can be accessed from the existing Fairbanks St. location via an accessible ramp and walkway.",
-1040924,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,Charles/MGH Escalator 426 (Lobby to Alewife platform) is unavailable due to maintenance.,
-1047083,OTHER_EFFECT,UNKNOWN_CAUSE,Green-C,"Green Line C Branch: The outbound Hawes St platform is now fully accessible, but there is no accessible connection to the Beacon St eastbound sidewalk. This path is expected to be available after December 10.",
-1047119,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 20 minutes due to an earlier disabled train at Malden Center. Service is proceeding.,
-1045516,REDUCED_SERVICE,UNKNOWN_CAUSE,Blue,"Blue Line: Dec 12–20, no trains between Orient Heights & Bowdoin. Shuttle buses serve all stations from Orient Heights to Maverick. Haymarket is the only downtown shuttle stop for subway connections. No service at Aquarium, State, Govt Center or Bowdoin.",
-1046928,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 15 minutes due to a signal problem between North Station and Sullivan Square. Trains may stand by at stations.,
-1047008,OTHER_EFFECT,MAINTENANCE,Blue,Blue Line: Delays of about 10 minutes due to the late completion of overnight work.,
-1026060,NO_SERVICE,UNKNOWN_CAUSE,Green-E,Green Line E Branch: Symphony station is closed for major accessibility upgrades. Riders can use Prudential or Northeastern to access E Branch service. The station is expected to reopen in 2029.,
-1037419,OTHER_EFFECT,UNKNOWN_CAUSE,Orange,Oak Grove Station notice: Premium parking is available at this location. You can buy premium passes and permits using SpotHero.,
-1045516,REDUCED_SERVICE,UNKNOWN_CAUSE,Blue,"Blue Line: Dec 12–20, No trains between Orient Heights & Bowdoin. Shuttles buses service all stations from Orient Heights to Maverick and Haymarket for subway connections. No shuttle service to Aquarium, State, Govt Center or Bowdoin.",
-1046934,ACCESSIBILITY_ISSUE,MAINTENANCE,Blue,Beachmont Escalator 378 (Paid lobby to Bowdoin platform) is unavailable due to maintenance.,
-1046949,OTHER_EFFECT,POLICE_ACTIVITY,Red,Red Line: Delays of about 20 minutes due to earlier police activity at Kendall/MIT.,
-1047020,OTHER_EFFECT,TECHNICAL_PROBLEM,Red,Red Line Ashmont Branch: Delays of about 20 minutes due to a disabled train at Ashmont.,
-1047081,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,Charles/MGH Escalator 426 (Lobby to Alewife platform) is unavailable due to maintenance.,
+1046980,OTHER_EFFECT,MEDICAL_EMERGENCY,Red,Red Line: Delays of about 15 minutes due to a medical emergency at Broadway.,delay
+1045909,ACCESSIBILITY_ISSUE,MAINTENANCE,Orange,Ruggles Escalator 136 (Orange Line platform to upper lobby) is unavailable due to maintenance.,accessibility
+1047011,ACCESSIBILITY_ISSUE,MAINTENANCE,Orange;Red,Downtown Crossing Escalator 113 (Alewife platform to Hawley Street) is unavailable due to maintenance.,accessibility
+1030394,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,South Station Escalator 388 (Lobby to CSA area) is unavailable due to maintenance.,accessibility
+1041230,ACCESSIBILITY_ISSUE,MAINTENANCE,Mattapan;Red,"Ashmont Escalator 438 (Ashmont platform to Mattapan Line, busway) is unavailable due to maintenance.",accessibility
+1047119,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 15 minutes due to a disabled train at Malden Center. Trains may stand by at stations.,delay
+1032947,UNKNOWN_EFFECT,UNKNOWN_CAUSE,Red,"Due to construction, the staircase at the north end of the Savin Hill platform is out of service. Riders should follow station personnel and signage to the alternate staircase located in the center of the platform.",other
+1039759,DETOUR,MAINTENANCE,Red,"Red Line: To allow for switch and rail upgrades, shuttle buses will replace service between Broadway and North Quincy from Nov 20 - 22. Trains will operate between JFK/UMass & Ashmont. Commuter Rail will be fare-free between Braintree and South Station.",shuttle_diversion
+1047119,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 25 minutes due to a disabled train at Malden Center. Trains may stand by at stations.,delay
+1001814,UNKNOWN_EFFECT,UNKNOWN_CAUSE,Orange,"The platform at Jackson Square is undergoing renovations to improve safety and accessibility. Sections of the platform are unlevel, which may make it difficult for some riders to board and exit trains.",accessibility
+1046615,OTHER_EFFECT,UNKNOWN_CAUSE,Red,"The west bike cage at Alewife will be closed due to maintenance beginning Monday, December 14. Bikers may use the east bike cage.",other
+1047083,OTHER_EFFECT,UNKNOWN_CAUSE,Green-C,"Green Line C Branch: The outbound Hawes St platform is now fully accessible, but there is no accessible connection to the Beacon St eastbound sidewalk. This path is expected to be available after December 12.",accessibility
+1042451,OTHER_EFFECT,UNKNOWN_CAUSE,Red,"Quincy Adams Garage Notice: Beginning Tuesday, November 3, MBTA parking at Quincy Adams will be limited to the A side of the Garage. The B side of the garage will be reserved for Logan Express Braintree.",other
+1047119,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 20 minutes due to a disabled train at Malden Center. Trains may stand by at stations.,delay
+1039759,DETOUR,MAINTENANCE,Red,"Red Line: To allow for switch and rail upgrades, shuttle buses are replacing service between Broadway and North Quincy through Nov 22. Trains are operating between JFK/UMass & Ashmont. Commuter Rail is fare-free between Braintree and South Station.",shuttle_diversion
+1044547,NO_SERVICE,CONSTRUCTION,Green-C,"Green Line C Branch: Inbound trains are not stopping at Hawes St through December 10, while accessibility upgrades are being done. The closest stops with service are Saint Mary’s St and Kent St, which are 0.2-0.3 miles away (about a 4 - 6 minute walk).",station_or_stop_closure
+1046961,ACCESSIBILITY_ISSUE,MAINTENANCE,Orange,Assembly Escalator 443 (Platform to Foley Street paid lobby) is unavailable due to maintenance.,accessibility
+1001820,ACCESSIBILITY_ISSUE,UNKNOWN_CAUSE,Blue;Orange,State Escalator 6 (Oak Grove platform to Old State House lobby) is unavailable.,accessibility
+1044549,NO_SERVICE,CONSTRUCTION,Green-C,"Green Line C Branch: Inbound trains are not stopping at Summit Ave through Dec 10, while accessibility upgrades are being done. The closest stops with service are Coolidge Corner and Brandon Hall, which are each 0.2 miles away (about a 4 - 6 minute walk).",station_or_stop_closure
+1046967,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,JFK/UMass Escalator 322 (Ashmont platform to Columbia Road) is unavailable due to maintenance.,accessibility
+1001861,UNKNOWN_EFFECT,CONSTRUCTION,Orange,The stairway connecting the Jackson Square lobby and the south end of the platform is closed until winter 2026. Use the stairway at the north end of the platform. This closure is for the construction of a new stairway and a second elevator.,station_or_stop_closure
+1046120,ACCESSIBILITY_ISSUE,UNKNOWN_CAUSE,Blue,Maverick Escalator 428 (Unpaid lobby to Lewis Mall) is unavailable.,accessibility
+1009001,ACCESSIBILITY_ISSUE,UNKNOWN_CAUSE,Red,Andrew Escalator 124 (Ashmont/Braintree platform to busway) is unavailable.,accessibility
+1045514,REDUCED_SERVICE,MAINTENANCE,Green-B;Green-C;Green-D;Green-E,"Green Line: Dec 4–7, no trains between North Station & Babcock St (B), St. Mary's St (C), Brookline Hills (D) & Heath St (E). Use buses between Babcock St, St. Mary's, Brookline Hills, Heath St & Back Bay. Use Orange Line between Back Bay & North Station.",shuttle_diversion
+1037420,OTHER_EFFECT,UNKNOWN_CAUSE,Green-D,Riverside Station notice: Premium parking is available at this location. You can buy premium passes and permits using SpotHero.,other
+1001819,ACCESSIBILITY_ISSUE,UNKNOWN_CAUSE,Orange,Oak Grove Escalator 105 (Commuter Rail platform to unpaid lobby) is unavailable.,accessibility
+1047068,ACCESSIBILITY_ISSUE,MAINTENANCE,Blue;Orange,State Escalator 374 (Oak Grove platform to City Hall Plaza) is unavailable due to maintenance.,accessibility
+1009729,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,Alewife Escalator 353 (Main concourse to busway) is unavailable due to maintenance.,accessibility
+1047084,OTHER_EFFECT,TECHNICAL_PROBLEM,Red,Red Line: Delays of about 15 minutes due to a signal problem at JFK/UMass. Trains may stand by at stations.,delay
+1047120,OTHER_EFFECT,MEDICAL_EMERGENCY,Red,Red Line Ashmont Branch: Delays of about 15 minutes due to an earlier medical emergency at JFK/UMass. Service is proceeding.,delay
+1046805,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,Alewife Escalator 354 (Main concourse to garage level 2) is unavailable due to maintenance.,accessibility
+1047129,ACCESSIBILITY_ISSUE,MAINTENANCE,Green-E,Medford/Tufts Elevator 770 (Platform to lobby) is unavailable due to maintenance.,accessibility
+1037418,OTHER_EFFECT,UNKNOWN_CAUSE,Red,Braintree Station notice: Premium parking is available at this location. You can buy premium passes and permits using SpotHero.,other
+1031518,ACCESSIBILITY_ISSUE,MAINTENANCE,Orange;Red,"Downtown Crossing Elevator 869 (Alewife platform to Summer Street Concourse) is unavailable due to maintenance through Tuesday, December 1.",accessibility
+1047192,ACCESSIBILITY_ISSUE,MAINTENANCE,Blue,Orient Heights Escalator 441 (Wonderland platform to pedestrian bridge) is unavailable due to maintenance.,accessibility
+1047119,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 15 minutes due to an earlier disabled train at Malden Center. Service is proceeding.,delay
+1043689,NO_SERVICE,UNKNOWN_CAUSE,Green-C,"Fairbanks Street Station permanently closed as of November 7. The station is being consolidated with the upgraded Brandon Hall stop, which can be accessed from the existing Fairbanks St. location via an accessible ramp and walkway.",station_or_stop_closure
+1040924,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,Charles/MGH Escalator 426 (Lobby to Alewife platform) is unavailable due to maintenance.,accessibility
+1047083,OTHER_EFFECT,UNKNOWN_CAUSE,Green-C,"Green Line C Branch: The outbound Hawes St platform is now fully accessible, but there is no accessible connection to the Beacon St eastbound sidewalk. This path is expected to be available after December 10.",accessibility
+1047119,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 20 minutes due to an earlier disabled train at Malden Center. Service is proceeding.,delay
+1045516,REDUCED_SERVICE,UNKNOWN_CAUSE,Blue,"Blue Line: Dec 12–20, no trains between Orient Heights & Bowdoin. Shuttle buses serve all stations from Orient Heights to Maverick. Haymarket is the only downtown shuttle stop for subway connections. No service at Aquarium, State, Govt Center or Bowdoin.",shuttle_diversion
+1046928,OTHER_EFFECT,TECHNICAL_PROBLEM,Orange,Orange Line: Delays of about 15 minutes due to a signal problem between North Station and Sullivan Square. Trains may stand by at stations.,delay
+1047008,OTHER_EFFECT,MAINTENANCE,Blue,Blue Line: Delays of about 10 minutes due to the late completion of overnight work.,delay
+1026060,NO_SERVICE,UNKNOWN_CAUSE,Green-E,Green Line E Branch: Symphony station is closed for major accessibility upgrades. Riders can use Prudential or Northeastern to access E Branch service. The station is expected to reopen in 2029.,station_or_stop_closure
+1037419,OTHER_EFFECT,UNKNOWN_CAUSE,Orange,Oak Grove Station notice: Premium parking is available at this location. You can buy premium passes and permits using SpotHero.,other
+1045516,REDUCED_SERVICE,UNKNOWN_CAUSE,Blue,"Blue Line: Dec 12–20, No trains between Orient Heights & Bowdoin. Shuttles buses service all stations from Orient Heights to Maverick and Haymarket for subway connections. No shuttle service to Aquarium, State, Govt Center or Bowdoin.",shuttle_diversion
+1046934,ACCESSIBILITY_ISSUE,MAINTENANCE,Blue,Beachmont Escalator 378 (Paid lobby to Bowdoin platform) is unavailable due to maintenance.,accessibility
+1046949,OTHER_EFFECT,POLICE_ACTIVITY,Red,Red Line: Delays of about 20 minutes due to earlier police activity at Kendall/MIT.,delay
+1047020,OTHER_EFFECT,TECHNICAL_PROBLEM,Red,Red Line Ashmont Branch: Delays of about 20 minutes due to a disabled train at Ashmont.,delay
+1047081,ACCESSIBILITY_ISSUE,MAINTENANCE,Red,Charles/MGH Escalator 426 (Lobby to Alewife platform) is unavailable due to maintenance.,accessibility
