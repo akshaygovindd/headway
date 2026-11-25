@@ -114,7 +114,7 @@ def serve(
 
 
 def _score(con: Any, model: Any, passed: set[str]) -> int:
-    import pandas as pd  # a LightGBM dependency, present wherever a model is scored
+    import pandas as pd  # type: ignore[import-untyped]  # a LightGBM dependency
 
     lines = sorted(set(model.lines) & passed)
     if not lines:
