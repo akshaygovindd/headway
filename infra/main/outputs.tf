@@ -30,3 +30,13 @@ output "train_function_name" {
   description = "The weekly forecast training Lambda (empty unless enable_r3)."
   value       = one(aws_lambda_function.train[*].function_name)
 }
+
+output "api_url" {
+  description = "Base URL of the public metric API (empty unless enable_r4)."
+  value       = one(aws_apigatewayv2_api.api[*].api_endpoint)
+}
+
+output "api_function_name" {
+  description = "The API Lambda (empty unless enable_r4)."
+  value       = one(aws_lambda_function.api[*].function_name)
+}

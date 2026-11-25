@@ -7,3 +7,12 @@ transform_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/headway-tran
 
 # Release 3 only (enable_r2 = true, enable_r3 = true): the weekly training image.
 # train_image_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/headway-train:abc1234"
+
+# Release 4 only (enable_r4 = true): the public API. Blocked until the account's Lambda concurrency
+# limit is at least 100 (docs/DEPLOY.md, Release 4): set api_confirmed_concurrency_limit to what
+# `aws lambda get-account-settings --query AccountLimit.ConcurrentExecutions` prints.
+# enable_r4                       = true
+# api_image_uri                   = "123456789012.dkr.ecr.us-east-1.amazonaws.com/headway-api:abc1234"
+# api_confirmed_concurrency_limit = 1000
+# api_reserved_concurrency        = 3
+# api_cors_origins                = "https://your-app.vercel.app"

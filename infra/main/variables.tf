@@ -74,3 +74,65 @@ variable "train_image_uri" {
     error_message = "enable_r3 deploys the training Lambda: set train_image_uri (make images-push prints it)."
   }
 }
+
+variable "enable_r4" {
+  description = "Deploy the Release 4 public read-only metric API (Lambda behind an HTTP API). Needs a Lambda concurrency limit of at least 100: see api_confirmed_concurrency_limit."
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = !var.enable_r4 || var.api_image_uri != ""
+    error_message = "enable_r4 deploys the API Lambda: set api_image_uri (make images-push ENABLE_R4=true prints it)."
+  }
+
+  validation {
+    condition     = !var.enable_r4 || var.api_confirmed_concurrency_limit >= 100
+    error_message = "enable_r4 is blocked until the account's Lambda concurrent executions limit is at least 100 (new accounts start at 10, and a reservation for the API would starve the pipeline). Check: aws lambda get-account-settings --query AccountLimit.ConcurrentExecutions. Request 1000 under Service Quotas > Lambda > Concurrent executions, then set api_confirmed_concurrency_limit to the value the command prints."
+  }
+}
+
+variable "api_confirmed_concurrency_limit" {
+  description = "The account's Lambda concurrent executions limit as printed by `aws lambda get-account-settings --query AccountLimit.ConcurrentExecutions`. enable_r4 requires at least 100. A statement you make, not a lookup: the plan cannot read the quota."
+  type        = number
+  default     = 0
+}
+
+variable "api_image_uri" {
+  description = "ECR image URI for the public API Lambda (printed by `make images-push ENABLE_R4=true`). Needed when enable_r4 = true."
+  type        = string
+  default     = ""
+}
+
+variable "api_reserved_concurrency" {
+  description = "Reserved concurrent executions of the API Lambda: its ceiling, and the capacity it takes away from the pipeline functions."
+  type        = number
+  default     = 3
+
+  validation {
+    condition     = var.api_reserved_concurrency >= 1 && var.api_reserved_concurrency <= 50
+    error_message = "api_reserved_concurrency must be between 1 and 50."
+  }
+}
+
+variable "api_cors_origins" {
+  description = "Browser origins the API allows (CORS), comma separated. Placeholder until the Vercel domain exists; never a wildcard."
+  type        = string
+  default     = "https://headway.example.vercel.app"
+
+  validation {
+    condition     = !strcontains(var.api_cors_origins, "*")
+    error_message = "api_cors_origins must list explicit origins, not a wildcard."
+  }
+}
+
+variable "api_throttle_rate" {
+  description = "API Gateway steady-state requests per second for the whole API."
+  type        = number
+  default     = 10
+}
+
+variable "api_throttle_burst" {
+  description = "API Gateway burst limit (requests) for the whole API."
+  type        = number
+  default     = 20
+}

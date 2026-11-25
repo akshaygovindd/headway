@@ -1,6 +1,6 @@
 resource "aws_ecr_repository" "pipeline" {
-  # The training image exists only with Release 3.
-  for_each = toset(concat(["curate", "transform"], var.enable_r3 ? ["train"] : []))
+  # The training image exists only with Release 3, the API image only with Release 4.
+  for_each = toset(concat(["curate", "transform"], var.enable_r3 ? ["train"] : [], var.enable_r4 ? ["api"] : []))
 
   name                 = "headway-${each.key}"
   image_tag_mutability = "MUTABLE"
