@@ -118,9 +118,15 @@ export function coveredStops(
   const out = new Set<string>();
   for (const a of alerts ?? []) {
     if (!a.is_active) continue;
-    for (const g of a.segments) if (g.direction_id === direction) (out.add(g.from_stop_id), out.add(g.to_stop_id));
+    for (const g of a.segments) if (g.direction_id === direction) {
+        out.add(g.from_stop_id);
+        out.add(g.to_stop_id);
+      }
   }
-  for (const g of segs) if (g.disrupted && g.direction_id === direction) (out.add(g.from_stop_id), out.add(g.to_stop_id));
+  for (const g of segs) if (g.disrupted && g.direction_id === direction) {
+      out.add(g.from_stop_id);
+      out.add(g.to_stop_id);
+    }
   return out;
 }
 
