@@ -257,6 +257,27 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
 - **Recovery:** the next `ArrivalCoveragePct` values are 70 or more and the alarm returns to OK
   after the first good hour.
 
+### Alarm: headway-api-5xx
+
+- **Meaning:** the public metric API (R4, only with `enable_r4`) returned 5 or more 5xx responses
+  in 5 minutes. Causes: the gold export unreadable (502 `data_unavailable`), a query over the 5 s
+  limit (504), Lambda throttling because the reserved concurrency (default 3) is exhausted, or a
+  bad image.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-api --since 30m --filter-pattern '?ERROR ?Traceback ?data_unavailable'
+  aws logs tail /aws/apigateway/headway-api-access --since 30m | grep -E '"status":"5'
+  aws lambda get-function-concurrency --function-name headway-api
+  ```
+- **Likely causes:** the public bucket or `gold/manifest.json` missing (check
+  [headway-gold-stale](#alarm-headway-gold-stale) first); a burst above the reservation (raise
+  `api_reserved_concurrency` only after checking the account limit in DEPLOY, Release 4); a new image
+  that fails to import.
+- **Fix:** restore the gold export, or roll `api_image_uri` back to the previous tag and `make deploy`.
+  The API is read-only and stateless: turning it off is `enable_r4 = false`.
+- **Recovery:** `curl -s "$(terraform -chdir=infra/main output -raw api_url)/v1/meta"` returns 200 and
+  the alarm returns to OK within 5 minutes.
+
 ### Budget forecast alert
 
 AWS Budgets also mails `budget_email` when the month's **forecast** passes USD 15, besides the

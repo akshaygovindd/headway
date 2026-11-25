@@ -215,7 +215,8 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 
 ### ADR-010: Streamlit first, then Next.js + FastAPI
 
-- **Status:** Accepted for Streamlit (R1); Next.js + FastAPI Proposed (R4)
+- **Status:** Accepted for Streamlit (R1); the FastAPI half is built in R4 Phase 4.1 (ADR-023);
+  the Next.js front end stays Proposed
 - **Context:** Release 1 needs a public, read-only app quickly; a custom front end and API are
   only worth their cost once the metrics are stable.
 - **Decision:** The Release 1 app is Streamlit on Community Cloud, reading public Parquet and JSON
@@ -633,3 +634,61 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   it is down the table stops growing and the comparison keeps its last days.
 - **Revisit when:** the lag matters (add NWS observations for the newest days) or the endpoint
   changes its terms or shape.
+
+### ADR-023: Public read-only metric API
+
+- **Status:** Accepted (R4, Phase 4.1; built and tested, not deployed); the FastAPI half of ADR-010
+- **Context:** A front end outside Streamlit (the planned Vercel app) and other consumers need the
+  metrics as JSON with the same rules as the pages: coverage and freshness on every value, nothing
+  shown under 50 % coverage. The smallest safe surface is the one ADR-020 already uses.
+- **Decision:** `headway_api` is a FastAPI app on a Lambda (arm64, Mangum, HTTP API payload 2.0)
+  behind an HTTP API Gateway, all of it behind `enable_r4` (`count = 0` when off). It reads only
+  the public gold Parquet over HTTPS with DuckDB: the role has a log policy and nothing else, so
+  raw, curated and the warehouse are unreachable by construction. It reuses `headway_mcp`
+  (`runner`, `config`, `catalog`, the 50 % rule and the fixed-SQL approach); no caller text reaches
+  the SQL, enums are `Literal` types and dates are parsed. All endpoints are `GET /v1/...`
+  (`docs/API.md`). Every 200 is `{data, coverage, freshness, provenance}`: coverage (mean, min,
+  withheld rows, the rule), freshness (`exported_at`, `metrics_as_of`, age), provenance (tables,
+  METRICS.md anchor, row limit, `truncated`, `served_from`, the SQL). A withheld value is null with
+  a `withheld_reason` next to it. Enum and date errors are 422 with the allowed values; a table the
+  export lacks is a 404 `not_available`; an unreadable export is 502.
+  - **Hygiene:** `Cache-Control: public, max-age=300` on 200s (gold is refreshed about every 15
+    minutes; `no-store` on errors); CORS from an explicit allowlist (`API_CORS_ORIGINS`, a
+    placeholder until the Vercel domain exists, a wildcard is dropped); API Gateway throttling
+    (default 10 requests/s, burst 20); a CloudWatch alarm on 5xx; one JSON access log line per
+    request (no client address); a 2 KiB limit on request and URL length (413); 500 rows per
+    response (`truncated` says when more existed); a 5 s query timeout; OpenAPI at `/docs`.
+  - **Packaging:** a container image, not a zip. Measured on 2026-11-24: the arm64 zip would be
+    63 MB unpacked (23 MB zipped) plus the 19 MB `httpfs` extension, far under the 250 MB zip limit;
+    the image is 900 MB (Lambda base image included), far under 10 GB. Both fit. The image wins
+    because `httpfs` for linux/arm64 can only be installed by an arm64 build (a macOS zip build
+    cannot), so the Dockerfile bakes it and the function only loads it (read-only root, HOME unset),
+    and the image rides the existing `images-build`/`images-smoke` path. Cost: a larger image and a
+    slightly longer cold start than a zip.
+  - **Concurrency:** the function has `reserved_concurrent_executions = api_reserved_concurrency`
+    (default 3). A reservation is taken from the account pool, and AWS keeps 10 unreserved, so with
+    the 10-execution limit new accounts start with the API would starve ingest, curate and transform
+    or fail to deploy. `enable_r4` is therefore refused (variable validation and a Lambda
+    precondition) until `api_confirmed_concurrency_limit` is set to a value of at least 100, the
+    number `aws lambda get-account-settings` prints. The variable is a statement, not a lookup;
+    Terraform cannot read the quota, so DEPLOY makes the check the first step.
+  - **Warm-container cache:** a container downloads the small gold tables the API uses (the
+    allowlist in `headway_api.queries.API_TABLES`, a few MB) to `/tmp` once per export, keyed by the
+    manifest's `exported_at`, re-reads the manifest at most every 60 s, and runs queries on the
+    local copy. Any failure (download, disk, a query on the copy) falls back to HTTPS reads, and a
+    suspect copy is deleted so the next re-check fetches it again. Provenance SQL always names the
+    public objects. Effect on S3: without the cache every request is one manifest read plus the
+    range requests of DuckDB's reader for each table (footer and row groups, several GETs per file,
+    each a round trip to S3). With it a warm container makes at most one manifest GET a minute and
+    one GET per table (about a dozen) per export, and a request is a local file read. These counts
+    follow from the design; latency was not measured against the real bucket (nothing is deployed).
+    Public-bucket GETs cost a few cents per million, so the point is latency and less S3 traffic
+    under throttling, not money.
+- **Consequences:** The API can say nothing the public cannot already read and shares its numbers
+  and rules with the pages and the analyst. `/v1` is a contract: a breaking change is `/v2`. The
+  API reflects the export, so it is as fresh as gold (up to the 60 s re-check plus the 300 s cache
+  header). Concurrency is capped at the reservation, so a burst beyond it gets Lambda throttling
+  (surfaced as 5xx by the gateway) rather than starving the pipeline.
+- **Revisit when:** traffic exceeds the throttle (a CDN in front, or longer max-age), a consumer
+  needs history or station-level data beyond the countdown table, or the Next.js app needs
+  authentication (none today: the data is public).

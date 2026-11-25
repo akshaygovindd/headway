@@ -120,9 +120,10 @@ to the public gold bucket. Deploying your own copy is described in [docs/DEPLOY.
 | `dbt/headway/` | dbt project: staging, intermediate, marts, tests |
 | `dbt/headway_transform/` | transform Lambda: dbt run, gold export, publish, cost |
 | `src/headway_mcp/` | AI analyst: five read-only MCP tools over public gold, orchestration, budgets |
+| `src/headway_api/` | public read-only metric API (FastAPI on Lambda, R4; [docs/API.md](docs/API.md), ADR-023) |
 | `app/` | Streamlit app (`Home.py` navigation, `overview_page.py`, `pages/`, `lib/`, tests) |
 | `infra/` | Terraform: `bootstrap/` (state bucket) and `main/` (stack) |
-| `docker/` | container images for curate and transform |
+| `docker/` | container images for curate, transform, train and the API |
 | `config/cities/` | city configuration (feeds, lines, timezone) |
 | `samples/boston/` | one-hour sample with expected results |
 | `scripts/` | demo build, e2e, acceptance report, benchmarks |
@@ -163,7 +164,8 @@ and never causally ([docs/METRICS.md](docs/METRICS.md), weather source in ADR-02
   state and service level objectives (`docs/SLO.md`); more cities from config.
 - **Release 3:** natural-language analytics with unsupported claims prevented
   (ADR-008) and an MCP server (ADR-011).
-- **Release 4:** Next.js front end on a FastAPI service (ADR-010).
+- **Release 4:** a public read-only metric API (built, not deployed: [docs/API.md](docs/API.md),
+  ADR-023), then a Next.js front end (ADR-010).
 
 ## License
 

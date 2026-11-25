@@ -370,3 +370,49 @@ aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
 
 A backfill reads as many days of curated data as separate it from today, inside the 900 s limit of
 the function; split a long range into calls of a few days if one times out.
+
+## Release 4 switch: public metric API (off by default)
+
+Phase 4.1 is built and tested but not deployed. `enable_r4 = true` adds the API Lambda (container,
+arm64), an HTTP API with throttling and an access log, an ECR repository `headway-api` and a 5xx
+alarm (ADR-023, `docs/API.md`). It needs no new secrets and no access to any bucket.
+
+**Hard prerequisite: do not enable R4 until the account's Lambda concurrency limit is at least 100.**
+The API function reserves concurrency (`api_reserved_concurrency`, default 3) out of the account
+pool, and AWS keeps 10 unreserved. On an account still at the default limit of 10 the reservation
+cannot be made, and a larger one would starve ingest, curate and transform.
+
+```sh
+aws lambda get-account-settings --query 'AccountLimit.[ConcurrentExecutions,UnreservedConcurrentExecutions]'
+```
+
+If `ConcurrentExecutions` prints less than 100: Service Quotas > AWS Lambda > Concurrent
+executions > request an increase to 1000, and wait for approval. Then set the value the command
+prints in `terraform.tfvars` as `api_confirmed_concurrency_limit`. Terraform cannot read the quota,
+so the variable is your statement of it: `enable_r4 = true` fails validation while it is below
+100, and the Lambda has a matching precondition, so the step cannot be skipped silently.
+
+1. Check the prerequisite above and set `api_confirmed_concurrency_limit`.
+2. Create the repository: it is part of the Terraform with `enable_r4`
+   (`terraform -chdir=infra/main apply -target='aws_ecr_repository.pipeline["api"]'` with
+   `enable_r4 = true` and `api_image_uri` set to any non-empty placeholder), then
+   `make images-push ENABLE_R4=true`, which prints `api_image_uri`.
+3. In `terraform.tfvars` set `enable_r4 = true`, `api_image_uri`, `api_cors_origins` (the Vercel
+   domain once it exists; the default is a placeholder) and optionally `api_reserved_concurrency`,
+   `api_throttle_rate`, `api_throttle_burst`. `make deploy ENABLE_R4=true` plans and applies; the
+   plan must destroy nothing.
+4. First checks:
+   ```sh
+   API=$(terraform -chdir=infra/main output -raw api_url)
+   curl -si "$API/v1/meta" | head -20          # 200, cache-control: public, max-age=300
+   curl -s "$API/v1/lines/Red/reliability" | head -c 600
+   curl -si "$API/v1/lines/Purple/reliability" | head -12   # 422 with the allowed lines
+   curl -si -H 'Origin: https://headway.example.vercel.app' "$API/v1/slo" | grep -i access-control
+   curl -s -o /dev/null -w '%{http_code}\n' "$API/docs"       # 200
+   aws logs tail /aws/lambda/headway-api --since 5m           # one JSON access line per request
+   aws lambda get-function-concurrency --function-name headway-api   # ReservedConcurrentExecutions 3
+   ```
+   The second request to a warm container should report `"served_from":"cache"` in `provenance`.
+5. Turning it off is `enable_r4 = false`: the function, gateway and alarm are destroyed; nothing else
+   depends on them.
+
