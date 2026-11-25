@@ -130,7 +130,13 @@ def test_manifest_timestamps_are_tz_aware_on_every_duckdb(tmp_path: Path) -> Non
     assert sorted(row["fetched"].split(",")) == sorted(expected)
 
 
-R4_TABLES = {"agg_headway_segment_window", "agg_marey_last_hour", "agg_capture_heartbeat_hourly"}
+R4_TABLES = {
+    "agg_headway_segment_window",
+    "agg_marey_last_hour",
+    "agg_capture_heartbeat_hourly",
+    "agg_ett_band_window",
+    "agg_service_disruptions",
+}
 
 
 def _allowlist_keys(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, **env: str) -> set[str]:

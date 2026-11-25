@@ -1386,3 +1386,92 @@ unit_tests:
       rows:
         - {service_date: "2026-11-22", hour_local: 8, expected_runs: 5, missed_runs: 2, feed_gap_min: 2.0, data_outage: false}
         - {service_date: "2026-11-22", hour_local: 9, expected_runs: 4, missed_runs: 3, feed_gap_min: 15.0, data_outage: true}
+
+  - name: ett_band_window_keeps_zero_trip_bands
+    config:
+      tags: [r4]
+    description: >-
+      Monday 2026-11-23, Red, four-stop trips with the second stop at 08:00 local (am_peak) and
+      ten minutes between the second and the third (second to last) stop. Direction 0: trip U runs
+      them in 12 minutes (ETT +120), W in 11 (+60), V has no usable arrivals; the median ETT is
+      90, the median scheduled run 600 and the median actual run 690, 2 of 3 trips covered.
+      Direction 1: trip X has no usable arrivals, so the band keeps a row with n_trips 0 and
+      coverage 0. Both hours are in the last_24h window.
+    model: agg_ett_band_window
+    given:
+      - input: ref('int_window_hours')
+        rows:
+          - {window_label: last_24h, service_date: "2026-11-23", hour_local: 8}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {trip_instance_key: "U|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "U|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "U|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 3, scheduled_arrival_ts: "2026-11-23 13:10:00+00", hour_local: 8}
+          - {trip_instance_key: "U|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 4, scheduled_arrival_ts: "2026-11-23 13:20:00+00", hour_local: 8}
+          - {trip_instance_key: "V|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "V|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "V|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 3, scheduled_arrival_ts: "2026-11-23 13:10:00+00", hour_local: 8}
+          - {trip_instance_key: "V|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 4, scheduled_arrival_ts: "2026-11-23 13:20:00+00", hour_local: 8}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 3, scheduled_arrival_ts: "2026-11-23 13:10:00+00", hour_local: 8}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 0, stop_sequence: 4, scheduled_arrival_ts: "2026-11-23 13:20:00+00", hour_local: 8}
+          - {trip_instance_key: "X|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 1, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "X|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 1, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "X|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 1, stop_sequence: 3, scheduled_arrival_ts: "2026-11-23 13:10:00+00", hour_local: 8}
+          - {trip_instance_key: "X|2026-11-23|07:50:00", service_date: "2026-11-23", line: "Red", direction_id: 1, stop_sequence: 4, scheduled_arrival_ts: "2026-11-23 13:20:00+00", hour_local: 8}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {trip_instance_key: "U|2026-11-23|07:50:00", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 13:01:00+00", is_nearest_segment: true}
+          - {trip_instance_key: "U|2026-11-23|07:50:00", segment: 0, stop_sequence: 3, arrival_ts: "2026-11-23 13:13:00+00", is_nearest_segment: true}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 13:00:00+00", is_nearest_segment: true}
+          - {trip_instance_key: "W|2026-11-23|07:50:00", segment: 0, stop_sequence: 3, arrival_ts: "2026-11-23 13:11:00+00", is_nearest_segment: true}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-23", hour_local: 8, data_outage: false}
+      - input: ref('int_disrupted_line_hours')
+        rows: []
+    expect:
+      rows:
+        - {line: Red, direction_id: 0, time_band: am_peak, window_label: last_24h, n_scheduled_trips: 3, n_trips: 2, n_excluded_outage: 0, median_ett_s: 90.0, median_scheduled_s: 600.0, median_actual_s: 690.0, coverage_numerator: 2, coverage_denominator: 3, coverage_pct: 66.66666666666667}
+        - {line: Red, direction_id: 1, time_band: am_peak, window_label: last_24h, n_scheduled_trips: 1, n_trips: 0, n_excluded_outage: 0, median_ett_s: null, median_scheduled_s: null, median_actual_s: null, coverage_numerator: 0, coverage_denominator: 1, coverage_pct: 0.0}
+
+  - name: service_disruptions_line_scope_with_ends_and_segments
+    config:
+      tags: [r4]
+    description: >-
+      Red has segments s1-s2 and s2-s3 (direction 0) and s3-s2 (direction 1). Alert a1 (line scope,
+      SIGNIFICANT_DELAYS, seen in hours 8 and 9) covers stations Beta and Gamma: it is active in the
+      latest hour of the window, runs from Beta to Gamma and affects all three segments (the first
+      ends at Beta). The header text of its latest sighting is kept. Alert a2 is a stop-scope alert
+      and alert a3 a line-scope alert that is not a service disruption: both are left out. Alert a4
+      was last active in hour 8 only: not active.
+    model: agg_service_disruptions
+    given:
+      - input: ref('int_window_hours')
+        rows:
+          - {window_label: last_24h, service_date: "2026-11-22", hour_local: 8, hour_start: "2026-11-22 13:00:00+00"}
+          - {window_label: last_24h, service_date: "2026-11-22", hour_local: 9, hour_start: "2026-11-22 14:00:00+00"}
+          - {window_label: last_7d, service_date: "2026-11-21", hour_local: 9, hour_start: "2026-11-21 14:00:00+00"}
+      - input: ref('int_stop_stations')
+        rows:
+          - {stop_id: s1, station_id: place-a, station_name: Alpha}
+          - {stop_id: s2, station_id: place-b, station_name: Beta}
+          - {stop_id: s3, station_id: place-c, station_name: Gamma}
+      - input: ref('agg_headway_segment_window')
+        rows:
+          - {line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s2, window_label: last_24h, segment_order: 1}
+          - {line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s3, window_label: last_24h, segment_order: 2}
+          - {line: Red, direction_id: 1, from_stop_id: s3, to_stop_id: s2, window_label: last_24h, segment_order: 1}
+          - {line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s2, window_label: last_7d, segment_order: 1}
+      - input: ref('int_alert_scopes')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, alert_id: a1, effect: SIGNIFICANT_DELAYS, header_text: "Delays of 20 minutes", first_seen: "2026-11-22 13:05:00+00", last_seen: "2026-11-22 13:55:00+00", scope: line, is_service_disruption: true, station_ids: ["place-b", "place-c"]}
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, alert_id: a1, effect: SIGNIFICANT_DELAYS, header_text: "Shuttle buses replace trains", first_seen: "2026-11-22 14:00:00+00", last_seen: "2026-11-22 14:50:00+00", scope: line, is_service_disruption: true, station_ids: ["place-c", "place-b"]}
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, alert_id: a2, effect: STOP_CLOSURE, header_text: "Closed", first_seen: "2026-11-22 14:00:00+00", last_seen: "2026-11-22 14:50:00+00", scope: stop, is_service_disruption: true, station_ids: ["place-a"]}
+          - {line: Red, service_date: "2026-11-22", hour_local: 9, alert_id: a3, effect: ACCESSIBILITY_ISSUE, header_text: "Elevator", first_seen: "2026-11-22 14:00:00+00", last_seen: "2026-11-22 14:50:00+00", scope: line, is_service_disruption: false, station_ids: ["place-a"]}
+          - {line: Red, service_date: "2026-11-22", hour_local: 8, alert_id: a4, effect: DETOUR, header_text: "Detour", first_seen: "2026-11-22 13:00:00+00", last_seen: "2026-11-22 13:10:00+00", scope: line, is_service_disruption: true, station_ids: ["place-a"]}
+    expect:
+      rows:
+        - {line: Red, alert_id: a1, effect: SIGNIFICANT_DELAYS, header_text: "Shuttle buses replace trains", first_seen: "2026-11-22 13:05:00+00", last_seen: "2026-11-22 14:50:00+00", is_active: true, n_stations: 2, from_station_name: Beta, to_station_name: Gamma, segment_keys: ["0:s1:s2", "0:s2:s3", "1:s3:s2"]}
+        - {line: Red, alert_id: a4, effect: DETOUR, header_text: Detour, first_seen: "2026-11-22 13:00:00+00", last_seen: "2026-11-22 13:10:00+00", is_active: false, n_stations: 1, from_station_name: Alpha, to_station_name: Alpha, segment_keys: ["0:s1:s2"]}

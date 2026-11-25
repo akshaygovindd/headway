@@ -140,6 +140,8 @@ models:
         +tags: ["r4"]
       agg_marey_last_hour: *r4
       agg_capture_heartbeat_hourly: *r4
+      agg_ett_band_window: *r4
+      agg_service_disruptions: *r4
 
 seeds:
   headway:

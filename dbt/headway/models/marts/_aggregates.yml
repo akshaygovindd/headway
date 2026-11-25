@@ -1933,3 +1933,87 @@ models:
         description: "Longest run of minutes without fresh trip_updates and vehicle_positions."
       - name: data_outage
         description: "True when the hour is a data outage (int_hour_flags); metrics leave it out."
+  - name: agg_ett_band_window
+    description: "ETT approximation per line, direction and time band over the last 24 hours and the last 7 days, all day types combined, with the median scheduled and actual running time of the measured trips (Release 4). Same trips, rules and coverage as agg_ett_window. A band with scheduled trips but no measured ETT keeps a row with n_trips 0. An adapted approximation, not an official measure. Exported with the R4 gold tables."
+    config:
+      meta:
+        grain: "line x direction_id x time_band x window_label"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, time_band, window_label]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "GTFS direction of the trips."
+      - name: time_band
+        description: "am_peak 06:30-09:00, midday 09:00-15:30, pm_peak 15:30-18:30, evening 18:30-24:00 or other, by the scheduled arrival at the second stop (local)."
+        data_tests:
+          - not_null
+      - name: window_label
+        description: "last_24h or last_7d, ending at the latest hour of the export (metrics_as_of)."
+        data_tests:
+          - not_null
+      - name: n_scheduled_trips
+        description: "Scheduled trips of the band, outage trips excluded."
+      - name: n_excluded_outage
+        description: "Trips left out because an end stop's hour is a data outage."
+      - name: n_implausible
+        description: "Trips with an ETT beyond 3600 seconds, left out of the statistics."
+      - name: n_trips
+        description: "Trips behind the statistics; zero when no trip of the band was measured."
+      - name: n_disruption
+        description: "Trips behind the statistics with a service-disruption alert at either end stop (kept)."
+      - name: median_ett_s
+        description: "Median ETT in seconds (actual minus plan); positive is slower than schedule."
+      - name: p90_ett_s
+        description: "90th percentile of ETT in seconds."
+      - name: median_scheduled_s
+        description: "Median scheduled running time in seconds between the second and second-to-last stop of the measured trips."
+      - name: median_actual_s
+        description: "Median actual running time in seconds (scheduled plus ETT) of the measured trips."
+      - name: coverage_numerator
+        description: "Numerator of coverage."
+      - name: coverage_denominator
+        description: "Denominator of coverage."
+      - name: coverage_pct
+        description: "Trips with an ETT over scheduled trips as a percentage (0-100); null when the denominator is zero."
+  - name: agg_service_disruptions
+    description: "Line-scope service-disruption alerts of the last 24 hours, one row per line and alert, with the public MBTA header text, the first and last affected station and the segments affected (Release 4). Exported with the R4 gold tables."
+    config:
+      meta:
+        grain: "line x alert_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, alert_id]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: alert_id
+        description: "MBTA alert identifier."
+        data_tests:
+          - not_null
+      - name: effect
+        description: "GTFS-realtime alert effect."
+      - name: header_text
+        description: "Header text of the alert as published by the MBTA (public text), from its latest sighting."
+      - name: first_seen
+        description: "First capture in the window in which the alert was active (UTC)."
+      - name: last_seen
+        description: "Last capture in the window in which the alert was active (UTC)."
+      - name: is_active
+        description: "True when the alert was active in the latest hour of the window."
+      - name: n_stations
+        description: "Stations the alert covers."
+      - name: from_station_name
+        description: "First affected station along direction 0 of the line; null when it is not on a segment."
+      - name: to_station_name
+        description: "Last affected station along direction 0 of the line; null when it is not on a segment."
+      - name: segment_keys
+        description: "Affected segments of agg_headway_segment_window (last_24h) as direction_id:from_stop_id:to_stop_id: segments starting or ending at an affected station."

@@ -47,12 +47,15 @@ R3_GOLD_TABLES = (
 )
 R3_OPTIONAL_TABLES = ("agg_forecast_backtest",)
 # Release 4 (HEADWAY_ENABLE_R4=true, with R2; independent of R3): the public site's segment health,
-# last-hour Marey arrivals and hourly capture heartbeat. (Known R3 drift left alone:
+# last-hour Marey arrivals, hourly capture heartbeat, ETT per direction and time band and the
+# line-scope service disruptions (public MBTA header text). (Known R3 drift left alone:
 # agg_weather_comparison is in the macro's R3 allowlist but not in R3_GOLD_TABLES.)
 R4_GOLD_TABLES = (
     "agg_headway_segment_window",
     "agg_marey_last_hour",
     "agg_capture_heartbeat_hourly",
+    "agg_ett_band_window",
+    "agg_service_disruptions",
 )
 # cost_daily is written by cost.py, not dbt, so it is published only when it exists. The R3
 # backtest is exported by dbt only when it has rows.
