@@ -43,8 +43,11 @@ describe("formatting", () => {
   it("words coverage and withheld text", () => {
     expect(coverageText(71.84)).toBe("coverage 71.8%");
     expect(coverageText(null)).toBe("coverage unknown");
-    expect(withheldText(30)).toBe("Not enough data: coverage 30.0%");
-    expect(withheldText(null)).toBe("Not enough data: coverage unknown");
+    expect(withheldText(30)).toBe("Not enough data \u00b7 30% cov.");
+    expect(withheldText(null)).toBe("Not enough data \u00b7 cov. unknown");
+    expect(formatValue(12, "s20")).toBe("~20 s");
+    expect(formatValue(20, "s20")).toBe("~20 s");
+    expect(formatValue(31.4, "s20")).toBe("31 s");
   });
 });
 

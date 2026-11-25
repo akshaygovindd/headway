@@ -4,10 +4,10 @@ export function OutageLabel({ hours }: { hours: number }) {
   return (
     <span
       data-testid="outage"
-      className="inline-flex items-center rounded border border-slate-600 bg-slate-100 px-2 py-0.5 text-xs text-slate-900 dark:border-slate-400 dark:bg-slate-800 dark:text-slate-100"
+      className="hatch-outage inline-flex items-center rounded px-2 py-0.5 text-xs text-[#1F2630]"
       title="Data outage hours are not evaluated: a gap in Headway's data, not a statement about service."
     >
-      {hours} {hours === 1 ? "hour" : "hours"} without data (Headway outage)
+      {hours} {hours === 1 ? "hour" : "hours"} without data (our data gap)
     </span>
   );
 }

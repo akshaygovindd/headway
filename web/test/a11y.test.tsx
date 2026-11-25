@@ -2,8 +2,7 @@ import { render } from "@testing-library/react";
 import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import NotFound from "@/app/not-found";
-import RootLayout from "@/app/layout";
-import { PAGES, stubFixtureApi } from "./helpers";
+import { PAGES, Shell, stubFixtureApi } from "./helpers";
 
 beforeEach(() => {
   stubFixtureApi();
@@ -37,9 +36,4 @@ describe("axe: every page inside the real layout", () => {
   }
 });
 
-// RootLayout returns <html>; React will not nest that in a div, so reuse its children structure.
-function RootLayoutShell({ children }: { children: React.ReactNode }) {
-  const tree = RootLayout({ children }) as React.ReactElement<{ children: React.ReactNode[] }>;
-  const body = (tree.props.children as React.ReactElement<{ children: React.ReactNode }>[]).find((c) => c.type === "body")!;
-  return <div lang="en">{body.props.children}</div>;
-}
+const RootLayoutShell = Shell;

@@ -1,4 +1,5 @@
-import type { ReactElement } from "react";
+import { Children, type ReactElement, type ReactNode } from "react";
+import RootLayout from "@/app/layout";
 import { vi } from "vitest";
 import { respond } from "../scripts/mock-api.mjs";
 
@@ -26,3 +27,12 @@ export const PAGES: { name: string; load: () => Promise<ReactElement> }[] = [
   { name: "/about", load: async () => (await import("@/app/about/page")).default() },
   { name: "/data", load: async () => (await import("@/app/data/page")).default() },
 ];
+
+/** The layout's body children (header, main, footer, popover) as a fragment, for rendering in a div. */
+export function Shell({ children }: { children: ReactNode }) {
+  const tree = RootLayout({ children }) as ReactElement<{ children: ReactNode }>;
+  const body = Children.toArray(tree.props.children).find(
+    (c) => (c as ReactElement).type === "body",
+  ) as ReactElement<{ children: ReactNode }>;
+  return <div lang="en">{body.props.children}</div>;
+}

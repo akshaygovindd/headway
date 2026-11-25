@@ -210,3 +210,53 @@ export type MetricDef = {
   tables: string[];
   metrics_md: string;
 };
+
+// --- Release 4: segments, Marey, heartbeat -----------------------------------------------
+
+export type HealthBucket = "even" | "some_bunching" | "bunched_gaps";
+
+export type SegmentRow = {
+  direction_id: number;
+  from_stop_id: string;
+  from_stop_name: string;
+  to_stop_id: string;
+  to_stop_name: string;
+  segment_order: number;
+  health: HealthBucket | null;
+  pct_within_band: number | null;
+  pct_bunched: number | null;
+  pct_gap: number | null;
+  n_headways: number;
+  n_excluded_outage: number;
+  disrupted: boolean;
+  coverage_pct: number | null;
+  withheld_reason: string | null;
+};
+
+export type SegmentsData = { line: string; window: string; direction: number | null; rows: SegmentRow[] };
+
+export type MareyRow = {
+  direction_id: number;
+  trip_id: string;
+  stop_id: string;
+  stop_name: string;
+  stop_sequence: number;
+  arrival_ts: string;
+  method: "observed" | "estimated";
+  confidence: number | null;
+  scheduled_ts: string | null;
+};
+
+export type MareyData = { line: string; direction: number | null; hour_start: string | null; rows: MareyRow[] };
+
+export type HeartbeatRow = {
+  hour_start: string;
+  expected_runs: number;
+  missed_runs: number;
+  feed_gap_min: number | null;
+  data_outage: boolean;
+};
+
+export type HeartbeatData = { hours: number; rows: HeartbeatRow[] };
+
+export type MetaData = { api_version: string; lines: string[]; tables_in_export: string[] };

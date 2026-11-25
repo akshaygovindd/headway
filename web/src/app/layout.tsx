@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { MetricPopover } from "@/components/MetricPopover";
+import { docUrl } from "@/lib/definitions";
+import { REPO_URL } from "@/lib/map";
 import { siteUrl } from "@/lib/site";
 import "./globals.css";
+
+const overpass = localFont({ src: "../fonts/Overpass.woff2", variable: "--font-overpass", weight: "700 800", display: "swap" });
+const inter = localFont({ src: "../fonts/Inter.woff2", variable: "--font-inter", weight: "100 900", display: "swap" });
+const mono = localFont({ src: "../fonts/JetBrainsMono.woff2", variable: "--font-jbmono", weight: "100 800", display: "swap" });
 
 const DESCRIPTION =
   "How reliable is the Boston subway right now? Open measurements with their coverage and freshness shown beside every number.";
@@ -18,55 +25,63 @@ export const metadata: Metadata = {
 
 const NAV = [
   ["/", "Lines"],
+  ["/#accuracy", "Accuracy"],
   ["/incidents", "Incidents"],
   ["/forecast", "Forecast"],
-  ["/pipeline", "Pipeline health"],
-  ["/how-we-measure", "How we measure"],
-  ["/data", "Data"],
-  ["/about", "About"],
+  ["/pipeline", "Pipeline"],
+  ["/how-we-measure", "Methodology"],
 ] as const;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              'try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}',
-          }}
-        />
-      </head>
+    <html lang="en" className={`${overpass.variable} ${inter.variable} ${mono.variable}`}>
       <body className="min-h-screen">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded focus:bg-bg focus:p-2"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded focus:bg-card focus:p-2"
         >
           Skip to content
         </a>
-        <header className="border-b border-line">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <Link href="/" className="text-lg font-bold text-fg no-underline">
-              Headway
-            </Link>
-            <nav aria-label="Main">
-              <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <header className="border-b border-line bg-card">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
+            <div>
+              <Link href="/" className="font-display text-xl font-extrabold text-fg no-underline">
+                Headway
+              </Link>
+              <p className="text-xs text-muted">Independent project · not affiliated with the MBTA</p>
+            </div>
+            <nav aria-label="Main" className="ml-auto">
+              <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium">
                 {NAV.map(([href, label]) => (
                   <li key={href}>
-                    <Link href={href}>{label}</Link>
+                    <Link href={href} className="inline-block py-2">
+                      {label}
+                    </Link>
                   </li>
                 ))}
+                <li>
+                  <a href={REPO_URL} className="inline-block py-2">
+                    GitHub
+                  </a>
+                </li>
               </ul>
             </nav>
-            <ThemeToggle />
           </div>
         </header>
         <main id="main" className="mx-auto max-w-6xl px-4 py-6">
           {children}
         </main>
         <footer className="mx-auto max-w-6xl border-t border-line px-4 py-6 text-sm text-muted">
-          Headway approximates MBTA service from public feeds. It is not an official MBTA measure.
+          <p>Headway approximates MBTA service from public feeds. It is not an official MBTA measure. Times in ET.</p>
+          <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+            <li><a href={REPO_URL}>GitHub</a></li>
+            <li><Link href="/how-we-measure">Methodology</Link></li>
+            <li><a href={docUrl("docs/API.md")}>API</a></li>
+            <li><Link href="/data">Data contracts</Link></li>
+            <li><Link href="/about">About</Link></li>
+          </ul>
         </footer>
+        <MetricPopover />
       </body>
     </html>
   );

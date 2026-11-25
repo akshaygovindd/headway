@@ -62,12 +62,17 @@ export function formatNumber(value: number, digits = 0): string {
   });
 }
 
-export type Unit = "s" | "pct" | "share" | "ratio" | "count" | "h";
+export const TIMING_FLOOR_S = 20;
+
+export type Unit = "s" | "s20" | "pct" | "share" | "ratio" | "count" | "h";
 
 export function formatValue(value: number, unit: Unit): string {
   switch (unit) {
     case "s":
       return `${formatNumber(value, 0)} s`;
+    case "s20":
+      // Timing is about +/-20 s, so anything under that floor reads "~20 s", not a false precision.
+      return value <= TIMING_FLOOR_S ? `~${TIMING_FLOOR_S} s` : `${formatNumber(value, 0)} s`;
     case "pct":
       return `${formatNumber(value, 1)}%`;
     case "share":
@@ -86,7 +91,7 @@ export function coverageText(coverage: number | null | undefined): string {
 }
 
 export function withheldText(coverage: number | null | undefined): string {
-  return `Not enough data: ${coverageText(coverage)}`;
+  return `Not enough data \u00b7 ${coverage == null ? "cov. unknown" : `${Math.round(coverage)}% cov.`}`;
 }
 
 /** "updated N min ago" from the API's age_minutes. */

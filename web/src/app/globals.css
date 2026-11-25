@@ -1,32 +1,20 @@
 @import "tailwindcss";
 
+/* Design system v2. Light only. Line colours are fills and badges, never text on white. */
 :root {
-  --bg: #ffffff;
-  --fg: #111827;
-  --muted: #4b5563;
-  --card: #f9fafb;
-  --border: #d1d5db;
-  --accent: #1d4ed8;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0b1120;
-    --fg: #f3f4f6;
-    --muted: #b6bfcc;
-    --card: #131c31;
-    --border: #3b4760;
-    --accent: #8ab4ff;
-  }
-}
-
-:root[data-theme="dark"] {
-  --bg: #0b1120;
-  --fg: #f3f4f6;
-  --muted: #b6bfcc;
-  --card: #131c31;
-  --border: #3b4760;
-  --accent: #8ab4ff;
+  color-scheme: light;
+  --bg: #f4f5f7;
+  --fg: #10141a;
+  --muted: #566070;
+  --card: #ffffff;
+  --border: #d5d9e0;
+  --accent: #2b3ea8;
+  --dark: #10141a;
+  --even: #3346b8;
+  --some: #8f6bd6;
+  --bunched: #c93a8b;
+  --disrupt-ink: #7a2e00;
+  --disrupt-bg: #fff1e3;
 }
 
 @theme inline {
@@ -36,12 +24,30 @@
   --color-card: var(--card);
   --color-line: var(--border);
   --color-accent: var(--accent);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-overpass), system-ui, sans-serif;
+  --font-mono: var(--font-jbmono), ui-monospace, monospace;
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Technical views only: SQL, ids, timestamps. */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 a {
@@ -52,6 +58,117 @@ a {
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Status patterns. Each is paired with words wherever it appears. */
+.hatch-withheld {
+  background: repeating-linear-gradient(45deg, #dde1e7 0 4px, #f4f5f7 4px 8px);
+  border: 1px solid #c4cad3;
+}
+.hatch-outage {
+  background: repeating-linear-gradient(45deg, #9aa3af 0 4px, #cdd2da 4px 8px);
+  border: 1px solid #7b8593;
+}
+.chip-disruption,
+.band-disruption {
+  border: 1.5px dashed var(--disrupt-ink);
+  background: var(--disrupt-bg);
+  color: var(--disrupt-ink);
+}
+.chip-disruption {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Coverage meter: five small blocks. */
+.cov-meter {
+  display: inline-flex;
+  gap: 1px;
+}
+.cov-meter span {
+  width: 6px;
+  height: 10px;
+  border-radius: 1px;
+  background: #cfd4dc;
+}
+.cov-meter span[data-on="true"] {
+  background: var(--fg);
+}
+
+/* A number you can press. At least 44px to tap. */
+.metric-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.25rem;
+  text-align: left;
+  border-radius: 0.25rem;
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.metric-btn:hover {
+  background: #e8ebf0;
+}
+
+/* "How this was measured": a centred card, a bottom sheet on phones. */
+dialog.metric-sheet {
+  margin: auto;
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: #fff;
+  color: var(--fg);
+  padding: 0;
+}
+dialog.metric-sheet::backdrop {
+  background: rgb(16 20 26 / 0.5);
+}
+@media (max-width: 480px) {
+  dialog.metric-sheet {
+    margin: auto 0 0;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 1rem 1rem 0 0;
+  }
+}
+
+.trust-strip {
+  background: var(--dark);
+  color: #f4f5f7;
+}
+.trust-strip a {
+  color: #c9d3ff;
+}
+
+/* The 24 h / 7 d toggle needs no JavaScript: both windows are rendered, radios pick one. */
+.win-root:has(#win-24:checked) .win-7 {
+  display: none;
+}
+.win-root:has(#win-7:checked) .win-24 {
+  display: none;
+}
+
+/* Marey: the full-hour chart on desktop, the last 30 minutes on phones. */
+.marey-phone {
+  display: none;
+}
+@media (max-width: 480px) {
+  .marey-desktop {
+    display: none;
+  }
+  .marey-phone {
+    display: block;
+  }
+  .strip {
+    flex-direction: column;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

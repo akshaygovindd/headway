@@ -12,21 +12,23 @@ import {
 describe("Metric", () => {
   it("renders a number only together with a coverage badge", () => {
     render(<Metric cell={{ value: 87.46, coverage_pct: 71.8 }} unit="pct" />);
-    expect(screen.getByText("87.5%")).toBeInTheDocument();
-    expect(screen.getByTestId("coverage-badge")).toHaveTextContent("coverage 71.8%");
+    expect(screen.getByRole("button", { name: "87.5%" })).toBeInTheDocument();
+    expect(screen.getByTestId("coverage-badge")).toHaveTextContent("72% cov.");
+    expect(screen.getByTestId("coverage-badge")).toHaveAttribute("data-state", "full");
     expect(screen.queryByTestId("withheld")).toBeNull();
   });
 
   it("renders Not enough data and none of the value when coverage is under 50%", () => {
     const { container } = render(<Metric cell={{ value: 91.23, coverage_pct: 30 }} unit="pct" />);
-    expect(screen.getByTestId("withheld")).toHaveTextContent("Not enough data: coverage 30.0%");
+    expect(screen.getByTestId("withheld")).toHaveTextContent("Not enough data \u00b7 30% cov.");
     expect(container.textContent).not.toMatch(/91/);
+    expect(screen.queryByRole("button")).toBeNull();
     expect(screen.queryByTestId("coverage-badge")).toBeNull();
   });
 
   it("withholds a null value and a value with a stated reason", () => {
     const a = render(<Metric cell={{ value: null, coverage_pct: 80 }} unit="s" />);
-    expect(a.container.textContent).toBe("Not enough data: coverage 80.0%");
+    expect(a.container.textContent).toBe("Not enough data \u00b7 80% cov.");
     a.unmount();
     const b = render(
       <Metric cell={{ value: 42, coverage_pct: 80, withheld_reason: "coverage 30% is below 50%" }} unit="s" />,
@@ -36,7 +38,7 @@ describe("Metric", () => {
 
   it("withholds when coverage is missing", () => {
     const { container } = render(<Metric cell={{ value: 12, coverage_pct: null }} unit="s" />);
-    expect(container.textContent).toBe("Not enough data: coverage unknown");
+    expect(container.textContent).toBe("Not enough data \u00b7 cov. unknown");
   });
 
   it("shows exactly at the 50% boundary and withholds just under", () => {
@@ -49,7 +51,24 @@ describe("Metric", () => {
 
   it("keeps zero as a number", () => {
     render(<Metric cell={{ value: 0, coverage_pct: 95 }} unit="s" />);
-    expect(screen.getByText("0 s")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "0 s" })).toBeInTheDocument();
+  });
+});
+
+describe("Metric as a popover trigger", () => {
+  it("is a button carrying what the popover needs, and a partial value says so", () => {
+    render(
+      <Metric
+        cell={{ value: 70, coverage_pct: 68 }}
+        unit="pct"
+        info={{ k: "within_band", line: "Orange", n: 412, window: "last_24h", excluded: "2 outage hours" }}
+      />,
+    );
+    const b = screen.getByRole("button", { name: "70.0%" });
+    expect(b).toHaveAttribute("data-k", "within_band");
+    expect(b).toHaveAttribute("data-n", "412");
+    expect(b).toHaveAttribute("data-line", "Orange");
+    expect(screen.getByTestId("coverage-badge")).toHaveTextContent("partial");
   });
 });
 
@@ -59,12 +78,12 @@ describe("other trust components", () => {
     expect(screen.getByTestId("coverage-badge")).toHaveAttribute("data-low", "true");
     a.unmount();
     render(<CoverageBadge coverage={null} />);
-    expect(screen.getByTestId("coverage-badge")).toHaveTextContent("coverage unknown");
+    expect(screen.getByTestId("coverage-badge")).toHaveTextContent("cov. unknown");
   });
 
   it("Withheld text", () => {
     render(<Withheld coverage={12.34} />);
-    expect(screen.getByTestId("withheld")).toHaveTextContent("Not enough data: coverage 12.3%");
+    expect(screen.getByTestId("withheld")).toHaveTextContent("Not enough data \u00b7 12% cov.");
   });
 
   it("Freshness says N min ago and flags stale data", () => {
@@ -78,7 +97,7 @@ describe("other trust components", () => {
 
   it("DisruptionChip states open, none and unknown in words", () => {
     const a = render(<DisruptionChip open={true} />);
-    expect(screen.getByTestId("disruption")).toHaveTextContent("Open incident");
+    expect(screen.getByTestId("disruption")).toHaveTextContent("Service disruption");
     a.unmount();
     const b = render(<DisruptionChip open={false} />);
     expect(screen.getByTestId("disruption")).toHaveTextContent("No open incident");

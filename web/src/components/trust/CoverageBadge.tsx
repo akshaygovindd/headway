@@ -1,22 +1,33 @@
-import { formatNumber, MIN_COVERAGE_PCT } from "@/lib/map";
+import { coverageState, covText, meterFill } from "@/lib/coverage";
 
-/** Coverage next to a number. Text carries the meaning; colour only reinforces it. */
+/**
+ * The coverage glyph: a five-segment meter and "N% cov." under a number. Partial coverage
+ * (50 to under 70) adds an amber dot and the word "partial"; the text carries the meaning and
+ * the colour only reinforces it.
+ */
 export function CoverageBadge({ coverage }: { coverage: number | null | undefined }) {
-  const known = coverage != null;
-  const low = !known || coverage < MIN_COVERAGE_PCT;
-  const label = known ? `coverage ${formatNumber(coverage, 1)}%` : "coverage unknown";
+  const state = coverageState(coverage);
+  const fill = meterFill(coverage);
   return (
     <span
       data-testid="coverage-badge"
-      data-low={low}
+      data-state={state}
+      data-low={state === "withheld" || state === "unknown"}
       title="Share of scheduled trips Headway could observe. Under 50% a value is withheld."
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
-        low
-          ? "border-amber-700 bg-amber-50 text-amber-900 dark:border-amber-400 dark:bg-amber-950 dark:text-amber-100"
-          : "border-emerald-700 bg-emerald-50 text-emerald-900 dark:border-emerald-400 dark:bg-emerald-950 dark:text-emerald-100"
-      }`}
+      className="inline-flex flex-wrap items-center gap-x-1.5 text-xs font-medium text-muted"
     >
-      {label}
+      <span className="cov-meter" aria-hidden="true">
+        {Array.from({ length: 5 }, (_, i) => (
+          <span key={i} data-on={i < fill} />
+        ))}
+      </span>
+      <span>{covText(coverage)}</span>
+      {state === "partial" ? (
+        <span className="inline-flex items-center gap-1 text-[#92400E]">
+          <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full bg-[#D97706]" />
+          partial
+        </span>
+      ) : null}
     </span>
   );
 }
