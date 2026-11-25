@@ -13,7 +13,6 @@ export default async function PipelinePage() {
     getApi<HealthData>("/pipeline/health?days=7"),
     getApi<SloData>("/slo"),
   ]);
-  const fresh = health.ok ? health.body.freshness : slo.ok ? slo.body.freshness : null;
   return (
     <>
       <PageHeader

@@ -18,7 +18,6 @@ const METHODS = [
 
 export default async function ForecastPage() {
   const results = await Promise.all(LINES.map((l) => getApi<ForecastData>(`/forecast/${l}`)));
-  const first = results.find((r) => r.ok);
   return (
     <>
       <PageHeader

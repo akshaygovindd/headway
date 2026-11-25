@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { ageAt, freshnessText, isStale } from "@/lib/map";
 import { hhmmET } from "@/lib/time";
 
@@ -9,13 +9,17 @@ import { hhmmET } from "@/lib/time";
  * from the export time. Never from a number baked in at build time: server output is the fixed
  * clock time of the export, so a cached page cannot claim a stale age.
  */
+const TICK_MS = 30000;
+const subscribe = (cb: () => void) => {
+  const id = setInterval(cb, TICK_MS);
+  return () => clearInterval(id);
+};
+// The snapshot is the current 30 s tick: stable between renders, null on the server.
+const clientTick = () => Math.floor(Date.now() / TICK_MS) * TICK_MS;
+const serverTick = () => null;
+
 export function Freshness({ exportedAt }: { exportedAt: string | null | undefined }) {
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(id);
-  }, []);
+  const now = useSyncExternalStore(subscribe, clientTick, serverTick);
   const age = now == null ? null : ageAt(exportedAt, now);
   const stale = now != null && isStale(age);
   const at = hhmmET(exportedAt);

@@ -93,7 +93,7 @@ describe("other trust components", () => {
   it("Freshness is worked out at view time from the export time, not frozen at build", () => {
     vi.useFakeTimers();
     try {
-      vi.setSystemTime(new Date("2026-11-24T00:06:06Z"));
+      vi.setSystemTime(new Date("2026-11-24T00:06:36Z"));
       const a = render(<Freshness exportedAt="2026-11-23T23:54:06Z" />);
       expect(screen.getByTestId("freshness")).toHaveTextContent("updated 12 min ago");
       expect(screen.getByTestId("freshness")).toHaveAttribute("data-stale", "false");
