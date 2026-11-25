@@ -5,6 +5,7 @@ types reaches the query text. Reads use `read_parquet` on the data root (https:/
 """
 
 import json
+import os
 import threading
 import urllib.error
 import urllib.request
@@ -21,6 +22,23 @@ class ToolTimeoutError(RuntimeError):
 
 class DataError(RuntimeError):
     """The data root could not be read."""
+
+
+ENV_EXTENSIONS_DIR = "HEADWAY_DUCKDB_EXTENSIONS_DIR"  # baked extensions (read-only images)
+ENV_HOME = "HEADWAY_DUCKDB_HOME"
+
+
+def _connect() -> duckdb.DuckDBPyConnection:
+    """A DuckDB connection; on a read-only image the baked extension directory is loaded, never
+    installed into, and nothing is auto-downloaded."""
+    ext, home = os.environ.get(ENV_EXTENSIONS_DIR), os.environ.get(ENV_HOME)
+    cfg: dict[str, Any] = {}
+    if ext:
+        cfg.update(extension_directory=ext, autoinstall_known_extensions=False,
+                   autoload_known_extensions=False)  # fmt: skip
+    if home:
+        cfg["home_directory"] = home
+    return duckdb.connect(config=cfg)
 
 
 def path_of(base: str, rel: str) -> str:
@@ -43,8 +61,6 @@ def read_json(base: str, rel: str) -> dict[str, Any]:
 def exists(base: str, rel: str) -> bool:
     """Whether the object exists (a HEAD request, or a file check)."""
     if base.startswith("file://"):
-        import os
-
         return os.path.exists(path_of(base, rel))
     req = urllib.request.Request(f"{base}/{rel}", method="HEAD")  # noqa: S310
     try:
@@ -59,12 +75,13 @@ def run(
 ) -> tuple[list[str], list[tuple[Any, ...]]]:
     """Execute `sql`; returns column names and rows. Raises ToolTimeoutError after the timeout."""
     limit = config.QUERY_TIMEOUT_S if timeout_s is None else timeout_s
-    con = duckdb.connect()
+    con = _connect()
     timer = threading.Timer(limit, con.interrupt)
     timer.start()
     try:
         if base.startswith("https://"):
-            con.execute("install httpfs")
+            if not os.environ.get(ENV_EXTENSIONS_DIR):
+                con.execute("install httpfs")  # not baked into the image: download it
             con.execute("load httpfs")
         try:
             cur = con.execute(sql)
