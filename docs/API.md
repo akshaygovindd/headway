@@ -41,12 +41,20 @@ data is already public. Examples use `$API` for the base URL (`terraform output 
 | `/lines/{line}/accuracy?window=` | accuracy of MBTA's predictions by horizon bucket |
 | `/lines/{line}/headways?window=` | headways within the band, bunched, gaps |
 | `/lines/{line}/countdown?window=` | countdown accuracy by station and countdown minute |
+| `/lines/{line}/segments?window=&direction=` | headway health per segment (two neighbouring stops): `rows[]` of `direction_id, from_stop_id, from_stop_name, to_stop_id, to_stop_name, segment_order, health, pct_within_band, pct_bunched, pct_gap, n_headways, n_excluded_outage, disrupted, coverage_pct, withheld_reason`; `health` is `even` (within band 80 or more), `some_bunching` (60 or more) or `bunched_gaps`; the shares and `health` are null with a `withheld_reason` under 50 % coverage; `direction` 0 or 1, default both (R4 export) |
+| `/lines/{line}/marey?direction=` | reconstructed arrivals of the last complete hour: `hour_start` and `rows[]` of `direction_id, trip_id, stop_id, stop_name, stop_sequence, arrival_ts, method, confidence, scheduled_ts` (UTC, `method` is `observed` or `estimated`; R4 export) |
 | `/incidents?line=&from=&to=` | incidents (local dates, at most 31 days; default the 31 days to `metrics_as_of`) |
 | `/forecast/{line}` | latest next-hour delay forecasts by direction and horizon, status, training gate |
 | `/pipeline/health?days=` | daily pipeline runs, feed polls, duplicates, quarantine (1 to 30 days, default 7) |
+| `/pipeline/heartbeat?hours=` | hourly capture heartbeat: `rows[]` of `hour_start, expected_runs, missed_runs, feed_gap_min, data_outage` (1 to 720 hours, default 24; R4 export) |
 | `/slo` | service level objectives over 7 and 30 days |
 | `/metrics` | metric definitions with `docs/METRICS.md` anchors |
 | `/meta` | freshness, tables in the export, coverage rules, limits |
+
+The three R4 endpoints answer `404 not_available` until the export holds their tables (`enable_r4`
+on the transform, `docs/DEPLOY.md`). Their `data` is `{line, window?, direction, rows}` (`hours` for
+the heartbeat, `hour_start` for Marey); timestamps are UTC (`...Z`). Marey and heartbeat rows carry
+no coverage figure and are never withheld.
 
 Definitions of every figure are in [METRICS.md](METRICS.md); the `metrics_md` field of each response
 names the section.

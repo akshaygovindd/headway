@@ -26,6 +26,9 @@ const ENDPOINTS = {
   agg_actual_deviation_window: ["/v1/lines/{line}/reliability"],
   agg_accuracy_window: ["/v1/lines/{line}/accuracy"],
   agg_headway_window: ["/v1/lines/{line}/headways"],
+  agg_headway_segment_window: ["/v1/lines/{line}/segments"],
+  agg_marey_last_hour: ["/v1/lines/{line}/marey"],
+  agg_capture_heartbeat_hourly: ["/v1/pipeline/heartbeat"],
   agg_countdown_accuracy_window: ["/v1/lines/{line}/countdown"],
   agg_incidents: ["/v1/incidents"],
   agg_forecast_next_hour: ["/v1/forecast/{line}"],
@@ -40,6 +43,9 @@ const EXTRA_DOCS = {
   agg_forecast_gate_status: "forecast-serving-and-comparison-release-3",
   agg_slo_rollup: "docs/SLO.md",
   agg_pipeline_health: "docs/SLO.md",
+  agg_headway_segment_window: "release-4-site-metrics",
+  agg_marey_last_hour: "release-4-site-metrics",
+  agg_capture_heartbeat_hourly: "release-4-site-metrics",
 };
 
 const TYPE_RULES = [

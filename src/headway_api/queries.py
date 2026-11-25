@@ -18,6 +18,7 @@ MIN_COV = config.MIN_COVERAGE_PCT
 WINDOWS = ("last_24h", "last_7d")
 MAX_INCIDENT_DAYS = 31
 MAX_HEALTH_DAYS = 30
+MAX_HEARTBEAT_HOURS = 720  # the export keeps 30 days
 TZ = "America/New_York"
 
 
@@ -116,7 +117,8 @@ API_TABLES = tuple(
     sorted(
         {s.table for secs in SECTIONS.values() for s in secs}
         | {"agg_incidents", "agg_forecast_next_hour", "agg_forecast_gate_status",
-           "agg_slo_rollup", "agg_pipeline_health"}
+           "agg_slo_rollup", "agg_pipeline_health", "agg_headway_segment_window",
+           "agg_marey_last_hour", "agg_capture_heartbeat_hourly"}
     )
 )  # fmt: skip
 
@@ -407,6 +409,93 @@ class Query:
         return Result({"days": days, "daily": rows}, ["agg_pipeline_health"], [shown],
                       "4-freshness", "Pipeline runs, feed polls, duplicates and quarantine",
                       rows, more)  # fmt: skip
+
+    # --- Release 4: the public site ---------------------------------------------------------
+
+    def segments(self, line: str, window: str, direction: int | None) -> Result:
+        """Segment health of a line: the headway shares of each stop-to-stop segment."""
+        self.need("agg_headway_segment_window")
+        ok = f"coalesce(coverage_pct, 0) >= {MIN_COV:g}"
+
+        def build(base: str) -> str:
+            p = self.path(base, "agg_headway_segment_window")
+            vals = ", ".join(
+                f"round(case when {ok} then {v} end, 2) as {v}"
+                for v in ("pct_within_band", "pct_bunched", "pct_gap")
+            )
+            d = f" and direction_id = {int(direction)}" if direction is not None else ""
+            return (
+                f"select direction_id, from_stop_id, from_stop_name, to_stop_id, to_stop_name, "
+                f"segment_order, case when {ok} then health end as health, {vals}, "
+                f"n_headways, n_excluded_outage, disrupted, "
+                f"round(coverage_pct, 1) as coverage_pct, "
+                f"not ({ok}) as withheld from read_parquet('{p}') "
+                f"where line = '{line}' and window_label = '{window}'{d} "
+                f"order by direction_id, segment_order, from_stop_id, to_stop_id "
+                f"limit {self.max_rows + 1}"
+            )
+
+        rows, more, shown = self.run(build)
+        for r in rows:
+            r["withheld_reason"] = self._reason(r) if r.pop("withheld") else None
+        data = {"line": line, "window": window, "direction": direction, "rows": rows}
+        return Result(data, ["agg_headway_segment_window"], [shown], "release-4-site-metrics",
+                      "Headway adherence per segment (two neighbouring stops) with a health bucket",
+                      rows, more)  # fmt: skip
+
+    def marey(self, line: str, direction: int | None) -> Result:
+        """Reconstructed arrivals of the last complete hour, for the Marey chart."""
+        self.need("agg_marey_last_hour")
+        fmt = "'%Y-%m-%dT%H:%M:%SZ'"
+
+        def build(base: str) -> str:
+            p = self.path(base, "agg_marey_last_hour")
+            d = f" and direction_id = {int(direction)}" if direction is not None else ""
+            return (
+                "select direction_id, trip_id, stop_id, stop_name, stop_sequence, "
+                f"strftime(arrival_ts at time zone 'UTC', {fmt}) as arrival_ts, method, "
+                "confidence, "
+                f"strftime(scheduled_ts at time zone 'UTC', {fmt}) as scheduled_ts "
+                f"from read_parquet('{p}') where line = '{line}'{d} "
+                f"order by direction_id, trip_instance_key, segment, stop_sequence "
+                f"limit {self.max_rows + 1}"
+            )
+
+        def hour_sql(base: str) -> str:
+            p = self.path(base, "agg_marey_last_hour")
+            return (f"select strftime(max(hour_start) at time zone 'UTC', {fmt}) as hour_start "
+                    f"from read_parquet('{p}')")  # fmt: skip
+
+        rows, more, shown = self.run(build)
+        hour, _, hour_shown = self.run(hour_sql)
+        data = {"line": line, "direction": direction,
+                "hour_start": hour[0]["hour_start"] if hour else None, "rows": rows}  # fmt: skip
+        return Result(data, ["agg_marey_last_hour"], [shown, hour_shown], "release-4-site-metrics",
+                      "Reconstructed arrivals of the last complete hour: observed or estimated",
+                      [], more)  # fmt: skip
+
+    def heartbeat(self, hours: int) -> Result:
+        """Capture heartbeat: one row per hour, with the data-outage flag."""
+        self.need("agg_capture_heartbeat_hourly")
+        if not 1 <= hours <= MAX_HEARTBEAT_HOURS:
+            raise InputError(f"hours must be between 1 and {MAX_HEARTBEAT_HOURS}")
+
+        def build(base: str) -> str:
+            p = self.path(base, "agg_capture_heartbeat_hourly")
+            return (
+                "with t as (select * from read_parquet('" + p + "')) "
+                "select strftime(hour_start at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') "
+                "as hour_start, "
+                "expected_runs, missed_runs, feed_gap_min, data_outage from t "
+                f"where hour_start > (select max(hour_start) from t) - to_hours({int(hours)}) "
+                f"order by hour_start limit {self.max_rows + 1}"
+            )
+
+        rows, more, shown = self.run(build)
+        return Result({"hours": hours, "rows": rows}, ["agg_capture_heartbeat_hourly"], [shown],
+                      "release-4-site-metrics",
+                      "Hourly capture heartbeat: expected and missed runs, feed gap, data outage",
+                      [], more)  # fmt: skip
 
 
 def metrics_catalog() -> list[dict[str, Any]]:

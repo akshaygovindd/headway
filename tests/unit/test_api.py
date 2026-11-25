@@ -37,7 +37,8 @@ def test_every_response_has_coverage_freshness_provenance(client: TestClient) ->
     for path in ("/v1/lines", "/v1/lines/Red/reliability", "/v1/lines/Red/accuracy",
                  "/v1/lines/Red/headways", "/v1/lines/Red/countdown", "/v1/incidents",
                  "/v1/forecast/Red", "/v1/pipeline/health", "/v1/slo", "/v1/metrics",
-                 "/v1/meta"):  # fmt: skip
+                 "/v1/meta", "/v1/lines/Red/segments", "/v1/lines/Red/marey",
+                 "/v1/pipeline/heartbeat"):  # fmt: skip
         res = client.get(path)
         assert res.status_code == 200, path
         body = res.json()
@@ -132,6 +133,11 @@ def test_slo_health_metrics_meta(client: TestClient) -> None:
         ("/v1/incidents?from=2026-01-01&to=2026-11-22", None),
         ("/v1/pipeline/health?days=99", None),
         ("/v1/pipeline/health?days=abc", None),
+        ("/v1/lines/Red/segments?direction=2", None),
+        ("/v1/lines/Red/segments?window=last_year", "last_7d"),
+        ("/v1/lines/Red/marey?direction=x", None),
+        ("/v1/pipeline/heartbeat?hours=0", None),
+        ("/v1/pipeline/heartbeat?hours=9999", None),
     ],
 )
 def test_validation_errors_are_422_with_allowed_values(
@@ -143,6 +149,91 @@ def test_validation_errors_are_422_with_allowed_values(
     assert res.json()["error"] == "validation_error" and detail
     if allowed:
         assert allowed in detail[0]["allowed"]
+
+
+SEGMENT_KEYS = {
+    "direction_id", "from_stop_id", "from_stop_name", "to_stop_id", "to_stop_name",
+    "segment_order", "health", "pct_within_band", "pct_bunched", "pct_gap", "n_headways",
+    "n_excluded_outage", "disrupted", "coverage_pct", "withheld_reason",
+}  # fmt: skip
+
+
+def test_segments_shape_health_and_disruption(client: TestClient) -> None:
+    body = client.get("/v1/lines/Red/segments").json()
+    assert body["data"]["line"] == "Red" and body["data"]["window"] == "last_24h"
+    segs = body["data"]["rows"]
+    assert [s["segment_order"] for s in segs] == [1, 2, 3, 1]
+    assert all(set(s) == SEGMENT_KEYS for s in segs)
+    assert [s["health"] for s in segs] == ["even", "some_bunching", "bunched_gaps", "even"]
+    assert segs[0]["from_stop_name"] == "Alpha" and segs[0]["pct_within_band"] == 85.0
+    assert [s["disrupted"] for s in segs] == [False, True, False, False]
+    assert segs[3]["n_excluded_outage"] == 3 and segs[3]["withheld_reason"] is None
+    assert body["provenance"]["tables"] == ["agg_headway_segment_window"]
+
+
+def test_segments_withhold_below_half_coverage_and_report_partial(client: TestClient) -> None:
+    body = client.get("/v1/lines/Red/segments?direction=0").json()
+    shown = body["data"]["rows"][2]  # 55% coverage: shown (partial), not withheld
+    assert shown["withheld_reason"] is None and shown["health"] == "bunched_gaps"
+    blue = client.get("/v1/lines/Blue/segments").json()
+    seg = blue["data"]["rows"][0]
+    assert seg["coverage_pct"] == 30.0 and seg["n_headways"] == 3
+    assert seg["health"] is None and seg["pct_within_band"] is None
+    assert seg["pct_bunched"] is None and seg["pct_gap"] is None
+    assert "below 50%" in seg["withheld_reason"]
+    assert blue["coverage"]["withheld_rows"] == 1 and blue["coverage"]["min_coverage_pct"] == 30.0
+
+
+def test_segments_direction_filter_and_empty_window(client: TestClient) -> None:
+    only1 = client.get("/v1/lines/Red/segments?direction=1").json()["data"]
+    assert only1["direction"] == 1 and [s["direction_id"] for s in only1["rows"]] == [1]
+    assert client.get("/v1/lines/Red/segments?window=last_7d").json()["data"]["rows"] == []
+
+
+def test_marey_rows_hour_and_filter(client: TestClient) -> None:
+    data = client.get("/v1/lines/Red/marey").json()["data"]
+    assert data["hour_start"] == "2026-11-22T14:00:00Z" and data["direction"] is None
+    assert [(r["trip_id"], r["stop_sequence"], r["method"]) for r in data["rows"]] == [
+        ("t1", 1, "observed"),
+        ("t1", 2, "estimated"),
+        ("t2", 1, "observed"),
+    ]
+    first = data["rows"][0]
+    assert set(first) == {"direction_id", "trip_id", "stop_id", "stop_name", "stop_sequence",
+                          "arrival_ts", "method", "confidence", "scheduled_ts"}  # fmt: skip
+    assert first["arrival_ts"] == "2026-11-22T14:10:00Z"
+    assert first["scheduled_ts"] == "2026-11-22T14:09:00Z"
+    d1 = client.get("/v1/lines/Red/marey?direction=1").json()["data"]
+    assert [r["trip_id"] for r in d1["rows"]] == ["t2"]
+    assert client.get("/v1/lines/Blue/marey").json()["data"]["rows"] == []
+
+
+def test_heartbeat_hours_and_outage_flag(client: TestClient) -> None:
+    data = client.get("/v1/pipeline/heartbeat").json()["data"]
+    assert data["hours"] == 24 and len(data["rows"]) == 3
+    assert data["rows"][0] == {
+        "hour_start": "2026-11-22T12:00:00Z", "expected_runs": 60, "missed_runs": 0,
+        "feed_gap_min": 0.0, "data_outage": False,
+    }  # fmt: skip
+    assert [r["data_outage"] for r in data["rows"]] == [False, False, True]
+    last = client.get("/v1/pipeline/heartbeat?hours=1").json()["data"]["rows"]
+    assert [r["hour_start"] for r in last] == ["2026-11-22T14:00:00Z"]
+    assert last[0]["missed_runs"] == 22 and last[0]["feed_gap_min"] == 18.0
+
+
+def test_r4_endpoints_are_404_when_the_export_lacks_the_tables(root: str, tmp_path: Path) -> None:
+    import shutil
+
+    shutil.copytree(root.removeprefix("file://"), tmp_path / "x")
+    gold = tmp_path / "x" / "gold"
+    m = json.loads((gold / "manifest.json").read_text())
+    for t in ("agg_headway_segment_window", "agg_marey_last_hour", "agg_capture_heartbeat_hourly"):
+        m["row_counts"].pop(t)
+    (gold / "manifest.json").write_text(json.dumps(m))
+    c = make(f"file://{tmp_path / 'x'}")
+    for path in ("/v1/lines/Red/segments", "/v1/lines/Red/marey", "/v1/pipeline/heartbeat"):
+        assert c.get(path).status_code == 404
+    assert c.get("/v1/lines/Red/headways").status_code == 200
 
 
 def test_cache_control_matches_gold_freshness(root: str) -> None:
@@ -218,7 +309,8 @@ def test_sql_reads_only_allowlisted_gold_tables(client: TestClient) -> None:
 
     for path in ("/v1/lines/Red/reliability", "/v1/lines/Red/accuracy", "/v1/lines/Red/headways",
                  "/v1/lines/Red/countdown", "/v1/incidents", "/v1/forecast/Red",
-                 "/v1/pipeline/health", "/v1/slo"):  # fmt: skip
+                 "/v1/pipeline/health", "/v1/slo", "/v1/lines/Red/segments", "/v1/lines/Red/marey",
+                 "/v1/pipeline/heartbeat"):  # fmt: skip
         for sql in client.get(path).json()["provenance"]["sql"]:
             for rel in re.findall(r"read_parquet\('([^']+)'", sql):
                 assert re.search(r"/gold/([a-z_]+)\.parquet$", rel), rel

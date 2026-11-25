@@ -78,6 +78,150 @@ def build(base: Path, exported_at: str = EXPORTED_AT, shift: float = 0.0) -> str
             "select 'Red' line, 5 n_days, 1 n_weekend_days, 21 min_days, 6 min_weekend_days,"
             " false gate_passed, 'training_job' as source"
         ),
+        "agg_headway_segment_window": _rows(
+            "select '{0}' line, {1} direction_id, '{2}' from_stop_id, '{3}' from_stop_name,"
+            " '{4}' to_stop_id, '{5}' to_stop_name, 'last_24h' window_label, {6} segment_order,"
+            " {7} n_headways, {8}::double pct_within_band, {9}::double pct_bunched,"
+            " {10}::double pct_gap, {11} n_excluded_outage, {12} n_disruption,"
+            " {13} disrupted, {14}::double coverage_pct, {15} health",
+            [
+                # Red: even; some bunching in a disrupted section; bunched gaps at 55% coverage;
+                # direction 1 with an outage hour left out
+                (
+                    "Red",
+                    0,
+                    "a1",
+                    "Alpha",
+                    "b1",
+                    "Beta",
+                    1,
+                    10,
+                    85.0,
+                    10.0,
+                    5.0,
+                    0,
+                    0,
+                    "false",
+                    90.0,
+                    "'even'",
+                ),
+                (
+                    "Red",
+                    0,
+                    "b1",
+                    "Beta",
+                    "c1",
+                    "Gamma",
+                    2,
+                    10,
+                    65.0,
+                    20.0,
+                    15.0,
+                    0,
+                    6,
+                    "true",
+                    90.0,
+                    "'some_bunching'",
+                ),
+                (
+                    "Red",
+                    0,
+                    "c1",
+                    "Gamma",
+                    "d1",
+                    "Delta",
+                    3,
+                    6,
+                    40.0,
+                    30.0,
+                    30.0,
+                    0,
+                    0,
+                    "false",
+                    55.0,
+                    "'bunched_gaps'",
+                ),
+                (
+                    "Red",
+                    1,
+                    "d2",
+                    "Delta",
+                    "c2",
+                    "Gamma",
+                    1,
+                    9,
+                    90.0,
+                    5.0,
+                    5.0,
+                    3,
+                    0,
+                    "false",
+                    72.0,
+                    "'even'",
+                ),
+                (
+                    "Orange",
+                    0,
+                    "o1",
+                    "Oak",
+                    "o2",
+                    "Maple",
+                    1,
+                    8,
+                    70.0,
+                    15.0,
+                    15.0,
+                    0,
+                    0,
+                    "false",
+                    80.0,
+                    "'some_bunching'",
+                ),
+                # Blue: under 50% coverage, withheld by the API
+                (
+                    "Blue",
+                    0,
+                    "u1",
+                    "Upper",
+                    "u2",
+                    "Lower",
+                    1,
+                    3,
+                    100.0,
+                    0.0,
+                    0.0,
+                    0,
+                    0,
+                    "false",
+                    30.0,
+                    "'even'",
+                ),
+            ],
+        ),
+        "agg_marey_last_hour": _rows(
+            "select '{0}' line, {1} direction_id, '{2}' trip_instance_key, 0 segment,"
+            " '{2}' trip_id, '{3}' stop_id, '{4}' stop_name, {5} stop_sequence,"
+            " timestamptz '2026-11-22 09:{6}:00-05' arrival_ts, '{7}' as \"method\","
+            " 'high' confidence,"
+            " timestamptz '2026-11-22 09:{8}:00-05' scheduled_ts,"
+            " timestamptz '2026-11-22 09:00:00-05' hour_start",
+            [
+                ("Red", 0, "t1", "a1", "Alpha", 1, "10", "observed", "09"),
+                ("Red", 0, "t1", "b1", "Beta", 2, "14", "estimated", "13"),
+                ("Red", 1, "t2", "d2", "Delta", 1, "20", "observed", "20"),
+                ("Orange", 0, "t3", "o1", "Oak", 1, "30", "observed", "30"),
+            ],
+        ),
+        "agg_capture_heartbeat_hourly": _rows(
+            "select date '{0}' service_date, {1} hour_local,"
+            " timestamptz '{0} {2}:00:00-05' hour_start, {3} expected_runs, {4} missed_runs,"
+            " {5}::double feed_gap_min, {6} data_outage",
+            [
+                (DAY, 7, "07", 60, 0, 0.0, "false"),
+                (DAY, 8, "08", 60, 1, 1.0, "false"),
+                (DAY, 9, "09", 60, 22, 18.0, "true"),
+            ],
+        ),
         "agg_slo_rollup": (
             "select 'transform_success' slo_name, 'last_7d' window_label, 99.0::double target_pct,"
             " 98 good_events, 99 total_events, 98.99::double actual_pct, true met,"

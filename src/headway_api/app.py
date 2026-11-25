@@ -193,6 +193,29 @@ def create_app(settings: Settings | None = None, source: GoldSource | None = Non
     ):
         line_endpoint(name, summary)
 
+    @app.get(f"{v1}/lines/{{line}}/segments", response_model=Envelope, tags=tag,
+             summary="Headway health per segment of a line")  # fmt: skip
+    def line_segments(
+        request: Request,
+        line: LineName,
+        window: Annotated[WindowName, Query(description="Rolling window")] = "last_24h",
+        direction: Annotated[
+            int | None, Query(ge=0, le=1, description="direction_id: 0 or 1")
+        ] = None,
+    ) -> Envelope:
+        return serve(request, lambda q: q.segments(line, window, direction))
+
+    @app.get(f"{v1}/lines/{{line}}/marey", response_model=Envelope, tags=tag,
+             summary="Reconstructed arrivals of the last complete hour")  # fmt: skip
+    def line_marey(
+        request: Request,
+        line: LineName,
+        direction: Annotated[
+            int | None, Query(ge=0, le=1, description="direction_id: 0 or 1")
+        ] = None,
+    ) -> Envelope:
+        return serve(request, lambda q: q.marey(line, direction))
+
     @app.get(f"{v1}/incidents", response_model=Envelope, tags=tag, summary="Incidents in a range")
     def incidents(
         request: Request,
@@ -213,6 +236,14 @@ def create_app(settings: Settings | None = None, source: GoldSource | None = Non
         request: Request, days: Annotated[int, Query(description="1 to 30")] = 7
     ) -> Envelope:
         return serve(request, lambda q: q.health(days))
+
+    @app.get(f"{v1}/pipeline/heartbeat", response_model=Envelope, tags=tag,
+             summary="Hourly capture heartbeat")  # fmt: skip
+    def pipeline_heartbeat(
+        request: Request,
+        hours: Annotated[int, Query(description=f"1 to {queries.MAX_HEARTBEAT_HOURS}")] = 24,
+    ) -> Envelope:
+        return serve(request, lambda q: q.heartbeat(hours))
 
     @app.get(f"{v1}/slo", response_model=Envelope, tags=tag, summary="Service level objectives")
     def slo(request: Request) -> Envelope:
