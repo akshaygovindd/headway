@@ -684,6 +684,7 @@ def _smoke(started: float) -> dict[str, Any]:
         ),
         "dbt_status": "success" if build.success else "tests_failed",
         "r2_enabled": publish.r2_enabled(),
+        "r4_enabled": publish.r4_enabled(),
         "tests_failed": build.tests_failed,
         "tests_passed": build.tests_passed,
         "rows_exported": sum(counts.values()),
@@ -693,6 +694,7 @@ def _smoke(started: float) -> dict[str, Any]:
             set(counts) & {*publish.R3_GOLD_TABLES, *publish.R3_OPTIONAL_TABLES}
         ),
         "r3_backtest_exported": bool(set(counts) & set(publish.R3_OPTIONAL_TABLES)),
+        "r4_tables_exported": len(set(counts) & set(publish.R4_GOLD_TABLES)),
         "step_ms": steps,
         "duration_ms": round((time.monotonic() - started) * 1000),
     }

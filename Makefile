@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: images-list push-images-list api-dev web-dev api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
+.PHONY: images-list push-images-list api-dev web-dev api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke transform-smoke-r4 curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -137,6 +137,10 @@ images-build:
 transform-smoke:
 	scripts/smoke_image.sh transform
 
+# Same image with HEADWAY_ENABLE_R2=true and HEADWAY_ENABLE_R4=true: the r4 models build and export.
+transform-smoke-r4:
+	scripts/smoke_image.sh transform-r4
+
 curate-smoke:
 	scripts/smoke_image.sh curate
 
@@ -160,7 +164,7 @@ api-dev:
 web-dev:
 	cd web && { test -d node_modules || npm ci; } && HEADWAY_API_URL=http://localhost:8000 npm run dev
 
-images-smoke: curate-smoke transform-smoke train-smoke api-smoke ingest-smoke
+images-smoke: curate-smoke transform-smoke transform-smoke-r4 train-smoke api-smoke ingest-smoke
 
 # Logs in to ECR, tags with the git short sha and pushes. The ECR repositories must already exist
 # (see docs/DEPLOY.md). Prints the image URIs to put in terraform.tfvars.

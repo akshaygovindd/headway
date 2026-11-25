@@ -56,3 +56,15 @@ def test_push_reads_tfvars(tmp_path: Path) -> None:
 
 def test_missing_tfvars_means_core_only(tmp_path: Path) -> None:
     assert make("push-images-list", f"TFVARS={tmp_path / 'none'}") == "curate transform"
+
+
+def test_images_smoke_includes_the_r4_transform_smoke() -> None:
+    out = make("-n", "images-smoke")
+    assert "scripts/smoke_image.sh transform-r4" in out
+    assert "scripts/smoke_image.sh transform\n" in out  # the default (R4 off) smoke stays
+    script = (ROOT / "scripts" / "smoke_image.sh").read_text()
+    case = script.split("transform-r4)")[1].split("\ncurate)")[0]
+    assert "HEADWAY_ENABLE_R2=true" in case and "HEADWAY_ENABLE_R4=true" in case
+    assert "r['r4_tables_exported'] == 5" in case and "$MEM_CHECK" in case
+    default = script.split("transform)")[1].split("transform-r4)")[0]
+    assert "HEADWAY_ENABLE_R4" not in default

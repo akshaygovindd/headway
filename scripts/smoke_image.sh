@@ -4,7 +4,7 @@
 # working dir /var/task, no /dev/shm (--ipc=none, as in real Lambda). Local fixtures and a local moto
 # S3 only: no AWS access, no network use by the handlers.
 #
-#   smoke_image.sh transform|curate|ingest|train|api
+#   smoke_image.sh transform|transform-r4|curate|ingest|train|api
 set -euo pipefail
 
 # Keep the Mac awake for the run. An idle or maintenance sleep mid-run froze it for up to 15 minutes
@@ -13,7 +13,7 @@ if [ -z "${SMOKE_AWAKE:-}" ] && command -v caffeinate >/dev/null 2>&1; then
     SMOKE_AWAKE=1 exec caffeinate -i "$0" "$@"
 fi
 
-kind=${1:?usage: smoke_image.sh transform|curate|ingest|train|api}
+kind=${1:?usage: smoke_image.sh transform|transform-r4|curate|ingest|train|api}
 root=$(cd "$(dirname "$0")/.." && pwd)
 smoke="$root/.local/smoke"
 mkdir -p "$smoke"
@@ -232,6 +232,39 @@ transform)
         -e RAW_BUCKET=smoke-raw-model -e HEADWAY_SMOKE_SEED_INCIDENTS=1 -e HEADWAY_SMOKE_FAKE_LLM=1 \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
         -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public-model/public/boston/gold \
+        -e HEADWAY_DBT_TARGET=s3_test -e HEADWAY_S3_ENDPOINT="$endpoint" \
+        -e AWS_ENDPOINT_URL="http://$endpoint"
+    ;;
+transform-r4)
+    # Release 4 switched on (HEADWAY_ENABLE_R2=true and HEADWAY_ENABLE_R4=true, R3 off): the r4
+    # models build with their tests and the five r4 gold tables are exported, locally and to S3
+    # (moto), under the same Lambda constraints and the same memory guard as the default smoke.
+    rm -rf "$smoke/curated"
+    (cd "$root" && uv run headway replay --source samples/boston --target "$smoke/curated" \
+        --city boston >/dev/null)
+    invoke headway-transform:local headway_transform.handler.lambda_handler \
+        "$MEM_CHECK and r['smoke'] and r['r2_enabled'] and r['r4_enabled'] and r['tests_failed'] == 0 \
+         and r['r4_tables_exported'] == 5 and r['r3_tables_exported'] == 0 and r['tables_exported'] >= 8" \
+        "${TRANSFORM_MEM[@]}" -v "$smoke/curated:/fixture/curated:ro" \
+        -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R4=true \
+        -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated -e HEADWAY_SMOKE_GOLD_DIR=/tmp/gold
+
+    start_moto
+    for bucket in smoke-public-r4 smoke-raw-r4; do
+        curl -s -o /dev/null -XPUT "localhost:$moto_port/$bucket" \
+            -H "Authorization: AWS4-HMAC-SHA256 Credential=smoke/20260101/us-east-1/s3/aws4_request"
+    done
+    endpoint="host.docker.internal:$moto_port"
+    invoke headway-transform:local headway_transform.handler.lambda_handler \
+        "$MEM_CHECK and r['smoke'] and r['r2_enabled'] and r['r4_enabled'] and r['tests_failed'] == 0 \
+         and r['r2_tables_exported'] == 16 and r['r4_tables_exported'] == 5 \
+         and r['r3_tables_exported'] == 0" \
+        --add-host=host.docker.internal:host-gateway \
+        "${TRANSFORM_MEM[@]}" -v "$smoke/curated:/fixture/curated:ro" \
+        -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R4=true \
+        -e RAW_BUCKET=smoke-raw-r4 \
+        -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated \
+        -e HEADWAY_SMOKE_GOLD_DIR=s3://smoke-public-r4/public/boston/gold \
         -e HEADWAY_DBT_TARGET=s3_test -e HEADWAY_S3_ENDPOINT="$endpoint" \
         -e AWS_ENDPOINT_URL="http://$endpoint"
     ;;
