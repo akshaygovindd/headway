@@ -1,0 +1,170 @@
+{
+ "stations": [
+  {
+   "id": "place-ashmont",
+   "name": "Ashmont"
+  },
+  {
+   "id": "place-butler",
+   "name": "Butler"
+  },
+  {
+   "id": "place-capenstreet",
+   "name": "Capen Street"
+  },
+  {
+   "id": "place-cedargrove",
+   "name": "Cedar Grove"
+  },
+  {
+   "id": "place-centralavenue",
+   "name": "Central Avenue"
+  },
+  {
+   "id": "place-mattapan",
+   "name": "Mattapan"
+  },
+  {
+   "id": "place-milton",
+   "name": "Milton"
+  },
+  {
+   "id": "place-valleyroad",
+   "name": "Valley Road"
+  }
+ ],
+ "pairs": {
+  "place-cedargrove|place-milton": [
+   {
+    "direction_id": 0,
+    "time_band": "am_peak",
+    "n_trips": 42,
+    "n_scheduled_trips": 48,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 1,
+    "median_s": 540.0,
+    "p95_s": 780.0,
+    "buffer_time_index": 0.444,
+    "coverage_pct": 87.5,
+    "status": "measured",
+    "withheld_reason": null,
+    "no_trips_reason": null
+   },
+   {
+    "direction_id": 0,
+    "time_band": "midday",
+    "n_trips": 58,
+    "n_scheduled_trips": 64,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_s": 500.0,
+    "p95_s": 640.0,
+    "buffer_time_index": 0.28,
+    "coverage_pct": 90.6,
+    "status": "measured",
+    "withheld_reason": null,
+    "no_trips_reason": null
+   },
+   {
+    "direction_id": 0,
+    "time_band": "pm_peak",
+    "n_trips": 14,
+    "n_scheduled_trips": 30,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_s": null,
+    "p95_s": null,
+    "buffer_time_index": null,
+    "coverage_pct": 46.7,
+    "status": "withheld",
+    "withheld_reason": "coverage 46.7% is below 50%",
+    "no_trips_reason": null
+   },
+   {
+    "direction_id": 0,
+    "time_band": "evening",
+    "n_trips": 0,
+    "n_scheduled_trips": 9,
+    "n_excluded_outage": 2,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_s": null,
+    "p95_s": null,
+    "buffer_time_index": null,
+    "coverage_pct": 0.0,
+    "status": "no_trips",
+    "withheld_reason": null,
+    "no_trips_reason": "no trips measured: 9 scheduled, none with usable arrivals at both stations"
+   }
+  ],
+  "place-ashmont|place-mattapan": [
+   {
+    "direction_id": 0,
+    "time_band": "am_peak",
+    "n_trips": 12,
+    "n_scheduled_trips": 40,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 1,
+    "median_s": null,
+    "p95_s": null,
+    "buffer_time_index": null,
+    "coverage_pct": 30.0,
+    "status": "withheld",
+    "withheld_reason": "coverage 30% is below 50%",
+    "no_trips_reason": null
+   },
+   {
+    "direction_id": 0,
+    "time_band": "midday",
+    "n_trips": 16,
+    "n_scheduled_trips": 44,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_s": null,
+    "p95_s": null,
+    "buffer_time_index": null,
+    "coverage_pct": 36.4,
+    "status": "withheld",
+    "withheld_reason": "coverage 36.4% is below 50%",
+    "no_trips_reason": null
+   },
+   {
+    "direction_id": 0,
+    "time_band": "pm_peak",
+    "n_trips": 18,
+    "n_scheduled_trips": 30,
+    "n_excluded_outage": 0,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_s": null,
+    "p95_s": null,
+    "buffer_time_index": null,
+    "coverage_pct": 60.0,
+    "status": "withheld",
+    "withheld_reason": "18 trips is below the minimum of 20",
+    "no_trips_reason": null
+   },
+   {
+    "direction_id": 0,
+    "time_band": "evening",
+    "n_trips": 0,
+    "n_scheduled_trips": 9,
+    "n_excluded_outage": 2,
+    "n_implausible": 0,
+    "n_disruption": 0,
+    "median_s": null,
+    "p95_s": null,
+    "buffer_time_index": null,
+    "coverage_pct": 0.0,
+    "status": "no_trips",
+    "withheld_reason": null,
+    "no_trips_reason": "no trips measured: 9 scheduled, none with usable arrivals at both stations"
+   }
+  ]
+ }
+}

@@ -94,6 +94,12 @@ export const DEFINITIONS: Record<string, MetricDefinition> = {
     anchor: "trip-time-per-direction-and-band-agg_ett_band_window",
     table: "agg_ett_band_window",
   },
+  trip_budget: {
+    label: "Trip-time budget",
+    what: "Travel time between two stations on the same trips: the median is the usual ride; the 95th percentile is how long the slowest 1 in 20 rides took, so leaving that long ahead gets you there on time about 95% of the time.",
+    anchor: "trip-time-budget-agg_trip_time_budget",
+    table: "agg_trip_time_budget",
+  },
   spacing_hour: {
     label: "Spacing by hour",
     what: "Share of gaps between trains within the expected band in one service hour, both directions combined.",

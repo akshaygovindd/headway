@@ -88,6 +88,29 @@ function mareyFor(line, params) {
   return body;
 }
 
+/** The budget fixtures hold a line's stations and a few pairs; the rest of the pairs are 422 like the API. */
+function budgetFor(line, params) {
+  const fx = load(`lines_${line}_trip-time-budget`);
+  const base = load("lines_Red_trip-time");
+  const window = params.get("window") ?? "last_24h";
+  const envelope = (data, rows) => ({
+    data: { line, window, unit: "seconds", min_trips: 20, from_station: null, to_station: null, stations: [], rows: [], ...data },
+    coverage: { rows: rows.length, mean_coverage_pct: null, min_coverage_pct: null, withheld_rows: rows.filter((r) => r.withheld_reason).length, rule: base.coverage.rule },
+    freshness: base.freshness,
+    provenance: { ...base.provenance, tables: ["agg_trip_time_budget"], definition: "trip-time-budget-agg_trip_time_budget", metrics_md: "docs/METRICS.md#release-4-site-metrics" },
+  });
+  const from = params.get("from");
+  const to = params.get("to");
+  if (from == null && to == null) return { status: 200, body: envelope({ stations: fx.stations }, []) };
+  const names = Object.fromEntries(fx.stations.map((s) => [s.id, s.name]));
+  if (from == null || to == null || !(from in names) || !(to in names) || from === to) {
+    return { status: 422, body: { error: "validation_error", detail: [{ loc: ["query"], message: "from and to must be two different stations of the line", allowed: Object.keys(names) }] } };
+  }
+  const rows = fx.pairs[`${from}|${to}`];
+  if (!rows) return { status: 422, body: { error: "validation_error", detail: [{ loc: ["query"], message: `no scheduled ${line} trip runs from ${names[from]} to ${names[to]}` }] } };
+  return { status: 200, body: envelope({ from_station: { id: from, name: names[from] }, to_station: { id: to, name: names[to] }, rows }, rows) };
+}
+
 export function respond(path, search = "") {
   const params = new URLSearchParams(search);
   if (path === "/v1/lines") {
@@ -108,6 +131,11 @@ export function respond(path, search = "") {
     }
     if (what === "marey") return { status: 200, body: mareyFor(line, params) };
     return { status: 200, body: forLine(load(`lines_Red_${what}`), line, params.get("window")) };
+  }
+  m = path.match(/^\/v1\/lines\/([^/]+)\/trip-time-budget$/);
+  if (m) {
+    if (!LINES.includes(m[1])) return { status: 422, body: { error: "validation_error" } };
+    return budgetFor(m[1], params);
   }
   m = path.match(/^\/v1\/forecast\/([^/]+)$/);
   if (m) return { status: 200, body: forLine(load("forecast_Red"), m[1]) };

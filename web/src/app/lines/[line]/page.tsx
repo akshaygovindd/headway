@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { CsvButton } from "@/components/CsvButton";
 import { LineBadge } from "@/components/LineBadge";
 import { HourStrip } from "@/components/line/HourStrip";
+import { BudgetForm } from "@/components/line/BudgetForm";
 import { TripTimeTable } from "@/components/line/TripTimeTable";
 import { KeyNumbers } from "@/components/line/KeyNumbers";
 import { MareyChart } from "@/components/line/MareyChart";
@@ -27,6 +28,7 @@ import { hhmmET, hourLabel } from "@/lib/time";
 import notes from "@/data/metric-notes.json";
 import type {
   AccuracyData,
+  BudgetData,
   ActualRow,
   HeadwayRow,
   CoveredRow,
@@ -141,7 +143,7 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
   const { line } = await params;
   if (!isLine(line)) notFound();
   const heavy = isHeavyRail(line);
-  const [sections, seg24, seg7, marey, spacing, trip24, trip7, disruptions, incidents, acc7, health, meta] = await Promise.all([
+  const [sections, seg24, seg7, marey, spacing, trip24, trip7, budget, disruptions, incidents, acc7, health, meta] = await Promise.all([
     lineSections(line),
     segmentsOf(line, "last_24h"),
     segmentsOf(line, "last_7d"),
@@ -149,6 +151,7 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
     getApi<SpacingData>(`/lines/${line}/spacing-by-hour`),
     getApi<TripTimeData>(`/lines/${line}/trip-time?window=last_24h`),
     getApi<TripTimeData>(`/lines/${line}/trip-time?window=last_7d`),
+    getApi<BudgetData>(`/lines/${line}/trip-time-budget`),
     getApi<DisruptionsData>(`/lines/${line}/disruptions`),
     getApi<IncidentsData>("/incidents"),
     getApi<AccuracyData>(`/lines/${line}/accuracy?window=last_7d`),
@@ -435,6 +438,20 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
               );
             })}
             <p className="mt-2 text-sm text-muted">Median and 90th percentile are actual running time minus the planned running time of the same trips (positive is slower). An adapted approximation, not an official measure.</p>
+          </div>
+        </section>
+
+        <section aria-labelledby="budget-h">
+          <h2 id="budget-h" className="mb-2 text-xl">How much time should I budget?</h2>
+          <div className="rounded-lg border border-line bg-card p-4">
+            {budget.ok ? (
+              <>
+                <p className="mb-3 text-sm text-muted">Pick two stations to see the usual travel time and how long to leave to arrive on time 95% of the time, from real trips on this line.</p>
+                <BudgetForm line={line} stations={budget.body.data.stations} />
+              </>
+            ) : (
+              <ErrorState failure={budget} what="Trip-time budget" />
+            )}
           </div>
         </section>
 

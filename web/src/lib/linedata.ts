@@ -2,7 +2,7 @@
 
 import { healthBucket, STATE_LABEL, type Health } from "./health";
 import { hourLabel } from "./time";
-import type { SpacingHour, TripTimeRow } from "./types";
+import type { BudgetRow, SpacingHour, TripTimeRow } from "./types";
 
 const BAND_LABEL: Record<string, string> = {
   am_peak: "Morning peak (06:30\u201309:00)",
@@ -17,6 +17,30 @@ export type TripCell =
   | { kind: "no_trips"; reason: string | null }
   | { kind: "withheld"; coverage: number | null; reason: string | null }
   | { kind: "measured" };
+
+export const WINDOW_LABEL: Record<string, string> = { last_7d: "the last 7 days", last_24h: "the last 24 hours" };
+
+/** The time band (same bands as the data) of a moment, in Eastern time. */
+export function currentBand(now: Date): BudgetRow["time_band"] {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(now);
+  const at = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  const m = at("hour") * 60 + at("minute");
+  if (m >= 390 && m < 540) return "am_peak";
+  if (m >= 540 && m < 930) return "midday";
+  if (m >= 930 && m < 1110) return "pm_peak";
+  if (m >= 1110) return "evening";
+  return "other";
+}
+
+/**
+ * The band the headline sentence is about: the current band when it has a measured budget, else the
+ * measured band with the most trips; null when no band is measured (everything withheld or empty).
+ */
+export function headlineBand(rows: BudgetRow[], now: Date): BudgetRow | null {
+  const ok = rows.filter((r) => r.status === "measured" && r.median_s != null && r.p95_s != null);
+  const cur = currentBand(now);
+  return ok.find((r) => r.time_band === cur) ?? [...ok].sort((a, b) => b.n_trips - a.n_trips)[0] ?? null;
+}
 
 /** `no_trips` is the only state that may say "No trips measured yet"; withheld is its own state. */
 export function tripCell(r: TripTimeRow): TripCell {

@@ -293,6 +293,37 @@ export type TripTimeData = {
   overall: (Omit<TripTimeRow, "direction_id" | "time_band" | "median_scheduled_s" | "median_actual_s"> & Partial<TripTimeRow>) | null;
 };
 
+export type BudgetRow = {
+  direction_id: number;
+  time_band: TripTimeRow["time_band"];
+  n_trips: number;
+  n_scheduled_trips: number;
+  n_excluded_outage: number;
+  n_implausible: number;
+  n_disruption: number;
+  median_s: number | null;
+  p95_s: number | null;
+  buffer_time_index: number | null;
+  coverage_pct: number | null;
+  status: TripTimeStatus;
+  withheld_reason: string | null;
+  no_trips_reason: string | null;
+};
+
+export type BudgetStation = { id: string; name: string };
+
+/** `stations` is the line's picker list (no from/to); `rows` is one pair's bands. */
+export type BudgetData = {
+  line: string;
+  window: string;
+  unit: "seconds";
+  min_trips: number;
+  from_station: BudgetStation | null;
+  to_station: BudgetStation | null;
+  stations: BudgetStation[];
+  rows: BudgetRow[];
+};
+
 export type SpacingStatus = "measured" | "withheld" | "no_headways" | "outage";
 
 export type SpacingHour = {
