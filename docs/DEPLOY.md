@@ -233,14 +233,17 @@ gate it. With the defaults (`vehicle_polls = 1`, `enable_r2 = false`) the ingest
 poll per minute as before and the transform Lambda skips every dbt model and test tagged `r2`.
 Still different after a deploy: manifests gain `poll_index` (always 0), `agg_pipeline_health` gains
 two columns, the static Lambda also writes the two geometry tables, and the ingest Lambda claims
-a minute before fetching (a second delivery fetches nothing). The ingest function is 128 MB with
-a 58 s timeout, which fits both settings.
+a minute before fetching (a second delivery fetches nothing). The ingest function is 256 MB with
+a 58 s timeout (it read 114 MB, 89 %, at 128 MB), which fits both settings.
 
 Switch-on, Phase 2.6, in this order:
 
 1. Static geometry: invoke `headway-static` once. The latest feed version is already loaded, so it
    only writes `shape_points_dist` and `stop_shape_positions` for it (check both exist under
    `curated/boston/static/`).
+   The daily 09:00 UTC run also writes them, so first check
+   `aws s3 ls s3://<raw>/curated/boston/static/ | grep -E 'shape_points_dist|stop_shape_positions'`
+   and invoke only if either is missing.
 2. Set `enable_r2 = true` in `terraform.tfvars`, `make deploy`, and wait for one transform run:
    `fct_reconstructed_arrivals`, `agg_arrival_reconstruction_daily` and the Release 2 metric models
    (accuracy, actual deviation, headway adherence, ETT, active alerts) exist, the gold export gains
@@ -248,8 +251,9 @@ Switch-on, Phase 2.6, in this order:
    when the files do), and its logged step times are in line with the earlier runs. Run this on
    1-minute data first.
 3. Set `vehicle_polls = 4`, `make deploy`. Check the next manifests: six entries, `poll_index`
-   0-3, a run of 45-58 s, memory under about 100 MB in the Lambda report line, the live snapshot
-   updating every 15 s. If memory is close to the limit, set `memory_size` to 256 and deploy again.
+   0-3, a run of 45-58 s, `Max Memory Used` in the Lambda REPORT line well under the 256 MB limit
+   (127 MB, 50 %, was measured on single-poll runs; above about 190 MB, set `memory_size` to 512 in
+   `infra/main/lambda.tf` and deploy again), the live snapshot updating every 15 s.
 4. Turning either back off is the same variable change; data already written stays valid.
 
 ## Release 3 switch (off by default)
