@@ -74,6 +74,51 @@ rows, 25 s). The production gain of the prefetch is therefore the request latenc
 machine cannot reproduce; the next production run reports `curated_prefetch` (objects, bytes, ms)
 and `step_ms.s3_load` to measure it.
 
+### Release 4 Phase 4.5 tables: cost of the four new models
+
+Measured on 2026-11-26 with `scripts/measure_transform.py` on the synthetic 7-day window with 4x
+vehicle data (8 service days, 357,155 scheduled stop rows), the `headway-transform` image at 3008 MB
+and 1.7 CPUs, Release 2 and 3 on, `LOOKBACK_DAYS=7`, a local moto S3, two invocations in a row.
+"R4 off" is the same command without `HEADWAY_ENABLE_R4`; "R4 on" adds it (9 more tables exported:
+the five of Phase 4.1 plus the trip-time budget, slow segments, the slow-zone comparison and the
+accessibility outages).
+
+| | R4 off | R4 on |
+| --- | --- | --- |
+| Duration, first invocation | 127.7 s | 142.4 s (+14.7 s, +11%) |
+| Duration, second invocation | 125.9 s | 78.0 s |
+| Peak memory (process) | 80.5% / 78.4% | 79.0% / 80.3% |
+| Peak anonymous memory | 2254 MB | 2346 MB |
+| `dbt_build` / `dbt_test`, first | 60.8 / 20.8 s | 71.5 / 22.3 s |
+| Tables exported | 31 | 40 |
+| Spill (peak) | 4526 MB | 4854 MB |
+
+The like-for-like figure is the first invocation: R4 adds about 15 s and no measurable memory. The
+second invocations differ because the R4-on pair reached its incremental steady state while the
+baseline pair did not on this machine; do not read 78 s against 126 s as an R4 saving. Every run is
+well under the 600 s alarm (`headway-transform-duration-high`, [RUNBOOK](RUNBOOK.md#alarm-headway-transform-duration-high))
+and under the 85% memory budget of ADR-024. One dbt test fails in all runs, R4 on or off
+(`unique_grain_agg_pipeline_health_run_id`): duplicate run ids from the date-shifted synthetic copies,
+as in the earlier runs on this dataset; the sample and the real capture pass every test.
+
+Why the trip-time budget stays bounded. It builds the ordered station pairs of each scheduled trip
+and aggregates them to the grain in one query, never materialising them per day:
+
+| Dataset | Scheduled pairs (transient) | Measured pairs | `agg_trip_time_budget` rows | Pairs with trips |
+| --- | --- | --- | --- | --- |
+| Real capture, 27 h (2 service days) | 787,270 | 281,859 | 31,906 | 26,056 |
+| Synthetic 7 days, 4x (8 service days) | 3,329,102 | 576,263 | 32,561 | 13,028 |
+
+The output depends on the line network (stations squared per line, direction, band and window), not
+on how many days are read: 32 k rows either way. The transient pair set grows with days (about 0.4 M
+per day) and is the part to watch; if a longer window makes it a problem, restrict the pairs to a
+maximum number of stops apart or stage it per closed day like the facts of ADR-024. The other new
+tables: `int_segment_travel_times` 49,897 rows (real) and 291,524 (synthetic), `agg_slow_segments`
+3,002 and 3,031, `agg_accessibility_outages` 250 and 248.
+
+The `make images-smoke` r4 run (sample data, Release 2 and 4 on, 3008 MB): 19.3 s (3.7 s load, 6.6 s
+build, 8.7 s tests), 20.7% of the memory limit, 572 tests passed, 9 R4 tables exported.
+
 ### Full rebuild versus incremental closed days
 
 Measured on 2026-11-26 with `scripts/measure_transform.py`: the `headway-transform` image under

@@ -184,7 +184,7 @@ transform)
          and r['forecast_state_existing_on_rewrite'] == r['forecast_state_written'] \
          and r['forecast_serving_status'] == 'baselines_only' and r['forecast_model_rows'] == 0 \
          and r['forecast_baseline_rows'] > 0 and r['forecast_model_version'] is None \
-         and r['forecast_cache_files'] == [] and r['r3_tables_exported'] == 4 \
+         and r['forecast_cache_files'] == [] and r['r3_tables_exported'] == 5 \
          and not r['r3_backtest_exported'] and r['forecast_reports'] == \
              {'raw_forecast_backtest': 0, 'raw_forecast_gate_status': 0} \
          and r['incident_seeded'] == 2 and r['incident_summary_status'] == 'ok' \
@@ -220,7 +220,7 @@ transform)
          and {'model.txt', 'lines.json', 'features.json', 'meta.json'} <= set(r['forecast_cache_files']) \
          and r['forecast_reports']['raw_forecast_gate_status'] == 3 \
          and r['forecast_reports']['raw_forecast_backtest'] > 0 \
-         and r['r3_tables_exported'] == 5 and r['r3_backtest_exported'] \
+         and r['r3_tables_exported'] == 6 and r['r3_backtest_exported'] \
          and r['incident_seeded'] == 2 and r['incident_summary_status'] == 'ok' \
          and r['incident_llm_calls'] == 2 and r['incident_llm_rejections'] == 1 \
          and r['incident_summaries_llm'] == 1 and r['incident_summaries_template'] == 1 \
@@ -244,7 +244,7 @@ transform-r4)
         --city boston >/dev/null)
     invoke headway-transform:local headway_transform.handler.lambda_handler \
         "$MEM_CHECK and r['smoke'] and r['r2_enabled'] and r['r4_enabled'] and r['tests_failed'] == 0 \
-         and r['r4_tables_exported'] == 5 and r['r3_tables_exported'] == 0 and r['tables_exported'] >= 8" \
+         and r['r4_tables_exported'] == 9 and r['r3_tables_exported'] == 0 and r['tables_exported'] >= 8" \
         "${TRANSFORM_MEM[@]}" -v "$smoke/curated:/fixture/curated:ro" \
         -e CITY_ID=boston -e LOOKBACK_DAYS=36500 -e HEADWAY_ENABLE_R2=true -e HEADWAY_ENABLE_R4=true \
         -e HEADWAY_SMOKE_CURATED_ROOT=/fixture/curated -e HEADWAY_SMOKE_GOLD_DIR=/tmp/gold
@@ -257,7 +257,7 @@ transform-r4)
     endpoint="host.docker.internal:$moto_port"
     invoke headway-transform:local headway_transform.handler.lambda_handler \
         "$MEM_CHECK and r['smoke'] and r['r2_enabled'] and r['r4_enabled'] and r['tests_failed'] == 0 \
-         and r['r2_tables_exported'] == 16 and r['r4_tables_exported'] == 5 \
+         and r['r2_tables_exported'] == 16 and r['r4_tables_exported'] == 9 \
          and r['r3_tables_exported'] == 0" \
         --add-host=host.docker.internal:host-gateway \
         "${TRANSFORM_MEM[@]}" -v "$smoke/curated:/fixture/curated:ro" \

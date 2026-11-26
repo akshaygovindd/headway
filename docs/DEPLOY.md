@@ -382,6 +382,15 @@ the function; split a long range into calls of a few days if one times out.
 
 ## Release 4 switch: public metric API (off by default)
 
+Phase 4.5 adds four R4 gold tables (`agg_trip_time_budget`, `agg_slow_segments`,
+`agg_slow_zone_comparison`, `agg_accessibility_outages`) and the endpoints `/v1/lines/{line}/trip-time-budget`,
+`/v1/slow-zones` and `/v1/accessibility`. They ride on the same `enable_r4` switch: no new variable,
+resource or permission, and no new feed. Measured cost with R4 on: about 15 s more per transform run and
+no extra memory ([MEASUREMENTS](MEASUREMENTS.md#release-4-phase-45-tables-cost-of-the-four-new-models)).
+The official slow-zone list ships empty and is filled by hand
+([RUNBOOK](RUNBOOK.md#capturing-the-official-slow-zone-snapshot-by-hand)); until then `/slow-zones` says
+"official list not captured yet".
+
 Phase 4.1 is built and tested but not deployed. `enable_r4 = true` adds the API Lambda (container,
 arm64), an HTTP API with throttling and an access log, an ECR repository `headway-api` and a 5xx
 alarm (ADR-023, `docs/API.md`). It needs no new secrets and no access to any bucket.
