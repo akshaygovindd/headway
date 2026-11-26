@@ -856,3 +856,41 @@ def test_state_is_loaded_before_dbt_runs(
     monkeypatch.setattr(handler, "run_dbt", lambda args: (order.append(args[0]), real_dbt(args))[1])
     handler.lambda_handler({}, None)
     assert order[:2] == ["load", "run"]
+
+
+def test_every_scheduled_run_emits_its_duration_failed_ones_too(
+    fakes: dict[str, Any],
+    aws: Any,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def lines() -> list[dict[str, Any]]:
+        out = capsys.readouterr().out.splitlines()
+        return [json.loads(x) for x in out if x.startswith("{") and "TransformDuration" in x]
+
+    handler.lambda_handler({}, None)
+    (line,) = lines()
+    assert line["TransformDurationSeconds"] >= 0
+
+    def boom(*args: Any, **kwargs: Any) -> None:
+        raise handler.TransformError("dbt could not build")
+
+    monkeypatch.setattr(handler, "_transform", boom)
+    with pytest.raises(handler.TransformError):
+        handler.lambda_handler({}, None)
+    assert len(lines()) == 1  # the failed run is a slow run too
+
+
+def test_a_rebuild_task_does_not_emit_a_duration(
+    fakes: dict[str, Any],
+    aws: Any,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("HEADWAY_ENABLE_R2", "true")
+    monkeypatch.setattr(handler, "_rebuild_facts", lambda *a, **k: {"task": "rebuild_facts"})
+    handler.lambda_handler(
+        {"task": "rebuild_facts", "from": "2026-11-10", "to": "2026-11-12", "metric_version": 1},
+        None,
+    )
+    assert "TransformDurationSeconds" not in capsys.readouterr().out

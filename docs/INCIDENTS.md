@@ -232,6 +232,36 @@ and what now prevents a repeat. Newest last.
   fails on any unbounded `duckdb.connect` in the package. See
   [ADR-024](ARCHITECTURE_DECISIONS.md#adr-024-account-lambda-memory-cap).
 
+## Transform duration at half the Lambda limit, caught by monitoring
+
+A near miss: nothing failed.
+
+- **Symptom:** on 26 Nov, the first transform run with Release 2 on took 453 s of the 900 s
+  Lambda limit (`s3_load` 109 s, `dbt_build` 230 s, `dbt_test` 69 s), on 1-minute data. 15-second
+  vehicle sampling had just started, so vehicle data was about to grow 4x as the 7-day window
+  filled over the following week, and Lambda runs about 5x slower than local estimates.
+- **How it was found:** by reading the run summary (`step_ms`) in the logs while watching the
+  switch-on, before the window filled. No alarm covered duration: the existing ones fire on
+  errors, staleness and memory, and a run killed at 900 s emits nothing.
+- **Root cause:** every hourly run rebuilt the heavy facts (`int_vehicle_stop_events`,
+  `fct_reconstructed_arrivals`, `fct_headways`, `fct_stop_predictions`) for all 7 days, although
+  a closed service day never changes; and `s3_load` read the window's 786 objects (70 MB) through
+  DuckDB's S3 client on one thread, so its time was request latency (a serial GET measured about
+  100 ms from a laptop; in-region it is lower, and there are several requests per object).
+- **Fix:** closed-day facts are computed once and kept in `state/facts/` (ADR-024); each run
+  builds only the days that have no persisted partition. The curated window is fetched with
+  one GET per object, 16 at a time, before the load. Measured on a synthetic 7-day window with
+  4x vehicle data at 3008 MB and 1.7 CPUs: 183 s for a full rebuild, 102 s for an incremental
+  run, peak memory 66% and 62%
+  ([MEASUREMENTS](MEASUREMENTS.md#transform-duration-with-closed-day-facts)).
+- **Guard:** the transform emits `TransformDurationSeconds` for every scheduled run and the
+  alarm `headway-transform-duration-high` fires when two runs in a row exceed 600 s
+  ([RUNBOOK](RUNBOOK.md#alarm-headway-transform-duration-high)); the summary line lists the days
+  computed and the days loaded from state, and the prefetch's object count and time;
+  `tests/unit/test_incremental_equivalence.py` fails when an incremental build differs from a full
+  one in any table, and `tests/unit/test_facts_state.py` fails when a day that closes between two
+  runs, or after a missed run, is not persisted exactly once.
+
 ## Drills
 
 Failures caused on purpose with the chaos switch ([ADR-017](ARCHITECTURE_DECISIONS.md), how to

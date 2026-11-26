@@ -100,6 +100,25 @@ resource "aws_cloudwatch_metric_alarm" "transform_memory_high" {
   alarm_actions       = [aws_sns_topic.alerts.arn]
 }
 
+# Fires well before the 900 s Lambda timeout (a timed-out run emits nothing, and transform_errors
+# catches that). The metric is the run's own wall time (EMF, emitted by the transform for every
+# scheduled run, failed ones included); two runs in a row above 600 s means the window is outgrowing
+# the function (ADR-024), not a single slow run.
+resource "aws_cloudwatch_metric_alarm" "transform_duration_high" {
+  alarm_name          = "${local.transform_name}-duration-high"
+  alarm_description   = "Transform Lambda took more than 600 s in 2 consecutive runs (limit 900 s). Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-transform-duration-high"
+  namespace           = "Headway"
+  metric_name         = "TransformDurationSeconds"
+  statistic           = "Maximum"
+  period              = 3600
+  evaluation_periods  = 2
+  datapoints_to_alarm = 2
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = 600
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+}
+
 resource "aws_cloudwatch_metric_alarm" "transform_stale" {
   alarm_name          = "${local.transform_name}-not-succeeded"
   alarm_description   = "Transform Lambda has not completed successfully in 2 hours. Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-transform-not-succeeded"

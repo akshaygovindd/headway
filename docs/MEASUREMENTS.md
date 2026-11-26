@@ -38,6 +38,87 @@ The 23 Nov total is the manual run's; the 24 Nov run is the scheduled one with t
 incremental trigger in effect, so the run covers more data per slot. Both are far below the 900 s
 timeout.
 
+## Transform duration with closed-day facts
+
+### Production run of 2026-11-26 (watch item)
+
+The first transform run with Release 2 on, in Lambda (900 s limit), on 1-minute vehicle data:
+
+| Step | Seconds |
+| --- | --- |
+| `s3_load` | 109 |
+| `dbt_build` | 230 |
+| `dbt_test` | 69 |
+| Total | 453 |
+
+15-second vehicle sampling had just started, so vehicle rows grow about 4x as the 7-day window
+fills. See [INCIDENTS](INCIDENTS.md#transform-duration-at-half-the-lambda-limit-caught-by-monitoring).
+
+### Where `s3_load` goes (read-only, production bucket, 2026-11-26)
+
+The window (`dt` from 7 days back to tomorrow, plus static GTFS) as the staging models read it:
+
+| Measure | Value | Method |
+| --- | --- | --- |
+| Objects in the window | 786 (trip_updates 186, vehicle_positions 189, alerts 189, manifests 174, quarantine 20, static 28) | `list_objects_v2` per table and day, 45 calls in 2.3 s |
+| Size | 73 MB (trip_updates 55 MB) | Same listing |
+| One GET, serial | median 103 ms, p90 129 ms (from a laptop; in-region is lower) | 30 GETs one after the other |
+| 60 GETs, 16 at a time | 0.63 s (6.1 s serial) | A thread pool of 16 |
+
+DuckDB reads through httpfs on one thread, with a footer read and range reads for each object, so
+its S3 time is the number of requests times their latency, one after the other. The transform now
+fetches the window with one GET per object, 16 at a time, before the load (`curated_cache.py`).
+Locally against moto (no latency) the 1,278 objects of the synthetic window (182 MB) take 1.6 s and
+`s3_load` stays at 32 s: that part is CPU, mostly `stg_trip_updates` (a window function over 17 M
+rows, 25 s). The production gain of the prefetch is therefore the request latency, which this
+machine cannot reproduce; the next production run reports `curated_prefetch` (objects, bytes, ms)
+and `step_ms.s3_load` to measure it.
+
+### Full rebuild versus incremental closed days
+
+Measured on 2026-11-26 with `scripts/measure_transform.py`: the `headway-transform` image under
+Lambda conditions (read-only root, `--memory=3008m --memory-swap=3008m`, `--cpus=1.7`, a disk-backed
+`/tmp`), Release 2 and 3 on, `LOOKBACK_DAYS=7`, a local moto S3. Dataset: the synthetic 7 days
+ending today (the two real complete days date-shifted, vehicle positions x4 at 15 s offsets: 3.2 M
+vehicle rows, 17.3 M trip updates, 5.7 M alerts), whose last day is a full day of data (an open
+day, so more work than an hour into a real day). The MotherDuck publish is not exercised.
+
+| Step (s) | Full rebuild | Incremental, first run (empty state) | Incremental, steady state |
+| --- | --- | --- | --- |
+| `s3_prefetch` | 1.6 | 1.8 | 1.6 |
+| `s3_load` | 32.0 | 32.3 | 33.9 |
+| `dbt_build` | 111.0 | 116.0 | 37.7 |
+| `dbt_test` | 27.0 | 26.2 | 25.2 |
+| `facts` (write closed days) | | 9.8 | 0.0 |
+| `observability` | 6.0 | 5.9 | 0.1 |
+| Everything else (start-up, state, export, forecast serving, cost, publish) | 5.2 | 4.7 | 3.9 |
+| **Total** | **182.8** | **196.7** | **102.4** |
+| Peak memory (process) | 1994 MB (66.3%) | 1923 MB (63.9%) | 1866 MB (62.0%) |
+| Spill (peak) | 5525 MB | 5567 MB | 2484 MB |
+
+"Full rebuild" is `HEADWAY_INCREMENTAL_FACTS=false`. "Steady state" is a second invocation on the
+state the first one wrote: it computed the open days (26 and 27 Nov) and read 19 to 25 Nov from
+`state/facts`. Before the prefetch and the facts, the same window took 176 s at 1882 MB (62.6%) on
+the same settings, so the step above that moves with this change is `dbt_build`
+(`fct_stop_predictions` 66 s to 12 s, `int_vehicle_stop_events` 17 s to 3 s). Both are well
+under the 300 s and 85% targets in these conditions. Peak memory moves between runs of the same
+code: the previous image peaked at 2546 MB (84.6%, window ending 25 Nov, no CPU limit) and 1882 MB
+(62.6%) on the window above, so the full rebuild can sit close to the 85% budget; the incremental
+runs measured 1866 to 1923 MB.
+
+What this does not show: Lambda's own speed. This machine is faster than Lambda (the watch item
+estimated 5x), so the steady-state 102 s is a floor for a production run, not a forecast; what
+remains in it is `stg_trip_updates` (25 s, window-wide) and dbt's own overhead per invocation
+(`dbt_test` is 25 s although its tests add up to 7 s). The first production run after the deploy
+and `TransformDurationSeconds` give the real figure.
+
+Incremental equals full: `tests/unit/test_incremental_equivalence.py` builds the whole project
+twice and compares every table row for row, on `samples/boston` (one service day, all four facts
+read from state) and on the 27 h real capture (2026-11-22 persisted, 2026-11-23 computed): no
+difference, and a deliberately emptied partition is caught. Two columns of
+`agg_service_disruptions` are left out of the comparison because two full builds already differ
+there (the first and last affected station follow an unordered list in `int_alert_scopes`).
+
 ## Transform memory under the account cap
 
 Measured on 2026-11-25 on a Mac (Docker VM, arm64) with `scripts/measure_transform.py`: the

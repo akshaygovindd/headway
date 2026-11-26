@@ -31,7 +31,7 @@ def alarms() -> list[tuple[str, str]]:
     found = re.findall(
         r'alarm_name\s*=\s*"([^"]+)".*?alarm_description\s*=\s*"([^"]+)"', text, re.S
     )
-    assert len(found) == 11
+    assert len(found) == 12
     return found
 
 
@@ -49,7 +49,7 @@ def test_every_alarm_has_exactly_one_section_named_after_it() -> None:
     names = {
         "headway-ingest-rt-errors", "headway-ingest-rt-invocations-low", "headway-curate-errors",
         "headway-static-errors", "headway-transform-errors", "headway-transform-not-succeeded",
-        "headway-transform-memory-high",
+        "headway-transform-memory-high", "headway-transform-duration-high",
         "headway-feed-errors", "headway-gold-stale", "headway-missed-minutes",
         "headway-arrival-coverage-low",
     }  # fmt: skip
@@ -110,3 +110,14 @@ def test_the_coverage_alarm_exists_only_with_release_2() -> None:
     block = text.split('resource "aws_cloudwatch_metric_alarm" "arrival_coverage_low"')[1]
     assert "count = var.enable_r2 ? 1 : 0" in block
     assert 'treat_missing_data  = var.enable_r2 ? "missing" : "notBreaching"' in block
+
+
+def test_the_transform_duration_alarm_fires_before_the_lambda_limit() -> None:
+    text = (ROOT / "infra/main/alerts.tf").read_text()
+    body = text[text.index('resource "aws_cloudwatch_metric_alarm" "transform_duration_high"') :]
+    body = body.split("\n}\n", 1)[0]
+    assert 'metric_name         = "TransformDurationSeconds"' in body
+    assert "threshold           = 600" in body  # the function's timeout is 900 s
+    assert "evaluation_periods  = 2" in body and "datapoints_to_alarm = 2" in body
+    assert 'treat_missing_data  = "notBreaching"' in body
+    assert "timeout       = 900" in (ROOT / "infra/main/pipeline.tf").read_text()

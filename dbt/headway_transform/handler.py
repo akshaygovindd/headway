@@ -915,6 +915,8 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         run.error = f"{type(exc).__name__}: {exc}"[:1000]
         raise
     finally:
+        if task == "scheduled":  # a failed run emits it too; a timeout cannot (errors alarm)
+            emf.emit_duration(_now(), time.monotonic() - started)
         _record_run(s3, run)
         lock.release()
 

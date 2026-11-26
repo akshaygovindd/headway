@@ -171,3 +171,14 @@ def emit_memory(timestamp: datetime, used_pct: float) -> str:
     )
     print(line, flush=True)  # noqa: T201
     return line
+
+
+def emit_duration(timestamp: datetime, seconds: float) -> str:
+    """Print the run's wall time (alarmed above 600 s twice in a row; the Lambda limit is 900 s)."""
+    line = emf_line(
+        timestamp,
+        {"TransformDurationSeconds": round(seconds, 1)},
+        {"TransformDurationSeconds": "Seconds"},
+    )
+    print(line, flush=True)  # noqa: T201
+    return line

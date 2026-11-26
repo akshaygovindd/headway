@@ -195,6 +195,46 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
 - **Recovery:** the next run's `memory_used_pct` is under 85, `spill_peak_mb` is under the 8 GB
   budget and `duration_ms` is well under 900000; the alarm clears after the next hour.
 
+### Alarm: headway-transform-duration-high
+
+- **Meaning:** two transform runs in a row took more than 600 s (`TransformDurationSeconds`, the
+  run's wall time, emitted for every scheduled run, failed ones included). The Lambda limit is
+  900 s: a run over it is killed and emits nothing, which shows as `headway-transform-errors`
+  and a missing slot. The first sign of this was a 453 s run with Release 2 on
+  ([INCIDENTS](INCIDENTS.md#transform-duration-at-half-the-lambda-limit-caught-by-monitoring)).
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-transform --since 3h --filter-pattern 'step_ms'
+  aws logs tail /aws/lambda/headway-transform --since 3h --filter-pattern '?facts_computed_days ?"facts plan" ?"curated prefetch"'
+  aws s3 ls s3://headway-raw-<account>/state/facts/fct_headways/metric_version=1/ | tail -12
+  ```
+  The summary line has `step_ms` per step, `facts_computed_days` and `facts_loaded_days` (which
+  days of the window were built and which were read from state) and `curated_prefetch`
+  (objects, bytes and milliseconds of the parallel S3 fetch).
+- **Likely causes:** `facts_loaded_days` is empty or short, so every run rebuilds the window:
+  `HEADWAY_INCREMENTAL_FACTS=false`, a bumped fact version that was never backfilled, state
+  objects deleted, or the transform role lost `state/facts/*` (look for `facts plan` errors, the
+  run then computes every day); a window or data growth (`LOOKBACK_DAYS`, vehicle sampling); the
+  prefetch failed and the run read S3 object by object (`could not prefetch`).
+- **Fix:** rebuild the missing closed days, from the latest day backwards, at most 14 days per
+  call (the days of the window that are closed and have no object are also written by the next
+  scheduled run, so this only speeds up the recovery):
+  ```sh
+  aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
+    --cli-binary-format raw-in-base64-out \
+    --payload '{"task":"rebuild_facts","from":"2026-11-19","to":"2026-11-25","metric_version":1}' \
+    /dev/stdout
+  ```
+  The task builds the window, writes the days of the range that have no object yet, and never
+  touches gold. To change a fact's definition, bump its version in `facts_state.FACT_VERSIONS`,
+  deploy, and run the same task with the new `metric_version`: the new version is written next to
+  the old one and the old one is never edited. If the state is suspect, set
+  `HEADWAY_INCREMENTAL_FACTS=false` on the function: every run builds the whole window as before
+  (slower, and it must still fit in 900 s).
+- **Recovery:** the next run's `duration_ms` is under 300000, `facts_loaded_days` lists every
+  closed day of the window and `facts_computed_days` only the open ones; the alarm clears after
+  two runs under 600 s.
+
 ### Alarm: headway-transform-not-succeeded
 
 - **Meaning:** no transform run completed successfully in 2 hours (successful runs =

@@ -115,3 +115,13 @@ def test_emit_prints_one_bare_json_line_per_metric(capsys: pytest.CaptureFixture
 def test_service_hours() -> None:
     assert [h for h in range(24) if not emf.in_service_hours(h)] == [1, 2, 3, 4]
     assert handler.SLO_LAG == LAG
+
+
+def test_duration_is_one_seconds_metric_line() -> None:
+    from datetime import UTC, datetime
+
+    line = json.loads(emf.emit_duration(datetime(2026, 11, 26, 12, 0, tzinfo=UTC), 453.04))
+    metric = line["_aws"]["CloudWatchMetrics"][0]
+    assert metric["Namespace"] == "Headway"
+    assert metric["Metrics"] == [{"Name": "TransformDurationSeconds", "Unit": "Seconds"}]
+    assert line["TransformDurationSeconds"] == 453.0
