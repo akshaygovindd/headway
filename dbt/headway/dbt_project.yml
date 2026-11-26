@@ -107,6 +107,8 @@ models:
       int_alert_matching: *r3
       int_segment_travel_times:
         +tags: ["r4"]
+      int_accessibility_outages:
+        +tags: ["r4"]
     marts:
       +materialized: table
       fct_reconstructed_arrivals: *r2
@@ -149,6 +151,7 @@ models:
       agg_trip_time_budget: *r4
       agg_slow_segments: *r4
       agg_slow_zone_comparison: *r4
+      agg_accessibility_outages: *r4
 
 seeds:
   headway:

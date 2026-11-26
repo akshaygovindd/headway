@@ -1218,3 +1218,41 @@ models:
         description: "True when the hour is a data outage (int_hour_flags)."
       - name: service_disruption
         description: "True when a line-scope service disruption was active in the hour."
+  - name: int_accessibility_outages
+    description: "One announced elevator or escalator outage per alert and station (Release 4, Phase 4.5), from the ACCESSIBILITY_ISSUE alerts: captures collapse to one interval per alert and station, stops without a station (doors) are left out, and open outages run to the latest alerts capture."
+    config:
+      meta:
+        grain: "alert_id x station_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [alert_id, station_id]
+    columns:
+      - name: alert_id
+        description: "MBTA alert id (one alert per facility)."
+        data_tests:
+          - not_null
+      - name: station_id
+        description: "Parent station of the stops the alert informs."
+        data_tests:
+          - not_null
+      - name: station_name
+        description: "Name of the station."
+      - name: header_text
+        description: "Public MBTA alert text of the latest sighting."
+      - name: facility
+        description: "elevator or escalator from the alert text, else unknown."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [elevator, escalator, unknown]
+      - name: start_ts
+        description: "The alert's own start, else its first sighting (UTC)."
+      - name: end_ts
+        description: "The latest alerts capture when the alert is still in it, else its last sighting (UTC)."
+      - name: still_active
+        description: "True when the alert is in the latest successful alerts capture."
+      - name: is_open
+        description: "True when still active and the alert has no end time."
+      - name: age_h
+        description: "Hours from the start to the latest capture for a still-active alert; null otherwise."

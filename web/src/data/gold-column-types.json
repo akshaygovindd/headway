@@ -1,4 +1,21 @@
 {
+ "agg_accessibility_outages": {
+  "station_id": "VARCHAR",
+  "station_name": "VARCHAR",
+  "lines": "VARCHAR[]",
+  "window_label": "VARCHAR",
+  "n_outages": "BIGINT",
+  "n_elevator_outages": "BIGINT",
+  "n_escalator_outages": "BIGINT",
+  "outage_hours": "DOUBLE",
+  "currently_out": "BOOLEAN",
+  "n_currently_out": "BIGINT",
+  "longest_open_outage_h": "DOUBLE",
+  "current_outage_text": "VARCHAR[]",
+  "coverage_numerator": "BIGINT",
+  "coverage_denominator": "INTEGER",
+  "coverage_pct": "DOUBLE"
+ },
  "agg_accuracy_window": {
   "line": "VARCHAR",
   "window_label": "VARCHAR",

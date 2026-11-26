@@ -340,3 +340,117 @@ unit_tests:
     expect:
       rows:
         - {row_key: "Red:0:a:b", status: observed_only, observed_status: flagged, severity: severe, restriction_ids: [], official_status: not_captured, snapshot_date: null, is_snapshot: true}
+
+  - name: accessibility_outages_dedupe_open_ended_and_door_stops
+    config:
+      tags: [r4]
+    description: >-
+      Captures c1 to c3 of the alerts feed (the latest successful one is c3, 12:00; a later vehicle
+      capture and a failed alerts capture do not count). A1 (elevator, no end time, started 1 Nov,
+      seen at four stops of one station and at a door stop with no station) is ONE open outage at
+      place-a, running to the latest capture: age 540 h. A2 (escalator, no start, seen in c1 and c2
+      only) ended: it runs from its first sighting to its last. A3 (escalator, end time 1 Dec, in c3)
+      is still going but not open. A4 (a gate, so facility unknown) is first active at 11:30, after
+      c2, so only c3 is a sighting and it starts at its own start. A5 stopped being active at 10:30:
+      the c2 sighting after that is not one.
+    model: int_accessibility_outages
+    given:
+      - input: ref('int_captures')
+        rows:
+          - {capture_id: c1, feed: alerts, status: ok, fetched_at: "2026-11-23 10:00:00+00"}
+          - {capture_id: c2, feed: alerts, status: ok, fetched_at: "2026-11-23 11:00:00+00"}
+          - {capture_id: c3, feed: alerts, status: ok, fetched_at: "2026-11-23 12:00:00+00"}
+          - {capture_id: v9, feed: vehicle_positions, status: ok, fetched_at: "2026-11-23 13:00:00+00"}
+          - {capture_id: e9, feed: alerts, status: error, fetched_at: "2026-11-23 13:30:00+00"}
+      - input: ref('int_stop_stations')
+        rows:
+          - {stop_id: a1, station_id: place-a, station_name: Alpha}
+          - {stop_id: a2, station_id: place-a, station_name: Alpha}
+          - {stop_id: place-a, station_id: place-a, station_name: Alpha}
+          - {stop_id: b1, station_id: place-b, station_name: Beta}
+          - {stop_id: c1, station_id: place-c, station_name: Gamma}
+          - {stop_id: d1, station_id: place-d, station_name: Delta}
+      - input: ref('stg_service_alerts')
+        rows:
+          - {alert_id: A1, capture_id: c1, fetched_at: "2026-11-23 10:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: a1, active_start: "2026-11-01 00:00:00+00", active_end: null, header_text: "Alpha Elevator 801 (Lobby to platform) is unavailable."}
+          - {alert_id: A1, capture_id: c1, fetched_at: "2026-11-23 10:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: a2, active_start: "2026-11-01 00:00:00+00", active_end: null, header_text: "Alpha Elevator 801 (Lobby to platform) is unavailable."}
+          - {alert_id: A1, capture_id: c1, fetched_at: "2026-11-23 10:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: door-a, active_start: "2026-11-01 00:00:00+00", active_end: null, header_text: "Alpha Elevator 801 (Lobby to platform) is unavailable."}
+          - {alert_id: A1, capture_id: c2, fetched_at: "2026-11-23 11:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: a1, active_start: "2026-11-01 00:00:00+00", active_end: null, header_text: "Alpha Elevator 801 (Lobby to platform) is unavailable."}
+          - {alert_id: A1, capture_id: c3, fetched_at: "2026-11-23 12:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: place-a, active_start: "2026-11-01 00:00:00+00", active_end: null, header_text: "Alpha Elevator 801 (Lobby to platform) is unavailable."}
+          - {alert_id: A2, capture_id: c1, fetched_at: "2026-11-23 10:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: b1, active_start: null, active_end: null, header_text: "Beta Escalator 12 is unavailable."}
+          - {alert_id: A2, capture_id: c2, fetched_at: "2026-11-23 11:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: b1, active_start: null, active_end: null, header_text: "Beta Escalator 12 is unavailable."}
+          - {alert_id: A3, capture_id: c1, fetched_at: "2026-11-23 10:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: b1, active_start: "2026-11-23 09:00:00+00", active_end: "2026-12-01 05:00:00+00", header_text: "Beta Escalator 13 is unavailable through Tuesday."}
+          - {alert_id: A3, capture_id: c3, fetched_at: "2026-11-23 12:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: b1, active_start: "2026-11-23 09:00:00+00", active_end: "2026-12-01 05:00:00+00", header_text: "Beta Escalator 13 is unavailable through Tuesday."}
+          - {alert_id: A4, capture_id: c2, fetched_at: "2026-11-23 11:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: c1, active_start: "2026-11-23 11:30:00+00", active_end: null, header_text: "Gate 5 is unavailable."}
+          - {alert_id: A4, capture_id: c3, fetched_at: "2026-11-23 12:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: c1, active_start: "2026-11-23 11:30:00+00", active_end: null, header_text: "Gate 5 is unavailable."}
+          - {alert_id: A5, capture_id: c1, fetched_at: "2026-11-23 10:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: d1, active_start: "2026-11-23 09:00:00+00", active_end: "2026-11-23 10:30:00+00", header_text: "Delta Elevator 3 is unavailable."}
+          - {alert_id: A5, capture_id: c2, fetched_at: "2026-11-23 11:00:00+00", effect: ACCESSIBILITY_ISSUE, stop_id: d1, active_start: "2026-11-23 09:00:00+00", active_end: "2026-11-23 10:30:00+00", header_text: "Delta Elevator 3 is unavailable."}
+          - {alert_id: X1, capture_id: c3, fetched_at: "2026-11-23 12:00:00+00", effect: SIGNIFICANT_DELAYS, stop_id: a1, active_start: null, active_end: null, header_text: "Not an accessibility alert."}
+    expect:
+      rows:
+        - {alert_id: A1, station_id: place-a, facility: elevator, start_ts: "2026-11-01 00:00:00+00", end_ts: "2026-11-23 12:00:00+00", still_active: true, is_open: true, age_h: 540.0}
+        - {alert_id: A2, station_id: place-b, facility: escalator, start_ts: "2026-11-23 10:00:00+00", end_ts: "2026-11-23 11:00:00+00", still_active: false, is_open: false, age_h: null}
+        - {alert_id: A3, station_id: place-b, facility: escalator, start_ts: "2026-11-23 09:00:00+00", end_ts: "2026-11-23 12:00:00+00", still_active: true, is_open: false, age_h: 3.0}
+        - {alert_id: A4, station_id: place-c, facility: unknown, start_ts: "2026-11-23 11:30:00+00", end_ts: "2026-11-23 12:00:00+00", still_active: true, is_open: true, age_h: 0.5}
+        - {alert_id: A5, station_id: place-d, facility: elevator, start_ts: "2026-11-23 09:00:00+00", end_ts: "2026-11-23 10:00:00+00", still_active: false, is_open: false, age_h: null}
+
+  - name: accessibility_outages_hours_merge_overlaps_and_skip_data_outages
+    config:
+      tags: [r4]
+    description: >-
+      Hours 10:00, 11:00 and 12:00 UTC on 23 Nov are in both windows (last_7d also has 10:00 on the
+      22nd); the 11:00 hour is a data outage and is left out of every number. place-a has one open
+      elevator outage since 1 Nov running to 12:30: 1.5 h in the 24 h window (10:00 whole, 12:00 half;
+      the outage hour is skipped) and 2.5 h in the 7 d window (the 22nd adds an hour). place-b has two
+      escalator outages that overlap from 10:30: 10:20 to 11:40 and 10:30 to 12:30, so 40 minutes at 10:00
+      once (not 40 + 30) plus 30 minutes at 12:00, 1.17 h, two outages, still out through the second.
+      place-c had a 30 minute outage of an unknown facility. place-d has no outage and still has a row.
+      Coverage is the hours with data and not a data outage over the hours of the window: 2 of 24 and 3
+      of 168.
+    model: agg_accessibility_outages
+    given:
+      - input: ref('int_window_hours')
+        rows:
+          - {window_label: last_24h, service_date: "2026-11-23", hour_local: 5, hour_start: "2026-11-23 10:00:00+00"}
+          - {window_label: last_24h, service_date: "2026-11-23", hour_local: 6, hour_start: "2026-11-23 11:00:00+00"}
+          - {window_label: last_24h, service_date: "2026-11-23", hour_local: 7, hour_start: "2026-11-23 12:00:00+00"}
+          - {window_label: last_7d, service_date: "2026-11-22", hour_local: 5, hour_start: "2026-11-22 10:00:00+00"}
+          - {window_label: last_7d, service_date: "2026-11-23", hour_local: 5, hour_start: "2026-11-23 10:00:00+00"}
+          - {window_label: last_7d, service_date: "2026-11-23", hour_local: 6, hour_start: "2026-11-23 11:00:00+00"}
+          - {window_label: last_7d, service_date: "2026-11-23", hour_local: 7, hour_start: "2026-11-23 12:00:00+00"}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 5, data_outage: false}
+          - {service_date: "2026-11-23", hour_local: 5, data_outage: false}
+          - {service_date: "2026-11-23", hour_local: 6, data_outage: true}
+          - {service_date: "2026-11-23", hour_local: 7, data_outage: false}
+      - input: ref('int_stop_stations')
+        rows:
+          - {stop_id: a1, station_id: place-a, station_name: Alpha}
+          - {stop_id: b1, station_id: place-b, station_name: Beta}
+          - {stop_id: c1, station_id: place-c, station_name: Gamma}
+          - {stop_id: d1, station_id: place-d, station_name: Delta}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {stop_id: a1, line: Red}
+          - {stop_id: a1, line: Red}
+          - {stop_id: b1, line: Orange}
+          - {stop_id: b1, line: Red}
+          - {stop_id: c1, line: Red}
+          - {stop_id: d1, line: Blue}
+      - input: ref('int_accessibility_outages')
+        rows:
+          - {alert_id: A1, station_id: place-a, facility: elevator, header_text: "Alpha Elevator 801 is unavailable.", start_ts: "2026-11-01 00:00:00+00", end_ts: "2026-11-23 12:30:00+00", still_active: true, is_open: true, age_h: 540.5}
+          - {alert_id: A2, station_id: place-b, facility: escalator, header_text: "Beta Escalator 12 is unavailable.", start_ts: "2026-11-23 10:20:00+00", end_ts: "2026-11-23 11:40:00+00", still_active: false, is_open: false, age_h: null}
+          - {alert_id: A3, station_id: place-b, facility: escalator, header_text: "Beta Escalator 13 is unavailable through Tuesday.", start_ts: "2026-11-23 10:30:00+00", end_ts: "2026-11-23 12:30:00+00", still_active: true, is_open: false, age_h: 2.0}
+          - {alert_id: A4, station_id: place-c, facility: unknown, header_text: "Gate 5 is unavailable.", start_ts: "2026-11-23 10:00:00+00", end_ts: "2026-11-23 10:30:00+00", still_active: false, is_open: false, age_h: null}
+    expect:
+      rows:
+        - {station_id: place-a, window_label: last_24h, lines: [Red], n_outages: 1, n_elevator_outages: 1, n_escalator_outages: 0, outage_hours: 1.5, currently_out: true, n_currently_out: 1, longest_open_outage_h: 540.5, coverage_numerator: 2, coverage_denominator: 24, coverage_pct: 8.3}
+        - {station_id: place-a, window_label: last_7d, lines: [Red], n_outages: 1, n_elevator_outages: 1, n_escalator_outages: 0, outage_hours: 2.5, currently_out: true, n_currently_out: 1, longest_open_outage_h: 540.5, coverage_numerator: 3, coverage_denominator: 168, coverage_pct: 1.8}
+        - {station_id: place-b, window_label: last_24h, lines: [Orange, Red], n_outages: 2, n_elevator_outages: 0, n_escalator_outages: 2, outage_hours: 1.17, currently_out: true, n_currently_out: 1, longest_open_outage_h: null, coverage_numerator: 2, coverage_denominator: 24, coverage_pct: 8.3}
+        - {station_id: place-b, window_label: last_7d, lines: [Orange, Red], n_outages: 2, n_elevator_outages: 0, n_escalator_outages: 2, outage_hours: 1.17, currently_out: true, n_currently_out: 1, longest_open_outage_h: null, coverage_numerator: 3, coverage_denominator: 168, coverage_pct: 1.8}
+        - {station_id: place-c, window_label: last_24h, lines: [Red], n_outages: 1, n_elevator_outages: 0, n_escalator_outages: 0, outage_hours: 0.5, currently_out: false, n_currently_out: 0, longest_open_outage_h: null, coverage_numerator: 2, coverage_denominator: 24, coverage_pct: 8.3}
+        - {station_id: place-c, window_label: last_7d, lines: [Red], n_outages: 1, n_elevator_outages: 0, n_escalator_outages: 0, outage_hours: 0.5, currently_out: false, n_currently_out: 0, longest_open_outage_h: null, coverage_numerator: 3, coverage_denominator: 168, coverage_pct: 1.8}
+        - {station_id: place-d, window_label: last_24h, lines: [Blue], n_outages: 0, n_elevator_outages: 0, n_escalator_outages: 0, outage_hours: 0.0, currently_out: false, n_currently_out: 0, longest_open_outage_h: null, coverage_numerator: 2, coverage_denominator: 24, coverage_pct: 8.3}
+        - {station_id: place-d, window_label: last_7d, lines: [Blue], n_outages: 0, n_elevator_outages: 0, n_escalator_outages: 0, outage_hours: 0.0, currently_out: false, n_currently_out: 0, longest_open_outage_h: null, coverage_numerator: 3, coverage_denominator: 168, coverage_pct: 1.8}

@@ -253,6 +253,18 @@ def create_app(settings: Settings | None = None, source: GoldSource | None = Non
     ) -> Envelope:
         return serve(request, lambda q: q.slow_zones(line, window))
 
+    @app.get(f"{v1}/accessibility", response_model=Envelope, tags=tag,
+             summary="Announced elevator and escalator outages per station")  # fmt: skip
+    def accessibility(
+        request: Request,
+        line: Annotated[LineName | None, Query(description="Only stations of this line")] = None,
+        window: Annotated[WindowName, Query(description="Rolling window")] = "last_24h",
+        station: Annotated[
+            str | None, Query(min_length=1, max_length=64, description="One station id")
+        ] = None,
+    ) -> Envelope:
+        return serve(request, lambda q: q.accessibility(line, window, station))
+
     @app.get(f"{v1}/lines/{{line}}/spacing-by-hour", response_model=Envelope, tags=tag,
              summary="Headway adherence per service hour of one service day")  # fmt: skip
     def line_spacing_by_hour(

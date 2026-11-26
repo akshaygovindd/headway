@@ -50,7 +50,8 @@ R3_OPTIONAL_TABLES = ("agg_forecast_backtest",)
 # Release 4 (HEADWAY_ENABLE_R4=true, with R2; independent of R3): the public site's segment health,
 # last-hour Marey arrivals, hourly capture heartbeat, ETT per direction and time band and the
 # line-scope service disruptions (public MBTA header text), the trip-time budget per station pair,
-# the observed slow segments and their comparison with the hand-captured official list.
+# the observed slow segments and their comparison with the hand-captured official list and
+# the announced elevator and escalator outages per station.
 R4_GOLD_TABLES = (
     "agg_headway_segment_window",
     "agg_marey_last_hour",
@@ -60,6 +61,7 @@ R4_GOLD_TABLES = (
     "agg_trip_time_budget",
     "agg_slow_segments",
     "agg_slow_zone_comparison",
+    "agg_accessibility_outages",
 )
 # cost_daily is written by cost.py, not dbt, so it is published only when it exists. The R3
 # backtest is exported by dbt only when it has rows.

@@ -42,7 +42,8 @@ def test_every_response_has_coverage_freshness_provenance(client: TestClient) ->
                  "/v1/lines/Red/spacing-by-hour", "/v1/lines/Red/disruptions",
                  "/v1/pipeline/checks",
                  "/v1/lines/Red/trip-time-budget?from=a1&to=c1", "/v1/slow-zones",
-                 "/v1/slow-zones?line=Red&window=last_24h"):  # fmt: skip
+                 "/v1/slow-zones?line=Red&window=last_24h", "/v1/accessibility",
+                 "/v1/accessibility?line=Red&window=last_7d&station=place-a"):  # fmt: skip
         res = client.get(path)
         assert res.status_code == 200, path
         body = res.json()
@@ -189,6 +190,9 @@ def test_slo_health_metrics_meta(client: TestClient) -> None:
         ("/v1/lines/Red/trip-time-budget?from=a1", "c1"),
         ("/v1/lines/Red/trip-time-budget?to=c1", "a1"),
         ("/v1/slow-zones?line=Purple", "Red"),
+        ("/v1/accessibility?line=Purple", "Red"),
+        ("/v1/accessibility?window=last_year", "last_7d"),
+        ("/v1/accessibility?station=nowhere", "place-a"),
         ("/v1/slow-zones?window=last_year", "last_7d"),
         ("/v1/lines/Red/spacing-by-hour?date=yesterday", None),
         ("/v1/pipeline/checks?hours=0", None),
@@ -288,7 +292,7 @@ def test_r4_endpoints_are_404_when_the_export_lacks_the_tables(root: str, tmp_pa
     m = json.loads((gold / "manifest.json").read_text())
     r4 = ("agg_headway_segment_window", "agg_marey_last_hour", "agg_capture_heartbeat_hourly",
           "agg_ett_band_window", "agg_service_disruptions", "agg_trip_time_budget",
-          "agg_slow_segments", "agg_slow_zone_comparison")  # fmt: skip
+          "agg_slow_segments", "agg_slow_zone_comparison", "agg_accessibility_outages")  # fmt: skip
     for t in r4:
         m["row_counts"].pop(t)
     (gold / "manifest.json").write_text(json.dumps(m))
@@ -301,6 +305,7 @@ def test_r4_endpoints_are_404_when_the_export_lacks_the_tables(root: str, tmp_pa
         "/v1/lines/Red/disruptions",
         "/v1/lines/Red/trip-time-budget?from=a1&to=c1",
         "/v1/slow-zones",
+        "/v1/accessibility",
     ):
         assert c.get(path).status_code == 404, path
     # spacing-by-hour and the checks read R2 and base tables: still served
@@ -691,3 +696,47 @@ def test_slow_zones_with_an_empty_official_snapshot_says_not_captured_yet(
     assert d["official"]["status"] == "not_captured" and d["official"]["snapshot_date"] is None
     assert d["official"]["note"] == "official list not captured yet"
     assert d["counts"] == {"matched": 0, "observed_only": 1, "listed_only": 0, "listed_unmapped": 0}
+
+
+def test_accessibility_lists_stations_with_an_outage_or_out_now(client: TestClient) -> None:
+    body = client.get("/v1/accessibility").json()
+    d = body["data"]
+    assert d["window"] == "last_24h" and d["n_stations_in_network"] == 3
+    assert d["signal"].startswith("announced outages")
+    assert [s["station_id"] for s in d["stations"]] == ["place-a", "place-b"]  # place-c: none
+    a, b = d["stations"]
+    assert a["currently_out"] is True and a["n_currently_out"] == 1
+    assert a["longest_open_outage_h"] == 41142.0 and a["outage_hours"] == 22.5
+    assert a["n_elevator_outages"] == 1 and a["current_outage_text"][0].startswith(
+        "Alpha Elevator 801"
+    )
+    assert (
+        b["currently_out"] is False
+        and b["n_escalator_outages"] == 1
+        and b["current_outage_text"] == []
+    )
+    assert d["n_stations_out_now"] == 1 and body["provenance"]["tables"] == [
+        "agg_accessibility_outages"
+    ]
+
+
+def test_accessibility_withholds_window_counts_below_half_coverage_but_not_who_is_out_now(
+    client: TestClient,
+) -> None:
+    d = client.get("/v1/accessibility?window=last_7d").json()["data"]
+    a = d["stations"][0]
+    assert a["coverage_pct"] == 16.1 and "coverage 16.1% is below 50%" in a["withheld_reason"]
+    assert a["outage_hours"] is None and a["n_outages"] is None and a["n_elevator_outages"] is None
+    assert a["currently_out"] is True and a["longest_open_outage_h"] == 41142.0  # latest capture
+    b = d["stations"][1]  # had an outage in the window: still listed, with its figures withheld
+    assert b["station_id"] == "place-b" and b["currently_out"] is False
+    assert b["n_outages"] is None and b["outage_hours"] is None and b["withheld_reason"]
+
+
+def test_accessibility_line_and_station_filters(client: TestClient) -> None:
+    orange = client.get("/v1/accessibility?line=Orange").json()["data"]["stations"]
+    assert [s["station_id"] for s in orange] == ["place-b"]
+    blue = client.get("/v1/accessibility?line=Blue").json()["data"]["stations"]
+    assert blue == []  # nothing announced on the Blue line: an empty list, not an error
+    one = client.get("/v1/accessibility?station=place-c").json()["data"]["stations"]
+    assert [s["station_id"] for s in one] == ["place-c"] and one[0]["n_outages"] == 0

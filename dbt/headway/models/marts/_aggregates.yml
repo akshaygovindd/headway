@@ -2208,3 +2208,47 @@ models:
         description: "Public page the snapshot was copied from; null when not captured."
       - name: is_snapshot
         description: "Always true: the official list is a hand-captured snapshot."
+  - name: agg_accessibility_outages
+    description: "Announced elevator and escalator outages per station over the last 24 hours and the last 7 days (Release 4, Phase 4.5), from the captured ACCESSIBILITY_ISSUE alerts. One row per station of the scheduled subway network and window, so no announced outage is a row. Announced outages, not the facility's own status. Exported with the R4 gold tables."
+    config:
+      meta:
+        grain: "station_id x window_label"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [station_id, window_label]
+    columns:
+      - name: station_id
+        description: "Parent station id."
+        data_tests:
+          - not_null
+      - name: station_name
+        description: "Station name."
+      - name: lines
+        description: "Lines with scheduled service at the station, sorted."
+      - name: window_label
+        description: "last_24h or last_7d, ending at the latest hour of the export."
+        data_tests:
+          - not_null
+      - name: n_outages
+        description: "Alerts that overlapped the window's hours (data-outage hours excluded)."
+      - name: n_elevator_outages
+        description: "Of n_outages, elevators."
+      - name: n_escalator_outages
+        description: "Of n_outages, escalators."
+      - name: outage_hours
+        description: "Hours of the window covered by an announced outage, overlapping alerts merged, data-outage hours excluded."
+      - name: currently_out
+        description: "True when an outage of the station is in the latest alerts capture (any window)."
+      - name: n_currently_out
+        description: "Outages in the latest alerts capture."
+      - name: longest_open_outage_h
+        description: "Hours since the start of the oldest open outage (no end time); null when none is open. Not clipped to the window."
+      - name: current_outage_text
+        description: "Public MBTA alert text of the outages in the latest capture."
+      - name: coverage_numerator
+        description: "Window hours with data that are not a data outage."
+      - name: coverage_denominator
+        description: "Hours of the window: 24 or 168."
+      - name: coverage_pct
+        description: "coverage_numerator over coverage_denominator as a percentage (0-100)."

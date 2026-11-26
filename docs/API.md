@@ -45,6 +45,7 @@ data is already public. Examples use `$API` for the base URL (`terraform output 
 | `/lines/{line}/trip-time?window=` | trip time against the timetable per direction and time band (see below; R4 export) |
 | `/lines/{line}/trip-time-budget?from=&to=&window=` | travel time between two stations of the line per time band: median, 95th percentile, buffer time index (see below; R4 export) |
 | `/slow-zones?line=&window=` | observed slow segments (an observed signal, not official) and their comparison with the MBTA's speed-restriction list, a hand-captured snapshot (see below; R4 export) |
+| `/accessibility?line=&window=&station=` | announced elevator and escalator outages per station: outage hours, who is out now, the longest open outage (see below; R4 export) |
 | `/lines/{line}/spacing-by-hour?date=` | headway adherence per service hour of one service day (see below) |
 | `/lines/{line}/disruptions` | line-scope service disruptions of the last 24 hours with the public MBTA header text (see below; R4 export) |
 | `/lines/{line}/marey?direction=` | reconstructed arrivals of the last complete hour: `hour_start` and `rows[]` of `direction_id, trip_id, stop_id, stop_name, stop_sequence, arrival_ts, method, confidence, scheduled_ts` (UTC, `method` is `observed` or `estimated`; R4 export) |
@@ -57,7 +58,7 @@ data is already public. Examples use `$API` for the base URL (`terraform output 
 | `/metrics` | metric definitions with `docs/METRICS.md` anchors |
 | `/meta` | freshness, tables in the export, coverage rules, limits |
 
-The R4 endpoints (segments, marey, heartbeat, trip-time, trip-time-budget, slow-zones, disruptions) answer `404 not_available` until the export holds their tables (`enable_r4`
+The R4 endpoints (segments, marey, heartbeat, trip-time, trip-time-budget, slow-zones, accessibility, disruptions) answer `404 not_available` until the export holds their tables (`enable_r4`
 on the transform, `docs/DEPLOY.md`). Their `data` is `{line, window?, direction, rows}` (`hours` for
 the heartbeat, `hour_start` for Marey); timestamps are UTC (`...Z`). Marey and heartbeat rows carry
 no coverage figure and are never withheld.
@@ -116,6 +117,32 @@ restriction with no segment mapping, shown with `location_text`). **The official
 typed in by hand** (ADR-025): `official.status` is `captured` with `snapshot_date` and `source_url`, or
 `not_captured` with `note` "official list not captured yet", and then every flagged segment is
 `observed_only`. The example values are fixtures, not MBTA data.
+
+### Accessibility
+
+`GET /accessibility?line=&window=last_24h|last_7d&station=<station_id>` (needs `agg_accessibility_outages`;
+R4 export). Announced elevator and escalator outages, from the `ACCESSIBILITY_ISSUE` service alerts
+Headway already captures: what the MBTA announced, not the facility's own status. Without `station`
+it lists the stations that have an outage in the window or are out now; `line` keeps the stations
+served by that line; `station` returns that one station even with nothing announced (an unknown
+id is a 422 listing the ids).
+
+```json
+{"line": null, "window": "last_24h", "station": null,
+ "signal": "announced outages (service alerts), not the facility's own status",
+ "n_stations_in_network": 125, "n_stations_out_now": 1,
+ "stations": [{"station_id": "place-bomnl", "station_name": "Bowdoin", "lines": ["Blue"],
+               "n_outages": 1, "n_elevator_outages": 0, "n_escalator_outages": 1, "outage_hours": 22.5,
+               "currently_out": true, "n_currently_out": 1, "longest_open_outage_h": 41142.0,
+               "current_outage_text": ["Bowdoin Escalator 125 (Lobby to street) is unavailable until further notice."],
+               "coverage_pct": 91.7, "withheld_reason": null}]}
+```
+
+`n_outages`, its elevator and escalator parts and `outage_hours` are null with a `withheld_reason` when
+`coverage_pct` (window hours with data over the hours of the window) is under 50 %; `currently_out`,
+`n_currently_out`, `longest_open_outage_h` and `current_outage_text` describe the latest alerts capture and
+are always given. An alert with no end time that is still in the latest capture is open; its age is not
+clipped to the window. Definition: METRICS.md, Elevator and escalator outages.
 
 ### Trip time, spacing by hour, disruptions and checks
 

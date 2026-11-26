@@ -61,6 +61,7 @@ R4_ALLOWLIST = {
     "agg_trip_time_budget",
     "agg_slow_segments",
     "agg_slow_zone_comparison",
+    "agg_accessibility_outages",
 }
 
 

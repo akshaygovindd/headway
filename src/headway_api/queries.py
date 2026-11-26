@@ -125,7 +125,8 @@ API_TABLES = tuple(
            "agg_marey_last_hour", "agg_capture_heartbeat_hourly", "agg_ett_band_window",
            "agg_ett_window", "agg_headway_adherence_hourly", "agg_quality_checks_hourly",
            "agg_service_disruptions", "agg_trip_time_budget",
-           "agg_slow_segments", "agg_slow_zone_comparison"}
+           "agg_slow_segments", "agg_slow_zone_comparison",
+           "agg_accessibility_outages"}
     )
 )  # fmt: skip
 
@@ -818,6 +819,62 @@ class Query:
                       "Observed slow segments (a signal, not official) and the comparison with "
                       "the MBTA's speed-restriction list (a hand-captured snapshot)",
                       observed, more or more2)  # fmt: skip
+
+    def accessibility(self, line: str | None, window: str, station: str | None) -> Result:
+        """Announced elevator and escalator outages per station. The counts and hours of a window
+        are withheld below 50% coverage; who is out now is the latest capture, not a window."""
+        self.need("agg_accessibility_outages")
+        ok = f"coalesce(coverage_pct, 0) >= {MIN_COV:g}"
+
+        def build_stations(base: str) -> str:
+            p = self.path(base, "agg_accessibility_outages")
+            return (
+                "select distinct station_id as id, station_name as name "
+                f"from read_parquet('{p}') order by name, id"
+            )
+
+        known, _, sshown = self.run(build_stations)
+        ids = sorted(r["id"] for r in known)
+        if station is not None and station not in ids:
+            raise InputError(f"not a station of the network: {station!r}", ids)
+
+        def build(base: str) -> str:
+            p = self.path(base, "agg_accessibility_outages")
+            counts = ", ".join(
+                f"case when {ok} then {c} end as {c}"
+                for c in ("n_outages", "n_elevator_outages", "n_escalator_outages")
+            )
+            hours = f"round(case when {ok} then outage_hours end, 1) as outage_hours"
+            where = [f"window_label = '{window}'"]
+            if line:
+                where.append(f"list_contains(lines, '{line}')")
+            if station:
+                where.append(f"station_id = '{station}'")
+            else:
+                where.append("(currently_out or coalesce(n_outages, 0) > 0)")
+            return (
+                "select station_id, station_name, lines, "
+                f"{counts}, {hours}, currently_out, n_currently_out, "
+                "round(longest_open_outage_h, 1) as longest_open_outage_h, current_outage_text, "
+                f"round(coverage_pct, 1) as coverage_pct, not ({ok}) as withheld "
+                f"from read_parquet('{p}') where {' and '.join(where)} "
+                "order by currently_out desc, outage_hours desc nulls last, station_name, "
+                f"station_id limit {self.max_rows + 1}"
+            )
+
+        rows, more, shown = self.run(build)
+        for r in rows:
+            r["withheld_reason"] = self._reason(r) if r.pop("withheld") else None
+        data = {
+            "line": line, "window": window, "station": station,
+            "signal": "announced outages (service alerts), not the facility's own status",
+            "n_stations_in_network": len(ids),
+            "n_stations_out_now": sum(1 for r in rows if r["currently_out"]),
+            "stations": rows,
+        }  # fmt: skip
+        return Result(data, ["agg_accessibility_outages"], [sshown, shown],
+                      "release-4-site-metrics", "Announced elevator and escalator outages per "
+                      "station", rows, more)  # fmt: skip
 
     @staticmethod
     def _budget_status(r: dict[str, Any]) -> tuple[str, str | None, str | None]:

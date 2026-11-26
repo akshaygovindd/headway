@@ -618,24 +618,31 @@ measure: they re-cut the headways, trip times, alerts, reconstructed arrivals an
 ### Elevator and escalator outages (`agg_accessibility_outages`)
 - **What:** announced elevator and escalator outages per station, from the `ACCESSIBILITY_ISSUE`
   service alerts already captured (no new feed). It shows what the MBTA announced, not the
-  facility's real state; `/live_facilities` would (follow-up in ADR-025).
-- **Outage:** one alert (`alert_id`) with effect `ACCESSIBILITY_ISSUE` that names a station
-  (parent station of its stop) of a subway line. Captures repeat an alert every minute: the outage
-  is one interval per alert and station, from the alert's first capture to its last, or to the
-  end of its active period when that comes first. Overlapping alerts of one station are merged, so
-  no hour is counted twice.
-- **Open:** an alert without an end time that was still in the latest capture is **open**: it
-  runs to the end of the window and is counted as `currently_out`; `longest_open_outage_h` is the
-  longest such interval since its start (not clipped to the window, so a week-old outage shows
-  its real age).
-- **Measures per station and window:** `n_outages`, `outage_hours` (clipped to the window),
-  `currently_out`, `longest_open_outage_h`, `facility` (`elevator`, `escalator` or `unknown` from
-  the alert text).
-- **Coverage:** share of the window's hours that are not a data outage (a capture gap is not
-  "working"). The API withholds the station figures below 50 % coverage.
-- **Grain:** station_id x window_label.
+  facility's real state; the V3 API's `/live_facilities` would (follow-up in ADR-025).
+- **Outage:** one alert (`alert_id`, one per facility) with effect `ACCESSIBILITY_ISSUE`, at a
+  station: its stops (platforms, the station, entrances) are mapped to the parent station and a stop
+  with no station (a door) is left out. Captures repeat an alert every minute and it informs several
+  stops, so the outage is **one interval per alert and station**. A capture counts when the alert is
+  inside its active period. The interval starts at the alert's own start (it can be years back),
+  else its first capture, and ends at the latest alerts capture when the alert is still in it, else
+  at its last capture. Overlapping alerts of one station are merged, so no time is counted twice.
+- **Open:** an alert **without an end time** that is in the latest alerts capture is **open**.
+  `currently_out` is any outage in the latest capture, open or with a stated end;
+  `longest_open_outage_h` is the hours since the start of the oldest open outage (not clipped to the
+  window: an escalator "unavailable until further notice" since 2022 shows its real age).
+- **Measures per station and window:** `n_outages` (alerts that overlapped the window's hours),
+  split into `n_elevator_outages` and `n_escalator_outages` from the alert text (the rest is
+  unknown), `outage_hours` (hours of the window covered by an outage; hours that are data outages
+  are left out like everywhere else), `currently_out`, `n_currently_out`, `longest_open_outage_h`
+  and `current_outage_text` (the public MBTA alert text).
+- **Coverage:** window hours with data that are not a data outage, over the hours of the window (24
+  or 168): a 7-day window with only 27 hours of data is 16 % and is withheld. The API withholds the
+  station figures below 50 %. `currently_out` and the text describe the latest capture, not a window.
+- **Grain:** station_id x window_label, for every station of the scheduled subway network, so "no
+  outage announced" is a row.
 - **Limitations:** alerts are written by people and late or missing; a station with no alert may
-  still have a broken lift. "No outages" means none announced.
+  still have a broken lift: "none announced" is not "all working". An alert at a station that has
+  no scheduled service in the lookback is not shown.
 
 ### Quality checks on the trust strip
 `/v1/pipeline/checks` summarises `agg_quality_checks_hourly` over the last N hours (24 by default). Per

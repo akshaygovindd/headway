@@ -7,6 +7,128 @@
   "type_note": "Types are the real Parquet column types of the gold export (its manifest's column_types). A column the export has not been snapshotted for is typed by naming convention and marked type_derived. Nullability is derived from not_null tests.",
   "tables": [
     {
+      "name": "agg_accessibility_outages",
+      "description": "Announced elevator and escalator outages per station over the last 24 hours and the last 7 days (Release 4, Phase 4.5), from the captured ACCESSIBILITY_ISSUE alerts. One row per station of the scheduled subway network and window, so no announced outage is a row. Announced outages, not the facility's own status. Exported with the R4 gold tables.",
+      "grain": "station_id x window_label",
+      "endpoints": [
+        "/v1/accessibility"
+      ],
+      "value_columns": [],
+      "n_column": null,
+      "definition": "docs/METRICS.md#release-4-site-metrics",
+      "freshness": "Refreshed with each gold export (about every 15 minutes). The API caches responses for 300 s; the site marks data stale once the export is older than 60 minutes.",
+      "coverage": "A value from a row with coverage_pct under 50 is withheld (null) with withheld_reason. A zero denominator gives no coverage figure and is withheld too.",
+      "columns": [
+        {
+          "name": "station_id",
+          "type": "string",
+          "nullable": false,
+          "description": "Parent station id."
+        },
+        {
+          "name": "station_name",
+          "type": "string",
+          "nullable": true,
+          "description": "Station name."
+        },
+        {
+          "name": "lines",
+          "type": "string[]",
+          "nullable": true,
+          "description": "Lines with scheduled service at the station, sorted."
+        },
+        {
+          "name": "window_label",
+          "type": "string",
+          "nullable": false,
+          "description": "last_24h or last_7d, ending at the latest hour of the export."
+        },
+        {
+          "name": "n_outages",
+          "type": "integer",
+          "nullable": true,
+          "description": "Alerts that overlapped the window's hours (data-outage hours excluded)."
+        },
+        {
+          "name": "n_elevator_outages",
+          "type": "integer",
+          "nullable": true,
+          "description": "Of n_outages, elevators."
+        },
+        {
+          "name": "n_escalator_outages",
+          "type": "integer",
+          "nullable": true,
+          "description": "Of n_outages, escalators."
+        },
+        {
+          "name": "outage_hours",
+          "type": "double",
+          "nullable": true,
+          "description": "Hours of the window covered by an announced outage, overlapping alerts merged, data-outage hours excluded."
+        },
+        {
+          "name": "currently_out",
+          "type": "boolean",
+          "nullable": true,
+          "description": "True when an outage of the station is in the latest alerts capture (any window)."
+        },
+        {
+          "name": "n_currently_out",
+          "type": "integer",
+          "nullable": true,
+          "description": "Outages in the latest alerts capture."
+        },
+        {
+          "name": "longest_open_outage_h",
+          "type": "double",
+          "nullable": true,
+          "description": "Hours since the start of the oldest open outage (no end time); null when none is open. Not clipped to the window."
+        },
+        {
+          "name": "current_outage_text",
+          "type": "string[]",
+          "nullable": true,
+          "description": "Public MBTA alert text of the outages in the latest capture."
+        },
+        {
+          "name": "coverage_numerator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Window hours with data that are not a data outage."
+        },
+        {
+          "name": "coverage_denominator",
+          "type": "integer",
+          "nullable": true,
+          "description": "Hours of the window: 24 or 168."
+        },
+        {
+          "name": "coverage_pct",
+          "type": "double",
+          "nullable": true,
+          "description": "coverage_numerator over coverage_denominator as a percentage (0-100)."
+        }
+      ],
+      "checks": [
+        {
+          "scope": "table",
+          "name": "unique_grain",
+          "detail": "columns=[\"station_id\",\"window_label\"]"
+        },
+        {
+          "scope": "station_id",
+          "name": "not_null",
+          "detail": null
+        },
+        {
+          "scope": "window_label",
+          "name": "not_null",
+          "detail": null
+        }
+      ]
+    },
+    {
       "name": "agg_accuracy_window",
       "description": "Prediction accuracy per line and horizon bucket over the last 24 hours and the last 7 days, computed over every error in the window (not from daily medians). Outage hours are excluded and counted.",
       "grain": "line x window_label x horizon_bucket",
