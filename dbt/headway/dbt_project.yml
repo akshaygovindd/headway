@@ -66,6 +66,8 @@ models:
       # Release 3 (ADR-022); skipped by the transform unless HEADWAY_ENABLE_R3=true.
       stg_weather_daily:
         +tags: ["r3"]
+      stg_official_speed_restrictions:
+        +tags: ["r4"]
       stg_service_alerts: *s3_load
       stg_trip_updates: *s3_load
       stg_vehicle_positions: *s3_load
@@ -103,6 +105,8 @@ models:
       int_deviation_hour_history: *r3
       int_incident_hours: *r3
       int_alert_matching: *r3
+      int_segment_travel_times:
+        +tags: ["r4"]
     marts:
       +materialized: table
       fct_reconstructed_arrivals: *r2
@@ -143,6 +147,8 @@ models:
       agg_ett_band_window: *r4
       agg_service_disruptions: *r4
       agg_trip_time_budget: *r4
+      agg_slow_segments: *r4
+      agg_slow_zone_comparison: *r4
 
 seeds:
   headway:
@@ -151,3 +157,27 @@ seeds:
       +column_types:
         warn: double
         fail: double
+    # Phase 4.5 (tag r4): the MBTA's speed restrictions, typed in by hand from its public page and
+    # committed with no rows until captured (ADR-025, RUNBOOK "Capturing the official slow-zone
+    # snapshot by hand"), and the mapping of each restriction to the segments it covers. Every
+    # column is text; stg_official_speed_restrictions casts them.
+    official_speed_restrictions:
+      +tags: ["r4"]
+      +column_types:
+        restriction_id: varchar
+        line: varchar
+        location_text: varchar
+        direction: varchar
+        speed_limit_mph: varchar
+        reason: varchar
+        date_reported: varchar
+        source_url: varchar
+        captured_on: varchar
+    official_restriction_segments:
+      +tags: ["r4"]
+      +column_types:
+        restriction_id: varchar
+        line: varchar
+        direction_id: varchar
+        from_stop_id: varchar
+        to_stop_id: varchar

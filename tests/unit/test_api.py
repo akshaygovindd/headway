@@ -41,7 +41,8 @@ def test_every_response_has_coverage_freshness_provenance(client: TestClient) ->
                  "/v1/pipeline/heartbeat", "/v1/lines/Red/trip-time",
                  "/v1/lines/Red/spacing-by-hour", "/v1/lines/Red/disruptions",
                  "/v1/pipeline/checks",
-                 "/v1/lines/Red/trip-time-budget?from=a1&to=c1"):  # fmt: skip
+                 "/v1/lines/Red/trip-time-budget?from=a1&to=c1", "/v1/slow-zones",
+                 "/v1/slow-zones?line=Red&window=last_24h"):  # fmt: skip
         res = client.get(path)
         assert res.status_code == 200, path
         body = res.json()
@@ -187,6 +188,8 @@ def test_slo_health_metrics_meta(client: TestClient) -> None:
         ("/v1/lines/Red/trip-time-budget?from=a1&to=a1", "c1"),
         ("/v1/lines/Red/trip-time-budget?from=a1", "c1"),
         ("/v1/lines/Red/trip-time-budget?to=c1", "a1"),
+        ("/v1/slow-zones?line=Purple", "Red"),
+        ("/v1/slow-zones?window=last_year", "last_7d"),
         ("/v1/lines/Red/spacing-by-hour?date=yesterday", None),
         ("/v1/pipeline/checks?hours=0", None),
         ("/v1/pipeline/checks?hours=9999", None),
@@ -284,7 +287,8 @@ def test_r4_endpoints_are_404_when_the_export_lacks_the_tables(root: str, tmp_pa
     gold = tmp_path / "x" / "gold"
     m = json.loads((gold / "manifest.json").read_text())
     r4 = ("agg_headway_segment_window", "agg_marey_last_hour", "agg_capture_heartbeat_hourly",
-          "agg_ett_band_window", "agg_service_disruptions", "agg_trip_time_budget")  # fmt: skip
+          "agg_ett_band_window", "agg_service_disruptions", "agg_trip_time_budget",
+          "agg_slow_segments", "agg_slow_zone_comparison")  # fmt: skip
     for t in r4:
         m["row_counts"].pop(t)
     (gold / "manifest.json").write_text(json.dumps(m))
@@ -296,6 +300,7 @@ def test_r4_endpoints_are_404_when_the_export_lacks_the_tables(root: str, tmp_pa
         "/v1/lines/Red/trip-time",
         "/v1/lines/Red/disruptions",
         "/v1/lines/Red/trip-time-budget?from=a1&to=c1",
+        "/v1/slow-zones",
     ):
         assert c.get(path).status_code == 404, path
     # spacing-by-hour and the checks read R2 and base tables: still served
@@ -606,3 +611,83 @@ def test_trip_time_budget_without_stations_lists_the_line_stations(client: TestC
         {"id": "c1", "name": "Gamma"},
     ]
     assert body["data"]["rows"] == [] and body["data"]["from_station"] is None
+
+
+def test_slow_zones_observed_signal_comparison_and_provenance(client: TestClient) -> None:
+    body = client.get("/v1/slow-zones").json()
+    d = body["data"]
+    assert d["signal"] == "observed speed-restriction signal, not official"
+    assert d["window"] == "last_7d" and d["line"] is None
+    assert d["official"] == {
+        "status": "captured", "is_snapshot": True, "snapshot_date": "2026-11-20",
+        "source_url": "https://example.invalid/fixture",
+        "note": "The MBTA's list as copied by hand from its public page on the snapshot date; "
+        "it is not a live feed.",
+    }  # fmt: skip
+    assert d["counts"] == {"matched": 1, "observed_only": 1, "listed_only": 1, "listed_unmapped": 1}
+    assert [r["status"] for r in d["comparison"]] == [
+        "matched",
+        "observed_only",
+        "listed_only",
+        "listed_unmapped",
+    ]
+    unmapped = d["comparison"][3]
+    assert unmapped["location_text"] == "Somewhere unmapped" and unmapped["from_stop_id"] is None
+    assert (
+        d["comparison"][0]["restriction_ids"] == ["R1"]
+        and d["comparison"][0]["severity"] == "moderate"
+    )
+    assert body["provenance"]["tables"][-1] == "agg_slow_zone_comparison"
+
+
+def test_slow_zones_withhold_a_flagged_segment_below_half_coverage(client: TestClient) -> None:
+    segs = client.get("/v1/slow-zones?line=Red").json()["data"]["segments"]
+    assert [(s["from_stop_name"], s["time_band"]) for s in segs] == [
+        ("Alpha", "midday"),
+        ("Beta", "am_peak"),
+    ]
+    ok, low = segs
+    assert ok["severity"] == "moderate" and ok["excess_s"] == 90.0 and ok["withheld_reason"] is None
+    assert ok["first_seen"].endswith("Z") and ok["n_trips"] == 34
+    assert low["coverage_pct"] == 40.0 and low["observed_s"] is None and low["severity"] is None
+    assert low["first_seen"] is None and "coverage 40% is below 50%" in low["withheld_reason"]
+
+
+def test_slow_zones_window_and_line_filters(client: TestClient) -> None:
+    d = client.get("/v1/slow-zones?line=Red&window=last_24h").json()["data"]
+    assert [(s["from_stop_name"], s["severity"]) for s in d["segments"]] == [("Alpha", "severe")]
+    # the comparison is of the 7-day observation: the window only filters the observed list
+    assert d["counts"]["matched"] == 1
+    orange = client.get("/v1/slow-zones?line=Orange").json()["data"]
+    assert orange["segments"] == [] and [r["status"] for r in orange["comparison"]] == [
+        "listed_unmapped"
+    ]
+
+
+def test_slow_zones_with_an_empty_official_snapshot_says_not_captured_yet(
+    root: str, tmp_path: Path
+) -> None:
+    import shutil
+
+    import duckdb
+
+    shutil.copytree(root.removeprefix("file://"), tmp_path / "x")
+    gold = tmp_path / "x" / "gold"
+    con = duckdb.connect()
+    p = gold / "agg_slow_zone_comparison.parquet"
+    con.execute(
+        f"copy (select * from read_parquet('{p}') where status = 'observed_only') to '{p}.new' "
+        "(format parquet)"
+    )
+    (gold / "agg_slow_zone_comparison.parquet.new").replace(p)
+    # no snapshot: the comparison rows say not_captured
+    con.execute(
+        f"copy (select * replace ('not_captured' as official_status, null::date as snapshot_date, "
+        f"null::varchar as source_url) from read_parquet('{p}')) to '{p}.new' (format parquet)"
+    )
+    (gold / "agg_slow_zone_comparison.parquet.new").replace(p)
+    c = make(f"file://{tmp_path / 'x'}")
+    d = c.get("/v1/slow-zones").json()["data"]
+    assert d["official"]["status"] == "not_captured" and d["official"]["snapshot_date"] is None
+    assert d["official"]["note"] == "official list not captured yet"
+    assert d["counts"] == {"matched": 0, "observed_only": 1, "listed_only": 0, "listed_unmapped": 0}

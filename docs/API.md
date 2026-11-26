@@ -44,6 +44,7 @@ data is already public. Examples use `$API` for the base URL (`terraform output 
 | `/lines/{line}/segments?window=&direction=` | headway health per segment (two neighbouring stops): `rows[]` of `direction_id, from_stop_id, from_stop_name, to_stop_id, to_stop_name, segment_order, health, pct_within_band, pct_bunched, pct_gap, n_headways, n_excluded_outage, disrupted, disruption_header, coverage_pct, withheld_reason`; `health` is `even` (within band 80 or more), `some_bunching` (60 or more) or `bunched_gaps`; the shares and `health` are null with a `withheld_reason` under 50 % coverage; `disruption_header` is the public MBTA alert header of the latest line-scope disruption of the last 24 hours that covers the segment (null when the segment is not `disrupted` or no text is exported); `direction` 0 or 1, default both (R4 export) |
 | `/lines/{line}/trip-time?window=` | trip time against the timetable per direction and time band (see below; R4 export) |
 | `/lines/{line}/trip-time-budget?from=&to=&window=` | travel time between two stations of the line per time band: median, 95th percentile, buffer time index (see below; R4 export) |
+| `/slow-zones?line=&window=` | observed slow segments (an observed signal, not official) and their comparison with the MBTA's speed-restriction list, a hand-captured snapshot (see below; R4 export) |
 | `/lines/{line}/spacing-by-hour?date=` | headway adherence per service hour of one service day (see below) |
 | `/lines/{line}/disruptions` | line-scope service disruptions of the last 24 hours with the public MBTA header text (see below; R4 export) |
 | `/lines/{line}/marey?direction=` | reconstructed arrivals of the last complete hour: `hour_start` and `rows[]` of `direction_id, trip_id, stop_id, stop_name, stop_sequence, arrival_ts, method, confidence, scheduled_ts` (UTC, `method` is `observed` or `estimated`; R4 export) |
@@ -56,7 +57,7 @@ data is already public. Examples use `$API` for the base URL (`terraform output 
 | `/metrics` | metric definitions with `docs/METRICS.md` anchors |
 | `/meta` | freshness, tables in the export, coverage rules, limits |
 
-The R4 endpoints (segments, marey, heartbeat, trip-time, trip-time-budget, disruptions) answer `404 not_available` until the export holds their tables (`enable_r4`
+The R4 endpoints (segments, marey, heartbeat, trip-time, trip-time-budget, slow-zones, disruptions) answer `404 not_available` until the export holds their tables (`enable_r4`
 on the transform, `docs/DEPLOY.md`). Their `data` is `{line, window?, direction, rows}` (`hours` for
 the heartbeat, `hour_start` for Marey); timestamps are UTC (`...Z`). Marey and heartbeat rows carry
 no coverage figure and are never withheld.
@@ -83,6 +84,38 @@ One row per direction and time band, with `status` `measured`, `withheld` or `no
 `withheld_reason` when coverage is under 50 % **or** `n_trips` is under `min_trips` (20): a 95th
 percentile of fewer trips is not a percentile. "Usually 14 min; leave 21 to arrive on time 95 % of
 the time" is `median_s` and `p95_s` in minutes. Definition: METRICS.md, Trip-time budget.
+
+### Slow zones
+
+`GET /slow-zones?line=&window=last_24h|last_7d` (needs `agg_slow_segments`, `agg_slow_zone_comparison` and
+`agg_headway_segment_window`; R4 export). `line` is optional (default all lines); `window` (default
+`last_7d`) is the window of `segments`. `comparison` is always of the 7-day observation.
+
+```json
+{"line": null, "window": "last_7d",
+ "signal": "observed speed-restriction signal, not official",
+ "official": {"status": "captured", "is_snapshot": true, "snapshot_date": "2026-11-20",
+              "source_url": "https://example.invalid/fixture",
+              "note": "The MBTA's list as copied by hand from its public page on the snapshot date; it is not a live feed."},
+ "counts": {"matched": 1, "observed_only": 1, "listed_only": 1, "listed_unmapped": 1},
+ "segments": [{"line": "Red", "direction_id": 0, "from_stop_id": "a1", "from_stop_name": "Alpha",
+               "to_stop_id": "b1", "to_stop_name": "Beta", "segment_order": 1, "time_band": "midday",
+               "n_trips": 34, "n_baseline_trips": 120, "n_disruption": 0, "normal_s": 100.0,
+               "observed_s": 190.0, "excess_s": 90.0, "excess_pct": 90.0, "share_slow_pct": 90.0,
+               "severity": "moderate", "first_seen": "2026-11-22T14:10:00Z", "last_seen": "2026-11-22T15:20:00Z",
+               "coverage_pct": 85.0, "withheld_reason": null}],
+ "comparison": [{"status": "matched", "observed_status": "flagged", "line": "Red", "direction_id": 0,
+                 "from_stop_id": "a1", "to_stop_id": "b1", "severity": "moderate", "flagged_bands": ["midday"],
+                 "restriction_ids": ["R1"], "official_speed_limit_mph": 10, "location_text": null}]}
+```
+
+`segments` are the flagged segments by time band (rule in METRICS.md, Slow segments); a flagged row
+under 50 % coverage keeps its place with null values and a `withheld_reason`. `comparison[].status` is
+`matched` (flagged and listed), `observed_only`, `listed_only` or `listed_unmapped` (a listed
+restriction with no segment mapping, shown with `location_text`). **The official list is a dated snapshot
+typed in by hand** (ADR-025): `official.status` is `captured` with `snapshot_date` and `source_url`, or
+`not_captured` with `note` "official list not captured yet", and then every flagged segment is
+`observed_only`. The example values are fixtures, not MBTA data.
 
 ### Trip time, spacing by hour, disruptions and checks
 

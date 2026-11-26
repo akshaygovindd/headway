@@ -59,6 +59,8 @@ R4_ALLOWLIST = {
     "agg_ett_band_window",
     "agg_service_disruptions",
     "agg_trip_time_budget",
+    "agg_slow_segments",
+    "agg_slow_zone_comparison",
 }
 
 

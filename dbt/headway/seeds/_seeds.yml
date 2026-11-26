@@ -50,3 +50,45 @@ seeds:
         data_tests: [not_null]
       - name: description
         description: What counts as a good event.
+
+  - name: official_speed_restrictions
+    description: "The MBTA's speed restrictions, typed in by hand from its public page and committed with no rows until captured (ADR-025, RUNBOOK). All columns are text; stg_official_speed_restrictions types them. Never filled by a program."
+    config:
+      meta:
+        grain: restriction_id
+    columns:
+      - name: restriction_id
+        description: "Identifier chosen by the person capturing the list."
+      - name: line
+        description: "Line, as in the data (Red, Orange, Blue, Green-B, ...)."
+      - name: location_text
+        description: "Location as the MBTA words it."
+      - name: direction
+        description: "Direction as the MBTA words it, if given."
+      - name: speed_limit_mph
+        description: "Speed limit in miles per hour."
+      - name: reason
+        description: "Reason the MBTA gives."
+      - name: date_reported
+        description: "Date first reported (YYYY-MM-DD)."
+      - name: source_url
+        description: "Public page the row was copied from."
+      - name: captured_on
+        description: "Date the row was captured (YYYY-MM-DD)."
+
+  - name: official_restriction_segments
+    description: "Which segments each speed restriction covers: one row per restriction and segment, kept by hand next to the snapshot. A restriction without a row stays visible as listed_unmapped."
+    config:
+      meta:
+        grain: "restriction_id x direction_id x from_stop_id x to_stop_id"
+    columns:
+      - name: restriction_id
+        description: "Id of a row of official_speed_restrictions."
+      - name: line
+        description: "Line of the segment."
+      - name: direction_id
+        description: "GTFS direction of the segment (0 or 1)."
+      - name: from_stop_id
+        description: "Platform stop id where the segment starts (as in agg_headway_segment_window)."
+      - name: to_stop_id
+        description: "Platform stop id where the segment ends."

@@ -610,8 +610,8 @@ measure: they re-cut the headways, trip times, alerts, reconstructed arrivals an
   mapping stays in the table as `listed_unmapped` and is shown, never dropped.
 - **Empty snapshot:** with no rows, `official_status` is `not_captured`, every flagged segment is
   `observed_only` and the site says "official list not captured yet" instead of "not on the list".
-- **Grain:** line x direction_id x from_stop_id x to_stop_id (one status per segment; the strongest
-  band of the 7-day window decides), plus the unmapped official rows.
+- **Grain:** line x direction_id x from_stop_id x to_stop_id (one status per segment, from the `last_7d`
+  rows of `agg_slow_segments`: the strongest flagged time band decides severity and lists the bands), plus the unmapped official rows.
 
 ### Elevator and escalator outages (`agg_accessibility_outages`)
 - **What:** announced elevator and escalator outages per station, from the `ACCESSIBILITY_ISSUE`

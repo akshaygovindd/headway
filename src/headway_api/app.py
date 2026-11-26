@@ -242,6 +242,17 @@ def create_app(settings: Settings | None = None, source: GoldSource | None = Non
     ) -> Envelope:
         return serve(request, lambda q: q.trip_time_budget(line, from_station, to_station, window))
 
+    @app.get(f"{v1}/slow-zones", response_model=Envelope, tags=tag,
+             summary="Observed slow segments and the MBTA speed-restriction list")  # fmt: skip
+    def slow_zones(
+        request: Request,
+        line: Annotated[LineName | None, Query(description="One line; default all")] = None,
+        window: Annotated[
+            WindowName, Query(description="Window of the observed segments")
+        ] = "last_7d",
+    ) -> Envelope:
+        return serve(request, lambda q: q.slow_zones(line, window))
+
     @app.get(f"{v1}/lines/{{line}}/spacing-by-hour", response_model=Envelope, tags=tag,
              summary="Headway adherence per service hour of one service day")  # fmt: skip
     def line_spacing_by_hour(

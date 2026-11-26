@@ -124,7 +124,8 @@ API_TABLES = tuple(
            "agg_slo_rollup", "agg_pipeline_health", "agg_headway_segment_window",
            "agg_marey_last_hour", "agg_capture_heartbeat_hourly", "agg_ett_band_window",
            "agg_ett_window", "agg_headway_adherence_hourly", "agg_quality_checks_hourly",
-           "agg_service_disruptions", "agg_trip_time_budget"}
+           "agg_service_disruptions", "agg_trip_time_budget",
+           "agg_slow_segments", "agg_slow_zone_comparison"}
     )
 )  # fmt: skip
 
@@ -718,6 +719,105 @@ class Query:
         return Result(data, ["agg_trip_time_budget"], [sshown, shown], "release-4-site-metrics",
                       "Travel time between two stations: median, 95th percentile and buffer time "
                       "index per time band", rows, more)  # fmt: skip
+
+    def slow_zones(self, line: str | None, window: str) -> Result:
+        """Observed slow segments (an observed signal, not official) and their comparison with the
+        MBTA's speed-restriction list, a hand-captured snapshot (ADR-025)."""
+        self.need("agg_slow_segments", "agg_slow_zone_comparison", "agg_headway_segment_window")
+        ok = f"coalesce(coverage_pct, 0) >= {MIN_COV:g}"
+        band_order = "case time_band " + " ".join(
+            f"when '{b}' then {i}" for i, b in enumerate(TIME_BANDS)) + " else 9 end"  # fmt: skip
+        fmt = "'%Y-%m-%dT%H:%M:%SZ'"
+        where_line = f" and s.line = '{line}'" if line else ""
+
+        def build_observed(base: str) -> str:
+            seg = self.path(base, "agg_slow_segments")
+            names = self.path(base, "agg_headway_segment_window")
+            vals = ", ".join(
+                f"round(case when {ok} then s.{v} end, 1) as {v}"
+                for v in ("normal_s", "observed_s", "excess_s", "excess_pct", "share_slow_pct")
+            )
+            return (
+                "select s.line, s.direction_id, s.from_stop_id, n.from_stop_name, s.to_stop_id, "
+                "n.to_stop_name, n.segment_order, s.time_band, s.n_trips, s.n_baseline_trips, "
+                f"s.n_disruption, {vals}, case when {ok} then s.severity end as severity, "
+                f"case when {ok} then strftime(s.first_seen at time zone 'UTC', {fmt}) end "
+                "as first_seen, "
+                f"case when {ok} then strftime(s.last_seen at time zone 'UTC', {fmt}) end "
+                "as last_seen, "
+                f"round(s.coverage_pct, 1) as coverage_pct, not ({ok}) as withheld "
+                f"from read_parquet('{seg}') s left join (select line, direction_id, from_stop_id, "
+                "to_stop_id, any_value(from_stop_name) as from_stop_name, "
+                "any_value(to_stop_name) as to_stop_name, min(segment_order) as segment_order "
+                f"from read_parquet('{names}') where window_label = 'last_24h' group by all) n "
+                "on n.line = s.line and n.direction_id = s.direction_id "
+                "and n.from_stop_id = s.from_stop_id and n.to_stop_id = s.to_stop_id "
+                f"where s.flagged and s.window_label = '{window}'{where_line} "
+                "order by s.line, s.direction_id, n.segment_order, s.from_stop_id, "
+                f"{band_order.replace('time_band', 's.time_band')} limit {self.max_rows + 1}"
+            )
+
+        observed, more, oshown = self.run(build_observed)
+        for r in observed:
+            r["withheld_reason"] = self._reason(r) if r.pop("withheld") else None
+
+        def build_comparison(base: str) -> str:
+            p = self.path(base, "agg_slow_zone_comparison")
+            line_sql = f" where line = '{line}'" if line else ""
+            return (
+                "select status, observed_status, line, direction_id, from_stop_id, from_stop_name, "
+                "to_stop_id, to_stop_name, segment_order, severity, "
+                "round(worst_excess_s, 1) as worst_excess_s, n_trips, flagged_bands, "
+                f"strftime(first_seen at time zone 'UTC', {fmt}) as first_seen, "
+                f"strftime(last_seen at time zone 'UTC', {fmt}) as last_seen, "
+                "restriction_ids, official_speed_limit_mph, "
+                "strftime(official_date_reported, '%Y-%m-%d') as official_date_reported, "
+                "location_text, official_status, "
+                "strftime(snapshot_date, '%Y-%m-%d') as snapshot_date, source_url, is_snapshot "
+                f"from read_parquet('{p}'){line_sql} order by "
+                "case status when 'matched' then 0 when 'observed_only' then 1 "
+                "when 'listed_only' then 2 else 3 end, line, direction_id, segment_order, "
+                f"from_stop_id limit {self.max_rows + 1}"
+            )
+
+        comparison, more2, cshown = self.run(build_comparison)
+
+        def meta_sql(base: str) -> str:
+            p = self.path(base, "agg_slow_zone_comparison")
+            return (
+                "select any_value(official_status) as official_status, "
+                "strftime(any_value(snapshot_date), '%Y-%m-%d') as snapshot_date, "
+                f"any_value(source_url) as source_url from read_parquet('{p}')"
+            )
+
+        meta_rows, _, mshown = self.run(meta_sql)
+        meta = meta_rows[0] if meta_rows else {}
+        status = meta.get("official_status") or "not_captured"
+        counts = {k: 0 for k in ("matched", "observed_only", "listed_only", "listed_unmapped")}
+        for r in comparison:
+            counts[r["status"]] += 1
+        official = {
+            "status": status,
+            "is_snapshot": True,
+            "snapshot_date": meta.get("snapshot_date"),
+            "source_url": meta.get("source_url"),
+            "note": (
+                "The MBTA's list as copied by hand from its public page on the snapshot date; "
+                "it is not a live feed."
+                if status == "captured"
+                else "official list not captured yet"
+            ),
+        }
+        data = {
+            "line": line, "window": window, "signal": "observed speed-restriction signal, "
+            "not official", "official": official, "counts": counts,
+            "segments": observed, "comparison": comparison,
+        }  # fmt: skip
+        tables = ["agg_slow_segments", "agg_headway_segment_window", "agg_slow_zone_comparison"]
+        return Result(data, tables, [oshown, cshown, mshown], "release-4-site-metrics",
+                      "Observed slow segments (a signal, not official) and the comparison with "
+                      "the MBTA's speed-restriction list (a hand-captured snapshot)",
+                      observed, more or more2)  # fmt: skip
 
     @staticmethod
     def _budget_status(r: dict[str, Any]) -> tuple[str, str | None, str | None]:

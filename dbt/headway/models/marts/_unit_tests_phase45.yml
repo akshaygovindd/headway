@@ -77,3 +77,262 @@ unit_tests:
       rows:
         - {line: Red, direction_id: 0, from_station_id: place-a, to_station_id: place-b, time_band: am_peak, window_label: last_24h, n_scheduled_trips: 8, n_excluded_outage: 1, n_implausible: 1, n_trips: 5, n_disruption: 0, median_s: 600.0, p95_s: 1080.0, buffer_time_index: 0.8, coverage_numerator: 5, coverage_denominator: 8, coverage_pct: 62.5}
         - {line: Red, direction_id: 1, from_station_id: place-b, to_station_id: place-a, time_band: am_peak, window_label: last_24h, n_scheduled_trips: 1, n_excluded_outage: 0, n_implausible: 0, n_trips: 1, n_disruption: 0, median_s: 540.0, p95_s: 540.0, buffer_time_index: 0.0, coverage_numerator: 1, coverage_denominator: 1, coverage_pct: 100.0}
+
+  - name: slow_segments_threshold_persistence_and_severity
+    config:
+      tags: [r4]
+    description: >-
+      Midday, Red direction 0, minimum trips lowered to 4 for the test (the real default is 15). The
+      normal of a segment is the median over the 7 days; last_7d observes the latest 3 service days
+      (21 to 23 Nov), last_24h the last day. s1 +50 s (33 %) is flagged minor, and its implausible
+      trip (5000 s) is counted as scheduled but not measured while its outage trip is left out
+      entirely. s2 is 29 s over (not flagged), s3 exactly 30 s and 30 % (flagged, minor), s4 is
+      59 s but 19.7 % (not flagged), s5 exactly 20 % and 60 s (flagged, moderate), s6 130 s over
+      (severe). s7 has a median 50 s over but only half its trips slow (consistency rule: not
+      flagged). s8 has 3 trips (below the minimum). last_24h has 2 trips per segment (below the
+      minimum), so nothing is flagged there.
+    model: agg_slow_segments
+    overrides:
+      vars:
+        slow_segments: {min_trips: 4}
+    given:
+      - input: ref('int_window_hours')
+        rows:
+          - {window_label: last_7d, service_date: "2026-11-17", hour_local: 10, hour_start: "2026-11-17 15:00:00+00"}
+          - {window_label: last_7d, service_date: "2026-11-18", hour_local: 10, hour_start: "2026-11-18 15:00:00+00"}
+          - {window_label: last_7d, service_date: "2026-11-19", hour_local: 10, hour_start: "2026-11-19 15:00:00+00"}
+          - {window_label: last_7d, service_date: "2026-11-20", hour_local: 10, hour_start: "2026-11-20 15:00:00+00"}
+          - {window_label: last_7d, service_date: "2026-11-21", hour_local: 10, hour_start: "2026-11-21 15:00:00+00"}
+          - {window_label: last_7d, service_date: "2026-11-22", hour_local: 10, hour_start: "2026-11-22 15:00:00+00"}
+          - {window_label: last_7d, service_date: "2026-11-23", hour_local: 10, hour_start: "2026-11-23 15:00:00+00"}
+          - {window_label: last_24h, service_date: "2026-11-23", hour_local: 10, hour_start: "2026-11-23 15:00:00+00"}
+      - input: ref('int_segment_travel_times')
+        rows:
+          - {trip_instance_key: "s1-17-1", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:01:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-17-2", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:02:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-17-3", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:03:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-18-4", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:04:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-18-5", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:05:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-18-6", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:06:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-19-7", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:07:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-19-8", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:08:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-19-9", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:09:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-20-10", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:10:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-20-11", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:11:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-20-12", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:12:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-21-13", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:13:00+00", travel_s: 150, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-21-14", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:14:00+00", travel_s: 150, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-22-15", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:15:00+00", travel_s: 150, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-22-16", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:16:00+00", travel_s: 150, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-23-17", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:17:00+00", travel_s: 150, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-23-18", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:18:00+00", travel_s: 150, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-22-19", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:19:00+00", travel_s: 5000, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s1-23-20", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s1, to_stop_id: s1x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:20:00+00", travel_s: 500, data_outage: true, service_disruption: false}
+          - {trip_instance_key: "s2-17-1", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:01:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-17-2", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:02:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-17-3", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:03:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-18-4", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:04:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-18-5", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:05:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-18-6", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:06:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-19-7", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:07:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-19-8", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:08:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-19-9", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:09:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-20-10", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:10:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-20-11", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:11:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-20-12", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:12:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-21-13", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:13:00+00", travel_s: 129, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-21-14", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:14:00+00", travel_s: 129, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-22-15", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:15:00+00", travel_s: 129, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-22-16", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:16:00+00", travel_s: 129, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-23-17", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:17:00+00", travel_s: 129, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s2-23-18", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s2, to_stop_id: s2x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:18:00+00", travel_s: 129, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-17-1", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:01:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-17-2", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:02:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-17-3", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:03:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-18-4", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:04:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-18-5", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:05:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-18-6", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:06:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-19-7", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:07:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-19-8", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:08:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-19-9", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:09:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-20-10", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:10:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-20-11", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:11:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-20-12", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:12:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-21-13", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:13:00+00", travel_s: 130, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-21-14", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:14:00+00", travel_s: 130, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-22-15", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:15:00+00", travel_s: 130, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-22-16", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:16:00+00", travel_s: 130, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-23-17", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:17:00+00", travel_s: 130, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s3-23-18", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s3, to_stop_id: s3x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:18:00+00", travel_s: 130, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-17-1", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:01:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-17-2", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:02:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-17-3", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:03:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-18-4", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:04:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-18-5", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:05:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-18-6", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:06:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-19-7", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:07:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-19-8", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:08:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-19-9", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:09:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-20-10", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:10:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-20-11", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:11:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-20-12", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:12:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-21-13", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:13:00+00", travel_s: 359, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-21-14", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:14:00+00", travel_s: 359, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-22-15", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:15:00+00", travel_s: 359, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-22-16", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:16:00+00", travel_s: 359, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-23-17", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:17:00+00", travel_s: 359, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s4-23-18", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s4, to_stop_id: s4x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:18:00+00", travel_s: 359, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-17-1", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:01:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-17-2", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:02:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-17-3", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:03:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-18-4", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:04:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-18-5", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:05:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-18-6", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:06:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-19-7", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:07:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-19-8", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:08:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-19-9", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:09:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-20-10", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:10:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-20-11", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:11:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-20-12", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:12:00+00", travel_s: 300, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-21-13", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:13:00+00", travel_s: 360, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-21-14", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:14:00+00", travel_s: 360, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-22-15", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:15:00+00", travel_s: 360, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-22-16", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:16:00+00", travel_s: 360, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-23-17", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:17:00+00", travel_s: 360, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s5-23-18", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s5, to_stop_id: s5x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:18:00+00", travel_s: 360, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-17-1", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:01:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-17-2", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:02:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-17-3", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:03:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-18-4", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:04:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-18-5", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:05:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-18-6", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:06:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-19-7", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:07:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-19-8", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:08:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-19-9", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:09:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-20-10", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:10:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-20-11", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:11:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-20-12", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:12:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-21-13", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:13:00+00", travel_s: 230, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-21-14", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:14:00+00", travel_s: 230, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-22-15", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:15:00+00", travel_s: 230, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-22-16", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:16:00+00", travel_s: 230, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-23-17", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:17:00+00", travel_s: 230, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s6-23-18", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s6, to_stop_id: s6x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:18:00+00", travel_s: 230, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-17-1", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:01:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-17-2", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:02:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-17-3", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:03:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-18-4", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:04:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-18-5", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:05:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-18-6", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:06:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-19-7", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:07:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-19-8", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:08:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-19-9", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:09:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-20-10", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:10:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-20-11", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:11:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-20-12", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:12:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-21-13", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:13:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-21-14", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:14:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-22-15", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:15:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-22-16", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:16:00+00", travel_s: 200, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-23-17", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:17:00+00", travel_s: 200, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s7-23-18", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s7, to_stop_id: s7x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:18:00+00", travel_s: 200, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-17-1", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:01:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-17-2", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:02:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-17-3", service_date: "2026-11-17", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-17 15:03:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-18-4", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:04:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-18-5", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:05:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-18-6", service_date: "2026-11-18", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-18 15:06:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-19-7", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:07:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-19-8", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:08:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-19-9", service_date: "2026-11-19", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-19 15:09:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-20-10", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:10:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-20-11", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:11:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-20-12", service_date: "2026-11-20", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-20 15:12:00+00", travel_s: 100, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-21-13", service_date: "2026-11-21", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-21 15:13:00+00", travel_s: 200, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-22-14", service_date: "2026-11-22", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-22 15:14:00+00", travel_s: 200, data_outage: false, service_disruption: false}
+          - {trip_instance_key: "s8-23-15", service_date: "2026-11-23", line: Red, direction_id: 0, from_stop_id: s8, to_stop_id: s8x, time_band: midday, hour_local: 10, from_ts: "2026-11-23 15:15:00+00", travel_s: 200, data_outage: false, service_disruption: false}
+    expect:
+      rows:
+        - {from_stop_id: s1, window_label: last_24h, n_scheduled_trips: 2, n_trips: 2, n_baseline_trips: 18, normal_s: 100.0, observed_s: 150.0, excess_s: 50.0, excess_pct: 50.0, share_slow_pct: 100.0, flagged: false, severity: null}
+        - {from_stop_id: s1, window_label: last_7d, n_scheduled_trips: 7, n_trips: 6, n_baseline_trips: 18, normal_s: 100.0, observed_s: 150.0, excess_s: 50.0, excess_pct: 50.0, share_slow_pct: 100.0, flagged: true, severity: minor}
+        - {from_stop_id: s2, window_label: last_24h, n_scheduled_trips: 2, n_trips: 2, n_baseline_trips: 18, normal_s: 100.0, observed_s: 129.0, excess_s: 29.0, excess_pct: 29.0, share_slow_pct: 0.0, flagged: false, severity: null}
+        - {from_stop_id: s2, window_label: last_7d, n_scheduled_trips: 6, n_trips: 6, n_baseline_trips: 18, normal_s: 100.0, observed_s: 129.0, excess_s: 29.0, excess_pct: 29.0, share_slow_pct: 0.0, flagged: false, severity: null}
+        - {from_stop_id: s3, window_label: last_24h, n_scheduled_trips: 2, n_trips: 2, n_baseline_trips: 18, normal_s: 100.0, observed_s: 130.0, excess_s: 30.0, excess_pct: 30.0, share_slow_pct: 100.0, flagged: false, severity: null}
+        - {from_stop_id: s3, window_label: last_7d, n_scheduled_trips: 6, n_trips: 6, n_baseline_trips: 18, normal_s: 100.0, observed_s: 130.0, excess_s: 30.0, excess_pct: 30.0, share_slow_pct: 100.0, flagged: true, severity: minor}
+        - {from_stop_id: s4, window_label: last_24h, n_scheduled_trips: 2, n_trips: 2, n_baseline_trips: 18, normal_s: 300.0, observed_s: 359.0, excess_s: 59.0, excess_pct: 19.7, share_slow_pct: 100.0, flagged: false, severity: null}
+        - {from_stop_id: s4, window_label: last_7d, n_scheduled_trips: 6, n_trips: 6, n_baseline_trips: 18, normal_s: 300.0, observed_s: 359.0, excess_s: 59.0, excess_pct: 19.7, share_slow_pct: 100.0, flagged: false, severity: null}
+        - {from_stop_id: s5, window_label: last_24h, n_scheduled_trips: 2, n_trips: 2, n_baseline_trips: 18, normal_s: 300.0, observed_s: 360.0, excess_s: 60.0, excess_pct: 20.0, share_slow_pct: 100.0, flagged: false, severity: null}
+        - {from_stop_id: s5, window_label: last_7d, n_scheduled_trips: 6, n_trips: 6, n_baseline_trips: 18, normal_s: 300.0, observed_s: 360.0, excess_s: 60.0, excess_pct: 20.0, share_slow_pct: 100.0, flagged: true, severity: moderate}
+        - {from_stop_id: s6, window_label: last_24h, n_scheduled_trips: 2, n_trips: 2, n_baseline_trips: 18, normal_s: 100.0, observed_s: 230.0, excess_s: 130.0, excess_pct: 130.0, share_slow_pct: 100.0, flagged: false, severity: null}
+        - {from_stop_id: s6, window_label: last_7d, n_scheduled_trips: 6, n_trips: 6, n_baseline_trips: 18, normal_s: 100.0, observed_s: 230.0, excess_s: 130.0, excess_pct: 130.0, share_slow_pct: 100.0, flagged: true, severity: severe}
+        - {from_stop_id: s7, window_label: last_24h, n_scheduled_trips: 2, n_trips: 2, n_baseline_trips: 18, normal_s: 100.0, observed_s: 200.0, excess_s: 100.0, excess_pct: 100.0, share_slow_pct: 100.0, flagged: false, severity: null}
+        - {from_stop_id: s7, window_label: last_7d, n_scheduled_trips: 6, n_trips: 6, n_baseline_trips: 18, normal_s: 100.0, observed_s: 150.0, excess_s: 50.0, excess_pct: 50.0, share_slow_pct: 50.0, flagged: false, severity: null}
+        - {from_stop_id: s8, window_label: last_24h, n_scheduled_trips: 1, n_trips: 1, n_baseline_trips: 15, normal_s: 100, observed_s: 200, excess_s: 100, excess_pct: 100.0, share_slow_pct: 100.0, flagged: false, severity: null}
+        - {from_stop_id: s8, window_label: last_7d, n_scheduled_trips: 3, n_trips: 3, n_baseline_trips: 15, normal_s: 100, observed_s: 200, excess_s: 100, excess_pct: 100.0, share_slow_pct: 100.0, flagged: false, severity: null}
+
+  - name: slow_zone_comparison_matched_observed_listed_and_unmapped
+    config:
+      tags: [r4]
+    description: >-
+      Snapshot of two restrictions, captured on 2026-11-20 (FIXTURE rows, not real MBTA data). R1 is
+      mapped to segment a-b, R2 to c-d, R3 to nothing. Flagged segments: a-b (listed: matched; severe
+      in midday, minor in am_peak: the strongest band wins, both bands are named) and e-f (not
+      listed: observed_only). c-d is listed but not flagged with 40 trips seen (listed_only,
+      not_flagged); R3 has no mapping and stays as listed_unmapped. A segment seen with 5 trips
+      only would be not_enough_data (g-h, listed by nothing: it is not a row at all).
+    model: agg_slow_zone_comparison
+    overrides:
+      vars:
+        slow_segments: {min_trips: 15}
+    given:
+      - input: ref('agg_slow_segments')
+        rows:
+          - {line: Red, direction_id: 0, from_stop_id: a, to_stop_id: b, time_band: midday, window_label: last_7d, n_trips: 30, flagged: true, severity: severe, excess_s: 150.0, first_seen: "2026-11-23 15:01:00+00", last_seen: "2026-11-23 16:30:00+00", coverage_pct: 90.0}
+          - {line: Red, direction_id: 0, from_stop_id: a, to_stop_id: b, time_band: am_peak, window_label: last_7d, n_trips: 20, flagged: true, severity: minor, excess_s: 40.0, first_seen: "2026-11-23 15:01:00+00", last_seen: "2026-11-23 16:30:00+00", coverage_pct: 80.0}
+          - {line: Red, direction_id: 0, from_stop_id: e, to_stop_id: f, time_band: midday, window_label: last_7d, n_trips: 25, flagged: true, severity: moderate, excess_s: 70.0, first_seen: "2026-11-23 15:01:00+00", last_seen: "2026-11-23 16:30:00+00", coverage_pct: 85.0}
+          - {line: Red, direction_id: 0, from_stop_id: c, to_stop_id: d, time_band: midday, window_label: last_7d, n_trips: 40, flagged: false, severity: null, excess_s: 5.0, first_seen: "2026-11-23 15:01:00+00", last_seen: "2026-11-23 16:30:00+00", coverage_pct: 95.0}
+          - {line: Red, direction_id: 0, from_stop_id: g, to_stop_id: h, time_band: midday, window_label: last_7d, n_trips: 5, flagged: false, severity: null, excess_s: 0.0, first_seen: "2026-11-23 15:01:00+00", last_seen: "2026-11-23 16:30:00+00", coverage_pct: 50.0}
+      - input: ref('agg_headway_segment_window')
+        rows:
+          - {line: Red, direction_id: 0, from_stop_id: a, to_stop_id: b, from_stop_name: "a name", to_stop_name: "b name", window_label: last_24h, segment_order: 1}
+          - {line: Red, direction_id: 0, from_stop_id: c, to_stop_id: d, from_stop_name: "c name", to_stop_name: "d name", window_label: last_24h, segment_order: 2}
+          - {line: Red, direction_id: 0, from_stop_id: e, to_stop_id: f, from_stop_name: "e name", to_stop_name: "f name", window_label: last_24h, segment_order: 3}
+          - {line: Red, direction_id: 0, from_stop_id: g, to_stop_id: h, from_stop_name: "g name", to_stop_name: "h name", window_label: last_24h, segment_order: 4}
+      - input: ref('stg_official_speed_restrictions')
+        rows:
+          - {restriction_id: R1, line: Red, location_text: "Alpha to Beta", direction: null, speed_limit_mph: 10, reason: "FIXTURE track condition", date_reported: "2026-11-01", source_url: "https://example.invalid/fixture", captured_on: "2026-11-20"}
+          - {restriction_id: R2, line: Red, location_text: "Gamma to Delta", direction: null, speed_limit_mph: 25, reason: "FIXTURE signal", date_reported: "2026-10-15", source_url: "https://example.invalid/fixture", captured_on: "2026-11-20"}
+          - {restriction_id: R3, line: Red, location_text: "Somewhere unmapped", direction: null, speed_limit_mph: 15, reason: "FIXTURE", date_reported: "2026-11-02", source_url: "https://example.invalid/fixture", captured_on: "2026-11-20"}
+      - input: ref('official_restriction_segments')
+        rows:
+          - {restriction_id: R1, line: Red, direction_id: "0", from_stop_id: a, to_stop_id: b}
+          - {restriction_id: R2, line: Red, direction_id: "0", from_stop_id: c, to_stop_id: d}
+    expect:
+      rows:
+        - {row_key: "Red:0:a:b", status: matched, observed_status: flagged, severity: severe, worst_excess_s: 150.0, n_trips: 30, flagged_bands: [am_peak, midday], restriction_ids: [R1], official_speed_limit_mph: 10, location_text: null, official_status: captured, snapshot_date: "2026-11-20", is_snapshot: true}
+        - {row_key: "Red:0:c:d", status: listed_only, observed_status: not_flagged, severity: null, worst_excess_s: null, n_trips: null, flagged_bands: [], restriction_ids: [R2], official_speed_limit_mph: 25, location_text: null, official_status: captured, snapshot_date: "2026-11-20", is_snapshot: true}
+        - {row_key: "Red:0:e:f", status: observed_only, observed_status: flagged, severity: moderate, worst_excess_s: 70.0, n_trips: 25, flagged_bands: [midday], restriction_ids: [], official_speed_limit_mph: null, location_text: null, official_status: captured, snapshot_date: "2026-11-20", is_snapshot: true}
+        - {row_key: "unmapped:R3", status: listed_unmapped, observed_status: not_enough_data, severity: null, worst_excess_s: null, n_trips: null, flagged_bands: [], restriction_ids: [R3], official_speed_limit_mph: 15, location_text: "Somewhere unmapped", official_status: captured, snapshot_date: "2026-11-20", is_snapshot: true}
+
+  - name: slow_zone_comparison_with_an_empty_official_snapshot
+    config:
+      tags: [r4]
+    description: >-
+      The committed snapshot has no rows until captured by hand (ADR-025). Flagged segments are then
+      all observed_only, official_status is not_captured with no snapshot date, and there are no
+      listed_only or unmapped rows.
+    model: agg_slow_zone_comparison
+    given:
+      - input: ref('agg_slow_segments')
+        rows:
+          - {line: Red, direction_id: 0, from_stop_id: a, to_stop_id: b, time_band: midday, window_label: last_7d, n_trips: 30, flagged: true, severity: severe, excess_s: 150.0, first_seen: "2026-11-23 15:01:00+00", last_seen: "2026-11-23 16:30:00+00", coverage_pct: 90.0}
+      - input: ref('agg_headway_segment_window')
+        rows:
+          - {line: Red, direction_id: 0, from_stop_id: a, to_stop_id: b, from_stop_name: "a name", to_stop_name: "b name", window_label: last_24h, segment_order: 1}
+      - input: ref('stg_official_speed_restrictions')
+        rows: []
+      - input: ref('official_restriction_segments')
+        rows: []
+    expect:
+      rows:
+        - {row_key: "Red:0:a:b", status: observed_only, observed_status: flagged, severity: severe, restriction_ids: [], official_status: not_captured, snapshot_date: null, is_snapshot: true}

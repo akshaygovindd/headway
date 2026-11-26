@@ -792,3 +792,35 @@ models:
         description: "Daily maximum temperature in degrees Celsius."
       - name: source
         description: "Weather source identifier."
+  - name: stg_official_speed_restrictions
+    description: "The MBTA's speed restrictions as typed in by hand from its public page (seed official_speed_restrictions, ADR-025), typed. Committed with no rows until captured, so it is empty by default; every row carries its source_url and captured_on (Release 4, Phase 4.5)."
+    config:
+      meta:
+        grain: "restriction_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [restriction_id]
+    columns:
+      - name: restriction_id
+        description: "Identifier chosen by the person capturing the list; unique within the snapshot."
+        data_tests:
+          - not_null
+      - name: line
+        description: "Line the restriction is on."
+        data_tests:
+          - not_null
+      - name: location_text
+        description: "The location as the MBTA words it."
+      - name: direction
+        description: "Direction as the MBTA words it, if given."
+      - name: speed_limit_mph
+        description: "Speed limit in miles per hour."
+      - name: reason
+        description: "Reason the MBTA gives."
+      - name: date_reported
+        description: "Date the MBTA first reported the restriction."
+      - name: source_url
+        description: "Public page the row was copied from."
+      - name: captured_on
+        description: "Date the row was captured by hand."

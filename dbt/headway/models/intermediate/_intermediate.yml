@@ -1178,3 +1178,43 @@ models:
         description: "Predicted arrival minus collection time in seconds."
       - name: centre_distance_s
         description: "Distance of the countdown from the bucket centre in seconds (0 to 30)."
+  - name: int_segment_travel_times
+    description: "Travel time of each scheduled stop-to-stop segment of each trip (Release 4, Phase 4.5): the arrival at the next stop minus the arrival at the stop for the same run, both high/medium; null when the trip was not measured on the segment. Feeds agg_slow_segments."
+    config:
+      meta:
+        grain: "trip_instance_key x from_stop_id x to_stop_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [trip_instance_key, from_stop_id, to_stop_id]
+    columns:
+      - name: trip_instance_key
+        description: "Trip identity (trip id, service date and start time)."
+        data_tests:
+          - not_null
+      - name: service_date
+        description: "Service date of the trip."
+      - name: line
+        description: "Reporting line."
+      - name: direction_id
+        description: "GTFS direction of the trip."
+      - name: from_stop_id
+        description: "Platform stop id where the segment starts."
+        data_tests:
+          - not_null
+      - name: to_stop_id
+        description: "Platform stop id of the next stop of the trip."
+        data_tests:
+          - not_null
+      - name: time_band
+        description: "Time band of the scheduled arrival at the from stop (local)."
+      - name: hour_local
+        description: "Local hour of the scheduled arrival at the from stop."
+      - name: from_ts
+        description: "Observed arrival at the from stop (UTC); null when not measured."
+      - name: travel_s
+        description: "Seconds from the arrival at the from stop to the arrival at the to stop; null when the trip was not measured on the segment."
+      - name: data_outage
+        description: "True when the hour is a data outage (int_hour_flags)."
+      - name: service_disruption
+        description: "True when a line-scope service disruption was active in the hour."

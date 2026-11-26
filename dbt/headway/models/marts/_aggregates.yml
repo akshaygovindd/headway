@@ -2075,3 +2075,136 @@ models:
         description: "Denominator of coverage: scheduled trips in non-outage hours."
       - name: coverage_pct
         description: "Measured over scheduled trips as a percentage (0-100); null when the denominator is zero."
+  - name: agg_slow_segments
+    description: "Observed slow segments (Release 4, Phase 4.5): segments whose median travel time is consistently above their own normal (the 7-day median of the same segment and time band), per time band and window. An observed speed-restriction signal, not the MBTA's list. Exported with the R4 gold tables."
+    config:
+      meta:
+        grain: "line x direction_id x from_stop_id x to_stop_id x time_band x window_label"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, direction_id, from_stop_id, to_stop_id, time_band, window_label]
+    columns:
+      - name: line
+        description: "Reporting line."
+        data_tests:
+          - not_null
+      - name: direction_id
+        description: "GTFS direction."
+      - name: from_stop_id
+        description: "Platform stop id where the segment starts."
+        data_tests:
+          - not_null
+      - name: to_stop_id
+        description: "Platform stop id where the segment ends."
+        data_tests:
+          - not_null
+      - name: time_band
+        description: "am_peak, midday, pm_peak, evening or other, by the scheduled arrival at the from stop."
+        data_tests:
+          - not_null
+      - name: window_label
+        description: "last_24h (the last 24 hours) or last_7d (the latest 3 service days of the 7, against the 7-day normal)."
+        data_tests:
+          - not_null
+      - name: n_scheduled_trips
+        description: "Scheduled trips of the segment in the window, outage hours excluded."
+      - name: n_trips
+        description: "Trips measured on the segment (travel time between 10 s and 1 hour)."
+      - name: n_disruption
+        description: "Measured trips with a line-scope service disruption in the hour (kept)."
+      - name: n_baseline_trips
+        description: "Measured trips behind the normal (the 7-day baseline)."
+      - name: normal_s
+        description: "Median travel time of the segment and time band over the last 7 days."
+      - name: observed_s
+        description: "Median travel time of the window's trips."
+      - name: excess_s
+        description: "observed_s minus normal_s."
+      - name: excess_pct
+        description: "excess_s as a percentage of normal_s."
+      - name: share_slow_pct
+        description: "Share of the window's trips that were 30 s or more above normal (0-100)."
+      - name: flagged
+        description: "True when n_trips and the baseline reach the minimum, the excess is at least 20 percent and 30 s, and at least 60 percent of the trips are individually slow."
+      - name: severity
+        description: "minor (under 60 s over normal), moderate (60 to under 120 s) or severe; null when not flagged."
+      - name: first_seen
+        description: "Arrival time of the first slow trip of the window."
+      - name: last_seen
+        description: "Arrival time of the last slow trip of the window."
+      - name: coverage_numerator
+        description: "Numerator of coverage: measured trips."
+      - name: coverage_denominator
+        description: "Denominator of coverage: scheduled trips in non-outage hours."
+      - name: coverage_pct
+        description: "Measured over scheduled trips as a percentage (0-100); null when the denominator is zero."
+  - name: agg_slow_zone_comparison
+    description: "Observed slow segments against the MBTA's speed-restriction list (Release 4, Phase 4.5): matched, observed_only, listed_only, and listed_unmapped for restrictions with no segment mapping. The list is a hand-captured, dated snapshot (ADR-025); with no rows official_status is not_captured. Exported with the R4 gold tables."
+    config:
+      meta:
+        grain: "row_key (line, direction, from and to stop of a segment, or unmapped:<restriction_id>)"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [row_key]
+    columns:
+      - name: row_key
+        description: "line:direction:from:to for a segment, unmapped:<restriction_id> for a restriction without a segment."
+        data_tests:
+          - not_null
+      - name: line
+        description: "Reporting line."
+      - name: direction_id
+        description: "GTFS direction; null for an unmapped restriction."
+      - name: from_stop_id
+        description: "Platform stop id where the segment starts."
+      - name: from_stop_name
+        description: "Name of the from stop."
+      - name: to_stop_id
+        description: "Platform stop id where the segment ends."
+      - name: to_stop_name
+        description: "Name of the to stop."
+      - name: segment_order
+        description: "Position of the segment along the line."
+      - name: status
+        description: "matched, observed_only, listed_only or listed_unmapped."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [matched, observed_only, listed_only, listed_unmapped]
+      - name: observed_status
+        description: "flagged, not_flagged (enough data, not slow) or not_enough_data."
+      - name: severity
+        description: "Strongest severity over the flagged bands; null when not flagged."
+      - name: worst_excess_s
+        description: "Largest excess over normal among the flagged bands, in seconds."
+      - name: n_trips
+        description: "Most trips among the flagged bands."
+      - name: flagged_bands
+        description: "Time bands in which the segment is flagged."
+      - name: first_seen
+        description: "First slow trip across flagged bands."
+      - name: last_seen
+        description: "Last slow trip across flagged bands."
+      - name: coverage_pct
+        description: "Best coverage among the segment's rows (0-100)."
+      - name: restriction_ids
+        description: "Ids of the listed restrictions mapped to the segment."
+      - name: official_speed_limit_mph
+        description: "Lowest speed limit among the mapped restrictions."
+      - name: official_date_reported
+        description: "Earliest date reported among the mapped restrictions."
+      - name: location_text
+        description: "The MBTA's wording of an unmapped restriction's location; null otherwise."
+      - name: official_status
+        description: "captured when the snapshot has rows, else not_captured."
+        data_tests:
+          - not_null
+      - name: snapshot_date
+        description: "Latest captured_on of the snapshot; null when not captured."
+      - name: source_url
+        description: "Public page the snapshot was copied from; null when not captured."
+      - name: is_snapshot
+        description: "Always true: the official list is a hand-captured snapshot."
