@@ -351,7 +351,7 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
 ### Budget forecast alert
 
 AWS Budgets also mails `budget_email` when the month's **forecast** passes USD 15, besides the
-actual-spend alerts at USD 8 and 15. It is not a CloudWatch alarm (no SNS, no runbook anchor of
+actual-spend alerts at USD 12 and 15. It is not a CloudWatch alarm (no SNS, no runbook anchor of
 its own); the steps are these. **Meaning:** at the current rate the month will cost more than
 USD 15. **First 3 commands:**
 

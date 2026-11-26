@@ -322,7 +322,7 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   vehicle poll. The ingest Lambda is sized at 256 MB with a 58 s timeout. It was first deployed at 128 MB
   and Lambda reported 114 MB used (89 %), so it went to 256 MB (see INCIDENTS.md, "Ingest Lambda
   memory underestimated"): 127 to 128 MB used (50 %), single-poll runs 2.5 s. Budget alerts move from USD 5 / 10 to
-  USD 8 / 15.
+  USD 8 / 15 (the warning was later raised to USD 12; the USD 15 alerts are unchanged).
 - **Cost:** per 30-day month, us-east-1 list prices, to be checked against the bill after deploy.
   - Lambda, the dominant item: the last poll is due 45 s after the scheduled time, so a run that
     starts on the minute lasts about 48 s (if the 17 s start delay measured in MEASUREMENTS.md is
@@ -349,7 +349,7 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   The quarter-minute accuracy is expected from the interval width, not yet measured: see
   `docs/MEASUREMENTS.md` after the first days of 15 s data.
 - **Revisit when:** two full days of 15 s data allow the spike to be repeated, real Lambda
-  duration or memory differs from the above, or the cost per month exceeds the USD 8 alert.
+  duration or memory differs from the above, or the cost per month exceeds the USD 12 alert.
 
 ### ADR-015: Immutable history of daily aggregates, versioned per metric family
 
