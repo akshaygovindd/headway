@@ -509,6 +509,27 @@
   "coverage_denominator": "BIGINT",
   "coverage_pct": "DOUBLE"
  },
+ "agg_trip_time_budget": {
+  "line": "VARCHAR",
+  "direction_id": "INTEGER",
+  "from_station_id": "VARCHAR",
+  "from_station_name": "VARCHAR",
+  "to_station_id": "VARCHAR",
+  "to_station_name": "VARCHAR",
+  "time_band": "VARCHAR",
+  "window_label": "VARCHAR",
+  "n_scheduled_trips": "BIGINT",
+  "n_excluded_outage": "BIGINT",
+  "n_implausible": "BIGINT",
+  "n_trips": "BIGINT",
+  "n_disruption": "BIGINT",
+  "median_s": "DOUBLE",
+  "p95_s": "DOUBLE",
+  "buffer_time_index": "DOUBLE",
+  "coverage_numerator": "BIGINT",
+  "coverage_denominator": "BIGINT",
+  "coverage_pct": "DOUBLE"
+ },
  "agg_weather_comparison": {
   "condition": "VARCHAR",
   "metric": "VARCHAR",

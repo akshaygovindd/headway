@@ -40,7 +40,8 @@ def test_every_response_has_coverage_freshness_provenance(client: TestClient) ->
                  "/v1/meta", "/v1/lines/Red/segments", "/v1/lines/Red/marey",
                  "/v1/pipeline/heartbeat", "/v1/lines/Red/trip-time",
                  "/v1/lines/Red/spacing-by-hour", "/v1/lines/Red/disruptions",
-                 "/v1/pipeline/checks"):  # fmt: skip
+                 "/v1/pipeline/checks",
+                 "/v1/lines/Red/trip-time-budget?from=a1&to=c1"):  # fmt: skip
         res = client.get(path)
         assert res.status_code == 200, path
         body = res.json()
@@ -180,6 +181,12 @@ def test_slo_health_metrics_meta(client: TestClient) -> None:
         ("/v1/pipeline/heartbeat?hours=0", None),
         ("/v1/pipeline/heartbeat?hours=9999", None),
         ("/v1/lines/Red/trip-time?window=last_year", "last_7d"),
+        ("/v1/lines/Red/trip-time-budget?from=a1&to=c1&window=last_year", "last_7d"),
+        ("/v1/lines/Red/trip-time-budget?from=a1&to=nowhere", "c1"),
+        ("/v1/lines/Red/trip-time-budget?from=nowhere&to=c1", "a1"),
+        ("/v1/lines/Red/trip-time-budget?from=a1&to=a1", "c1"),
+        ("/v1/lines/Red/trip-time-budget?from=a1", None),
+        ("/v1/lines/Red/trip-time-budget", None),
         ("/v1/lines/Red/spacing-by-hour?date=yesterday", None),
         ("/v1/pipeline/checks?hours=0", None),
         ("/v1/pipeline/checks?hours=9999", None),
@@ -277,7 +284,7 @@ def test_r4_endpoints_are_404_when_the_export_lacks_the_tables(root: str, tmp_pa
     gold = tmp_path / "x" / "gold"
     m = json.loads((gold / "manifest.json").read_text())
     r4 = ("agg_headway_segment_window", "agg_marey_last_hour", "agg_capture_heartbeat_hourly",
-          "agg_ett_band_window", "agg_service_disruptions")  # fmt: skip
+          "agg_ett_band_window", "agg_service_disruptions", "agg_trip_time_budget")  # fmt: skip
     for t in r4:
         m["row_counts"].pop(t)
     (gold / "manifest.json").write_text(json.dumps(m))
@@ -288,6 +295,7 @@ def test_r4_endpoints_are_404_when_the_export_lacks_the_tables(root: str, tmp_pa
         "/v1/pipeline/heartbeat",
         "/v1/lines/Red/trip-time",
         "/v1/lines/Red/disruptions",
+        "/v1/lines/Red/trip-time-budget?from=a1&to=c1",
     ):
         assert c.get(path).status_code == 404, path
     # spacing-by-hour and the checks read R2 and base tables: still served
@@ -537,3 +545,55 @@ def test_horizon_buckets_sort_by_number_not_text(client: TestClient) -> None:
         "10-20",
         "20-30",
     ]
+
+
+BUDGET_KEYS = {
+    "direction_id", "time_band", "n_trips", "n_scheduled_trips", "n_excluded_outage",
+    "n_implausible", "n_disruption", "median_s", "p95_s", "buffer_time_index", "coverage_pct",
+    "status", "withheld_reason", "no_trips_reason",
+}  # fmt: skip
+
+
+def test_trip_time_budget_bands_status_and_withholding(client: TestClient) -> None:
+    body = client.get("/v1/lines/Red/trip-time-budget?from=a1&to=c1").json()
+    d = body["data"]
+    assert d["from_station"] == {"id": "a1", "name": "Alpha"} and d["to_station"]["name"] == "Gamma"
+    assert d["window"] == "last_24h" and d["unit"] == "seconds" and d["min_trips"] == 20
+    by = {r["time_band"]: r for r in d["rows"]}
+    assert list(by) == ["am_peak", "midday", "pm_peak", "evening"]  # band order, not alphabetical
+    assert all(set(r) == BUDGET_KEYS for r in d["rows"])
+    am = by["am_peak"]
+    assert (am["status"], am["median_s"], am["p95_s"], am["buffer_time_index"]) == (
+        "measured",
+        840.0,
+        1260.0,
+        0.5,
+    )
+    assert am["n_trips"] == 40 and am["coverage_pct"] == 88.9 and am["withheld_reason"] is None
+    mid = by["midday"]  # 12 trips: under the 20-trip minimum although coverage is 80%
+    assert mid["status"] == "withheld" and mid["median_s"] is None and mid["p95_s"] is None
+    assert (
+        mid["buffer_time_index"] is None
+        and "12 trips is below the minimum of 20" in mid["withheld_reason"]
+    )
+    assert (
+        by["pm_peak"]["status"] == "no_trips" and "6 scheduled" in by["pm_peak"]["no_trips_reason"]
+    )
+    eve = by["evening"]  # 25 trips but coverage 41.7%
+    assert eve["status"] == "withheld" and eve["median_s"] is None
+    assert "coverage 41.7% is below 50%" in eve["withheld_reason"]
+    assert body["coverage"]["withheld_rows"] == 2 and body["coverage"]["rows"] == 4
+
+
+def test_trip_time_budget_window_and_provenance(client: TestClient) -> None:
+    body = client.get("/v1/lines/Red/trip-time-budget?from=a1&to=c1&window=last_7d").json()
+    assert [r["time_band"] for r in body["data"]["rows"]] == ["am_peak"]
+    assert body["data"]["rows"][0]["median_s"] == 850.0
+    assert body["provenance"]["tables"] == ["agg_trip_time_budget"]
+
+
+def test_trip_time_budget_pair_with_no_trips_is_422_not_an_empty_answer(client: TestClient) -> None:
+    res = client.get("/v1/lines/Red/trip-time-budget?from=c1&to=a1")
+    assert res.status_code == 422 and "no scheduled Red trip runs from Gamma to Alpha" in str(
+        res.json()
+    )

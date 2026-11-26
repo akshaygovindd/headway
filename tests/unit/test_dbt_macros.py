@@ -13,13 +13,13 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
-from headway_transform import publish
 
 from headway.config import load_city_config
 from headway.contracts.manifest import ManifestEntry
 from headway.curate.meta import write_manifest_parts
 from headway.storage import LocalStorage
 from headway.timeutil import gtfs_time_to_utc, service_date_for
+from headway_transform import publish
 
 ROOT = Path(__file__).resolve().parents[2]
 TZ = "America/New_York"

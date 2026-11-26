@@ -37,8 +37,8 @@ R2_GOLD_TABLES = (
     "agg_countdown_accuracy_daily",
 )
 # Release 3 (HEADWAY_ENABLE_R3=true, with R2): the next-hour forecasts, the gate status, incidents,
-# alert matching and the weather comparison. The backtest summary joins them only once a line has passed the training
-# gate (R3_OPTIONAL_TABLES).
+# alert matching and the weather comparison. The backtest summary joins them only once a line
+# has passed the training gate (R3_OPTIONAL_TABLES).
 R3_GOLD_TABLES = (
     "agg_forecast_next_hour",
     "agg_forecast_gate_status",

@@ -10,6 +10,7 @@ MAX_ROWS = 500
 QUERY_TIMEOUT_S = 5.0
 HTTP_TIMEOUT_S = 5.0
 MIN_COVERAGE_PCT = 50.0  # below it a value is withheld, as on every page
+MIN_BUDGET_TRIPS = 20  # a trip-time budget needs this many measured trips (a p95 of fewer is noise)
 
 
 def base_url(value: str | None = None) -> str:

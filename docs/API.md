@@ -43,6 +43,7 @@ data is already public. Examples use `$API` for the base URL (`terraform output 
 | `/lines/{line}/countdown?window=` | countdown accuracy by station and countdown minute |
 | `/lines/{line}/segments?window=&direction=` | headway health per segment (two neighbouring stops): `rows[]` of `direction_id, from_stop_id, from_stop_name, to_stop_id, to_stop_name, segment_order, health, pct_within_band, pct_bunched, pct_gap, n_headways, n_excluded_outage, disrupted, disruption_header, coverage_pct, withheld_reason`; `health` is `even` (within band 80 or more), `some_bunching` (60 or more) or `bunched_gaps`; the shares and `health` are null with a `withheld_reason` under 50 % coverage; `disruption_header` is the public MBTA alert header of the latest line-scope disruption of the last 24 hours that covers the segment (null when the segment is not `disrupted` or no text is exported); `direction` 0 or 1, default both (R4 export) |
 | `/lines/{line}/trip-time?window=` | trip time against the timetable per direction and time band (see below; R4 export) |
+| `/lines/{line}/trip-time-budget?from=&to=&window=` | travel time between two stations of the line per time band: median, 95th percentile, buffer time index (see below; R4 export) |
 | `/lines/{line}/spacing-by-hour?date=` | headway adherence per service hour of one service day (see below) |
 | `/lines/{line}/disruptions` | line-scope service disruptions of the last 24 hours with the public MBTA header text (see below; R4 export) |
 | `/lines/{line}/marey?direction=` | reconstructed arrivals of the last complete hour: `hour_start` and `rows[]` of `direction_id, trip_id, stop_id, stop_name, stop_sequence, arrival_ts, method, confidence, scheduled_ts` (UTC, `method` is `observed` or `estimated`; R4 export) |
@@ -55,10 +56,33 @@ data is already public. Examples use `$API` for the base URL (`terraform output 
 | `/metrics` | metric definitions with `docs/METRICS.md` anchors |
 | `/meta` | freshness, tables in the export, coverage rules, limits |
 
-The R4 endpoints (segments, marey, heartbeat, trip-time, disruptions) answer `404 not_available` until the export holds their tables (`enable_r4`
+The R4 endpoints (segments, marey, heartbeat, trip-time, trip-time-budget, disruptions) answer `404 not_available` until the export holds their tables (`enable_r4`
 on the transform, `docs/DEPLOY.md`). Their `data` is `{line, window?, direction, rows}` (`hours` for
 the heartbeat, `hour_start` for Marey); timestamps are UTC (`...Z`). Marey and heartbeat rows carry
 no coverage figure and are never withheld.
+
+### Trip-time budget
+
+`GET /lines/{line}/trip-time-budget?from=<station_id>&to=<station_id>&window=last_24h|last_7d`
+(needs `agg_trip_time_budget`; R4 export). `from` and `to` are parent-station ids (`place-davis`),
+different, and both stops of a trip of the line in that order; an unknown station is a 422 whose
+`allowed` lists the line's station ids, and a pair no trip serves (two branches) is a 422 too.
+
+```json
+{"line": "Red", "window": "last_24h", "unit": "seconds", "min_trips": 20,
+ "from_station": {"id": "place-davis", "name": "Davis"},
+ "to_station": {"id": "place-pktrm", "name": "Park Street"},
+ "rows": [{"direction_id": 1, "time_band": "am_peak", "n_trips": 40, "n_scheduled_trips": 45,
+           "n_excluded_outage": 0, "n_implausible": 0, "n_disruption": 0, "median_s": 840.0,
+           "p95_s": 1260.0, "buffer_time_index": 0.5, "coverage_pct": 88.9, "status": "measured",
+           "withheld_reason": null, "no_trips_reason": null}]}
+```
+
+One row per direction and time band, with `status` `measured`, `withheld` or `no_trips`.
+`median_s`, `p95_s` and `buffer_time_index` ((p95 - median) / median) are null with a
+`withheld_reason` when coverage is under 50 % **or** `n_trips` is under `min_trips` (20): a 95th
+percentile of fewer trips is not a percentile. "Usually 14 min; leave 21 to arrive on time 95 % of
+the time" is `median_s` and `p95_s` in minutes. Definition: METRICS.md, Trip-time budget.
 
 ### Trip time, spacing by hour, disruptions and checks
 

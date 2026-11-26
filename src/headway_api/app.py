@@ -225,6 +225,22 @@ def create_app(settings: Settings | None = None, source: GoldSource | None = Non
     ) -> Envelope:
         return serve(request, lambda q: q.trip_time(line, window))
 
+    @app.get(f"{v1}/lines/{{line}}/trip-time-budget", response_model=Envelope, tags=tag,
+             summary="Travel time between two stations (median, 95th percentile)")  # fmt: skip
+    def line_trip_time_budget(
+        request: Request,
+        line: LineName,
+        from_station: Annotated[
+            str,
+            Query(alias="from", min_length=1, max_length=64, description="Station id to start at"),
+        ],
+        to_station: Annotated[
+            str, Query(alias="to", min_length=1, max_length=64, description="Station id to end at")
+        ],
+        window: Annotated[WindowName, Query(description="Rolling window")] = "last_24h",
+    ) -> Envelope:
+        return serve(request, lambda q: q.trip_time_budget(line, from_station, to_station, window))
+
     @app.get(f"{v1}/lines/{{line}}/spacing-by-hour", response_model=Envelope, tags=tag,
              summary="Headway adherence per service hour of one service day")  # fmt: skip
     def line_spacing_by_hour(

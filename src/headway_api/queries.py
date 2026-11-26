@@ -15,6 +15,7 @@ from headway_mcp import config, runner
 from headway_mcp.catalog import LINES, METRICS, METRICS_DOC
 
 MIN_COV = config.MIN_COVERAGE_PCT
+MIN_BUDGET_TRIPS = config.MIN_BUDGET_TRIPS
 WINDOWS = ("last_24h", "last_7d")
 MAX_INCIDENT_DAYS = 31
 MAX_HEALTH_DAYS = 30
@@ -123,7 +124,7 @@ API_TABLES = tuple(
            "agg_slo_rollup", "agg_pipeline_health", "agg_headway_segment_window",
            "agg_marey_last_hour", "agg_capture_heartbeat_hourly", "agg_ett_band_window",
            "agg_ett_window", "agg_headway_adherence_hourly", "agg_quality_checks_hourly",
-           "agg_service_disruptions"}
+           "agg_service_disruptions", "agg_trip_time_budget"}
     )
 )  # fmt: skip
 
@@ -644,6 +645,84 @@ class Query:
         return Result(data, tables, sqls, "release-4-site-metrics",
                       "Trip time against the timetable (ETT approximation) per direction and time "
                       "band", rows, more)  # fmt: skip
+
+    def trip_time_budget(
+        self, line: str, from_station: str, to_station: str, window: str
+    ) -> Result:
+        """Travel time between two stations of a line per time band: median, 95th percentile,
+        buffer time index. Withheld below 50% coverage or under MIN_BUDGET_TRIPS measured trips."""
+        self.need("agg_trip_time_budget")
+
+        def build_stations(base: str) -> str:
+            p = self.path(base, "agg_trip_time_budget")
+            return (
+                "select distinct id, name from ("
+                "select from_station_id as id, from_station_name as name "
+                f"from read_parquet('{p}') where line = '{line}' "
+                "union all select to_station_id, to_station_name "
+                f"from read_parquet('{p}') where line = '{line}') order by name, id"
+            )
+
+        stations, _, sshown = self.run(build_stations)
+        names = {r["id"]: r["name"] for r in stations}
+        allowed = sorted(names)
+        for label, value in (("from", from_station), ("to", to_station)):
+            if value not in names:
+                raise InputError(f"{label} is not a station of the {line} line: {value!r}", allowed)
+        if from_station == to_station:
+            raise InputError("from and to must be different stations", allowed)
+        ok = f"coalesce(coverage_pct, 0) >= {MIN_COV:g} and n_trips >= {MIN_BUDGET_TRIPS}"
+        band_order = "case time_band " + " ".join(
+            f"when '{b}' then {i}" for i, b in enumerate(TIME_BANDS)) + " else 9 end"  # fmt: skip
+
+        def build(base: str) -> str:
+            p = self.path(base, "agg_trip_time_budget")
+            vals = ", ".join(
+                f"round(case when {ok} then {v} end, {d}) as {v}"
+                for v, d in (("median_s", 1), ("p95_s", 1), ("buffer_time_index", 3))
+            )
+            return (
+                f"select direction_id, time_band, n_trips, n_scheduled_trips, n_excluded_outage, "
+                f"n_implausible, n_disruption, {vals}, round(coverage_pct, 1) as coverage_pct "
+                f"from read_parquet('{p}') where line = '{line}' and window_label = '{window}' "
+                f"and from_station_id = '{from_station}' and to_station_id = '{to_station}' "
+                f"order by direction_id, {band_order}, time_band limit {self.max_rows + 1}"
+            )
+
+        rows, more, shown = self.run(build)
+        if not rows:
+            raise InputError(
+                f"no scheduled {line} trip runs from {names[from_station]} to "
+                f"{names[to_station]} (they are on different branches, or in the other order "
+                "only on another line)"
+            )
+        for r in rows:
+            r["status"], r["withheld_reason"], r["no_trips_reason"] = self._budget_status(r)
+        data = {
+            "line": line, "window": window, "unit": "seconds", "min_trips": MIN_BUDGET_TRIPS,
+            "from_station": {"id": from_station, "name": names[from_station]},
+            "to_station": {"id": to_station, "name": names[to_station]},
+            "rows": rows,
+        }  # fmt: skip
+        return Result(data, ["agg_trip_time_budget"], [sshown, shown], "release-4-site-metrics",
+                      "Travel time between two stations: median, 95th percentile and buffer time "
+                      "index per time band", rows, more)  # fmt: skip
+
+    @staticmethod
+    def _budget_status(r: dict[str, Any]) -> tuple[str, str | None, str | None]:
+        """status, withheld_reason, no_trips_reason of a trip-time-budget row."""
+        if not r["n_trips"]:
+            n = r["n_scheduled_trips"] or 0
+            why = (
+                f"no trips measured: {n} scheduled, none with usable arrivals at both stations"
+                if n
+                else "no trips measured: every scheduled trip fell in a data-outage hour"
+            )
+            return "no_trips", None, why
+        reason = Query._reason(r)
+        if reason is None and r["n_trips"] < MIN_BUDGET_TRIPS:
+            reason = f"{r['n_trips']} trips is below the minimum of {MIN_BUDGET_TRIPS}"
+        return ("withheld", reason, None) if reason else ("measured", None, None)
 
     def spacing_by_hour(self, line: str, date: str | None) -> Result:
         """Headway adherence per service hour of one service day, directions combined."""

@@ -313,6 +313,23 @@ def build(base: Path, exported_at: str = EXPORTED_AT, shift: float = 0.0) -> str
                 ),
             ],
         ),
+        "agg_trip_time_budget": _rows(
+            "select '{0}' line, {1} direction_id, 'a1' from_station_id, 'Alpha' from_station_name,"
+            " 'c1' to_station_id, 'Gamma' to_station_name, '{2}' time_band, '{3}' window_label,"
+            " {4} n_scheduled_trips, 0 n_excluded_outage, 0 n_implausible, {5} n_trips,"
+            " 0 n_disruption, {6}::double median_s, {7}::double p95_s,"
+            " {8}::double buffer_time_index, {5} coverage_numerator, {4} coverage_denominator,"
+            " {9}::double coverage_pct",
+            [
+                # Red Alpha to Gamma: a measured band, a band under the 20-trip minimum, a band
+                # with no measured trip and a band under 50% coverage
+                ("Red", 0, "am_peak", "last_24h", 45, 40, 840.0, 1260.0, 0.5, 88.9),
+                ("Red", 0, "midday", "last_24h", 15, 12, 800.0, 1000.0, 0.25, 80.0),
+                ("Red", 0, "pm_peak", "last_24h", 6, 0, "null", "null", "null", 0.0),
+                ("Red", 0, "evening", "last_24h", 60, 25, 780.0, 1100.0, 0.41, 41.7),
+                ("Red", 0, "am_peak", "last_7d", 300, 250, 850.0, 1300.0, 0.53, 83.3),
+            ],
+        ),
         "agg_slo_rollup": (
             "select 'transform_success' slo_name, 'last_7d' window_label, 99.0::double target_pct,"
             " 98 good_events, 99 total_events, 98.99::double actual_pct, true met,"
