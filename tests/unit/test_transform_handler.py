@@ -279,9 +279,14 @@ def _summary(caplog: pytest.LogCaptureFixture) -> dict[str, Any]:
 
 
 def test_handler_builds_exports_costs_and_publishes(
-    fakes: dict[str, Any], aws: Any, caplog: pytest.LogCaptureFixture
+    fakes: dict[str, Any],
+    aws: Any,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Any,
 ) -> None:
     caplog.set_level(logging.INFO)
+    monkeypatch.setenv("HEADWAY_CURATED_CACHE", str(tmp_path / "cache"))
     summary = handler.lambda_handler({}, None)
 
     load, build, test, export = fakes["dbt"]
@@ -296,7 +301,7 @@ def test_handler_builds_exports_costs_and_publishes(
     assert "tag:r2" in build  # Release 2 models are off by default
     assert test[0] == "test" and test[1:4] == ["--exclude", "resource_type:unit_test", "tag:r2"]
     assert json.loads(build[build.index("--vars") + 1]) == {
-        "curated_root": "s3://raw-bucket",
+        "curated_root": str(tmp_path / "cache"),  # the prefetched window, not s3://raw-bucket
         "city_prefix": "boston",
         "lookback_days": 7,
     }
@@ -318,7 +323,8 @@ def test_handler_builds_exports_costs_and_publishes(
     assert summary["rows_exported"] == 12
     assert summary["cost_rows"] == 1
     assert set(summary["step_ms"]) == {
-        "s3_load", "dbt_build", "dbt_test", "export_gold", "cost", "observability", "publish",
+        "s3_prefetch", "s3_load", "dbt_build", "dbt_test", "export_gold", "cost", "observability",
+        "publish",
     }  # fmt: skip
     assert all(isinstance(ms, int) and ms >= 0 for ms in summary["step_ms"].values())
 

@@ -71,6 +71,7 @@ def main() -> None:
     ap.add_argument(
         "--cpus", type=float, default=None, help="docker --cpus (Lambda: ~1.7 at 3008 MB)"
     )
+    ap.add_argument("--runs", type=int, default=1, help="invocations in a row on the same S3 state")
     ap.add_argument("--lookback-days", type=int, default=7)
     ap.add_argument("--image", default="headway-transform:local")
     ap.add_argument("--no-r2", action="store_true")
@@ -133,66 +134,76 @@ def main() -> None:
         for item in args.env:
             key, _, value = item.partition("=")
             env[key] = value
-        port = free_port()
-        cmd = [
-            "docker", "run", "-d", "--name", name, "--platform", "linux/arm64",
-            f"--memory={args.memory_mb}m", f"--memory-swap={args.memory_mb}m",
-            *([f"--cpus={args.cpus}"] if args.cpus else []),
-            "--read-only", "--ipc=none", "-v", f"{tmp}:/tmp", "--user", "993:990",
-            "-p", f"{port}:8080", "--add-host=host.docker.internal:host-gateway",
-            *[x for k, v in env.items() for x in ("-e", f"{k}={v}")],
-            "--entrypoint", "env", args.image, "-u", "HOME", "/lambda-entrypoint.sh",
-            "headway_transform.handler.lambda_handler",
-        ]  # fmt: skip
-        subprocess.run(cmd, check=True, capture_output=True)
-        for _ in range(60):
-            try:
-                socket.create_connection(("localhost", port), 1).close()
-                break
-            except OSError:
-                time.sleep(0.5)
-        time.sleep(3)  # the emulator accepts connections slightly before it serves invocations
-        sampler = Sampler(name)
-        sampler.start()
-        t0 = time.monotonic()
-        result = subprocess.run(
-            ["curl", "-s", "--max-time", "1800", "-XPOST",
-             f"localhost:{port}/2015-03-31/functions/function/invocations", "-d", "{}"],
-            capture_output=True, text=True, check=False,
-        )  # fmt: skip
-        wall = time.monotonic() - t0
-        sampler.stop_.set()
-        sampler.join(5)
-        logs = (
-            sh("docker", "logs", name)
-            + subprocess.run(
-                ["docker", "logs", name], capture_output=True, text=True, check=False
-            ).stderr
-        )
-        events = sh("docker", "exec", name, "cat", "/sys/fs/cgroup/memory.events")
-        cgroup_peak = sh("docker", "exec", name, "cat", "/sys/fs/cgroup/memory.peak")
-        oom = sh("docker", "inspect", name, "--format", "{{.State.OOMKilled}}")
-        (work / "container.log").write_text(logs)
-        summary = None
-        for line in logs.splitlines():
-            m = re.search(r"(\{.*\"step_ms\".*\})\s*$", line)
-            if m:
-                summary = json.loads(m.group(1))
-        report = {
-            "label": args.label,
-            "limit_mb": args.memory_mb,
-            "wall_s": round(wall, 1),
-            "oom_killed": oom,
-            "cgroup_events": events.replace("\n", " "),
-            "cgroup_peak_mb_incl_page_cache": round(int(cgroup_peak or 0) / 1048576),
-            "sampled_anon_mb": round(sampler.anon_mb),
-            "sampled_total_mb": round(sampler.total_mb),
-            "sampled_spill_mb": round(sampler.spill_mb),
-            "invocation": result.stdout[:400],
-            "summary": summary,
-        }
-        (work / "report.json").write_text(json.dumps(report, indent=2))
-        print(json.dumps(report, indent=2))  # noqa: T201
+        for run_idx in range(args.runs):
+            label = args.label if args.runs == 1 else f"{args.label}-run{run_idx + 1}"
+            work_run = work if args.runs == 1 else work / label
+            work_run.mkdir(parents=True, exist_ok=True)
+            tmp_run = work_run / "tmp"
+            shutil.rmtree(tmp_run, ignore_errors=True)
+            tmp_run.mkdir()
+            tmp_run.chmod(0o777)
+            name = f"headway-measure-{label}-{os.getpid()}"
+            port = free_port()
+            cmd = [
+                "docker", "run", "-d", "--name", name, "--platform", "linux/arm64",
+                f"--memory={args.memory_mb}m", f"--memory-swap={args.memory_mb}m",
+                *([f"--cpus={args.cpus}"] if args.cpus else []),
+                "--read-only", "--ipc=none", "-v", f"{tmp_run}:/tmp", "--user", "993:990",
+                "-p", f"{port}:8080", "--add-host=host.docker.internal:host-gateway",
+                *[x for k, v in env.items() for x in ("-e", f"{k}={v}")],
+                "--entrypoint", "env", args.image, "-u", "HOME", "/lambda-entrypoint.sh",
+                "headway_transform.handler.lambda_handler",
+            ]  # fmt: skip
+            subprocess.run(cmd, check=True, capture_output=True)
+            for _ in range(60):
+                try:
+                    socket.create_connection(("localhost", port), 1).close()
+                    break
+                except OSError:
+                    time.sleep(0.5)
+            time.sleep(3)  # the emulator accepts connections slightly before it serves invocations
+            sampler = Sampler(name)
+            sampler.start()
+            t0 = time.monotonic()
+            result = subprocess.run(
+                ["curl", "-s", "--max-time", "1800", "-XPOST",
+                 f"localhost:{port}/2015-03-31/functions/function/invocations", "-d", "{}"],
+                capture_output=True, text=True, check=False,
+            )  # fmt: skip
+            wall = time.monotonic() - t0
+            sampler.stop_.set()
+            sampler.join(5)
+            logs = (
+                sh("docker", "logs", name)
+                + subprocess.run(
+                    ["docker", "logs", name], capture_output=True, text=True, check=False
+                ).stderr
+            )
+            events = sh("docker", "exec", name, "cat", "/sys/fs/cgroup/memory.events")
+            cgroup_peak = sh("docker", "exec", name, "cat", "/sys/fs/cgroup/memory.peak")
+            oom = sh("docker", "inspect", name, "--format", "{{.State.OOMKilled}}")
+            (work_run / "container.log").write_text(logs)
+            summary = None
+            for line in logs.splitlines():
+                m = re.search(r"(\{.*\"step_ms\".*\})\s*$", line)
+                if m:
+                    summary = json.loads(m.group(1))
+            report = {
+                "label": label,
+                "limit_mb": args.memory_mb,
+                "wall_s": round(wall, 1),
+                "oom_killed": oom,
+                "cgroup_events": events.replace("\n", " "),
+                "cgroup_peak_mb_incl_page_cache": round(int(cgroup_peak or 0) / 1048576),
+                "sampled_anon_mb": round(sampler.anon_mb),
+                "sampled_total_mb": round(sampler.total_mb),
+                "sampled_spill_mb": round(sampler.spill_mb),
+                "invocation": result.stdout[:400],
+                "summary": summary,
+            }
+            (work_run / "report.json").write_text(json.dumps(report, indent=2))
+            print(json.dumps(report, indent=2))  # noqa: T201
+            subprocess.run(["docker", "rm", "-f", name], capture_output=True, check=False)
     finally:
         subprocess.run(["docker", "rm", "-f", name], capture_output=True, check=False)
         moto.terminate()

@@ -19,6 +19,7 @@ import boto3
 from headway_transform import (
     chaos,
     cost,
+    curated_cache,
     duckdb_limits,
     emf,
     facts_state,
@@ -754,11 +755,29 @@ def _facts_plan(s3: Any, lookback: int, now: datetime) -> facts_state.Plan | Non
         return None
 
 
-def _variables(lookback: int, now: datetime, facts: facts_state.Plan | None = None) -> str:
+def _prefetch(s3: Any, lookback: int, now: datetime) -> dict[str, Any] | None:
+    """Fetch the curated window in parallel; None (read S3 directly) when off or failed."""
+    if not curated_cache.enabled():
+        return None
+    try:
+        return curated_cache.prefetch(
+            s3, os.environ["RAW_BUCKET"], os.environ["CITY_ID"], now, lookback
+        )
+    except Exception:
+        logger.exception("could not prefetch the curated window, reading it from S3")
+        return None
+
+
+def _variables(
+    lookback: int,
+    now: datetime,
+    facts: facts_state.Plan | None = None,
+    curated_root: str | None = None,
+) -> str:
     """The dbt vars of a run. Release 2 adds the history root and metric versions (ADR-015), and
     the closed-day facts plan (ADR-024) when there is one."""
     variables: dict[str, Any] = {
-        "curated_root": f"s3://{os.environ['RAW_BUCKET']}",
+        "curated_root": curated_root or f"s3://{os.environ['RAW_BUCKET']}",
         "city_prefix": os.environ["CITY_ID"],
         "lookback_days": lookback,
     }
@@ -930,7 +949,14 @@ def _transform(
     if facts_plan is not None:
         summary.update(facts_plan.summary())
         timed("facts_plan", t0)
-    variables = _variables(lookback, _now(), facts_plan)
+    t0 = time.monotonic()
+    fetched = _prefetch(s3, lookback, _now())
+    if fetched is not None:
+        summary["curated_prefetch"] = {k: v for k, v in fetched.items() if k != "root"}
+        timed("s3_prefetch", t0)
+    variables = _variables(
+        lookback, _now(), facts_plan, fetched["root"] if fetched is not None else None
+    )
     if publish.r2_enabled() and publish.r3_enabled():
         variables = _with_forecast_as_of(variables, _now())
         t0 = time.monotonic()

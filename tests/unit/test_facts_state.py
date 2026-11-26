@@ -77,9 +77,9 @@ def test_the_first_run_computes_every_day_and_persists_the_closed_ones(
 ) -> None:
     plan, written = _run(s3, tmp_path, BEFORE_CLOSE, DATA)
     assert plan.persisted == [] and plan.compute == facts_state.window_days(BEFORE_CLOSE, 7)
-    # the 21st has not closed yet; the 15th has no data in this fixture
+    # the 21st has not closed yet; the 15th has no data in this fixture and is persisted empty
     assert _persisted(s3) == [
-        "2026-11-16", "2026-11-17", "2026-11-18", "2026-11-19", "2026-11-20",
+        "2026-11-15", "2026-11-16", "2026-11-17", "2026-11-18", "2026-11-19", "2026-11-20",
     ]  # fmt: skip
     assert written.written["fct_headways"] == _persisted(s3)
 
@@ -147,7 +147,7 @@ def test_the_plan_is_reported_as_computed_versus_loaded_days(s3: Any, tmp_path: 
     _run(s3, tmp_path, BEFORE_CLOSE, DATA)
     plan, _ = _run(s3, tmp_path, AFTER_CLOSE, DATA)
     summary = plan.summary()
-    assert summary["facts_loaded_days"][0] == "2026-11-16"
+    assert summary["facts_loaded_days"][0] == "2026-11-15"
     assert (
         "2026-11-21" in summary["facts_computed_days"]
         and "2026-11-22" in summary["facts_computed_days"]
@@ -202,3 +202,24 @@ def test_a_rebuild_payload_is_validated() -> None:
     ):
         with pytest.raises(ValueError):
             facts_state.validate_rebuild(bad)
+
+
+def test_a_closed_day_without_rows_is_persisted_empty_and_not_computed_again(
+    s3: Any, tmp_path: Path
+) -> None:
+    data = [d for d in DATA if d != date(2026, 11, 18)]  # an outage day: no rows in any fact
+    _run(s3, tmp_path, AFTER_CLOSE, data)
+    assert "2026-11-18" in _persisted(s3)
+    key = facts_state.key_for("fct_headways", 1, date(2026, 11, 18))
+    path = tmp_path / "part.parquet"
+    s3.download_file("raw", key, str(path))
+    assert duckdb.sql(f"select count(*) from read_parquet('{path}')").fetchone() == (0,)
+    assert [
+        c[0] for c in duckdb.sql(f"describe select * from read_parquet('{path}')").fetchall()
+    ] == [
+        "service_date",
+        "n",
+    ]  # the schema is kept
+    plan, written = _run(s3, tmp_path, AFTER_CLOSE.replace(hour=13), data)
+    assert date(2026, 11, 18) in plan.persisted
+    assert written.n_written == 0

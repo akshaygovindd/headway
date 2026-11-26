@@ -166,12 +166,19 @@ def write_closed_days(
             if table not in present:
                 logger.warning("facts: %s was not built, skipped", table)
                 continue
-            dates = [
-                r[0]
-                for r in con.execute(
-                    f"select distinct service_date from main.{table} order by 1"  # noqa: S608
-                ).fetchall()
-            ]
+            # Every day of the window, not only the days that have rows: a closed day can have
+            # none in a fact (an outage day has no headways), and without a partition it would be
+            # computed again by every run. An empty partition keeps the schema and says "done".
+            dates = (
+                window_days(now, lookback_days)
+                if lookback_days is not None
+                else [
+                    r[0]
+                    for r in con.execute(
+                        f"select distinct service_date from main.{table} order by 1"  # noqa: S608
+                    ).fetchall()
+                ]
+            )
             for day in dates:
                 if day in skipped or (wanted is not None and day not in wanted):
                     continue
