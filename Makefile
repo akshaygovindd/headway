@@ -104,7 +104,7 @@ AWS_REGION ?= us-east-1
 TFVARS := infra/main/terraform.tfvars
 # ENABLE_R3 / ENABLE_R4 default to enable_r3 / enable_r4 in terraform.tfvars (false when unset), so
 # the train and api images, and their ECR repositories, are only used when Terraform creates them.
-tfvar_flag = $(shell sed -nE 's/^$(1)[[:space:]]*=[[:space:]]*(true|false)([[:space:]]*\#.*)?[[:space:]]*$$/\1/p' $(TFVARS) 2>/dev/null | tail -n 1)
+tfvar_flag = $(shell sed -nE 's/^[[:space:]]*$(1)[[:space:]]*=[[:space:]]*(true|false)([[:space:]]*\#.*)?[[:space:]]*$$/\1/p' $(TFVARS) 2>/dev/null | tail -n 1)
 ENABLE_R3 ?= $(call tfvar_flag,enable_r3)
 ENABLE_R4 ?= $(call tfvar_flag,enable_r4)
 # Smoke tests and `make images-build` always cover every image. Only what is pushed is filtered.
