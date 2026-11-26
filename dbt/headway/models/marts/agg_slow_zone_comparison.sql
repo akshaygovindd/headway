@@ -9,20 +9,28 @@
 -- official_status is 'captured' when the snapshot has rows, else 'not_captured' (every flagged
 -- segment is then observed_only and the site says "official list not captured yet"). The snapshot is
 -- a snapshot: snapshot_date is its latest captured_on.
-with flagged as (
-    select
-        line, direction_id, from_stop_id, to_stop_id,
-        bool_or(flagged) as is_flagged,
-        max(case severity when 'severe' then 3 when 'moderate' then 2 when 'minor' then 1 end) as severity_rank,
-        max(excess_s) filter (where flagged) as worst_excess_s,
-        max(n_trips) filter (where flagged) as n_trips,
-        list(distinct time_band order by time_band) filter (where flagged) as flagged_bands,
-        min(first_seen) filter (where flagged) as first_seen,
-        max(last_seen) filter (where flagged) as last_seen,
-        max(coverage_pct) as coverage_pct,
-        max(n_trips) as max_n_trips
+{% set min_trips = var('slow_segments', {}).get('min_trips', 15) %}
+{% set min_cov = var('slow_segments', {}).get('min_coverage_pct', 50) %}
+with observed as (
+    select *, coalesce(coverage_pct, 0) >= {{ min_cov }} as covered
     from {{ ref('agg_slow_segments') }}
     where window_label = 'last_7d'
+),
+
+flagged as (
+    select
+        line, direction_id, from_stop_id, to_stop_id,
+        bool_or(flagged and covered) as is_flagged,
+        max(case severity when 'severe' then 3 when 'moderate' then 2 when 'minor' then 1 end)
+            filter (where flagged and covered) as severity_rank,
+        max(excess_s) filter (where flagged and covered) as worst_excess_s,
+        max(n_trips) filter (where flagged and covered) as n_trips,
+        list(distinct time_band order by time_band) filter (where flagged and covered) as flagged_bands,
+        min(first_seen) filter (where flagged and covered) as first_seen,
+        max(last_seen) filter (where flagged and covered) as last_seen,
+        max(coverage_pct) filter (where flagged and covered) as coverage_pct,
+        max(n_trips) filter (where covered) as max_n_trips
+    from observed
     group by 1, 2, 3, 4
 ),
 
@@ -99,7 +107,7 @@ select
     end as status,
     case
         when s.is_flagged then 'flagged'
-        when coalesce(s.max_n_trips, 0) >= {{ var('slow_segments', {}).get('min_trips', 15) }} then 'not_flagged'
+        when coalesce(s.max_n_trips, 0) >= {{ min_trips }} then 'not_flagged'
         else 'not_enough_data'
     end as observed_status,
     case s.severity_rank when 3 then 'severe' when 2 then 'moderate' when 1 then 'minor' end as severity,

@@ -406,7 +406,8 @@ def build(base: Path, exported_at: str = EXPORTED_AT, shift: float = 0.0) -> str
         ),
         "agg_slow_zone_comparison": _rows(
             "select '{0}' row_key, '{1}' line, {2}::integer direction_id,"
-            " {3}::varchar from_stop_id, {4}::varchar from_stop_name, {5}::varchar to_stop_id, {6}::varchar to_stop_name,"
+            " {3}::varchar from_stop_id, {4}::varchar from_stop_name, {5}::varchar to_stop_id,"
+            " {6}::varchar to_stop_name,"
             " {7}::integer segment_order, '{8}' status, '{9}' observed_status,"
             " {10}::varchar severity, {11}::double worst_excess_s, {12}::bigint n_trips,"
             " {13}::varchar[] flagged_bands, null::timestamptz first_seen,"

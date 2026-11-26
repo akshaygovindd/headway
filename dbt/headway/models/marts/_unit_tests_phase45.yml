@@ -279,7 +279,9 @@ unit_tests:
       in midday, minor in am_peak: the strongest band wins, both bands are named) and e-f (not
       listed: observed_only). c-d is listed but not flagged with 40 trips seen (listed_only,
       not_flagged); R3 has no mapping and stays as listed_unmapped. A segment seen with 5 trips
-      only would be not_enough_data (g-h, listed by nothing: it is not a row at all).
+      only (g-h) and a segment flagged at 40 % coverage (i-j, severe) are not counted as flagged and,
+      listed by nothing, are not rows at all; a last_24h row is not compared (a-b severity stays that
+      of last_7d).
     model: agg_slow_zone_comparison
     overrides:
       vars:
@@ -292,6 +294,8 @@ unit_tests:
           - {line: Red, direction_id: 0, from_stop_id: e, to_stop_id: f, time_band: midday, window_label: last_7d, n_trips: 25, flagged: true, severity: moderate, excess_s: 70.0, first_seen: "2026-11-23 15:01:00+00", last_seen: "2026-11-23 16:30:00+00", coverage_pct: 85.0}
           - {line: Red, direction_id: 0, from_stop_id: c, to_stop_id: d, time_band: midday, window_label: last_7d, n_trips: 40, flagged: false, severity: null, excess_s: 5.0, first_seen: "2026-11-23 15:01:00+00", last_seen: "2026-11-23 16:30:00+00", coverage_pct: 95.0}
           - {line: Red, direction_id: 0, from_stop_id: g, to_stop_id: h, time_band: midday, window_label: last_7d, n_trips: 5, flagged: false, severity: null, excess_s: 0.0, first_seen: "2026-11-23 15:01:00+00", last_seen: "2026-11-23 16:30:00+00", coverage_pct: 50.0}
+          - {line: Red, direction_id: 0, from_stop_id: i, to_stop_id: j, time_band: midday, window_label: last_7d, n_trips: 30, flagged: true, severity: severe, excess_s: 200.0, first_seen: "2026-11-23 15:01:00+00", last_seen: "2026-11-23 16:30:00+00", coverage_pct: 40.0}
+          - {line: Red, direction_id: 0, from_stop_id: a, to_stop_id: b, time_band: midday, window_label: last_24h, n_trips: 8, flagged: true, severity: severe, excess_s: 300.0, first_seen: "2026-11-23 15:01:00+00", last_seen: "2026-11-23 16:30:00+00", coverage_pct: 90.0}
       - input: ref('agg_headway_segment_window')
         rows:
           - {line: Red, direction_id: 0, from_stop_id: a, to_stop_id: b, from_stop_name: "a name", to_stop_name: "b name", window_label: last_24h, segment_order: 1}

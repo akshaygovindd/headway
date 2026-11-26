@@ -608,6 +608,8 @@ measure: they re-cut the headways, trip times, alerts, reconstructed arrivals an
   `snapshot_date` is the latest `captured_on`. The site always labels it a snapshot. A list
   location is matched to segments through the seed `official_location_to_segment`; a row with no
   mapping stays in the table as `listed_unmapped` and is shown, never dropped.
+- **Coverage:** a band under 50 % coverage (`min_coverage_pct`) is not counted as flagged here and
+  its segment is `not_enough_data` (it stays in `/v1/slow-zones` `segments`, values withheld).
 - **Empty snapshot:** with no rows, `official_status` is `not_captured`, every flagged segment is
   `observed_only` and the site says "official list not captured yet" instead of "not on the list".
 - **Grain:** line x direction_id x from_stop_id x to_stop_id (one status per segment, from the `last_7d`
