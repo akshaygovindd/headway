@@ -45,6 +45,20 @@ def test_incremental_equals_full_on_the_sample(sample_root: Path) -> None:
     assert "incremental == full" in proc.stdout
 
 
+def test_two_full_builds_are_identical_on_the_sample(sample_root: Path) -> None:
+    # determinism: lists are compared in stored order and no column is ignored
+    proc = _check(sample_root, "--twice")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "two full builds identical" in proc.stdout
+
+
+@pytest.mark.skipif(not REAL.exists(), reason="the 27 h real capture is not on this machine")
+def test_two_full_builds_are_identical_on_27_hours_of_real_data() -> None:
+    proc = _check(REAL, "--twice")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "two full builds identical" in proc.stdout
+
+
 @pytest.mark.skipif(not REAL.exists(), reason="the 27 h real capture is not on this machine")
 def test_incremental_equals_full_on_27_hours_of_real_data() -> None:
     # service day 22 persisted, 23 computed: trips and arrivals cross the UTC date boundary

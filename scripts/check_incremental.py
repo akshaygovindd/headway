@@ -28,11 +28,9 @@ from headway_transform import facts_state  # noqa: E402
 
 DBT = ["uv", "run", "--project", "dbt", "dbt"]
 DBT_ARGS = ["--project-dir", "dbt/headway", "--profiles-dir", "dbt/headway", "--target", "local"]
-# Run bookkeeping and test-run output differ between any two builds by design.
-# Columns that differ between two FULL builds of the same data (the first and last affected station
-# follow the unordered list(distinct station_id) of int_alert_scopes), so they cannot tell a full
-# from an incremental build. Found by comparing two full builds of samples/boston.
-IGNORE_COLUMNS = {"agg_service_disruptions": {"from_station_name", "to_station_name"}}
+# Run bookkeeping and test-run output differ between any two builds by design. Nothing else is
+# ignored: list columns are compared in their stored order, so an unordered list(distinct ...)
+# fails here (see --twice, which proves two full builds are identical).
 SKIP_PREFIXES = ("elementary", "dbt_", "agg_transform_runs", "stg_transform_runs")
 
 
@@ -116,13 +114,12 @@ def compare(full: Path, inc: Path) -> list[str]:
             problems.append(f"{name}: only in {'full' if name in tables[f_] else 'incremental'}")
             continue
         cols = ", ".join(
-            f"list_sort({c}) as {c}" if str(t).endswith("[]") else c
-            for c, t in con.execute(
+            c
+            for c, _t in con.execute(
                 f"select column_name, data_type from information_schema.columns "  # noqa: S608
                 f"where table_catalog = '{f_}' and table_name = '{name}' order by ordinal_position"
             ).fetchall()
-            if c not in IGNORE_COLUMNS.get(name, set())
-        )  # list order is not deterministic (list(distinct ...)): compare lists sorted
+        )
         count = {
             a: con.execute(f"select count(*) from {a}.main.{name}").fetchone()[0]  # type: ignore[index]  # noqa: S608
             for a in sides
@@ -148,6 +145,10 @@ def main() -> int:
     ap.add_argument("--curated-root", type=Path, required=True)
     ap.add_argument("--persist", type=int, default=1, help="how many of the first days to persist")
     ap.add_argument(
+        "--twice", action="store_true",
+        help="determinism proof: build the project twice in full and compare the two builds",
+    )  # fmt: skip
+    ap.add_argument(
         "--tamper", action="store_true",
         help="negative control: empty a persisted partition, the comparison must then fail",
     )  # fmt: skip
@@ -160,6 +161,13 @@ def main() -> int:
         base = {"curated_root": str(args.curated_root.resolve())}
         full, inc = work / "fullbuild.duckdb", work / "incbuild.duckdb"
         build(full, base)
+        if args.twice:
+            build(inc, base)
+            problems = compare(full, inc)
+            for line in problems:
+                print("DIFF", line, file=sys.stderr)  # noqa: T201
+            print("two full builds identical" if not problems else "two full builds DIFFER")  # noqa: T201
+            return 1 if problems else 0
         days = service_days(full)
         persisted, compute = days[: args.persist], days[args.persist :]
         facts_root = work / "facts"

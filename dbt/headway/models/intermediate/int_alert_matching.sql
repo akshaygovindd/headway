@@ -13,8 +13,8 @@ with alerts as (
     select
         line,
         alert_id,
-        any_value(effect) as effect,
-        any_value(header_text) as header_text,
+        arg_max(effect, (last_seen, service_date, hour_local)) as effect,
+        arg_max(header_text, (last_seen, service_date, hour_local)) as header_text,
         min(first_seen) as first_seen,
         max(last_seen) as last_seen
     from {{ ref('int_alert_scopes') }}
@@ -42,9 +42,9 @@ incident_side as (
         {{ service_date_naive('i.incident_start') }} as service_date,
         count(p.alert_id) as n_counterparts,
         case when count(p.alert_id) > 0 then 'matched' else 'unmatched_incident' end as match_status,
-        arg_min(p.alert_lag_s, p.first_seen) as alert_lag_s,
-        arg_min(p.alert_id, p.first_seen) as first_alert_id,
-        string_agg(distinct p.alert_id, ',') as counterpart_ids
+        arg_min(p.alert_lag_s, (p.first_seen, p.alert_id)) as alert_lag_s,
+        arg_min(p.alert_id, (p.first_seen, p.alert_id)) as first_alert_id,
+        string_agg(distinct p.alert_id, ',' order by p.alert_id) as counterpart_ids
     from {{ ref('fct_incidents') }} i
     left join pairs p on p.incident_id = i.incident_id
     group by i.incident_id, i.line, i.incident_start_ts, i.incident_start
@@ -61,7 +61,7 @@ alert_side as (
         case when count(p.incident_id) > 0 then 'matched' else 'unmatched_alert' end as match_status,
         cast(null as double) as alert_lag_s,
         cast(null as varchar) as first_alert_id,
-        string_agg(distinct p.incident_id, ',') as counterpart_ids
+        string_agg(distinct p.incident_id, ',' order by p.incident_id) as counterpart_ids
     from alerts a
     left join pairs p on p.alert_id = a.alert_id and p.line = a.line
     group by a.alert_id, a.line, a.first_seen

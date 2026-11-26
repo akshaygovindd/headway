@@ -12,12 +12,12 @@ with alerts as (
     select
         a.line,
         a.alert_id,
-        any_value(a.effect) as effect,
-        arg_max(a.header_text, a.last_seen) as header_text,
+        arg_max(a.effect, (a.last_seen, a.hour_local)) as effect,
+        arg_max(a.header_text, (a.last_seen, a.hour_local)) as header_text,
         min(a.first_seen) as first_seen,
         max(a.last_seen) as last_seen,
         bool_or(w.hour_start = (select max(hour_start) from {{ ref('int_window_hours') }} where window_label = 'last_24h')) as is_active,
-        list_distinct(flatten(list(a.station_ids))) as station_ids
+        list_sort(list_distinct(flatten(list(a.station_ids)))) as station_ids
     from {{ ref('int_alert_scopes') }} a
     join {{ ref('int_window_hours') }} w
         on w.window_label = 'last_24h' and w.service_date = a.service_date and w.hour_local = a.hour_local
@@ -49,8 +49,8 @@ ends as (
     select
         x.line,
         x.alert_id,
-        arg_min(n.station_name, p.pos) as from_station_name,
-        arg_max(n.station_name, p.pos) as to_station_name
+        arg_min(n.station_name, (p.pos, x.station_id)) as from_station_name,
+        arg_max(n.station_name, (p.pos, x.station_id)) as to_station_name
     from alert_stations x
     join positions p on p.line = x.line and p.station_id = x.station_id
     join (select distinct station_id, station_name from {{ ref('int_stop_stations') }}) n on n.station_id = x.station_id

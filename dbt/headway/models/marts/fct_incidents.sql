@@ -87,7 +87,8 @@ alerts as (
     select
         i.line, i.direction_id, i.island,
         to_json(coalesce(
-            list(distinct struct_pack(alert_id := s.alert_id, effect := s.effect, header := s.header_text))
+            list(distinct struct_pack(alert_id := s.alert_id, effect := s.effect, header := s.header_text)
+                order by struct_pack(alert_id := s.alert_id, effect := s.effect, header := s.header_text))
                 filter (where s.alert_id is not null),
             []
         )) as alerts_json

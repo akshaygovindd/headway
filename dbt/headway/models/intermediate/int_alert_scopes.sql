@@ -36,19 +36,19 @@ per_alert as (
         hour_local,
         line,
         alert_id,
-        any_value(effect) as effect,
-        any_value(header_text) as header_text,
+        arg_max(effect, (fetched_at, capture_id)) as effect,
+        arg_max(header_text, (fetched_at, capture_id)) as header_text,
         min(fetched_at) as first_seen,
         max(fetched_at) as last_seen,
         (
-            any_value(effect) in ('DETOUR', 'NO_SERVICE', 'REDUCED_SERVICE', 'SIGNIFICANT_DELAYS', 'MODIFIED_SERVICE')
-            or regexp_matches(coalesce(any_value(header_text), ''), 'shuttle|suspen', 'i')
+            arg_max(effect, (fetched_at, capture_id)) in ('DETOUR', 'NO_SERVICE', 'REDUCED_SERVICE', 'SIGNIFICANT_DELAYS', 'MODIFIED_SERVICE')
+            or regexp_matches(coalesce(arg_max(header_text, (fetched_at, capture_id)), ''), 'shuttle|suspen', 'i')
         ) as is_service_disruption,
         bool_or(stop_id is null) as route_level,
         count(distinct station_id) as n_stops,
-        list(distinct station_id) filter (where station_id is not null) as station_ids,
+        list(distinct station_id order by station_id) filter (where station_id is not null) as station_ids,
         string_agg(distinct station_name, ', ' order by station_name) filter (where station_name is not null) as stop_names,
-        list(distinct capture_id) as capture_ids
+        list(distinct capture_id order by capture_id) as capture_ids
     from entities
     group by 1, 2, 3, 4
 )
