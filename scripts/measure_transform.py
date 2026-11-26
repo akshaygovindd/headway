@@ -68,6 +68,9 @@ def main() -> None:
     ap.add_argument("--curated", type=Path, required=True)
     ap.add_argument("--label", required=True)
     ap.add_argument("--memory-mb", type=int, default=3008)
+    ap.add_argument(
+        "--cpus", type=float, default=None, help="docker --cpus (Lambda: ~1.7 at 3008 MB)"
+    )
     ap.add_argument("--lookback-days", type=int, default=7)
     ap.add_argument("--image", default="headway-transform:local")
     ap.add_argument("--no-r2", action="store_true")
@@ -134,6 +137,7 @@ def main() -> None:
         cmd = [
             "docker", "run", "-d", "--name", name, "--platform", "linux/arm64",
             f"--memory={args.memory_mb}m", f"--memory-swap={args.memory_mb}m",
+            *([f"--cpus={args.cpus}"] if args.cpus else []),
             "--read-only", "--ipc=none", "-v", f"{tmp}:/tmp", "--user", "993:990",
             "-p", f"{port}:8080", "--add-host=host.docker.internal:host-gateway",
             *[x for k, v in env.items() for x in ("-e", f"{k}={v}")],
@@ -147,6 +151,7 @@ def main() -> None:
                 break
             except OSError:
                 time.sleep(0.5)
+        time.sleep(3)  # the emulator accepts connections slightly before it serves invocations
         sampler = Sampler(name)
         sampler.start()
         t0 = time.monotonic()
