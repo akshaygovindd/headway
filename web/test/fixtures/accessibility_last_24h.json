@@ -1,0 +1,131 @@
+{
+ "data": {
+  "line": null,
+  "window": "last_24h",
+  "station": null,
+  "signal": "announced outages (service alerts), not the facility's own status",
+  "n_stations_in_network": 125,
+  "n_stations_out_now": 3,
+  "stations": [
+   {
+    "station_id": "place-bomnl",
+    "station_name": "Bowdoin",
+    "lines": [
+     "Blue"
+    ],
+    "n_outages": 1,
+    "n_elevator_outages": 0,
+    "n_escalator_outages": 1,
+    "outage_hours": 22.5,
+    "currently_out": true,
+    "n_currently_out": 1,
+    "longest_open_outage_h": 41142.0,
+    "current_outage_text": [
+     "Bowdoin Escalator 125 (Lobby to street) is unavailable until further notice, pending replacement."
+    ],
+    "coverage_pct": 91.7,
+    "withheld_reason": null
+   },
+   {
+    "station_id": "place-alfcl",
+    "station_name": "Alewife",
+    "lines": [
+     "Red"
+    ],
+    "n_outages": 3,
+    "n_elevator_outages": 0,
+    "n_escalator_outages": 3,
+    "outage_hours": 22.5,
+    "currently_out": true,
+    "n_currently_out": 3,
+    "longest_open_outage_h": 4698.4,
+    "current_outage_text": [
+     "Alewife Escalator 351 (Main concourse to platform) is unavailable due to maintenance.",
+     "Alewife Escalator 354 (Main concourse to garage level 2) is unavailable.",
+     "Alewife Escalator 361 (Platform to concourse) is unavailable."
+    ],
+    "coverage_pct": 91.7,
+    "withheld_reason": null
+   },
+   {
+    "station_id": "place-bbsta",
+    "station_name": "Back Bay",
+    "lines": [
+     "Orange"
+    ],
+    "n_outages": 1,
+    "n_elevator_outages": 1,
+    "n_escalator_outages": 0,
+    "outage_hours": 22.5,
+    "currently_out": true,
+    "n_currently_out": 1,
+    "longest_open_outage_h": 1030.5,
+    "current_outage_text": [
+     "Back Bay Elevator 854 (Commuter Rail track 2 to lobby) is unavailable."
+    ],
+    "coverage_pct": 91.7,
+    "withheld_reason": null
+   },
+   {
+    "station_id": "place-davis",
+    "station_name": "Davis",
+    "lines": [
+     "Red"
+    ],
+    "n_outages": 2,
+    "n_elevator_outages": 0,
+    "n_escalator_outages": 2,
+    "outage_hours": 6.5,
+    "currently_out": false,
+    "n_currently_out": 0,
+    "longest_open_outage_h": null,
+    "current_outage_text": [],
+    "coverage_pct": 91.7,
+    "withheld_reason": null
+   },
+   {
+    "station_id": "place-pktrm",
+    "station_name": "Park Street",
+    "lines": [
+     "Green-B",
+     "Green-C",
+     "Green-D",
+     "Green-E",
+     "Red"
+    ],
+    "n_outages": 1,
+    "n_elevator_outages": 1,
+    "n_escalator_outages": 0,
+    "outage_hours": 0.5,
+    "currently_out": false,
+    "n_currently_out": 0,
+    "longest_open_outage_h": null,
+    "current_outage_text": [],
+    "coverage_pct": 91.7,
+    "withheld_reason": null
+   }
+  ]
+ },
+ "coverage": {
+  "rows": 5,
+  "mean_coverage_pct": null,
+  "min_coverage_pct": null,
+  "withheld_rows": 0,
+  "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+ },
+ "freshness": {
+  "exported_at": "2026-11-24T12:00:00Z",
+  "metrics_as_of": "2026-11-24T11:45:00Z",
+  "age_minutes": 12.0
+ },
+ "provenance": {
+  "tables": [
+   "agg_accessibility_outages"
+  ],
+  "definition": "Announced elevator and escalator outages per station",
+  "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+  "row_limit": 500,
+  "truncated": false,
+  "served_from": "remote"
+ }
+}

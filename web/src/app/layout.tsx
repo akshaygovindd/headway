@@ -30,6 +30,7 @@ const NAV = [
   ["/#accuracy", "Accuracy"],
   ["/incidents", "Incidents"],
   ["/slow-zones", "Slow zones"],
+  ["/accessibility", "Elevators"],
   ["/forecast", "Forecast"],
   ["/pipeline", "Pipeline"],
   ["/how-we-measure", "Methodology"],

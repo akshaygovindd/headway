@@ -13,7 +13,7 @@ describe("keyboard-only navigation", () => {
     render(await shell(<p>content</p>));
     const order = [screen.getByRole("link", { name: "Skip to content" }), screen.getByRole("link", { name: "Headway" }), ...nav()];
     expect(order.map((l) => l.textContent)).toEqual([
-      "Skip to content", "Headway", "Lines", "Accuracy", "Incidents", "Slow zones", "Forecast", "Pipeline", "Methodology", "GitHub",
+      "Skip to content", "Headway", "Lines", "Accuracy", "Incidents", "Slow zones", "Elevators", "Forecast", "Pipeline", "Methodology", "GitHub",
     ]);
     for (const el of order) {
       await user.tab();

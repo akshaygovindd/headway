@@ -106,6 +106,12 @@ export const DEFINITIONS: Record<string, MetricDefinition> = {
     anchor: "slow-segments-agg_slow_segments",
     table: "agg_slow_segments",
   },
+  outage_hours: {
+    label: "Elevator and escalator outage hours",
+    what: "Hours in which the MBTA announced an elevator or escalator out of service at the station, from its service alerts (overlapping alerts counted once). It shows what was announced, not the equipment's own status.",
+    anchor: "elevator-and-escalator-outages-agg_accessibility_outages",
+    table: "agg_accessibility_outages",
+  },
   spacing_hour: {
     label: "Spacing by hour",
     what: "Share of gaps between trains within the expected band in one service hour, both directions combined.",

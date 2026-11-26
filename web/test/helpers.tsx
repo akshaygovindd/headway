@@ -25,6 +25,7 @@ export const PAGES: { name: string; load: () => Promise<ReactElement> }[] = [
   { name: "/lines/Red/budget (measured pair)", load: async () => (await import("@/app/lines/[line]/budget/page")).default({ params: Promise.resolve({ line: "Red" }), searchParams: Promise.resolve({ from: "place-davis", to: "place-harvard" }) }) },
   { name: "/lines/Red/budget (every band withheld)", load: async () => (await import("@/app/lines/[line]/budget/page")).default({ params: Promise.resolve({ line: "Red" }), searchParams: Promise.resolve({ from: "place-alewife", to: "place-braintree", window: "last_24h" }) }) },
   { name: "/lines/Red/budget (no trip between them)", load: async () => (await import("@/app/lines/[line]/budget/page")).default({ params: Promise.resolve({ line: "Red" }), searchParams: Promise.resolve({ from: "place-braintree", to: "place-davis" }) }) },
+  { name: "/accessibility", load: async () => (await import("@/app/accessibility/page")).default() },
   { name: "/slow-zones", load: async () => (await import("@/app/slow-zones/page")).default() },
   { name: "/incidents", load: async () => (await import("@/app/incidents/page")).default() },
   { name: "/forecast", load: async () => (await import("@/app/forecast/page")).default() },

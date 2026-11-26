@@ -132,6 +132,19 @@ export function respond(path, search = "") {
     if (what === "marey") return { status: 200, body: mareyFor(line, params) };
     return { status: 200, body: forLine(load(`lines_Red_${what}`), line, params.get("window")) };
   }
+  if (path === "/v1/accessibility") {
+    const win = params.get("window") ?? "last_24h";
+    if (!["last_24h", "last_7d"].includes(win)) return { status: 422, body: { error: "validation_error" } };
+    const body = load(`accessibility_${win}`);
+    const line = params.get("line");
+    if (line) {
+      if (!LINES.includes(line)) return { status: 422, body: { error: "validation_error" } };
+      body.data.line = line;
+      body.data.stations = body.data.stations.filter((s) => s.lines.includes(line));
+      body.data.n_stations_out_now = body.data.stations.filter((s) => s.currently_out).length;
+    }
+    return { status: 200, body };
+  }
   if (path === "/v1/slow-zones") {
     // The captured-snapshot state; MOCK_SLOW_ZONES=not-captured serves the committed empty state.
     const body = load(process.env.MOCK_SLOW_ZONES === "not-captured" ? "slow-zones_not-captured" : "slow-zones");

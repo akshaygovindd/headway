@@ -383,6 +383,32 @@ export type SlowZonesData = {
   comparison: SlowComparisonRow[];
 };
 
+export type AccessibilityStation = {
+  station_id: string;
+  station_name: string;
+  lines: string[];
+  n_outages: number | null;
+  n_elevator_outages: number | null;
+  n_escalator_outages: number | null;
+  outage_hours: number | null;
+  currently_out: boolean;
+  n_currently_out: number;
+  longest_open_outage_h: number | null;
+  current_outage_text: string[];
+  coverage_pct: number | null;
+  withheld_reason: string | null;
+};
+
+export type AccessibilityData = {
+  line: string | null;
+  window: string;
+  station: string | null;
+  signal: string;
+  n_stations_in_network: number;
+  n_stations_out_now: number;
+  stations: AccessibilityStation[];
+};
+
 export type SpacingStatus = "measured" | "withheld" | "no_headways" | "outage";
 
 export type SpacingHour = {
