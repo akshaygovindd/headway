@@ -405,12 +405,13 @@ def build(base: Path, exported_at: str = EXPORTED_AT, shift: float = 0.0) -> str
             ],
         ),
         "agg_slow_zone_comparison": _rows(
-            "select '{0}' row_key, '{1}' line, {2}::integer direction_id, {3}::varchar from_stop_id,"
-            " {4}::varchar from_stop_name, {5}::varchar to_stop_id, {6}::varchar to_stop_name,"
+            "select '{0}' row_key, '{1}' line, {2}::integer direction_id,"
+            " {3}::varchar from_stop_id, {4}::varchar from_stop_name, {5}::varchar to_stop_id, {6}::varchar to_stop_name,"
             " {7}::integer segment_order, '{8}' status, '{9}' observed_status,"
             " {10}::varchar severity, {11}::double worst_excess_s, {12}::bigint n_trips,"
             " {13}::varchar[] flagged_bands, null::timestamptz first_seen,"
-            " null::timestamptz last_seen, {14}::double coverage_pct, {15}::varchar[] restriction_ids,"
+            " null::timestamptz last_seen, {14}::double coverage_pct,"
+            " {15}::varchar[] restriction_ids,"
             " {16}::integer official_speed_limit_mph, {17}::date official_date_reported,"
             " {18}::varchar location_text, 'captured' official_status,"
             " date '2026-11-20' snapshot_date,"
