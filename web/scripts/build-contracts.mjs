@@ -3,6 +3,9 @@
 //   dbt/headway/models/marts/_aggregates.yml  descriptions, grain, columns, dbt tests
 //   src/headway_api/queries.py                which gold tables the API serves, value columns, anchors
 //   docs/METRICS.md                           headings, to prove every anchor exists
+//   src/data/gold-column-types.json           the real Parquet type of every gold column (the
+//                                             gold export manifest's column_types, snapshot by
+//                                             scripts/snapshot_gold_types.py)
 // Output is deterministic and committed. `node scripts/build-contracts.mjs --check` fails if it drifted.
 import fs from "node:fs";
 import path from "node:path";
@@ -69,6 +72,29 @@ const TYPE_RULES = [
   [/(^|_)(id|name|text|reason|status|label|bucket|hash|json|line|window|method|slo_name|metric|template_used|run_id)$|^line$/, "string"],
   [/(_s|_pct|_ratio|_share|_rate)$|^(pct_|median_|p90_|mae|target_pct|actual_pct|error_budget_used)/, "double"],
 ];
+// DuckDB / Parquet type names the gold export writes, mapped to the contract vocabulary.
+const PARQUET_TYPES = {
+  VARCHAR: "string",
+  BIGINT: "integer",
+  INTEGER: "integer",
+  SMALLINT: "integer",
+  TINYINT: "integer",
+  UBIGINT: "integer",
+  DOUBLE: "double",
+  FLOAT: "double",
+  BOOLEAN: "boolean",
+  DATE: "date",
+  TIMESTAMP: "timestamp",
+  "TIMESTAMP WITH TIME ZONE": "timestamp",
+};
+export function parquetType(t) {
+  if (t.endsWith("[]")) return `${parquetType(t.slice(0, -2))}[]`;
+  if (/^DECIMAL\(/.test(t)) return "double";
+  const mapped = PARQUET_TYPES[t];
+  if (!mapped) throw new Error(`gold-column-types.json: unmapped Parquet type ${t}`);
+  return mapped;
+}
+
 export function inferType(name) {
   for (const [re, t] of TYPE_RULES) if (re.test(name)) return t;
   return "unclassified";
@@ -119,6 +145,7 @@ export function build() {
     return `docs/METRICS.md#${target}`;
   };
 
+  const realTypes = JSON.parse(read("web/src/data/gold-column-types.json"));
   const models = new Map();
   for (const f of ["dbt/headway/models/marts/_aggregates.yml"]) {
     for (const m of yamlLoad(read(f)).models) models.set(m.name, m);
@@ -130,9 +157,11 @@ export function build() {
     const sec = sections[name];
     const columns = (m.columns ?? []).map((c) => {
       const tests = (c.data_tests ?? c.tests ?? []).map(testName);
+      const real = realTypes[name]?.[c.name];
       return {
         name: c.name,
-        type: inferType(c.name),
+        type: real ? parquetType(real) : inferType(c.name),
+        ...(real ? {} : { type_derived: true }),
         nullable: !tests.some((t) => t.name === "not_null"),
         description: c.description ?? "",
       };
@@ -172,7 +201,7 @@ export function build() {
       "docs/METRICS.md",
     ],
     type_note:
-      "Types are derived (naming convention) because the dbt YAML declares none; nullability is derived from not_null tests. Authoritative types will come from the export manifest.",
+      "Types are the real Parquet column types of the gold export (its manifest's column_types). A column the export has not been snapshotted for is typed by naming convention and marked type_derived. Nullability is derived from not_null tests.",
     tables,
   };
 }

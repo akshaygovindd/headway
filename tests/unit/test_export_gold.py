@@ -172,3 +172,25 @@ def test_route_shapes_are_subway_only_with_colours(gold: Path) -> None:
 def test_stop_deviation_has_stop_sequence(gold: Path) -> None:
     rows = _table(gold, "agg_stop_deviation_daily")
     assert rows and all(r["stop_sequence"] is not None for r in rows)
+
+
+def test_manifest_records_the_real_parquet_column_types(gold_r2: Path) -> None:
+    manifest = json.loads((gold_r2 / "manifest.json").read_text())
+    types = manifest["column_types"]
+    assert set(types) == set(manifest["row_counts"])
+    for table, columns in types.items():
+        schema = pq.read_schema(gold_r2 / f"{table}.parquet")
+        assert list(columns) == schema.names, table  # same columns, same order
+    # spot checks: types the naming convention used to guess wrong or leave unclassified
+    assert types["agg_headway_segment_window"]["coverage_pct"] == "DOUBLE"
+    assert types["agg_service_disruptions"]["segment_keys"] == "VARCHAR[]"
+
+
+def test_committed_gold_column_types_match_the_export(gold_r2: Path) -> None:
+    """web/src/data/gold-column-types.json (read by the data contracts) has not drifted.
+
+    Regenerate with `uv run python scripts/snapshot_gold_types.py`, then `npm run contracts`.
+    """
+    committed = json.loads((ROOT / "web/src/data/gold-column-types.json").read_text())
+    exported = json.loads((gold_r2 / "manifest.json").read_text())["column_types"]
+    assert committed == exported

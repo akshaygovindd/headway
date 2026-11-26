@@ -4,7 +4,7 @@
     "src/headway_api/queries.py",
     "docs/METRICS.md"
   ],
-  "type_note": "Types are derived (naming convention) because the dbt YAML declares none; nullability is derived from not_null tests. Authoritative types will come from the export manifest.",
+  "type_note": "Types are the real Parquet column types of the gold export (its manifest's column_types). A column the export has not been snapshotted for is typed by naming convention and marked type_derived. Nullability is derived from not_null tests.",
   "tables": [
     {
       "name": "agg_accuracy_window",
@@ -99,7 +99,7 @@
         },
         {
           "name": "coverage_denominator",
-          "type": "integer",
+          "type": "double",
           "nullable": true,
           "description": "Denominator of coverage."
         },
@@ -205,13 +205,13 @@
         },
         {
           "name": "pct_on_time_window",
-          "type": "string",
+          "type": "double",
           "nullable": true,
           "description": "Percentage of arrivals within -60 to +300 seconds of the schedule."
         },
         {
           "name": "scheduled_trip_stops",
-          "type": "integer",
+          "type": "double",
           "nullable": true,
           "description": "Scheduled trip stops of the non-outage hours in the window."
         },
@@ -223,7 +223,7 @@
         },
         {
           "name": "coverage_denominator",
-          "type": "integer",
+          "type": "double",
           "nullable": true,
           "description": "Denominator of coverage."
         },
@@ -284,31 +284,31 @@
         },
         {
           "name": "hour_start",
-          "type": "unclassified",
+          "type": "timestamp",
           "nullable": true,
           "description": "Start of the hour as an instant (UTC)."
         },
         {
           "name": "expected_runs",
-          "type": "unclassified",
+          "type": "double",
           "nullable": true,
           "description": "One-minute runs expected in the hour: observed plus missed."
         },
         {
           "name": "missed_runs",
-          "type": "unclassified",
+          "type": "double",
           "nullable": true,
           "description": "Runs that never happened (see agg_quality_checks_hourly)."
         },
         {
           "name": "feed_gap_min",
-          "type": "unclassified",
+          "type": "double",
           "nullable": true,
           "description": "Longest run of minutes without fresh trip_updates and vehicle_positions."
         },
         {
           "name": "data_outage",
-          "type": "unclassified",
+          "type": "boolean",
           "nullable": true,
           "description": "True when the hour is a data outage (int_hour_flags); metrics leave it out."
         }
@@ -521,7 +521,7 @@
         },
         {
           "name": "time_band",
-          "type": "unclassified",
+          "type": "string",
           "nullable": false,
           "description": "am_peak 06:30-09:00, midday 09:00-15:30, pm_peak 15:30-18:30, evening 18:30-24:00 or other, by the scheduled arrival at the second stop (local)."
         },
@@ -976,7 +976,7 @@
         },
         {
           "name": "model_version",
-          "type": "string",
+          "type": "integer",
           "nullable": true,
           "description": "Registry version of the model that produced model_forecast_s."
         }
@@ -1058,13 +1058,13 @@
         },
         {
           "name": "data_outage",
-          "type": "unclassified",
+          "type": "boolean",
           "nullable": false,
           "description": "True when the hour is a data outage; statistics are empty."
         },
         {
           "name": "service_disruption",
-          "type": "unclassified",
+          "type": "boolean",
           "nullable": false,
           "description": "True when the line had an active service-disruption alert in the hour."
         },
@@ -1248,7 +1248,7 @@
         },
         {
           "name": "segment_order",
-          "type": "unclassified",
+          "type": "integer",
           "nullable": true,
           "description": "Position of the segment along its line and direction (1 first): rank by the typical stop_sequence of the to stop; branches share positions."
         },
@@ -1290,13 +1290,13 @@
         },
         {
           "name": "disrupted",
-          "type": "unclassified",
+          "type": "boolean",
           "nullable": true,
           "description": "True when, in any non-outage hour of the window, a line-scope service-disruption alert covered the station of either stop."
         },
         {
           "name": "scheduled_headways",
-          "type": "integer",
+          "type": "double",
           "nullable": true,
           "description": "Scheduled headways of the segment in the non-outage hours of the window."
         },
@@ -1308,7 +1308,7 @@
         },
         {
           "name": "coverage_denominator",
-          "type": "integer",
+          "type": "double",
           "nullable": true,
           "description": "Denominator of coverage."
         },
@@ -1320,7 +1320,7 @@
         },
         {
           "name": "health",
-          "type": "unclassified",
+          "type": "string",
           "nullable": true,
           "description": "even when pct_within_band is 80 or more, some_bunching from 60, else bunched_gaps; null without valid headways. Withheld by the API below 50 percent coverage."
         }
@@ -1448,7 +1448,7 @@
         },
         {
           "name": "scheduled_headways",
-          "type": "integer",
+          "type": "double",
           "nullable": true,
           "description": "Scheduled headways of the non-outage hours in the window."
         },
@@ -1460,7 +1460,7 @@
         },
         {
           "name": "coverage_denominator",
-          "type": "integer",
+          "type": "double",
           "nullable": true,
           "description": "Denominator of coverage."
         },
@@ -1617,7 +1617,7 @@
         },
         {
           "name": "template_used",
-          "type": "string",
+          "type": "boolean",
           "nullable": true,
           "description": "True when the deterministic template wrote the summary."
         },
@@ -1653,7 +1653,7 @@
         },
         {
           "name": "summary_stale",
-          "type": "unclassified",
+          "type": "boolean",
           "nullable": true,
           "description": "True when the summary describes an earlier version of an open incident."
         }
@@ -1772,19 +1772,19 @@
         },
         {
           "name": "implausible_deviation_count",
-          "type": "integer",
+          "type": "double",
           "nullable": false,
           "description": "Sum of hourly implausible_deviation_count over the window."
         },
         {
           "name": "coverage_numerator",
-          "type": "integer",
+          "type": "double",
           "nullable": true,
           "description": "Sum of hourly coverage_numerator over the window."
         },
         {
           "name": "coverage_denominator",
-          "type": "integer",
+          "type": "double",
           "nullable": true,
           "description": "Sum of hourly observable_trip_stops over the window."
         },
@@ -1796,7 +1796,7 @@
         },
         {
           "name": "skipped_stop_count",
-          "type": "integer",
+          "type": "double",
           "nullable": true,
           "description": "Covered trip stops in the window whose latest usable snapshot is SKIPPED."
         },
@@ -1872,13 +1872,13 @@
         },
         {
           "name": "trip_instance_key",
-          "type": "unclassified",
+          "type": "string",
           "nullable": true,
           "description": "Trip id, service date and start time of the trip instance."
         },
         {
           "name": "segment",
-          "type": "unclassified",
+          "type": "double",
           "nullable": true,
           "description": "Run of a reused trip id (usually 0)."
         },
@@ -1902,7 +1902,7 @@
         },
         {
           "name": "stop_sequence",
-          "type": "unclassified",
+          "type": "integer",
           "nullable": true,
           "description": "Position of the stop in the trip."
         },
@@ -1920,7 +1920,7 @@
         },
         {
           "name": "confidence",
-          "type": "unclassified",
+          "type": "string",
           "nullable": true,
           "description": "high, medium or low confidence of the reconstructed arrival."
         },
@@ -1932,7 +1932,7 @@
         },
         {
           "name": "hour_start",
-          "type": "unclassified",
+          "type": "timestamp",
           "nullable": true,
           "description": "Start of the hour shown (UTC instant of the start of the local service hour)."
         }
@@ -2029,7 +2029,7 @@
         },
         {
           "name": "trip_updates_is_duplicate",
-          "type": "unclassified",
+          "type": "boolean",
           "nullable": false,
           "description": "True when the trip_updates payload equals the previous capture's."
         },
@@ -2053,7 +2053,7 @@
         },
         {
           "name": "vehicle_positions_is_duplicate",
-          "type": "unclassified",
+          "type": "boolean",
           "nullable": false,
           "description": "True when the vehicle_positions payload equals the previous capture's."
         },
@@ -2077,7 +2077,7 @@
         },
         {
           "name": "alerts_is_duplicate",
-          "type": "unclassified",
+          "type": "boolean",
           "nullable": false,
           "description": "True when the alerts payload equals the previous capture's."
         },
@@ -2234,25 +2234,25 @@
         },
         {
           "name": "value",
-          "type": "unclassified",
+          "type": "double",
           "nullable": true,
           "description": "Measured value; null when it cannot be computed."
         },
         {
           "name": "direction",
-          "type": "unclassified",
+          "type": "string",
           "nullable": false,
           "description": "above: bad when the value is at or above the thresholds; below: bad when under them."
         },
         {
           "name": "warn_threshold",
-          "type": "unclassified",
+          "type": "double",
           "nullable": false,
           "description": "Value at which the check warns."
         },
         {
           "name": "fail_threshold",
-          "type": "unclassified",
+          "type": "double",
           "nullable": false,
           "description": "Value at which the check fails."
         },
@@ -2360,7 +2360,7 @@
         },
         {
           "name": "effect",
-          "type": "unclassified",
+          "type": "string",
           "nullable": true,
           "description": "GTFS-realtime alert effect."
         },
@@ -2372,13 +2372,13 @@
         },
         {
           "name": "first_seen",
-          "type": "unclassified",
+          "type": "timestamp",
           "nullable": true,
           "description": "First capture in the window in which the alert was active (UTC)."
         },
         {
           "name": "last_seen",
-          "type": "unclassified",
+          "type": "timestamp",
           "nullable": true,
           "description": "Last capture in the window in which the alert was active (UTC)."
         },
@@ -2408,7 +2408,7 @@
         },
         {
           "name": "segment_keys",
-          "type": "unclassified",
+          "type": "string[]",
           "nullable": true,
           "description": "Affected segments of agg_headway_segment_window (last_24h) as direction_id:from_stop_id:to_stop_id: segments starting or ending at an affected station."
         }
@@ -2464,13 +2464,13 @@
         },
         {
           "name": "good_events",
-          "type": "integer",
+          "type": "double",
           "nullable": false,
           "description": "Good events: minutes, hours, runs or trip stops, depending on the objective."
         },
         {
           "name": "total_events",
-          "type": "integer",
+          "type": "double",
           "nullable": false,
           "description": "Events measured."
         },

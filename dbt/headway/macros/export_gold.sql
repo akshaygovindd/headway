@@ -104,10 +104,18 @@
     {% set dir = dir[:-1] if dir.endswith('/') else dir %}
     {% set tables = gold_allowlist() %}
     {% set counts = {} %}
+    {% set type_structs = [] %}
     {% for name, query in tables.items() %}
         {% do run_query("copy (" ~ query ~ ") to '" ~ dir ~ "/" ~ name ~ ".parquet' (format parquet)") %}
         {% set n = run_query("select count(*) from read_parquet('" ~ dir ~ "/" ~ name ~ ".parquet')").columns[0].values()[0] %}
         {% do counts.update({name: n}) %}
+        {# the real Parquet column types, for the data contracts (web/scripts/build-contracts.mjs) #}
+        {% set described = run_query("select column_name, column_type from (describe select * from read_parquet('" ~ dir ~ "/" ~ name ~ ".parquet'))") %}
+        {% set cols = [] %}
+        {% for r in described.rows %}
+            {% do cols.append("'" ~ r[0] | replace("'", "''") ~ "': '" ~ r[1] | replace("'", "''") ~ "'") %}
+        {% endfor %}
+        {% do type_structs.append("'" ~ name ~ "': {" ~ cols | join(', ') ~ "}") %}
     {% endfor %}
 
     {% set cutoff = var('service_day_cutoff_hour') %}
@@ -133,7 +141,8 @@
             '{{ modules.datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ") }}' as exported_at,
             '{{ run_started_at.astimezone(modules.pytz.utc).strftime("%Y-%m-%dT%H:%M:%SZ") }}' as dbt_run_at,
             {% if as_of is none %}null::varchar{% else %}'{{ as_of }}'{% endif %} as metrics_as_of,
-            {{ '{' ~ pairs | join(', ') ~ '}' }} as row_counts
+            {{ '{' ~ pairs | join(', ') ~ '}' }} as row_counts,
+            {{ '{' ~ type_structs | join(', ') ~ '}' }} as column_types
     {% endset %}
     {% do run_query("copy (" ~ manifest_sql ~ ") to '" ~ dir ~ "/manifest.json' (format json, array false)") %}
     {{ log("exported " ~ counts | length ~ " gold tables to " ~ dir, info=true) }}
