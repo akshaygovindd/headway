@@ -324,6 +324,65 @@ export type BudgetData = {
   rows: BudgetRow[];
 };
 
+export type SlowSegmentRow = {
+  line: string;
+  direction_id: number;
+  from_stop_id: string;
+  from_stop_name: string | null;
+  to_stop_id: string;
+  to_stop_name: string | null;
+  segment_order: number | null;
+  time_band: TripTimeRow["time_band"];
+  n_trips: number;
+  n_baseline_trips: number;
+  n_disruption: number;
+  normal_s: number | null;
+  observed_s: number | null;
+  excess_s: number | null;
+  excess_pct: number | null;
+  share_slow_pct: number | null;
+  severity: "minor" | "moderate" | "severe" | null;
+  first_seen: string | null;
+  last_seen: string | null;
+  coverage_pct: number | null;
+  withheld_reason: string | null;
+};
+
+export type SlowZoneStatus = "matched" | "observed_only" | "listed_only" | "listed_unmapped";
+
+export type SlowComparisonRow = {
+  status: SlowZoneStatus;
+  observed_status: "flagged" | "not_flagged" | "not_enough_data";
+  line: string;
+  direction_id: number | null;
+  from_stop_id: string | null;
+  from_stop_name: string | null;
+  to_stop_id: string | null;
+  to_stop_name: string | null;
+  segment_order: number | null;
+  severity: "minor" | "moderate" | "severe" | null;
+  worst_excess_s: number | null;
+  n_trips: number | null;
+  flagged_bands: string[];
+  first_seen: string | null;
+  last_seen: string | null;
+  coverage_pct: number | null;
+  restriction_ids: string[];
+  official_speed_limit_mph: number | null;
+  official_date_reported: string | null;
+  location_text: string | null;
+};
+
+export type SlowZonesData = {
+  line: string | null;
+  window: string;
+  signal: string;
+  official: { status: "captured" | "not_captured"; is_snapshot: true; snapshot_date: string | null; source_url: string | null; note: string };
+  counts: Record<SlowZoneStatus, number>;
+  segments: SlowSegmentRow[];
+  comparison: SlowComparisonRow[];
+};
+
 export type SpacingStatus = "measured" | "withheld" | "no_headways" | "outage";
 
 export type SpacingHour = {

@@ -132,6 +132,20 @@ export function respond(path, search = "") {
     if (what === "marey") return { status: 200, body: mareyFor(line, params) };
     return { status: 200, body: forLine(load(`lines_Red_${what}`), line, params.get("window")) };
   }
+  if (path === "/v1/slow-zones") {
+    // The captured-snapshot state; MOCK_SLOW_ZONES=not-captured serves the committed empty state.
+    const body = load(process.env.MOCK_SLOW_ZONES === "not-captured" ? "slow-zones_not-captured" : "slow-zones");
+    const line = params.get("line");
+    body.data.window = params.get("window") ?? "last_7d";
+    if (line) {
+      if (!LINES.includes(line)) return { status: 422, body: { error: "validation_error" } };
+      body.data.line = line;
+      body.data.segments = body.data.segments.filter((s) => s.line === line);
+      body.data.comparison = body.data.comparison.filter((c) => c.line === line);
+      body.data.counts = Object.fromEntries(Object.keys(body.data.counts).map((k) => [k, body.data.comparison.filter((c) => c.status === k).length]));
+    }
+    return { status: 200, body };
+  }
   m = path.match(/^\/v1\/lines\/([^/]+)\/trip-time-budget$/);
   if (m) {
     if (!LINES.includes(m[1])) return { status: 422, body: { error: "validation_error" } };

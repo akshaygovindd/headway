@@ -100,6 +100,12 @@ export const DEFINITIONS: Record<string, MetricDefinition> = {
     anchor: "trip-time-budget-agg_trip_time_budget",
     table: "agg_trip_time_budget",
   },
+  slow_segment: {
+    label: "Slow segment (observed signal, not official)",
+    what: "How much longer trains took over this stretch than its own normal (the median of the last 7 days at the same time of day). A segment is shown when it is at least 20% and 30 seconds slower, on at least 15 trips, most of them slow. It is a signal that fits a speed restriction, not the MBTA's list.",
+    anchor: "slow-segments-agg_slow_segments",
+    table: "agg_slow_segments",
+  },
   spacing_hour: {
     label: "Spacing by hour",
     what: "Share of gaps between trains within the expected band in one service hour, both directions combined.",
