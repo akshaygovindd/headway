@@ -23,7 +23,7 @@ stable: other documents and code comments cite them as `ADR-NNN`.
 | 016 | Confidence levels: only high and medium arrivals feed metrics | Accepted (R2) |
 | 017 | Chaos switch for failure drills | Accepted (R2) |
 | 018 | Elementary on dbt-duckdb: anomaly tests, persisted history, daily report | Accepted (R2) |
-| 019 | Forecasting design: target, horizons, leakage rule, gate, baselines | Proposed |
+| 019 | Forecasting design: target, horizons, leakage rule, gate, baselines | Accepted (R3) |
 | 020 | Analyst data access through the public gold tables | Accepted (R3, Phase 3.5) |
 | 021 | LLM cost and abuse controls | Accepted (R3, Phase 3.5) |
 | 022 | Weather source for the weather comparison | Accepted |
@@ -470,12 +470,19 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 
 ### ADR-019: Forecasting design: target, horizons, leakage rule, gate, baselines
 
-- **Status:** Accepted for the model, gate and registry (R3, Phase 3.2) and for serving and the
-  Forecast page (Phase 3.3)
+- **Status:** Accepted for the parts built: the examples, leakage rule, gate, baselines, LightGBM
+  model, registry and serving (R3, Phases 3.1 to 3.3) and the paired-bootstrap comparison rule. The
+  published model-versus-baseline comparison waits for the training gate: no line has passed it
+  yet, so nothing is trained and no comparison is published.
 - **Context:** Release 3 forecasts arrival delay. The only observed delay Headway has is the
   reconstructed arrival (ADR-016), known to within 15 to 120 s, and only after the captures that
   determine it exist. A forecast that is evaluated against data it could not have had at the time
   looks better than it is, so the design fixes what may be used before any model is chosen.
+- **Decision:** forecast the delay of the next 15, 30 and 60 minutes with a single LightGBM model,
+  built only from features known at prediction time (the leakage rule), trained only on lines past
+  the gate, registered under a versioned `models/forecast/` registry and served by the hourly
+  transform. It is compared with three baselines by a paired cluster bootstrap and reported only
+  when it beats the best of them. The parts below give each element.
 - **Target:** the delay (reconstructed arrival minus scheduled arrival, seconds) of a trip stop
   scheduled to arrive in the 15-minute slot starting at `t + horizon`, for horizons of 15, 30 and
   60 minutes, from high and medium confidence arrivals only. Prediction times `t` fall every 15

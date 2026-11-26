@@ -42,7 +42,8 @@ cp infra/main/terraform.tfvars.example infra/main/terraform.tfvars
 - `infra/main/terraform.tfvars`: set `alert_email` and `budget_email`. Leave the two image URI
   lines as they are; `make deploy` rewrites their tag.
 
-Both files are gitignored.
+Both files are gitignored. A fresh clone on another machine does not have them: copy them from the
+machine that ran the bootstrap (the bootstrap state is local to that machine too), or redo step 1.
 
 ## 3. Store the MotherDuck token
 
@@ -76,7 +77,10 @@ make deploy
 Builds both images, logs in to ECR, pushes them tagged with the git short sha, sets
 `curate_image_uri` and `transform_image_uri` in `terraform.tfvars` to that sha, runs
 `terraform plan -out=tfplan` and applies it only if the plan shows `0 to destroy` (otherwise it
-stops before the apply). To redeploy new code later, run `make lambda-zip` (if ingest changed)
+stops before the apply). On a fresh clone of an existing deployment the plan is not empty: the new
+git sha changes the image tags, so expect a handful of in-place changes (for example
+`0 to add, 5 to change, 0 to destroy`) and, once, new environment variables that earlier
+deployments lacked. To redeploy new code later, run `make lambda-zip` (if ingest changed)
 and `make deploy` again.
 
 ## 6. Seed the pipeline: `make seed`
@@ -127,7 +131,8 @@ Expected:
   vehicle polls at +15, +30 and +45 s; fewer when a late run skips polls);
 - a live snapshot with `vehicle_count` greater than zero, `Content-Type: application/json` and
   `Cache-Control: max-age=30`;
-- a gold folder with eight parquet files plus `manifest.json`, and `cost_daily.parquet` after the
+- a gold folder with the gold parquet files plus `manifest.json` (11 objects with Release 2 on; fewer
+  with the defaults, and more with the R3 and R4 tables), and `cost_daily.parquet` after the
   first transform run at or after 06:00 UTC;
 - one JSON summary line per run in the logs. The transform line reports `dbt_status`,
   `tests_failed`, `rows_exported`, `cost_rows` and `step_ms` (`s3_load`, `dbt_build`, `dbt_test`,
@@ -176,16 +181,16 @@ Fill this in on a fresh clone (acceptance test A8). Times are wall clock, includ
 
 | Step | Time taken | Notes |
 | --- | --- | --- |
-| Prerequisites and clone | | |
-| 1. Bootstrap state bucket | | |
-| 2. Backend and tfvars | | |
-| 3. MotherDuck token (SSM) | | |
-| 4. Ingest zip and ECR repositories | | |
-| 5. `make deploy` | | |
-| 6. `make seed` | | |
-| 7. Manual steps (SNS, cost tag) | | |
-| 8. Verify | | |
-| **Total** | | |
+| Prerequisites and clone | 1 s | `git clone` + `uv sync`, uv cache warm; docker running |
+| 1. Bootstrap state bucket | not re-run | `terraform apply` is not run on an existing account; state bucket already exists, `backend.hcl` copied from the original checkout |
+| 2. Backend and tfvars | under 1 s | copied the two local files; image tags set to the clone's sha `cbf8d6c` |
+| 3. MotherDuck token (SSM) | 0 s | not re-run; `aws ssm get-parameter` confirms the SecureString exists |
+| 4. Ingest zip and ECR repositories | 1 s (zip), 6 s (`terraform init`) | zip is 4.4 MB; the ECR `apply -target` is not re-run (repositories exist) |
+| 5. `make deploy` | 18 s image build (layer cache warm; a cold build takes longer), 12 s `terraform plan` | plan `0 to add, 5 to change, 0 to destroy` (image tags and one new env var); images built, not pushed. Push/apply: verified by the production deploy of 25 Nov (memory fix, commit de9d2a8) |
+| 6. `make seed` | not re-run | invokes Lambdas; verified by the original deployment |
+| 7. Manual steps (SNS, cost tag) | not re-run | account settings, done once |
+| 8. Verify | 7 s | read-only commands: manifests current, snapshot 200 with `Cache-Control: max-age=30`, 11 gold objects, transform log line present |
+| **Total** | about 45 s of commands | walkthrough of 26 Nov 2026 from a fresh clone, stopping at `terraform plan` |
 
 ## Operations
 
