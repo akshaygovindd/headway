@@ -6,6 +6,10 @@ locals {
   transform_name = "headway-transform"
   gold_prefix    = "public/${var.city_id}/gold"
   history_prefix = "public/${var.city_id}/history"
+  # The daily Elementary report (dbt/headway_transform/observability.py): one object, written by
+  # the transform and checked with HeadObject to decide whether today's report exists.
+  observability_report_key = "public/${var.city_id}/observability/index.html"
+
   motherduck_ssm = "/headway/motherduck_token"
   motherduck_arn = "arn:aws:ssm:${data.aws_region.current.name}:${local.account_id}:parameter${local.motherduck_ssm}"
   # The incident-summary LLM key (Release 3): created by hand, never by Terraform.
@@ -252,6 +256,12 @@ data "aws_iam_policy_document" "transform" {
     sid       = "ReadAndWriteHistory"
     actions   = ["s3:GetObject", "s3:PutObject"]
     resources = ["${aws_s3_bucket.public.arn}/${local.history_prefix}/*"]
+  }
+
+  statement {
+    sid       = "ReadAndWriteObservabilityReport"
+    actions   = ["s3:GetObject", "s3:PutObject"]
+    resources = ["${aws_s3_bucket.public.arn}/${local.observability_report_key}"]
   }
 
   statement {

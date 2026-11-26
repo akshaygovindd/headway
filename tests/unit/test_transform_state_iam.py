@@ -70,3 +70,20 @@ def test_the_closed_day_facts_prefix_is_covered_for_list_get_and_put() -> None:
     assert fnmatch.fnmatch(key, f"{facts_state.PREFIX}/*")
     # the plan lists "<prefix>/<table>/metric_version=N/"
     assert fnmatch.fnmatch(f"{facts_state.PREFIX}/fct_headways/metric_version=1/", "state/facts/*")
+
+
+def test_the_daily_report_can_be_written_and_checked_at_its_one_key() -> None:
+    """The report upload was AccessDenied: no statement covered public/<city>/observability/."""
+    key = observability.report_key("boston")
+    assert key == "public/boston/observability/index.html"
+    assert _local("observability_report_key").replace("${var.city_id}", "boston") == key
+    stmt = _statement("ReadAndWriteObservabilityReport")
+    # PutObject uploads it; HeadObject (report_due) needs GetObject, else every run regenerates it
+    assert '"s3:PutObject"' in stmt and '"s3:GetObject"' in stmt
+    assert "aws_s3_bucket.public.arn}/${local.observability_report_key}" in stmt
+    assert "*" not in stmt  # one object, not a prefix
+    src = Path(observability.__file__).read_text()
+    assert set(re.findall(r"s3\.(put_object|get_object|head_object)\(", src)) == {
+        "put_object",
+        "head_object",
+    }
