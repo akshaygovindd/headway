@@ -647,10 +647,11 @@ class Query:
                       "band", rows, more)  # fmt: skip
 
     def trip_time_budget(
-        self, line: str, from_station: str, to_station: str, window: str
+        self, line: str, from_station: str | None, to_station: str | None, window: str
     ) -> Result:
         """Travel time between two stations of a line per time band: median, 95th percentile,
-        buffer time index. Withheld below 50% coverage or under MIN_BUDGET_TRIPS measured trips."""
+        buffer time index. Withheld below 50% coverage or under MIN_BUDGET_TRIPS measured trips.
+        Without from and to: the line's stations (id, name) to pick from."""
         self.need("agg_trip_time_budget")
 
         def build_stations(base: str) -> str:
@@ -665,7 +666,17 @@ class Query:
 
         stations, _, sshown = self.run(build_stations)
         names = {r["id"]: r["name"] for r in stations}
+        names = dict(sorted(names.items(), key=lambda kv: (kv[1], kv[0])))
         allowed = sorted(names)
+        if from_station is None and to_station is None:
+            stations_out = [{"id": i, "name": n} for i, n in names.items()]
+            data = {"line": line, "window": window, "unit": "seconds",
+                    "min_trips": MIN_BUDGET_TRIPS, "from_station": None, "to_station": None,
+                    "stations": stations_out, "rows": []}  # fmt: skip
+            return Result(data, ["agg_trip_time_budget"], [sshown], "release-4-site-metrics",
+                          "Stations of the line with a trip-time budget", [], False)  # fmt: skip
+        if from_station is None or to_station is None:
+            raise InputError("give both from and to, or neither for the list of stations", allowed)
         for label, value in (("from", from_station), ("to", to_station)):
             if value not in names:
                 raise InputError(f"{label} is not a station of the {line} line: {value!r}", allowed)

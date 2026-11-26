@@ -65,7 +65,7 @@ no coverage figure and are never withheld.
 
 `GET /lines/{line}/trip-time-budget?from=<station_id>&to=<station_id>&window=last_24h|last_7d`
 (needs `agg_trip_time_budget`; R4 export). `from` and `to` are parent-station ids (`place-davis`),
-different, and both stops of a trip of the line in that order; an unknown station is a 422 whose
+different (with neither, `data.stations` lists the line's `{id, name}` and `rows` is empty), and both stops of a trip of the line in that order; an unknown station is a 422 whose
 `allowed` lists the line's station ids, and a pair no trip serves (two branches) is a 422 too.
 
 ```json

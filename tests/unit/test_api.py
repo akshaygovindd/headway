@@ -185,8 +185,8 @@ def test_slo_health_metrics_meta(client: TestClient) -> None:
         ("/v1/lines/Red/trip-time-budget?from=a1&to=nowhere", "c1"),
         ("/v1/lines/Red/trip-time-budget?from=nowhere&to=c1", "a1"),
         ("/v1/lines/Red/trip-time-budget?from=a1&to=a1", "c1"),
-        ("/v1/lines/Red/trip-time-budget?from=a1", None),
-        ("/v1/lines/Red/trip-time-budget", None),
+        ("/v1/lines/Red/trip-time-budget?from=a1", "c1"),
+        ("/v1/lines/Red/trip-time-budget?to=c1", "a1"),
         ("/v1/lines/Red/spacing-by-hour?date=yesterday", None),
         ("/v1/pipeline/checks?hours=0", None),
         ("/v1/pipeline/checks?hours=9999", None),
@@ -597,3 +597,12 @@ def test_trip_time_budget_pair_with_no_trips_is_422_not_an_empty_answer(client: 
     assert res.status_code == 422 and "no scheduled Red trip runs from Gamma to Alpha" in str(
         res.json()
     )
+
+
+def test_trip_time_budget_without_stations_lists_the_line_stations(client: TestClient) -> None:
+    body = client.get("/v1/lines/Red/trip-time-budget").json()
+    assert body["data"]["stations"] == [
+        {"id": "a1", "name": "Alpha"},
+        {"id": "c1", "name": "Gamma"},
+    ]
+    assert body["data"]["rows"] == [] and body["data"]["from_station"] is None

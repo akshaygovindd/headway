@@ -231,12 +231,13 @@ def create_app(settings: Settings | None = None, source: GoldSource | None = Non
         request: Request,
         line: LineName,
         from_station: Annotated[
-            str,
+            str | None,
             Query(alias="from", min_length=1, max_length=64, description="Station id to start at"),
-        ],
+        ] = None,
         to_station: Annotated[
-            str, Query(alias="to", min_length=1, max_length=64, description="Station id to end at")
-        ],
+            str | None,
+            Query(alias="to", min_length=1, max_length=64, description="Station id to end at"),
+        ] = None,
         window: Annotated[WindowName, Query(description="Rolling window")] = "last_24h",
     ) -> Envelope:
         return serve(request, lambda q: q.trip_time_budget(line, from_station, to_station, window))
