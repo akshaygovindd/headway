@@ -36,20 +36,20 @@ R2_GOLD_TABLES = (
     "agg_countdown_accuracy_window",
     "agg_countdown_accuracy_daily",
 )
-# Release 3 (HEADWAY_ENABLE_R3=true, with R2): the next-hour forecasts, the gate status, incidents
-# and alert matching. The backtest summary joins them only once a line has passed the training
+# Release 3 (HEADWAY_ENABLE_R3=true, with R2): the next-hour forecasts, the gate status, incidents,
+# alert matching and the weather comparison. The backtest summary joins them only once a line has passed the training
 # gate (R3_OPTIONAL_TABLES).
 R3_GOLD_TABLES = (
     "agg_forecast_next_hour",
     "agg_forecast_gate_status",
     "agg_incidents",
     "agg_alert_matching_daily",
+    "agg_weather_comparison",
 )
 R3_OPTIONAL_TABLES = ("agg_forecast_backtest",)
 # Release 4 (HEADWAY_ENABLE_R4=true, with R2; independent of R3): the public site's segment health,
 # last-hour Marey arrivals, hourly capture heartbeat, ETT per direction and time band and the
-# line-scope service disruptions (public MBTA header text). (Known R3 drift left alone:
-# agg_weather_comparison is in the macro's R3 allowlist but not in R3_GOLD_TABLES.)
+# line-scope service disruptions (public MBTA header text).
 R4_GOLD_TABLES = (
     "agg_headway_segment_window",
     "agg_marey_last_hour",

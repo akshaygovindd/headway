@@ -6,12 +6,14 @@ real macro source is what gets tested.
 
 import json
 import os
+import re
 import shutil
 import subprocess
 from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
+from headway_transform import publish
 
 from headway.config import load_city_config
 from headway.contracts.manifest import ManifestEntry
@@ -156,3 +158,32 @@ def test_release_4_allowlist_needs_r2_and_the_r4_flag(
     assert not R4_TABLES & _allowlist_keys(tmp_path, monkeypatch, HEADWAY_ENABLE_R4="true")
     on = _allowlist_keys(tmp_path, monkeypatch, HEADWAY_ENABLE_R2="true", HEADWAY_ENABLE_R4="true")
     assert on >= R4_TABLES and "agg_incidents" not in on  # independent of R3
+
+
+def _macro_tables(macro: str) -> set[str]:
+    """The table names a gold_<release>_allowlist macro lists (read from its source: the R3 macro
+    queries a built table at run time, so it cannot be evaluated without a build)."""
+    text = (ROOT / "dbt/headway/macros/export_gold.sql").read_text()
+    body = text.split(f"macro {macro}()", 1)[1].split("endmacro", 1)[0]
+    return set(re.findall(r"^\s*'(\w+)':", body, flags=re.MULTILINE)) | set(
+        re.findall(r"do tables\.update\(\{'(\w+)':", body)
+    )
+
+
+def test_macro_allowlists_match_the_publish_lists_for_every_release() -> None:
+    """What dbt exports and what is published to MotherDuck are the same tables, release by release.
+
+    The optional tables (the R3 backtest, exported only when it has rows) are on the macro side
+    only and are named in publish.OPTIONAL_TABLES. A table added to one list fails here.
+    """
+    releases = {
+        "gold_allowlist": publish.GOLD_TABLES,
+        "gold_r2_allowlist": publish.R2_GOLD_TABLES,
+        "gold_r3_allowlist": publish.R3_GOLD_TABLES + publish.R3_OPTIONAL_TABLES,
+        "gold_r4_allowlist": publish.R4_GOLD_TABLES,
+    }
+    for macro, published in releases.items():
+        assert _macro_tables(macro) == set(published), macro
+    # every release macro is checked: a new gold_r5_allowlist must be added above
+    text = (ROOT / "dbt/headway/macros/export_gold.sql").read_text()
+    assert set(re.findall(r"macro (gold_\w*allowlist)\(", text)) == set(releases)
