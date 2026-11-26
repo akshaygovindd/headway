@@ -485,7 +485,7 @@ The metrics below (6-10) are computed from reconstructed arrivals.
 
 ## Release 4 site metrics
 
-Five tables feed the public site (`HEADWAY_ENABLE_R4=true`, with R2; tag `r4`). They add no new
+Five tables (and, from Phase 4.5, the trip-time budget, slow-segment, slow-zone and accessibility tables below) feed the public site (`HEADWAY_ENABLE_R4=true`, with R2; tag `r4`). They add no new
 measure: they re-cut the headways, trip times, alerts, reconstructed arrivals and the capture checks above.
 
 ### Segment health (`agg_headway_segment_window`)
@@ -544,6 +544,96 @@ measure: they re-cut the headways, trip times, alerts, reconstructed arrivals an
   segments (`direction_id:from_stop_id:to_stop_id`, segments starting or ending at an affected
   station). `agg_incidents.evidence_json` stays hidden.
 - **Grain:** line x alert_id.
+
+### Trip-time budget (`agg_trip_time_budget`)
+- **What:** how long a ride between two stations of a line takes, and how much to add to be on time
+  almost always. Travel time is the arrival at the `to` station minus the arrival at the `from`
+  station of the **same trip** (same `trip_instance_key` and the same reconstructed run), both
+  arrivals `high` or `medium` confidence (section 5), the `to` stop after the `from` stop in the
+  trip, one direction. Statistics per pair: `median_s`, `p95_s` (95th percentile), `n_trips`, and the
+  **buffer time index** `(p95 - median) / median` (0.5 means the slow trips take half as long again
+  as the typical one). "Leave `p95_s` to arrive on time 95 % of the time" is a statement about the
+  trips of the window, not a promise.
+- **Pairs:** every ordered pair of distinct stations a scheduled trip serves, in one direction of
+  one line (a branch pair exists only where trips run both stations). Stations, not platforms
+  (`int_stop_stations`). Time band (section 9 bands) is that of the scheduled arrival at the `from`
+  station.
+- **Grain:** line x direction_id x from_station_id x to_station_id x time_band x window_label
+  (`last_24h`, `last_7d`, window of the `from` arrival hour).
+- **Coverage:** trips measured over scheduled trips that serve both stations in non-outage hours
+  (`data_outage` at either end hour leaves the trip out). A pair with scheduled trips and none
+  measured keeps a row with `n_trips` 0. Travel times of zero or less and over 3 hours are left out
+  as implausible (`n_implausible`).
+- **Withholding:** the API withholds `median_s`, `p95_s` and the index (null, with
+  `withheld_reason`) when coverage is under 50 % **or** `n_trips` is under 20. A 95th percentile of
+  fewer than 20 trips is its second-largest value, not a percentile.
+- **Limitations:** service disruptions are kept in the statistics (`n_disruption`); a trip that
+  skips a station is not measured for pairs with it; the median of a few trips is noisy long
+  before 20.
+
+### Slow segments (`agg_slow_segments`)
+- **What:** an observed signal of segments that run slower than their normal, so a speed
+  restriction (a "slow zone") shows up in the data. **It is not the MBTA's list.** Segment: two
+  neighbouring stops of a scheduled trip, one direction, as in segment health. Travel time is the
+  arrival at the `to` stop minus the arrival at the `from` stop of the same trip and run, both
+  arrivals `high` or `medium`, between 10 s and 1 hour.
+- **Normal:** `normal_s`, the median travel time of the same segment and time band over the last 7
+  days (`last_7d`).
+- **Observed:** `observed_s`, the median of the window's trips: `last_24h` is the last 24 hours;
+  `last_7d` is the latest 3 service days of the 7 days, so that a recent change shows against the
+  week. A slow zone older than the 7-day baseline is part of "normal" and not seen; a longer
+  baseline needs closed-day history.
+- **Flag:** `flagged` when `n_trips` is at least 15, `observed_s` is at least 20 % **and** at least
+  30 s above `normal_s`, and at least 60 % of the window's trips are individually 30 s or more above
+  `normal_s` (`share_slow_pct`: "consistently", not a few outliers). `excess_s`, `excess_pct`,
+  `first_seen`, `last_seen` (the first and last slow trip of the window).
+- **Severity:** `minor` (excess under 60 s), `moderate` (60 to under 120 s), `severe` (120 s or
+  more) per trip. Fixed thresholds, not tuned.
+- **Coverage:** measured trips over scheduled trips of the segment in non-outage hours; the API
+  withholds `observed_s`, the excess and `flagged` below 50 % coverage or 15 trips.
+- **Grain:** line x direction_id x from_stop_id x to_stop_id x time_band x window_label.
+- **Limitations:** a signal, not a cause: a slow segment may be a restriction, a recurring
+  signal problem, a disruption (`n_disruption` counts those trips, they stay in) or a
+  reconstruction error. The wording on the site is "observed speed-restriction signal, not
+  official".
+
+### Official slow-zone list (`agg_slow_zone_comparison`)
+- **What:** the three-way comparison of the observed signal with the MBTA's published speed
+  restrictions: `matched` (flagged here and on the list), `observed_only` (flagged here, not on the
+  list) and `listed_only` (on the list, not flagged here, including a segment with too little
+  data: `observed_status`).
+- **Source:** the MBTA publishes its speed restrictions on a public page. No machine-readable
+  feed was found (ADR-025) and automated requests to it are not made. The list is a **snapshot**
+  entered by hand into `official_speed_restrictions` (a seed) with `source_url` and `captured_on`;
+  `snapshot_date` is the latest `captured_on`. The site always labels it a snapshot. A list
+  location is matched to segments through the seed `official_location_to_segment`; a row with no
+  mapping stays in the table as `listed_unmapped` and is shown, never dropped.
+- **Empty snapshot:** with no rows, `official_status` is `not_captured`, every flagged segment is
+  `observed_only` and the site says "official list not captured yet" instead of "not on the list".
+- **Grain:** line x direction_id x from_stop_id x to_stop_id (one status per segment; the strongest
+  band of the 7-day window decides), plus the unmapped official rows.
+
+### Elevator and escalator outages (`agg_accessibility_outages`)
+- **What:** announced elevator and escalator outages per station, from the `ACCESSIBILITY_ISSUE`
+  service alerts already captured (no new feed). It shows what the MBTA announced, not the
+  facility's real state; `/live_facilities` would (follow-up in ADR-025).
+- **Outage:** one alert (`alert_id`) with effect `ACCESSIBILITY_ISSUE` that names a station
+  (parent station of its stop) of a subway line. Captures repeat an alert every minute: the outage
+  is one interval per alert and station, from the alert's first capture to its last, or to the
+  end of its active period when that comes first. Overlapping alerts of one station are merged, so
+  no hour is counted twice.
+- **Open:** an alert without an end time that was still in the latest capture is **open**: it
+  runs to the end of the window and is counted as `currently_out`; `longest_open_outage_h` is the
+  longest such interval since its start (not clipped to the window, so a week-old outage shows
+  its real age).
+- **Measures per station and window:** `n_outages`, `outage_hours` (clipped to the window),
+  `currently_out`, `longest_open_outage_h`, `facility` (`elevator`, `escalator` or `unknown` from
+  the alert text).
+- **Coverage:** share of the window's hours that are not a data outage (a capture gap is not
+  "working"). The API withholds the station figures below 50 % coverage.
+- **Grain:** station_id x window_label.
+- **Limitations:** alerts are written by people and late or missing; a station with no alert may
+  still have a broken lift. "No outages" means none announced.
 
 ### Quality checks on the trust strip
 `/v1/pipeline/checks` summarises `agg_quality_checks_hourly` over the last N hours (24 by default). Per

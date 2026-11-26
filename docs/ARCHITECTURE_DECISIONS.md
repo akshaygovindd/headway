@@ -29,6 +29,7 @@ stable: other documents and code comments cite them as `ADR-NNN`.
 | 022 | Weather source for the weather comparison | Accepted |
 | 023 | Public read-only metric API | Accepted (R4) |
 | 024 | Account Lambda memory cap | Accepted |
+| 025 | Official slow-zone list: a hand-captured snapshot | Accepted (R4, Phase 4.5) |
 
 Template: Status, Context, Decision, Consequences, Revisit when.
 
@@ -757,3 +758,38 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   more than the 85% budget, or steady-state runs approach 600 s again: the next steps are persisting
   the per-day staging aggregates (`stg_trip_updates` and the quality inputs), then a larger window
   becomes possible.
+
+### ADR-025: Official slow-zone list: a hand-captured snapshot
+
+- **Status:** Accepted (Release 4, Phase 4.5)
+- **Context:** Phase 4.5 compares the slow segments Headway observes with the MBTA's own list of
+  speed restrictions. The MBTA shows that list on a public speed-restrictions page of its website.
+  Looked for a machine-readable source in the V3 API resources (alerts, facilities, lines, predictions,
+  routes, schedules, shapes, stops, trips, vehicles: none carries restrictions), the developer pages
+  (GTFS, GTFS-realtime, historical performance data: rider-experience measures, not track speeds)
+  and the changelog. None publishes speed restrictions. The Open Data Portal is rendered in the
+  browser and was not searched by program, and the website's Terms of Use bar data harvesting and
+  use that could overburden the platform, so no automated request to the page or the portal is
+  made, by the pipeline or by us when building it.
+- **Decision:** the official list is a **dated snapshot** committed to the repository as the seed
+  `official_speed_restrictions` (line, location text, direction, speed limit, reason, date
+  reported, `source_url`, `captured_on`), typed in by hand from the public page in a browser
+  ([RUNBOOK](RUNBOOK.md#capturing-the-official-slow-zone-snapshot-by-hand)). It ships with a header
+  and no rows. Every surface that shows the comparison names it a snapshot and shows `source_url`
+  and the capture date; with no rows it says "official list not captured yet". Free-text locations
+  are matched to segments through a second hand-kept seed, `official_location_to_segment`; rows
+  without a mapping are kept and shown, never dropped. Test fixtures with fake rows live only in
+  tests and mock data and are labelled as fixtures.
+- **Consequences:** the comparison is exactly as fresh as the last manual capture and says so; no
+  ingest, schedule or key to run; a person has to refresh it. The observed signal does not depend
+  on the list.
+- **Follow-up, not built (needs a decision on a key and a feed):** elevator and escalator
+  outages are announced as alerts, which Headway already captures and uses
+  (`agg_accessibility_outages`). The V3 API's `/facilities` and `/live_facilities` give the
+  facility's own status (`OUT_OF_ORDER` or not) per facility rather than a written announcement.
+  Using them needs an API key (free; the documented default is 1,000 requests a minute with a key,
+  much lower without), a new ingest run and curated table, and compliance with the MassDOT
+  Developers License Agreement.
+- **Revisit when:** the MBTA publishes speed restrictions in a machine-readable form (then only the
+  loader of the seed changes), the snapshot proves too stale to be useful, or the facility status
+  is worth a feed.
