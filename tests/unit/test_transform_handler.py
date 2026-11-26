@@ -286,9 +286,15 @@ def test_handler_builds_exports_costs_and_publishes(
 
     load, build, test, export = fakes["dbt"]
     assert load[:3] == ["run", "--select", "tag:s3_load"]
-    assert build[:4] == ["build", "--exclude", "resource_type:test", "tag:s3_load"]
+    assert build[:5] == [
+        "build",
+        "--exclude",
+        "resource_type:test",
+        "resource_type:unit_test",
+        "tag:s3_load",
+    ]  # unit tests run in CI, not in a run that sets the closed-day vars
     assert "tag:r2" in build  # Release 2 models are off by default
-    assert test[0] == "test" and test[1:3] == ["--exclude", "tag:r2"]
+    assert test[0] == "test" and test[1:4] == ["--exclude", "resource_type:unit_test", "tag:r2"]
     assert json.loads(build[build.index("--vars") + 1]) == {
         "curated_root": "s3://raw-bucket",
         "city_prefix": "boston",
@@ -574,7 +580,13 @@ def test_r2_models_are_built_only_when_enabled(
     handler.lambda_handler({}, None)
     _, build, test, _ = fakes["dbt"]
     assert "tag:r2" not in build and "tag:r2" not in test
-    assert build[:4] == ["build", "--exclude", "resource_type:test", "tag:s3_load"]
+    assert build[:5] == [
+        "build",
+        "--exclude",
+        "resource_type:test",
+        "resource_type:unit_test",
+        "tag:s3_load",
+    ]  # unit tests run in CI, not in a run that sets the closed-day vars
     assert test[0] == "test"
 
 

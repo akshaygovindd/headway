@@ -19,7 +19,7 @@ with all_arrivals as (
         trip_instance_key, segment, stop_sequence,
         arrival_ts, confidence, scheduled_arrival_ts, known_at
     from {{ ref('fct_reconstructed_arrivals') }}
-    where arrival_ts is not null
+    where arrival_ts is not null and {{ compute_days_filter('service_date') }}
 ),
 
 -- predecessor among all arrivals (any confidence) at the stop
@@ -70,6 +70,7 @@ pairs as (
             lag(stop_id) over w as prev_stop_id,
             lead(stop_id) over w as next_stop_id
         from {{ ref('fct_reconstructed_arrivals') }}
+        where {{ compute_days_filter('service_date') }}
         window w as (partition by trip_instance_key, segment order by stop_sequence)
     ) n
         on n.trip_instance_key = p.trip_instance_key
@@ -160,8 +161,9 @@ judged as (
         and s.service_date = p.service_date and s.stop_id = p.stop_id
         and s.b_trip = p.b_trip and s.b_segment = p.b_segment
     left join scheduled sc on sc.trip_instance_key = p.b_trip and sc.stop_sequence = p.b_stop_sequence
-)
+),
 
+computed as (
 select
     line,
     direction_id,
@@ -195,3 +197,6 @@ select
         else 'within'
     end as band
 from judged
+)
+
+{{ fact_union('fct_headways') }}

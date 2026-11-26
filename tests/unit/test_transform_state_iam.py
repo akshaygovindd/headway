@@ -57,3 +57,16 @@ def test_every_state_folder_is_covered_for_list_get_and_put() -> None:
         key = f"{folder}/dt=2026-11-24/rows.parquet"
         assert any(fnmatch.fnmatch(f"{folder}/", f"{p}/*") for p in _prefix_patterns()), folder
         assert any(fnmatch.fnmatch(key, f"{p}/*") for p in _prefix_patterns()), folder
+
+
+def test_the_closed_day_facts_prefix_is_covered_for_list_get_and_put() -> None:
+    from headway_transform import facts_state
+
+    assert _local("facts_state_prefix") == facts_state.PREFIX
+    concat = re.search(r"state_prefixes = concat\((.*?)\n  \)", PIPELINE, re.S)
+    assert concat and "local.facts_state_prefix" in concat.group(1)
+    assert "var.enable_r2" in concat.group(1)  # only Release 2 writes them
+    key = facts_state.key_for("fct_headways", 1, __import__("datetime").date(2026, 11, 20))
+    assert fnmatch.fnmatch(key, f"{facts_state.PREFIX}/*")
+    # the plan lists "<prefix>/<table>/metric_version=N/"
+    assert fnmatch.fnmatch(f"{facts_state.PREFIX}/fct_headways/metric_version=1/", "state/facts/*")

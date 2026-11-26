@@ -33,6 +33,7 @@ with observations as (
         {{ service_date_from_ts('event_ts') }} as service_date
     from {{ ref('stg_vehicle_positions') }}
     where event_ts is not null and not is_stale_position and trip_id is not null
+        and {{ compute_days_filter(service_date_from_ts('event_ts')) }}
     -- the same position is repeated by every capture until the vehicle reports again
     qualify row_number() over (
         partition by vehicle_id, trip_id, event_ts order by fetched_at, capture_id
@@ -131,8 +132,9 @@ segmented as (
             rows between unbounded preceding and current row
         ) as segment
     from resets
-)
+),
 
+computed as (
 select
     vehicle_id,
     trip_instance_key,
@@ -157,3 +159,6 @@ select
     ) as dist_m,
     coalesce(exclusion_reason, case when raw_dist_m is null then 'off_shape' end) as exclusion_reason
 from segmented
+)
+
+{{ fact_union('int_vehicle_stop_events') }}

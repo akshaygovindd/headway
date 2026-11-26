@@ -19,6 +19,7 @@ with predictions as (
         (t.schedule_relationship = 'ADDED' or t.trip_id like 'ADDED-%') as is_added_trip
     from {{ ref('stg_trip_updates') }} t
     left join {{ ref('int_captures') }} c on c.capture_id = t.capture_id
+    where {{ compute_days_filter('t.service_date') }}
 ),
 
 -- previous snapshot of the same trip stop, among non-duplicate captures only
@@ -32,8 +33,9 @@ prior as (
         ) as prior_predicted_arrival_ts
     from predictions
     where not is_duplicate_capture
-)
+),
 
+computed as (
 select
     p.trip_instance_key,
     p.stop_sequence,
@@ -68,3 +70,6 @@ left join {{ ref('int_scheduled_stop_times') }} s
     and s.service_date = p.service_date
     and s.stop_sequence = p.stop_sequence
     and s.stop_id = p.stop_id
+)
+
+{{ fact_union('fct_stop_predictions') }}

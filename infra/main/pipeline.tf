@@ -27,8 +27,12 @@ locals {
   # Release 3: the incident summaries (state/incident_summaries), so a version is summarised once and
   # the daily LLM call cap holds across runs (dbt/headway_transform/incident_summaries.py).
   incident_state_prefix = "state/incident_summaries"
+  # Release 2: the closed-day facts (state/facts/<table>/...) are written once each by the transform
+  # and read back by later runs (dbt/headway_transform/facts_state.py, ADR-024).
+  facts_state_prefix = "state/facts"
   state_prefixes = concat(
     [local.state_prefix, local.elementary_state_prefix],
+    var.enable_r2 ? [local.facts_state_prefix] : [],
     var.enable_r3 ? [local.forecast_state_prefix, local.incident_state_prefix] : [],
   )
   # Release 3 serving: the transform reads the model registry (latest.json, the model files) and

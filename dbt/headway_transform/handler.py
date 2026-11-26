@@ -21,6 +21,7 @@ from headway_transform import (
     cost,
     duckdb_limits,
     emf,
+    facts_state,
     forecast_serving,
     forecast_state,
     history,
@@ -377,6 +378,10 @@ def r2_exclusions() -> list[str]:
     return out
 
 
+# dbt unit tests check the SQL against mocked inputs and run in CI (`make e2e`); in a run they would
+# see the closed-day vars (ADR-024) and fail on their fixtures, skipping every model downstream.
+_NO_TESTS = ["resource_type:test", "resource_type:unit_test"]
+
 _TRACKER: memory.Tracker | None = None
 
 
@@ -421,16 +426,12 @@ def _build_and_test(
     load = step("s3_load", ["run", "--select", "tag:s3_load"])
     if load.node_errors:
         raise TransformError(f"dbt S3 load failed: {', '.join(load.node_errors)}")
-    build = step(
-        "dbt_build", ["build", "--exclude", "resource_type:test", "tag:s3_load", *r2_exclusions()]
-    )
+    build = step("dbt_build", ["build", "--exclude", *_NO_TESTS, "tag:s3_load", *r2_exclusions()])
     if build.node_errors:
         raise TransformError(f"dbt models failed: {', '.join(build.node_errors)}")
     if between is not None:
         between()
-    tests = step(
-        "dbt_test", ["test", *(["--exclude", *r2_exclusions()] if r2_exclusions() else [])]
-    )
+    tests = step("dbt_test", ["test", "--exclude", "resource_type:unit_test", *r2_exclusions()])
     tests.success = tests.success and build.success and load.success
     return tests
 
@@ -738,8 +739,24 @@ def _record_run(s3: Any, run: RunRecord) -> None:
         logger.exception("could not write the run record")
 
 
-def _variables(lookback: int, now: datetime) -> str:
-    """The dbt vars of a run. Release 2 adds the history root and metric versions (ADR-015)."""
+def _facts_plan(s3: Any, lookback: int, now: datetime) -> facts_state.Plan | None:
+    """Which window days are computed and which are loaded from state (ADR-024).
+
+    None (compute everything, as before) when incremental facts are off or the state cannot be
+    listed: a failure here must cost time, never correctness.
+    """
+    if not facts_state.enabled():
+        return None
+    try:
+        return facts_state.plan(s3, os.environ["RAW_BUCKET"], now, lookback)
+    except Exception:
+        logger.exception("could not plan the closed-day facts, computing every day")
+        return None
+
+
+def _variables(lookback: int, now: datetime, facts: facts_state.Plan | None = None) -> str:
+    """The dbt vars of a run. Release 2 adds the history root and metric versions (ADR-015), and
+    the closed-day facts plan (ADR-024) when there is one."""
     variables: dict[str, Any] = {
         "curated_root": f"s3://{os.environ['RAW_BUCKET']}",
         "city_prefix": os.environ["CITY_ID"],
@@ -752,6 +769,10 @@ def _variables(lookback: int, now: datetime) -> str:
         variables["metric_versions"] = history.table_versions()
         # Curation runs every 15 minutes: the last half hour is incomplete, so the SLOs stop there.
         variables["slo_as_of"] = (now - SLO_LAG).strftime("%Y-%m-%dT%H:%M:%SZ")
+        if facts is not None:
+            variables.update(
+                facts.variables(f"s3://{os.environ['RAW_BUCKET']}/{facts_state.PREFIX}")
+            )
     return json.dumps(variables)
 
 
@@ -834,6 +855,12 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
         if not publish.r2_enabled():
             raise TransformError("rebuild_history needs HEADWAY_ENABLE_R2=true")
         rebuild = history.validate_rebuild(event)
+    elif event.get("task") == "rebuild_facts":
+        if not facts_state.enabled():
+            raise TransformError(
+                "rebuild_facts needs HEADWAY_ENABLE_R2=true and incremental facts on"
+            )
+        rebuild = facts_state.validate_rebuild(event)
     elif event.get("task") == "rebuild_forecast_examples":
         if not (publish.r2_enabled() and publish.r3_enabled()):
             raise TransformError("rebuild_forecast_examples needs HEADWAY_ENABLE_R2 and R3")
@@ -855,6 +882,8 @@ def lambda_handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     try:
         release_dbt_connections()  # a warm container may still hold the file
         state.load(s3, os.environ["RAW_BUCKET"], db_path, state.TRANSFORM_RUNS, run.started_at)
+        if rebuild is not None and task == "rebuild_facts":
+            return _rebuild_facts(started, s3, run, *rebuild)
         if rebuild is not None and task == "rebuild_forecast_examples":
             return _rebuild_forecast_examples(started, s3, run, *rebuild)
         if rebuild is not None:
@@ -896,7 +925,12 @@ def _transform(
     except Exception:
         logger.exception("could not read the previous export time")
         previous_export = None
-    variables = _variables(lookback, _now())
+    t0 = time.monotonic()
+    facts_plan = _facts_plan(s3, lookback, _now())
+    if facts_plan is not None:
+        summary.update(facts_plan.summary())
+        timed("facts_plan", t0)
+    variables = _variables(lookback, _now(), facts_plan)
     if publish.r2_enabled() and publish.r3_enabled():
         variables = _with_forecast_as_of(variables, _now())
         t0 = time.monotonic()
@@ -971,6 +1005,23 @@ def _transform(
             summary["history_error"] = f"{type(exc).__name__}: {exc}"
         timed("history", t0)
 
+    facts_error: Exception | None = None
+    if facts_plan is not None:
+        t0 = time.monotonic()
+        try:
+            release_dbt_connections()
+            fw = facts_state.write_closed_days(
+                s3, os.environ["RAW_BUCKET"], db_path, _now(),
+                timezone=_timezone(), lookback_days=lookback, skip=facts_plan.persisted,
+            )  # fmt: skip
+            summary["facts_written"] = fw.written
+            summary["facts_existing"] = fw.existing
+        except Exception as exc:
+            logger.exception("facts write failed")
+            facts_error = exc
+            summary["facts_error"] = f"{type(exc).__name__}: {exc}"
+        timed("facts", t0)
+
     forecast_error: Exception | None = None
     if publish.r2_enabled() and publish.r3_enabled():
         t0 = time.monotonic()
@@ -1034,6 +1085,8 @@ def _transform(
         raise publish_error
     if history_error is not None:
         raise history_error
+    if facts_error is not None:
+        raise facts_error
     if forecast_error is not None:
         raise forecast_error
     run.status = "success" if build.success else "tests_failed"
@@ -1174,6 +1227,41 @@ def _rebuild_forecast_examples(
         "metric_version": version,
         "written": result.written,
         "existing": result.existing,
+        "duration_ms": round((time.monotonic() - started) * 1000),
+    }
+    logger.info(json.dumps(summary, sort_keys=True, default=str))
+    run.status = "success"
+    return summary
+
+
+def _rebuild_facts(
+    started: float, s3: Any, run: RunRecord, first: date, last: date, version: int
+) -> dict[str, Any]:
+    """(Re)build the closed-day facts for explicit days at `version`; never touches gold.
+
+    Plans over a lookback that reaches `first`, so every day without all its partitions is built
+    from raw data, then writes the days of the range that have no object yet for the tables at
+    `version`. Existing days are left as they are: to change a definition, bump the constant in
+    facts_state.py and backfill that version.
+    """
+    now = _now()
+    lookback = max((now.date() - first).days, DEFAULT_LOOKBACK_DAYS)
+    plan = facts_state.plan(s3, os.environ["RAW_BUCKET"], now, lookback)
+    _build_and_test(_variables(lookback, now, plan), run.steps)
+    release_dbt_connections()
+    days = [first + timedelta(days=i) for i in range((last - first).days + 1)]
+    db_path = os.environ.get("HEADWAY_DUCKDB_PATH", "/tmp/headway.duckdb")  # noqa: S108
+    result = facts_state.write_closed_days(
+        s3, os.environ["RAW_BUCKET"], db_path, now, timezone=_timezone(),
+        lookback_days=lookback, skip=plan.persisted, days=days,
+        tables=facts_state.versions_for(version),
+    )  # fmt: skip
+    summary: dict[str, Any] = {
+        "task": "rebuild_facts",
+        "metric_version": version,
+        "written": result.written,
+        "existing": result.existing,
+        **plan.summary(),
         "duration_ms": round((time.monotonic() - started) * 1000),
     }
     logger.info(json.dumps(summary, sort_keys=True, default=str))

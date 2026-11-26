@@ -35,7 +35,7 @@
 with usable as (
     select *
     from {{ ref('int_vehicle_stop_events') }}
-    where exclusion_reason is null
+    where exclusion_reason is null and {{ compute_days_filter('service_date') }}
 ),
 
 chosen as (
@@ -229,8 +229,9 @@ checked as (
         ) as known_at
     from timed
     window w as (partition by trip_instance_key, segment order by stop_sequence)
-)
+),
 
+computed as (
 select
     trip_instance_key,
     segment,
@@ -258,3 +259,6 @@ select
     scheduled_arrival_ts,
     case when arrival_ts is not null then known_at end as known_at
 from checked
+)
+
+{{ fact_union('fct_reconstructed_arrivals') }}
