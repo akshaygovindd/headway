@@ -17,6 +17,7 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
 
 - [Alarms](#alarms)
 - [Simulations](#simulations)
+- [Closed-day facts](#closed-day-facts)
 - [Training job](#training-job)
 - [Live drills](#live-drills)
 
@@ -508,6 +509,43 @@ on purpose in the deployed pipeline, the section links to its [live drill](#live
 - **Recovery:** the next scheduled run logs no `publish_error`, `gold_published` is true, and
   `SHOW TABLES FROM headway;` in MotherDuck shows fresh tables; the failed slot stays in that
   day's transform-success numbers.
+
+## Closed-day facts
+
+The four heavy facts (`int_vehicle_stop_events`, `fct_reconstructed_arrivals`, `fct_headways`,
+`fct_stop_predictions`) are computed once per closed service day and kept as immutable Parquet in
+`s3://<raw>/state/facts/<table>/metric_version=<N>/service_date=YYYY-MM-DD/part.parquet`
+([ADR-024](ARCHITECTURE_DECISIONS.md#adr-024-account-lambda-memory-cap)). A service day closes at
+06:00 local on the next day. Every scheduled run lists the state first: a window day that has all
+four partitions at the current versions is read from state, every other day (open, or closed and
+not persisted yet, for instance after a missed run) is built from raw data, and the closed ones are
+written at the end of the run. The summary line shows `facts_computed_days`, `facts_loaded_days`
+and `facts_written`.
+
+- **Look at the state:** `aws s3 ls s3://headway-raw-<account>/state/facts/fct_headways/metric_version=1/`
+  lists one folder per day; a day missing from one of the four tables is built again by the next
+  run. A closed day with no rows in a table has an empty partition (it is not built again).
+- **Backfill or rebuild a range of days** (at most 14 days per call; it builds the window from
+  the oldest day of the range, writes the days of the range that have no object yet for the
+  tables at that version, and never touches gold):
+  ```sh
+  aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
+    --cli-binary-format raw-in-base64-out \
+    --payload '{"task":"rebuild_facts","from":"2026-11-12","to":"2026-11-25","metric_version":1}' \
+    /dev/stdout
+  ```
+- **Change a definition:** state is never edited. Bump the version of the table in
+  `dbt/headway_transform/facts_state.py` (`FACT_VERSIONS`), deploy, then run `rebuild_facts` with
+  the new `metric_version`. Until a day exists at the new version it is built by every run; the
+  old version stays where it is. Add a test first: `tests/unit/test_incremental_equivalence.py`
+  must still show an incremental build equal to a full one.
+- **Redo one bad day** (late data that missed the 3 h margin): delete the four objects of that
+  day under the current version, then the next run builds and writes it again. Do this only for
+  the day and version you mean; nothing else rereads the old objects.
+- **Switch it off:** set `HEADWAY_INCREMENTAL_FACTS=false` on the function (or an unreadable
+  state does it by itself for one run): every run builds the whole window as before. It is slower
+  and has to fit in 900 s, see
+  [`headway-transform-duration-high`](#alarm-headway-transform-duration-high).
 
 ## Training job
 

@@ -727,7 +727,33 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   2992 to 3008 MB while `TransformMemoryUsedPct` is 62 to 63% and runs succeed (140 to 220 s). The
   REPORT figure includes page cache from DuckDB spilling to `/tmp` (reclaimable); the alarm
   deliberately uses process RSS, so it does not fire on the cache.
+- **Incremental closed-day facts (accepted 2026-11-26):** the first transform run with Release 2
+  took 453 s of the 900 s limit with 15-second vehicle sampling about to quadruple the vehicle
+  data ([INCIDENTS](INCIDENTS.md#transform-duration-at-half-the-lambda-limit-caught-by-monitoring)),
+  so the fallback named here was built. `int_vehicle_stop_events`, `fct_reconstructed_arrivals`,
+  `fct_headways` and `fct_stop_predictions` are computed once per closed service day and persisted
+  as immutable Parquet in `s3://<raw>/state/facts/<table>/metric_version=<N>/service_date=D/part.parquet`
+  (conditional put, never rewritten; a version per table in `facts_state.FACT_VERSIONS`, written
+  next to the old one). Each run plans the window: a day with all four partitions is read from
+  state, every other day (open, or closed but not persisted, so a missed run heals itself) is
+  built from raw data, and the closed ones are written afterwards. A closed day with no rows gets
+  an empty partition. dbt unions the two (`fact_union`), so the window aggregates are built from
+  the union of persisted and computed days; the staging tables stay whole-window because the
+  quality, pipeline-health and trip tables read them directly. `rebuild_facts` backfills a range or
+  a new version; `HEADWAY_INCREMENTAL_FACTS=false` builds everything as before. dbt unit tests are
+  excluded from the Lambda run (they run in CI and would see the plan's variables). The curated
+  window is fetched in parallel to `/tmp` before the load, because one DuckDB thread reads 786
+  objects one request at a time.
+  Measured on the synthetic 7-day window with 4x vehicle data at 3008 MB and 1.7 CPUs
+  ([MEASUREMENTS](MEASUREMENTS.md#transform-duration-with-closed-day-facts)): 183 s full, 197 s the
+  first incremental run, 102 s in steady state; peak memory 66%, 64% and 62%. An incremental build
+  equals a full one in every table (`tests/unit/test_incremental_equivalence.py`). Trade-offs: a
+  closed day is frozen at the first run after 06:00 local, so a capture that arrives later never
+  enters it (the same rule as the history tables); and `stg_trip_updates` (25 s) and dbt's
+  per-invocation overhead remain per run. The alarm `headway-transform-duration-high` watches the
+  run time ([RUNBOOK](RUNBOOK.md#alarm-headway-transform-duration-high)).
 - **Revisit when:** the quota is raised (then the budget scales with it and the DuckDB limit can
-  rise), the 7-day window or sampling grows past what fits at the limit, or a measured run needs
-  more than the 85% budget. The next step then is the incremental closed-day design of ADR-015:
-  closed days are computed once and read back from history, and each run builds only the open day.
+  rise), the 7-day window or sampling grows past what fits at the limit, a measured run needs
+  more than the 85% budget, or steady-state runs approach 600 s again: the next steps are persisting
+  the per-day staging aggregates (`stg_trip_updates` and the quality inputs), then a larger window
+  becomes possible.
