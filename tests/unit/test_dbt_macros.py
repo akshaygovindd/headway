@@ -138,6 +138,7 @@ R4_TABLES = {
     "agg_capture_heartbeat_hourly",
     "agg_ett_band_window",
     "agg_service_disruptions",
+    "agg_trip_time_budget",
 }
 
 

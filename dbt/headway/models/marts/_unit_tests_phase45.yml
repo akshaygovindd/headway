@@ -1,0 +1,79 @@
+unit_tests:
+  - name: trip_time_budget_pairs_statistics_coverage
+    config:
+      tags: [r4]
+    description: >-
+      Red, stations Alpha (s1, s1b) and Beta (s2), am_peak, last_24h. Direction 0 Alpha to Beta:
+      trips T1-T4 take 600 s and T5 1200 s (median 600, 95th percentile 1080, buffer time index
+      0.8); T6 has no usable arrivals, T8 takes 12000 s (implausible, not measured) and T11 has
+      only the later arrival (not measured); T7 starts in a data-outage hour and is left out. So 9
+      scheduled trips minus the outage trip: 8 in coverage, 5 measured (62.5 %). T9 runs two
+      platforms of one station: no pair. Direction 1 is its own pair, Beta to Alpha, one trip of 540 s.
+    model: agg_trip_time_budget
+    given:
+      - input: ref('int_window_hours')
+        rows:
+          - {window_label: last_24h, service_date: "2026-11-23", hour_local: 6}
+          - {window_label: last_24h, service_date: "2026-11-23", hour_local: 7}
+          - {window_label: last_24h, service_date: "2026-11-23", hour_local: 8}
+      - input: ref('int_stop_stations')
+        rows:
+          - {stop_id: s1, station_id: place-a, station_name: Alpha}
+          - {stop_id: s1b, station_id: place-a, station_name: Alpha}
+          - {stop_id: s2, station_id: place-b, station_name: Beta}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {trip_instance_key: "T1", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s1, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "T1", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s2, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "T2", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s1, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "T2", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s2, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "T3", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s1, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "T3", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s2, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "T4", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s1, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "T4", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s2, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "T5", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s1, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "T5", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s2, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "T8", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s1, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "T8", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s2, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "T6", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s1, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "T6", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s2, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+          - {trip_instance_key: "T7", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s1, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 11:50:00+00", hour_local: 6}
+          - {trip_instance_key: "T7", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s2, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 12:00:00+00", hour_local: 7}
+          - {trip_instance_key: "T9", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s1, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "T9", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s1b, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 12:52:00+00", hour_local: 7}
+          - {trip_instance_key: "T10", service_date: "2026-11-23", line: Red, direction_id: 1, stop_id: s2, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "T10", service_date: "2026-11-23", line: Red, direction_id: 1, stop_id: s1, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 12:59:00+00", hour_local: 7}
+          - {trip_instance_key: "T11", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s1, stop_sequence: 1, scheduled_arrival_ts: "2026-11-23 12:50:00+00", hour_local: 7}
+          - {trip_instance_key: "T11", service_date: "2026-11-23", line: Red, direction_id: 0, stop_id: s2, stop_sequence: 2, scheduled_arrival_ts: "2026-11-23 13:00:00+00", hour_local: 8}
+      - input: ref('int_usable_arrivals')
+        rows:
+          - {trip_instance_key: "T1", segment: 0, stop_sequence: 1, arrival_ts: "2026-11-23 12:50:00+00", scheduled_arrival_ts: "2026-11-23 12:50:00+00"}
+          - {trip_instance_key: "T1", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 13:00:00+00", scheduled_arrival_ts: "2026-11-23 13:00:00+00"}
+          - {trip_instance_key: "T2", segment: 0, stop_sequence: 1, arrival_ts: "2026-11-23 12:50:00+00", scheduled_arrival_ts: "2026-11-23 12:50:00+00"}
+          - {trip_instance_key: "T2", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 13:00:00+00", scheduled_arrival_ts: "2026-11-23 13:00:00+00"}
+          - {trip_instance_key: "T3", segment: 0, stop_sequence: 1, arrival_ts: "2026-11-23 12:50:00+00", scheduled_arrival_ts: "2026-11-23 12:50:00+00"}
+          - {trip_instance_key: "T3", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 13:00:00+00", scheduled_arrival_ts: "2026-11-23 13:00:00+00"}
+          - {trip_instance_key: "T4", segment: 0, stop_sequence: 1, arrival_ts: "2026-11-23 12:50:00+00", scheduled_arrival_ts: "2026-11-23 12:50:00+00"}
+          - {trip_instance_key: "T4", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 13:00:00+00", scheduled_arrival_ts: "2026-11-23 13:00:00+00"}
+          - {trip_instance_key: "T5", segment: 0, stop_sequence: 1, arrival_ts: "2026-11-23 12:50:00+00", scheduled_arrival_ts: "2026-11-23 12:50:00+00"}
+          - {trip_instance_key: "T5", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 13:10:00+00", scheduled_arrival_ts: "2026-11-23 13:00:00+00"}
+          - {trip_instance_key: "T8", segment: 0, stop_sequence: 1, arrival_ts: "2026-11-23 12:50:00+00", scheduled_arrival_ts: "2026-11-23 12:50:00+00"}
+          - {trip_instance_key: "T8", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 16:10:00+00", scheduled_arrival_ts: "2026-11-23 13:00:00+00"}
+          - {trip_instance_key: "T7", segment: 0, stop_sequence: 1, arrival_ts: "2026-11-23 11:50:00+00", scheduled_arrival_ts: "2026-11-23 11:50:00+00"}
+          - {trip_instance_key: "T7", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 11:58:20+00", scheduled_arrival_ts: "2026-11-23 12:00:00+00"}
+          - {trip_instance_key: "T9", segment: 0, stop_sequence: 1, arrival_ts: "2026-11-23 12:50:00+00", scheduled_arrival_ts: "2026-11-23 12:50:00+00"}
+          - {trip_instance_key: "T9", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 12:52:00+00", scheduled_arrival_ts: "2026-11-23 12:52:00+00"}
+          - {trip_instance_key: "T10", segment: 0, stop_sequence: 1, arrival_ts: "2026-11-23 12:50:00+00", scheduled_arrival_ts: "2026-11-23 12:50:00+00"}
+          - {trip_instance_key: "T10", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 12:59:00+00", scheduled_arrival_ts: "2026-11-23 12:59:00+00"}
+          - {trip_instance_key: "T11", segment: 0, stop_sequence: 2, arrival_ts: "2026-11-23 13:00:00+00", scheduled_arrival_ts: "2026-11-23 13:00:00+00"}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-23", hour_local: 6, data_outage: true}
+          - {service_date: "2026-11-23", hour_local: 7, data_outage: false}
+          - {service_date: "2026-11-23", hour_local: 8, data_outage: false}
+      - input: ref('int_disrupted_line_hours')
+        rows: []
+    expect:
+      rows:
+        - {line: Red, direction_id: 0, from_station_id: place-a, to_station_id: place-b, time_band: am_peak, window_label: last_24h, n_scheduled_trips: 8, n_excluded_outage: 1, n_implausible: 1, n_trips: 5, n_disruption: 0, median_s: 600.0, p95_s: 1080.0, buffer_time_index: 0.8, coverage_numerator: 5, coverage_denominator: 8, coverage_pct: 62.5}
+        - {line: Red, direction_id: 1, from_station_id: place-b, to_station_id: place-a, time_band: am_peak, window_label: last_24h, n_scheduled_trips: 1, n_excluded_outage: 0, n_implausible: 0, n_trips: 1, n_disruption: 0, median_s: 540.0, p95_s: 540.0, buffer_time_index: 0.0, coverage_numerator: 1, coverage_denominator: 1, coverage_pct: 100.0}

@@ -68,6 +68,7 @@
     'agg_headway_segment_window': "select * from " ~ ref('agg_headway_segment_window'),
     'agg_ett_band_window': "select * from " ~ ref('agg_ett_band_window'),
     'agg_service_disruptions': "select * from " ~ ref('agg_service_disruptions'),
+    'agg_trip_time_budget': "select * from " ~ ref('agg_trip_time_budget'),
     'agg_marey_last_hour': "select * from " ~ ref('agg_marey_last_hour'),
     'agg_capture_heartbeat_hourly': "select * from " ~ ref('agg_capture_heartbeat_hourly') ~ " where hour_start >= (select max(hour_start) from " ~ ref('agg_capture_heartbeat_hourly') ~ ") - interval 30 day",
 }) }}
