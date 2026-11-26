@@ -19,6 +19,7 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
 - [Simulations](#simulations)
 - [Closed-day facts](#closed-day-facts)
 - [Training job](#training-job)
+- [Capturing the official slow-zone snapshot by hand](#capturing-the-official-slow-zone-snapshot-by-hand)
 - [Live drills](#live-drills)
 
 ## Alarms
@@ -667,6 +668,67 @@ With `enable_r3` the daily static Lambda also refetches the last 21 days of NOAA
 `"weather": {"status": "error", ...}` in the `headway-static` log line. The comparison keeps its
 earlier days and the weather table simply stops growing until the next successful run; the NCEI
 service has no SLA and trails real time by about a week.
+
+## Capturing the official slow-zone snapshot by hand
+
+The site compares the slow segments it observes with the MBTA's list of speed restrictions
+([ADR-025](ARCHITECTURE_DECISIONS.md#adr-025-official-slow-zone-list-a-hand-captured-snapshot)). The
+list is a **snapshot typed in by a person**: the seed `dbt/headway/seeds/official_speed_restrictions.csv`
+is committed with its header and no rows, and until it has rows the site says "official list not
+captured yet". Nothing fetches the MBTA's page. **Do not script, scrape or schedule requests to the
+MBTA's speed-restrictions page or the Open Data Portal**: the MBTA's Terms of Use bar data
+harvesting and use that overburdens the site. Read the page in a browser, as a rider would.
+
+**When:** the first time, then when the site's snapshot date is old enough to mislead (a month is a
+reasonable limit; restrictions last weeks). The date shows on `/slow-zones` and in
+`/v1/slow-zones` (`official.snapshot_date`).
+
+1. Open the MBTA's public speed-restrictions page in a browser. Note its address: it goes in every row.
+2. In `official_speed_restrictions.csv`, replace the rows with one row per restriction on the page
+   (the file is a whole snapshot, not a log). Columns:
+   `restriction_id` (your own short id, unique, for example `RL-01`), `line` (as the site names it:
+   `Red`, `Orange`, `Blue`, `Green-B`, `Green-C`, `Green-D`, `Green-E`, `Mattapan`), `location_text`
+   (the MBTA's own wording, unchanged), `direction` (as worded, or empty), `speed_limit_mph`,
+   `reason` (as worded, or empty), `date_reported` (`YYYY-MM-DD`), `source_url` (the page's address)
+   and `captured_on` (today, `YYYY-MM-DD`). Quote a field that contains a comma. Copy only what the
+   page shows; leave a field empty rather than guess.
+3. In `official_restriction_segments.csv` give each restriction the segments it covers: one row per
+   segment, `restriction_id`, `line`, `direction_id` (0 or 1), `from_stop_id`, `to_stop_id`. Segments
+   are two neighbouring platform stops of one direction, as in `agg_headway_segment_window`; list them
+   with:
+
+   ```sh
+   uv run --project dbt python - <<'PY'
+   import duckdb
+   print(duckdb.connect(".local/headway.duckdb", read_only=True).sql(
+       "select line, direction_id, segment_order, from_stop_id, from_stop_name, to_stop_id, to_stop_name "
+       "from agg_headway_segment_window where window_label = 'last_24h' order by 1, 2, 3"))
+   PY
+   ```
+
+   A restriction you cannot place stays unmapped on purpose: it is shown as "on the official list,
+   not matched to a segment", never dropped.
+4. Check and commit:
+
+   ```sh
+   HEADWAY_ENABLE_R2=true HEADWAY_ENABLE_R4=true uv run --project dbt dbt build \
+     --project-dir dbt/headway --profiles-dir dbt/headway --target local \
+     --select official_speed_restrictions official_restriction_segments \
+     stg_official_speed_restrictions agg_slow_zone_comparison
+   ```
+
+   The unique and not-null tests of `stg_official_speed_restrictions` catch a repeated id or a row
+   without a line. Commit the two CSV files with a message that names the capture date.
+5. The next transform run after the deploy publishes it. Real rows are never copied into tests or mock
+   data; the tests use rows labelled FIXTURE.
+
+## Elevator and escalator outages
+
+`agg_accessibility_outages` is built from the `ACCESSIBILITY_ISSUE` alerts already captured; there is
+nothing to refresh. If a station shows "out now" for years, that is the MBTA's own announcement
+("unavailable until further notice") and its start date, not a stale capture: check the alert id in
+the MBTA's alerts. Exact facility status needs the V3 `/live_facilities` feed, a follow-up that
+needs an API key and a new ingest (ADR-025).
 
 ## Live drills
 
