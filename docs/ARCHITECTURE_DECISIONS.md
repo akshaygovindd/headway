@@ -796,7 +796,7 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 
 ### ADR-026: Dwell correction of bracketed arrivals from our own data
 
-- **Status:** Accepted (2026-11-26)
+- **Status:** Accepted (2026-11-26), amended the same day: 15-second sampling is not corrected
 - **Context:** the comparison with MBTA's LAMP times ([VALIDATION](VALIDATION.md)) showed bracketed
   arrivals (stops no capture saw STOPPED_AT) a median 13 s late: interpolating by distance between
   the polls either side lands inside the dwell, a fraction `along` of it after the true arrival.
@@ -806,22 +806,33 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   the observation before the stop, bracketed stops of a run kept in order. The expected dwell is a
   committed dbt seed (`reconstruction_dwell`), fitted by `scripts/fit_reconstruction_dwell.py` from
   our own STOPPED_AT data only, per line, stop and hour bucket (stop then line when a cell is thin),
-  with a column per observation-spacing class so it stays right when sampling changes from 60 s to
-  15 s. No LAMP or other MBTA performance data is read by the model or by the fit. Observed
-  arrivals, confidence and the schema are unchanged. `fct_reconstructed_arrivals` and
-  `fct_headways` (which reads it) move to version 3 and are backfilled with one `rebuild_facts`.
+  with a column per 1-minute observation-spacing class (about 60 s, and 90 s or more). No LAMP or
+  other MBTA performance data is read by the model or by the fit. **Runs observed every 15 or 30 s
+  (spacing class 15 or 30) have no seed rows and are not corrected**: the correction is validated
+  at 1-minute sampling only, and a first version that also corrected them (the dwell model carrying
+  the table to the finer spacing) lowered the share of those stops within 30 s of LAMP from 84 %
+  to 80 % on the first four hours of 15-second data. They stay uncorrected until the table is
+  refitted on at least three full days of 15-second data and `make validate` is re-run on days
+  after the fit. Observed arrivals, confidence and the schema are unchanged.
+  `fct_reconstructed_arrivals` and `fct_headways` (which reads it) move to version 3 and are
+  backfilled with one `rebuild_facts`; every history family that reads arrival times moves to
+  metric version 3 together (`history.ARRIVAL_TIMES_VERSION`, kept true by a lineage test) and is
+  rebuilt with one `rebuild_history`, so closed days are on one method.
 - **Alternatives:** the median dwell of observed stops (rejected: a short dwell is less likely to
   be seen, and a single sighting carries no dwell information, so it over-corrects by 17 s; the
   fit uses the split of visits by number of sightings instead); fitting the table inside the
   pipeline from the lookback window (rejected: a persisted closed day would depend on when it was
   computed); a constant per line (kept as the fallback when a cell is thin; line cells alone score
-  88.2 % within 30 s against 89.7 % with stop and hour cells); calibrating a scale factor on LAMP
-  (rejected: LAMP must stay a yardstick).
+  88.5 % within 30 s against 89.9 % with stop and hour cells); calibrating a scale factor on LAMP
+  (rejected: LAMP must stay a yardstick); correcting 15-second data with the 1-minute table
+  (rejected, above).
 - **Consequences:** held out (25-26 Nov, fit on 22-24 Nov) bracketed stops go from +12.4 s median
-  bias and 82.6 % within 30 s of LAMP to -4.2 s and 89.7 %; the 15-second sample (four hours,
-  790 pairs) does not improve and the table should be refitted on full days of 15-second data. The
-  dwell shape is bounded by a prior (12). Public history aggregates that read arrival times are not
-  rebuilt (RUNBOOK, Closed-day facts). Confidence thresholds are not changed; a bracketed limit of
-  180 s instead of 120 s is proposed in VALIDATION.
-- **Revisit when:** several full days of 15-second sampling exist (refit, re-validate), or LAMP's
-  definition or the vehicle feed's reporting cadence changes.
+  bias and 82.6 % within 30 s of LAMP to -3.8 s and 89.9 % (1-minute runs: +13.2 to -4.1 s, 82.5
+  to 90.3 %); 15-second data is uncorrected (84.3 % within 30 s). The dwell shape is bounded by a
+  prior (12). Rebuilding history in production is a real step (RUNBOOK, Closed-day facts). The
+  training examples that use arrival times as targets (`forecast_state`) are not bumped here.
+  Confidence thresholds are not changed; a bracketed limit of 180 s instead of 120 s is proposed in
+  VALIDATION.
+- **Revisit when:** at least three full days of 15-second sampling exist (refit, validate on later
+  days, then add the 15 s and 30 s columns), or LAMP's definition or the vehicle feed's reporting
+  cadence changes.

@@ -162,12 +162,14 @@ time along the shape and a stop's distance never decreases along `stop_sequence`
 arrivals are monotonic by construction; `monotonic_ok = false` is left for two observed midpoints
 out of order (both stops low).
 
-A bracketed time is then moved earlier by its share of the expected dwell, because the polls either
+For runs observed about once a minute, a bracketed time is then moved earlier by its share of the
+expected dwell, because the polls either
 side straddled the whole dwell and the interpolation lands inside it: `along x E[dwell of a missed
 visit]`, where `along` is how far the stop lies between the two known points and the dwell comes
 from the `reconstruction_dwell` seed (fitted from our own observed STOPPED_AT data, by line, stop
 and hour bucket, for the run's observation spacing; [VALIDATION](VALIDATION.md)). The move never
-passes the known point before the stop. Observed arrivals are not changed.
+passes the known point before the stop. Runs observed every 15 or 30 s are not corrected yet (the
+correction is validated at 1-minute sampling only, ADR-026), and observed arrivals are never changed.
 
 A vehicle can run the same trip id again on the same day. When its `current_stop_sequence` goes
 backwards on a trip id, a new run starts (`segment` 1, 2, ...), and distances, intervals and

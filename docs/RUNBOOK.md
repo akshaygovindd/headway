@@ -555,8 +555,9 @@ and `facts_written`.
 - **Look at the state:** `aws s3 ls s3://headway-raw-<account>/state/facts/fct_headways/metric_version=1/`
   lists one folder per day; a day missing from one of the four tables is built again by the next
   run. A closed day with no rows in a table has an empty partition (it is not built again).
-- **`fct_reconstructed_arrivals` and `fct_headways` are at version 3** (bracketed arrivals are
-  moved earlier by their share of the expected dwell, from the `reconstruction_dwell` seed;
+- **`fct_reconstructed_arrivals` and `fct_headways` are at version 3** (bracketed arrivals of runs
+  observed about once a minute are moved earlier by their share of the expected dwell, from the
+  `reconstruction_dwell` seed; 15- and 30-second runs are left uncorrected, ADR-026;
   [VALIDATION](VALIDATION.md); `fct_headways` reads those arrivals). The other two tables stay at
   version 1. The first run after deploying finds no version-3 partition, so it builds every window
   day from raw data and writes the closed ones; that run is as heavy as one with the facts switched
@@ -608,9 +609,11 @@ and `facts_written`.
   `uv run python scripts/fit_reconstruction_dwell.py --db .local/prod_test.duckdb --from <first> --to <last>`
   writes `dbt/headway/seeds/reconstruction_dwell.csv`. The fit reads only our own STOPPED_AT data.
   Do not refit from the lookback window inside the pipeline: a persisted closed day would then
-  depend on when it was computed. After the 15-second sampling has several full days, refit on
-  those days: the dwell distribution is better identified there, and the held-out check in
-  [VALIDATION](VALIDATION.md) (`make validate`) should be repeated on days after the fit window.
+  depend on when it was computed. The 15 s and 30 s spacing classes are deliberately absent from
+  the seed (uncorrected). Once at least three full days of 15-second sampling exist, refit on them
+  (add the two columns back to the script's emitted classes, the model's `dwell_cells` and the seed
+  schema), run `make validate` on days after the fit window, and only keep the columns if the
+  15-second bracketed stops improve there.
 - **Backfill or rebuild a range of days** (at most 14 days per call; it builds the window from
   the oldest day of the range, writes the days of the range that have no object yet for the
   tables at that version, and never touches gold):
