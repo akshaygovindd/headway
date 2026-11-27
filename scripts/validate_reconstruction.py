@@ -37,6 +37,9 @@ PASS2_MAX_SCHEDULE_GAP_S = 120
 # A candidate pair whose actual times are further apart than this is not the same train arriving
 # (a reused trip id, or LAMP's ADDED trip inheriting a scheduled time); it is not accepted.
 MAX_ARRIVAL_GAP_S = 600
+# The dwell table of bracketed arrivals was fitted on service dates up to this one (our own
+# STOPPED_AT data); later days are held out.
+FIT_END = "2026-11-24"
 CONFIDENCE_ORDER = ["high", "medium", "low", "missing"]
 
 
@@ -194,6 +197,12 @@ def _fmt(v: Any) -> str:
     return str(v)
 
 
+FIT_WINDOW = (
+    f"case when o.service_date <= date '{FIT_END}' then 'fit (22-24 Nov)' "
+    "else 'held out (25-26 Nov)' end"
+)
+
+
 def md_table(header: list[str], rows: list[tuple[Any, ...]]) -> str:
     lines = ["| " + " | ".join(header) + " |", "|" + "|".join("---" for _ in header) + "|"]
     lines += ["| " + " | ".join(_fmt(v) for v in r) + " |" for r in rows]
@@ -213,7 +222,7 @@ def accuracy(
     shares = ", ".join(f"round(100 * avg((abs(d) <= {w})::int), 1)" for w in within)
     sql = f"""
         with j as (
-            select {by} as grp, o.interval_width_s as w, o.bracket_gap_s as g,
+            select {by} as grp, o.interval_width_s as w, o.bracket_gap_s as g, m.dwell_s as dw,
                 p.mid is not null as matched, {diff} as d
             from ours o
             left join pairs p on p.row_id = o.row_id
@@ -316,6 +325,7 @@ def report(con: duckdb.DuckDBPyConnection, counters: dict[str, int], days: list[
         ("By sampling period", "o.period", {}),
         ("By method", "o.method", {}),
         ("By method and confidence", "o.method || ' / ' || o.confidence", {}),
+        ("By fit window and method", f"{FIT_WINDOW} || ' / ' || o.method", {}),
         ("By line and confidence", "o.line || ' / ' || o.confidence", {}),
         ("By confidence and sampling period", "o.confidence || ' / ' || o.period", {}),
         ("By line and sampling period", "o.line || ' / ' || o.period", {}),
@@ -346,34 +356,36 @@ def report(con: duckdb.DuckDBPyConnection, counters: dict[str, int], days: list[
         out += [f"### {title}", "", md_table(header, rows), ""]
     gap = (
         "case when o.bracket_gap_s <= 30 then '<=30' when o.bracket_gap_s <= 60 then '31-60' "
-        "when o.bracket_gap_s <= 120 then '61-120' else '>120' end"
+        "when o.bracket_gap_s <= 120 then '61-120' when o.bracket_gap_s <= 180 then '121-180' "
+        "when o.bracket_gap_s <= 300 then '181-300' else '>300' end"
     )
     out += ["## Bracketed rows (stop never seen STOPPED_AT)", ""]
     bracketed = "o.method = 'bracketed'"
     for title, by, kw3 in [
         ("By confidence", "o.confidence", {"order": conf_order}),
         ("By line", "o.line", {}),
+        ("By fit window", FIT_WINDOW, {}),
+        ("By fit window and sampling period", f"{FIT_WINDOW} || ' / ' || o.period", {}),
+        ("By line and fit window", f"o.line || ' / ' || {FIT_WINDOW}", {}),
         ("By bracket gap (s)", gap, {"order": "min(g)"}),
     ]:
         header, rows = accuracy(con, by, where=bracketed, **kw3)
         out += [f"### {title}", "", md_table(header, rows), ""]
     out += [
-        "## Bracketed rows minus half of LAMP's dwell time at the stop",
+        "## Bracketed rows by LAMP's dwell at the stop (diagnostic)",
         "",
-        "Interpolating between a before-stop and an after-stop observation lands inside the dwell; "
-        "LAMP's time is when the vehicle first reported STOPPED_AT.",
+        "LAMP's dwell is not an input of the model; this shows whether a dwell-dependent bias is "
+        "left. Rows without a LAMP dwell are left out.",
         "",
     ]
-    half = "epoch(o.arrival_ts) - epoch(m.mbta_ts) - m.dwell_s / 2"
-    for title, by in [
-        ("Overall", "'ALL'"),
-        ("By line", "o.line"),
-        ("By confidence", "o.confidence"),
-    ]:
-        header, rows = accuracy(
-            con, by, diff=half, where=f"{bracketed} and m.dwell_s is not null", order=None
-        )
-        out += [f"### {title}", "", md_table(header, rows), ""]
+    dwell = (
+        "case when m.dwell_s <= 15 then '<=15' when m.dwell_s <= 30 then '16-30' "
+        "when m.dwell_s <= 60 then '31-60' else '>60' end"
+    )
+    header, rows = accuracy(
+        con, dwell, where=f"{bracketed} and m.dwell_s is not null", order="min(dw)"
+    )
+    out += [md_table(header, rows), ""]
     return "\n".join(out)
 
 
