@@ -1,4 +1,4 @@
-import { pageMeta } from "@/lib/site";
+import { HOME_TITLE, pageMeta } from "@/lib/site";
 import { AccuracyPlot, type AccuracyRowData } from "@/components/home/AccuracyPlot";
 import { LineCards, type CardChips } from "@/components/home/LineCards";
 import { NetworkDiagram, RampLegend } from "@/components/home/NetworkDiagram";
@@ -15,7 +15,7 @@ import { hhmmET } from "@/lib/time";
 
 export const revalidate = 300;
 export const metadata = pageMeta(
-  "Lines",
+  HOME_TITLE,
   "How reliable is the Boston subway right now? Open measurements with their coverage and freshness shown beside every number.",
   "/",
 );

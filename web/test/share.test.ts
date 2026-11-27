@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
-import { pageMeta, siteUrl } from "@/lib/site";
+import { HOME_TITLE, pageMeta, siteUrl } from "@/lib/site";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -20,8 +20,18 @@ describe("share metadata", () => {
   it("gives each page a title, description, canonical path and cards", () => {
     const m = pageMeta("Incidents", "desc", "/incidents");
     expect(m.alternates?.canonical).toBe("/incidents");
-    expect(m.openGraph).toMatchObject({ title: "Incidents", description: "desc", url: "/incidents" });
+    expect(m.openGraph).toMatchObject({ title: "Incidents | Headway", description: "desc", url: "/incidents" });
     expect(m.twitter).toMatchObject({ card: "summary_large_image", images: ["/twitter-image"] });
     expect(m.openGraph).toMatchObject({ images: ["/opengraph-image"] });
+    expect(m.title).toBe("Incidents");
+    expect(m.twitter).toMatchObject({ title: "Incidents | Headway" });
+  });
+
+  it("titles the home page with the site name and tagline, and no template suffix", () => {
+    const m = pageMeta("ignored", "desc", "/");
+    expect(HOME_TITLE).toBe("Headway \u2014 Boston subway reliability you can check");
+    expect(m.title).toEqual({ absolute: HOME_TITLE });
+    expect(m.openGraph).toMatchObject({ title: HOME_TITLE });
+    expect(m.twitter).toMatchObject({ title: HOME_TITLE });
   });
 });

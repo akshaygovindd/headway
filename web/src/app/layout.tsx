@@ -7,7 +7,7 @@ import { NavLinks } from "@/components/NavLinks";
 import { MetricPopover } from "@/components/MetricPopover";
 import { docUrl } from "@/lib/definitions";
 import { REPO_URL } from "@/lib/map";
-import { siteUrl } from "@/lib/site";
+import { HOME_TITLE, siteUrl } from "@/lib/site";
 import "./globals.css";
 
 const overpass = localFont({ src: "../fonts/Overpass.woff2", variable: "--font-overpass", weight: "700 800", display: "swap" });
@@ -19,7 +19,7 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
-  title: { default: "Headway: MBTA subway reliability", template: "%s | Headway" },
+  title: { default: HOME_TITLE, template: "%s | Headway" },
   description: DESCRIPTION,
   openGraph: { siteName: "Headway", type: "website", description: DESCRIPTION },
   twitter: { card: "summary_large_image" },
