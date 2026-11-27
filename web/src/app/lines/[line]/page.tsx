@@ -447,7 +447,7 @@ export default async function LinePage({ params }: { params: Promise<{ line: str
             {budget.ok ? (
               <>
                 <p className="mb-3 text-sm text-muted">Pick two stations to see the usual travel time and how long to leave to arrive on time 95% of the time, from real trips on this line.</p>
-                <BudgetForm line={line} stations={budget.body.data.stations} />
+                <BudgetForm line={line} stations={budget.body.data.stations ?? []} />
               </>
             ) : (
               <ErrorState failure={budget} what="Trip-time budget" />

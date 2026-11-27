@@ -257,3 +257,13 @@ passes the training gate (ADR-019); `model_forecast_s` is then null.
 `HEADWAY_DATA_URL=file://$PWD/.local/demo/public/boston uv run --group api uvicorn
 headway_api.app:create_app --factory` serves a demo export (`make demo-data`). Tests:
 `uv run pytest tests/unit/test_api*.py`; the image under Lambda conditions: `make api-smoke`.
+
+## Response schema and the site's types
+
+`/openapi.json` types every route's `data` (`src/headway_api/schemas.py`; documentation only, the
+answers are not filtered by it). `web/src/lib/openapi.json` is that schema, committed, and
+`web/src/lib/api-types.ts` the TypeScript generated from it (`npm run api-types` in `web/`). The
+site's own types (`web/src/lib/types.ts`) are held to them by `web/test/api-contract.test.ts`, checked
+by `npm run typecheck`: an API answer the site's type does not accept, or a field the site requires
+that the API does not always send, fails web CI. Python tests validate every recorded answer of the
+real snapshot against the schema.

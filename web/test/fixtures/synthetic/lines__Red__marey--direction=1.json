@@ -16,7 +16,7 @@
      "stop_sequence": 9,
      "arrival_ts": "2026-11-24T10:07:04Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:02:30Z"
     },
     {
@@ -27,7 +27,7 @@
      "stop_sequence": 10,
      "arrival_ts": "2026-11-24T10:08:55Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:04:30Z"
     },
     {
@@ -38,7 +38,7 @@
      "stop_sequence": 11,
      "arrival_ts": "2026-11-24T10:11:04Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:06:30Z"
     },
     {
@@ -49,7 +49,7 @@
      "stop_sequence": 12,
      "arrival_ts": "2026-11-24T10:12:59Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:08:30Z"
     },
     {
@@ -60,7 +60,7 @@
      "stop_sequence": 13,
      "arrival_ts": "2026-11-24T10:15:03Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:10:30Z"
     },
     {
@@ -71,7 +71,7 @@
      "stop_sequence": 14,
      "arrival_ts": "2026-11-24T10:16:46Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:12:30Z"
     },
     {
@@ -82,7 +82,7 @@
      "stop_sequence": 15,
      "arrival_ts": "2026-11-24T10:18:45Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:14:30Z"
     },
     {
@@ -93,7 +93,7 @@
      "stop_sequence": 16,
      "arrival_ts": "2026-11-24T10:20:40Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:16:30Z"
     },
     {
@@ -104,7 +104,7 @@
      "stop_sequence": 17,
      "arrival_ts": "2026-11-24T10:23:18Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:18:30Z"
     },
     {
@@ -115,7 +115,7 @@
      "stop_sequence": 18,
      "arrival_ts": "2026-11-24T10:24:59Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:20:30Z"
     },
     {
@@ -126,7 +126,7 @@
      "stop_sequence": 3,
      "arrival_ts": "2026-11-24T10:02:05Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T09:58:30Z"
     },
     {
@@ -137,7 +137,7 @@
      "stop_sequence": 4,
      "arrival_ts": "2026-11-24T10:04:08Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:00:30Z"
     },
     {
@@ -148,7 +148,7 @@
      "stop_sequence": 9,
      "arrival_ts": "2026-11-24T10:15:24Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:10:30Z"
     },
     {
@@ -159,7 +159,7 @@
      "stop_sequence": 10,
      "arrival_ts": "2026-11-24T10:17:35Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:12:30Z"
     },
     {
@@ -170,7 +170,7 @@
      "stop_sequence": 11,
      "arrival_ts": "2026-11-24T10:19:17Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:14:30Z"
     },
     {
@@ -181,7 +181,7 @@
      "stop_sequence": 12,
      "arrival_ts": "2026-11-24T10:21:04Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:16:30Z"
     },
     {
@@ -192,7 +192,7 @@
      "stop_sequence": 13,
      "arrival_ts": "2026-11-24T10:23:40Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:18:30Z"
     },
     {
@@ -203,7 +203,7 @@
      "stop_sequence": 14,
      "arrival_ts": "2026-11-24T10:26:04Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:20:30Z"
     },
     {
@@ -214,7 +214,7 @@
      "stop_sequence": 15,
      "arrival_ts": "2026-11-24T10:27:52Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:22:30Z"
     },
     {
@@ -225,7 +225,7 @@
      "stop_sequence": 16,
      "arrival_ts": "2026-11-24T10:29:57Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:24:30Z"
     },
     {
@@ -236,7 +236,7 @@
      "stop_sequence": 17,
      "arrival_ts": "2026-11-24T10:31:54Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:26:30Z"
     },
     {
@@ -247,7 +247,7 @@
      "stop_sequence": 18,
      "arrival_ts": "2026-11-24T10:34:24Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:28:30Z"
     },
     {
@@ -258,7 +258,7 @@
      "stop_sequence": 1,
      "arrival_ts": "2026-11-24T10:06:30Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:10:30Z"
     },
     {
@@ -269,7 +269,7 @@
      "stop_sequence": 2,
      "arrival_ts": "2026-11-24T10:08:11Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:12:30Z"
     },
     {
@@ -280,7 +280,7 @@
      "stop_sequence": 3,
      "arrival_ts": "2026-11-24T10:10:07Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:14:30Z"
     },
     {
@@ -291,7 +291,7 @@
      "stop_sequence": 4,
      "arrival_ts": "2026-11-24T10:12:04Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:16:30Z"
     },
     {
@@ -302,7 +302,7 @@
      "stop_sequence": 9,
      "arrival_ts": "2026-11-24T10:22:20Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:26:30Z"
     },
     {
@@ -313,7 +313,7 @@
      "stop_sequence": 10,
      "arrival_ts": "2026-11-24T10:24:37Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:28:30Z"
     },
     {
@@ -324,7 +324,7 @@
      "stop_sequence": 11,
      "arrival_ts": "2026-11-24T10:26:55Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:30:30Z"
     },
     {
@@ -335,7 +335,7 @@
      "stop_sequence": 12,
      "arrival_ts": "2026-11-24T10:29:04Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:32:30Z"
     },
     {
@@ -346,7 +346,7 @@
      "stop_sequence": 13,
      "arrival_ts": "2026-11-24T10:31:42Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:34:30Z"
     },
     {
@@ -357,7 +357,7 @@
      "stop_sequence": 14,
      "arrival_ts": "2026-11-24T10:33:45Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:36:30Z"
     },
     {
@@ -368,7 +368,7 @@
      "stop_sequence": 15,
      "arrival_ts": "2026-11-24T10:35:37Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:38:30Z"
     },
     {
@@ -379,7 +379,7 @@
      "stop_sequence": 16,
      "arrival_ts": "2026-11-24T10:37:44Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:40:30Z"
     },
     {
@@ -390,7 +390,7 @@
      "stop_sequence": 17,
      "arrival_ts": "2026-11-24T10:39:26Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:42:30Z"
     },
     {
@@ -401,7 +401,7 @@
      "stop_sequence": 18,
      "arrival_ts": "2026-11-24T10:41:57Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:44:30Z"
     },
     {
@@ -412,7 +412,7 @@
      "stop_sequence": 1,
      "arrival_ts": "2026-11-24T10:08:42Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:10:30Z"
     },
     {
@@ -423,7 +423,7 @@
      "stop_sequence": 2,
      "arrival_ts": "2026-11-24T10:10:51Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:12:30Z"
     },
     {
@@ -434,7 +434,7 @@
      "stop_sequence": 3,
      "arrival_ts": "2026-11-24T10:12:49Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:14:30Z"
     },
     {
@@ -445,7 +445,7 @@
      "stop_sequence": 4,
      "arrival_ts": "2026-11-24T10:14:38Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:16:30Z"
     },
     {
@@ -456,7 +456,7 @@
      "stop_sequence": 9,
      "arrival_ts": "2026-11-24T10:26:16Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:26:30Z"
     },
     {
@@ -467,7 +467,7 @@
      "stop_sequence": 10,
      "arrival_ts": "2026-11-24T10:28:16Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:28:30Z"
     },
     {
@@ -478,7 +478,7 @@
      "stop_sequence": 11,
      "arrival_ts": "2026-11-24T10:30:26Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:30:30Z"
     },
     {
@@ -489,7 +489,7 @@
      "stop_sequence": 12,
      "arrival_ts": "2026-11-24T10:32:40Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:32:30Z"
     },
     {
@@ -500,7 +500,7 @@
      "stop_sequence": 13,
      "arrival_ts": "2026-11-24T10:34:50Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:34:30Z"
     },
     {
@@ -511,7 +511,7 @@
      "stop_sequence": 14,
      "arrival_ts": "2026-11-24T10:37:30Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:36:30Z"
     },
     {
@@ -522,7 +522,7 @@
      "stop_sequence": 15,
      "arrival_ts": "2026-11-24T10:39:24Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:38:30Z"
     },
     {
@@ -533,7 +533,7 @@
      "stop_sequence": 16,
      "arrival_ts": "2026-11-24T10:41:18Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:40:30Z"
     },
     {
@@ -544,7 +544,7 @@
      "stop_sequence": 17,
      "arrival_ts": "2026-11-24T10:43:39Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:42:30Z"
     },
     {
@@ -555,7 +555,7 @@
      "stop_sequence": 18,
      "arrival_ts": "2026-11-24T10:46:15Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:44:30Z"
     },
     {
@@ -566,7 +566,7 @@
      "stop_sequence": 1,
      "arrival_ts": "2026-11-24T10:24:30Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:26:30Z"
     },
     {
@@ -577,7 +577,7 @@
      "stop_sequence": 2,
      "arrival_ts": "2026-11-24T10:26:50Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:28:30Z"
     },
     {
@@ -588,7 +588,7 @@
      "stop_sequence": 3,
      "arrival_ts": "2026-11-24T10:28:59Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:30:30Z"
     },
     {
@@ -599,7 +599,7 @@
      "stop_sequence": 4,
      "arrival_ts": "2026-11-24T10:30:46Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:32:30Z"
     },
     {
@@ -610,7 +610,7 @@
      "stop_sequence": 9,
      "arrival_ts": "2026-11-24T10:40:59Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:42:30Z"
     },
     {
@@ -621,7 +621,7 @@
      "stop_sequence": 10,
      "arrival_ts": "2026-11-24T10:43:23Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:44:30Z"
     },
     {
@@ -632,7 +632,7 @@
      "stop_sequence": 11,
      "arrival_ts": "2026-11-24T10:45:37Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:46:30Z"
     },
     {
@@ -643,7 +643,7 @@
      "stop_sequence": 12,
      "arrival_ts": "2026-11-24T10:47:25Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:48:30Z"
     },
     {
@@ -654,7 +654,7 @@
      "stop_sequence": 13,
      "arrival_ts": "2026-11-24T10:49:42Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:50:30Z"
     },
     {
@@ -665,7 +665,7 @@
      "stop_sequence": 14,
      "arrival_ts": "2026-11-24T10:52:18Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:52:30Z"
     },
     {
@@ -676,7 +676,7 @@
      "stop_sequence": 15,
      "arrival_ts": "2026-11-24T10:54:09Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:54:30Z"
     },
     {
@@ -687,7 +687,7 @@
      "stop_sequence": 16,
      "arrival_ts": "2026-11-24T10:56:40Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:56:30Z"
     },
     {
@@ -698,7 +698,7 @@
      "stop_sequence": 17,
      "arrival_ts": "2026-11-24T10:58:44Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:58:30Z"
     },
     {
@@ -709,7 +709,7 @@
      "stop_sequence": 1,
      "arrival_ts": "2026-11-24T10:32:30Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:34:30Z"
     },
     {
@@ -720,7 +720,7 @@
      "stop_sequence": 2,
      "arrival_ts": "2026-11-24T10:34:44Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:36:30Z"
     },
     {
@@ -731,7 +731,7 @@
      "stop_sequence": 3,
      "arrival_ts": "2026-11-24T10:36:56Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:38:30Z"
     },
     {
@@ -742,7 +742,7 @@
      "stop_sequence": 4,
      "arrival_ts": "2026-11-24T10:39:15Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:40:30Z"
     },
     {
@@ -753,7 +753,7 @@
      "stop_sequence": 9,
      "arrival_ts": "2026-11-24T10:49:09Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:50:30Z"
     },
     {
@@ -764,7 +764,7 @@
      "stop_sequence": 10,
      "arrival_ts": "2026-11-24T10:51:47Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:52:30Z"
     },
     {
@@ -775,7 +775,7 @@
      "stop_sequence": 11,
      "arrival_ts": "2026-11-24T10:53:53Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:54:30Z"
     },
     {
@@ -786,7 +786,7 @@
      "stop_sequence": 12,
      "arrival_ts": "2026-11-24T10:55:40Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:56:30Z"
     },
     {
@@ -797,7 +797,7 @@
      "stop_sequence": 13,
      "arrival_ts": "2026-11-24T10:57:50Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:58:30Z"
     },
     {
@@ -808,7 +808,7 @@
      "stop_sequence": 14,
      "arrival_ts": "2026-11-24T10:59:56Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T11:00:30Z"
     },
     {
@@ -819,7 +819,7 @@
      "stop_sequence": 1,
      "arrival_ts": "2026-11-24T10:43:30Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:42:30Z"
     },
     {
@@ -830,7 +830,7 @@
      "stop_sequence": 2,
      "arrival_ts": "2026-11-24T10:45:51Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:44:30Z"
     },
     {
@@ -841,7 +841,7 @@
      "stop_sequence": 3,
      "arrival_ts": "2026-11-24T10:48:11Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:46:30Z"
     },
     {
@@ -852,7 +852,7 @@
      "stop_sequence": 4,
      "arrival_ts": "2026-11-24T10:49:58Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:48:30Z"
     },
     {
@@ -863,7 +863,7 @@
      "stop_sequence": 9,
      "arrival_ts": "2026-11-24T10:59:50Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:58:30Z"
     },
     {
@@ -874,7 +874,7 @@
      "stop_sequence": 1,
      "arrival_ts": "2026-11-24T10:51:30Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:50:30Z"
     },
     {
@@ -885,7 +885,7 @@
      "stop_sequence": 2,
      "arrival_ts": "2026-11-24T10:53:48Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:52:30Z"
     },
     {
@@ -896,7 +896,7 @@
      "stop_sequence": 3,
      "arrival_ts": "2026-11-24T10:55:35Z",
      "method": "observed",
-     "confidence": 0.95,
+     "confidence": "high",
      "scheduled_ts": "2026-11-24T10:54:30Z"
     },
     {
@@ -907,7 +907,7 @@
      "stop_sequence": 4,
      "arrival_ts": "2026-11-24T10:57:21Z",
      "method": "estimated",
-     "confidence": 0.7,
+     "confidence": "medium",
      "scheduled_ts": "2026-11-24T10:56:30Z"
     }
    ]

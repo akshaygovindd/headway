@@ -47,7 +47,7 @@ export default async function BudgetPage({
       </div>
       <Card title="Your trip" definition="trip-time-budget-agg_trip_time_budget">
         {stations.ok ? (
-          <BudgetForm line={line} stations={stations.body.data.stations} from={from} to={to} window={window} />
+          <BudgetForm line={line} stations={stations.body.data.stations ?? []} from={from} to={to} window={window} />
         ) : (
           <ErrorState failure={stations} what="Trip-time budget" />
         )}

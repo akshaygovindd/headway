@@ -5,7 +5,7 @@ import type { MareyRow } from "@/lib/types";
 const T0 = Date.parse("2026-11-24T10:00:00Z");
 const row = (trip: string, stop: string, seq: number, min: number, method: MareyRow["method"] = "observed"): MareyRow => ({
   direction_id: 0, trip_id: trip, stop_id: stop, stop_name: stop.toUpperCase(), stop_sequence: seq,
-  arrival_ts: new Date(T0 + min * 60000).toISOString().replace(".000Z", "Z"), method, confidence: 0.9, scheduled_ts: null,
+  arrival_ts: new Date(T0 + min * 60000).toISOString().replace(".000Z", "Z"), method, confidence: "high", scheduled_ts: null,
 });
 
 describe("annotateMarey", () => {

@@ -15,11 +15,13 @@
     "build:mock": "node scripts/with-mock-api.mjs next build",
     "e2e:install": "playwright install chromium",
     "test:e2e": "playwright test",
-    "ci": "npm run lint && npm run typecheck && npm run contracts:check && npm run fixtures:check && npm test && npm run build:mock && npm run e2e:install && npm run test:e2e",
+    "ci": "npm run lint && npm run typecheck && npm run contracts:check && npm run fixtures:check && npm run api-types:check && npm test && npm run build:mock && npm run e2e:install && npm run test:e2e",
     "contracts": "node scripts/build-contracts.mjs",
     "contracts:check": "node scripts/build-contracts.mjs --check",
     "fixtures": "uv run --project .. python ../scripts/build_web_fixtures.py",
-    "fixtures:check": "uv run --project .. python ../scripts/build_web_fixtures.py --check"
+    "fixtures:check": "uv run --project .. python ../scripts/build_web_fixtures.py --check",
+    "api-types": "uv run --project .. python ../scripts/export_openapi.py && node scripts/api-types.mjs",
+    "api-types:check": "uv run --project .. python ../scripts/export_openapi.py --check && node scripts/api-types.mjs --check"
   },
   "dependencies": {
     "next": "16.4.6",
@@ -41,6 +43,7 @@
     "eslint-config-next": "16.4.6",
     "js-yaml": "^5.5.0",
     "jsdom": "31.0.1",
+    "openapi-typescript": "^7.4.4",
     "tailwindcss": "4.3.5",
     "typescript": "^5.9.3",
     "vitest": "5.1.1"

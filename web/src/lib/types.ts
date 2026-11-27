@@ -169,7 +169,7 @@ export type ForecastData = {
   prediction_ts: string | null;
   status: string | null;
   status_reason: string | null;
-  model_version: string | null;
+  model_version: number | null;
   unit: string;
   horizons: ForecastRow[];
   training_gate: GateRow[];
@@ -245,7 +245,7 @@ export type MareyRow = {
   stop_sequence: number;
   arrival_ts: string;
   method: "observed" | "estimated";
-  confidence: number | null;
+  confidence: "high" | "medium" | "low" | null;
   scheduled_ts: string | null;
 };
 
@@ -320,7 +320,7 @@ export type BudgetData = {
   min_trips: number;
   from_station: BudgetStation | null;
   to_station: BudgetStation | null;
-  stations: BudgetStation[];
+  stations?: BudgetStation[] | null;
   rows: BudgetRow[];
 };
 

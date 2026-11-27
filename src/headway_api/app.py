@@ -16,9 +16,9 @@ from fastapi import FastAPI, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 
-from headway_api import API_VERSION, queries
+from headway_api import API_VERSION, queries, schemas
 from headway_api.cache import GoldSource
 from headway_api.queries import InputError, NotAvailableError, Result
 from headway_api.settings import Settings
@@ -349,4 +349,21 @@ def create_app(settings: Settings | None = None, source: GoldSource | None = Non
 
         return serve(request, call)
 
+    base_openapi = app.openapi
+
+    def typed_openapi() -> dict[str, Any]:
+        """The default schema with each route's 200 answer typed by headway_api.schemas."""
+        if app.openapi_schema is None:
+            schema = base_openapi()
+            for path, model in schemas.ROUTE_DATA.items():
+                js = TypeAdapter(schemas.Envelope[model]).json_schema(  # type: ignore[valid-type]
+                    ref_template="#/components/schemas/{model}"
+                )
+                schema["components"]["schemas"].update(js.pop("$defs", {}))
+                content = schema["paths"][path]["get"]["responses"]["200"]["content"]
+                content["application/json"]["schema"] = js
+            app.openapi_schema = schema
+        return app.openapi_schema
+
+    app.openapi = typed_openapi  # type: ignore[method-assign]
     return app
