@@ -1178,13 +1178,13 @@ unit_tests:
           - {window_label: last_7d, service_date: "2026-11-22", hour_local: 9}
       - input: ref('fct_countdown_outcomes')
         rows:
-          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: false}
-          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: true}
-          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, outcome: arrived, hit_60: false, hit_120: true, data_outage: false, service_disruption: false}
-          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, outcome: non_arrival, hit_60: false, hit_120: false, data_outage: false, service_disruption: false}
-          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, outcome: unknown, hit_60: null, hit_120: null, data_outage: false, service_disruption: false}
-          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 9, outcome: arrived, hit_60: true, hit_120: true, data_outage: true, service_disruption: false}
-          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-01", hour_local: 8, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: false}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, service_date: "2026-11-22", scheduled_hour_local: 8, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: false}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, service_date: "2026-11-22", scheduled_hour_local: 8, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: true}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, service_date: "2026-11-22", scheduled_hour_local: 8, outcome: arrived, hit_60: false, hit_120: true, data_outage: false, service_disruption: false}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, service_date: "2026-11-22", scheduled_hour_local: 8, outcome: non_arrival, hit_60: false, hit_120: false, data_outage: false, service_disruption: false}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 8, service_date: "2026-11-22", scheduled_hour_local: 8, outcome: unknown, hit_60: null, hit_120: null, data_outage: false, service_disruption: false}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-22", hour_local: 9, service_date: "2026-11-22", scheduled_hour_local: 9, outcome: arrived, hit_60: true, hit_120: true, data_outage: true, service_disruption: false}
+          - {line: Red, station_id: place-a, station_name: Alpha, countdown_min: 3, predicted_service_date: "2026-11-01", hour_local: 8, service_date: "2026-11-01", scheduled_hour_local: 8, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: false}
       - input: ref('int_scheduled_stop_times')
         rows:
           - {line: Red, service_date: "2026-11-22", hour_local: 8, stop_id: s1}
@@ -1208,6 +1208,40 @@ unit_tests:
     expect:
       rows:
         - {line: Red, station_id: place-a, window_label: last_7d, countdown_min: 3, n: 4, n_arrived: 3, n_non_arrival: 1, n_unknown: 1, n_excluded_outage: 1, n_disruption: 1, n_within_60s: 2, n_within_120s: 3, pct_within_60s: 50.0, pct_within_120s: 75.0, coverage_numerator: 4, coverage_denominator: 8, coverage_pct: 50.0}
+
+  - name: countdown_accuracy_window_coverage_is_placed_by_the_scheduled_hour
+    config:
+      tags: [r2]
+    description: >-
+      Blue, Alpha, the 1 minute countdown, last_24h, a window that starts at hour 9 and holds one
+      scheduled trip stop. The 08:58 train ran 5 minutes late: its countdown is scored in hour 9 (the
+      predicted arrival, so n counts it) but the trip stop is scheduled in hour 8, outside the window.
+      The 09:03 train is on time. n is 2 and the window holds one scheduled trip stop, yet coverage is
+      1 of 1, 100 percent, never above: the numerator counts the countdowns of the trip stops the
+      denominator counts (production once showed 284 over 283, 100.35 percent).
+    model: agg_countdown_accuracy_window
+    given:
+      - input: ref('int_window_hours')
+        rows:
+          - {window_label: last_24h, service_date: "2026-11-22", hour_local: 9}
+      - input: ref('fct_countdown_outcomes')
+        rows:
+          - {line: Blue, station_id: place-a, station_name: Alpha, countdown_min: 1, predicted_service_date: "2026-11-22", hour_local: 9, service_date: "2026-11-22", scheduled_hour_local: 8, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: false}
+          - {line: Blue, station_id: place-a, station_name: Alpha, countdown_min: 1, predicted_service_date: "2026-11-22", hour_local: 9, service_date: "2026-11-22", scheduled_hour_local: 9, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: false}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {line: Blue, service_date: "2026-11-22", hour_local: 8, stop_id: s1}
+          - {line: Blue, service_date: "2026-11-22", hour_local: 9, stop_id: s1}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 8, data_outage: false}
+          - {service_date: "2026-11-22", hour_local: 9, data_outage: false}
+      - input: ref('int_stop_stations')
+        rows:
+          - {stop_id: s1, station_id: place-a, station_name: Alpha}
+    expect:
+      rows:
+        - {line: Blue, station_id: place-a, window_label: last_24h, countdown_min: 1, n: 2, coverage_numerator: 1, coverage_denominator: 1, coverage_pct: 100.0}
 
   - name: segment_window_bands_coverage_outage_disruption_and_health
     config:

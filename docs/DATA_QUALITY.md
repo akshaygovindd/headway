@@ -39,6 +39,16 @@ Units are those of METRICS.md: `pct_*`, `share_*` (reconstruction) and every `co
   already use only the run nearest the schedule. `fct_headways` now keeps one row per trip stop,
   from the run nearest the schedule, and its closed-day version is 2 (`facts_state.FACT_VERSIONS`),
   so persisted days are recomputed (RUNBOOK "Closed-day facts").
+- **Countdown coverage above 100%** (`agg_countdown_accuracy_window`, Blue, last_24h; production
+  `data_invariants_r2` failed in 7 hourly runs on 27 Nov, the worst Beachmont: 284 countdowns over
+  283 scheduled trip stops, 100.35%). The numerator counted countdowns by the hour of the predicted
+  arrival, the denominator counts trip stops by the scheduled hour; Blue runs at about 99% coverage,
+  so a train late across the window's first hour (its trip stop is scheduled outside the window,
+  its countdown is scored inside) pushed the ratio over 100. The coverage numerator is now placed
+  by the scheduled hour like the denominator (`fct_countdown_outcomes.scheduled_hour_local`); n and
+  the accuracy shares keep the predicted-hour window. Not changed, because closed days are history:
+  `agg_countdown_accuracy_daily` and the arrival-hour numerator of `agg_accuracy_window` have the
+  same shape at the service-day and window edge and have not tripped the test.
 - **Median above its own p95** (`agg_trip_time_budget`, 333 rows): `p95_s` was rounded to 0.1 s and
   `median_s` was not, so a median of 101.84 sat above a p95 of 101.8 when the trips were almost
   identical. `median_s` is rounded the same way.

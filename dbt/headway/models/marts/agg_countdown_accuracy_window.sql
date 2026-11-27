@@ -6,7 +6,10 @@
 -- hour is inside them. Outage hours are excluded from every figure and counted in
 -- n_excluded_outage; hours with a service-disruption alert are kept and counted in n_disruption.
 -- Coverage: counted countdowns over the scheduled trip stops of the station in the window (outage
--- hours excluded), the basis of agg_accuracy_window. Percentages are 0-100. All figures are
+-- hours excluded). Both sides are placed by the trip stop's scheduled hour: a train running late
+-- across an hour boundary has its countdown scored in the later hour (above) but is still one
+-- of the scheduled trip stops of the earlier hour, so counting it by predicted hour could put more
+-- countdowns over the window's edge than the schedule has trip stops (coverage above 100%). Percentages are 0-100. All figures are
 -- counts that add up exactly across stations of a line.
 with stats as (
     select
@@ -28,6 +31,23 @@ with stats as (
     from {{ ref('fct_countdown_outcomes') }} o
     join {{ ref('int_window_hours') }} w
         on w.service_date = o.predicted_service_date and w.hour_local = o.hour_local
+    group by o.line, o.station_id, w.window_label, o.countdown_min
+),
+
+numerators as (
+    select
+        o.line,
+        o.station_id,
+        w.window_label,
+        o.countdown_min,
+        count(*) as scheduled_basis_n
+    from {{ ref('fct_countdown_outcomes') }} o
+    join {{ ref('int_window_hours') }} w
+        on w.service_date = o.service_date and w.hour_local = o.scheduled_hour_local
+    join {{ ref('int_hour_flags') }} f
+        on f.service_date = o.service_date and f.hour_local = o.scheduled_hour_local
+        and not f.data_outage
+    where o.outcome <> 'unknown'
     group by o.line, o.station_id, w.window_label, o.countdown_min
 ),
 
@@ -61,9 +81,12 @@ select
     s.n_within_120s,
     100.0 * s.n_within_60s / nullif(s.n, 0) as pct_within_60s,
     100.0 * s.n_within_120s / nullif(s.n, 0) as pct_within_120s,
-    s.n as coverage_numerator,
+    coalesce(m.scheduled_basis_n, 0) as coverage_numerator,
     coalesce(d.scheduled_trip_stops, 0) as coverage_denominator,
-    100.0 * s.n / nullif(d.scheduled_trip_stops, 0) as coverage_pct
+    100.0 * coalesce(m.scheduled_basis_n, 0) / nullif(d.scheduled_trip_stops, 0) as coverage_pct
 from stats s
+left join numerators m
+    on m.line = s.line and m.station_id = s.station_id and m.window_label = s.window_label
+    and m.countdown_min = s.countdown_min
 left join denominators d
     on d.line = s.line and d.station_id = s.station_id and d.window_label = s.window_label

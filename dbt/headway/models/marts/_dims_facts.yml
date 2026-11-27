@@ -514,6 +514,8 @@ models:
         description: "Countdown at the snapshot in seconds."
       - name: service_date
         description: "Service date of the trip."
+      - name: scheduled_hour_local
+        description: "Local hour of the trip stop's scheduled arrival; coverage is placed by it, like the scheduled trip stops it is counted against."
       - name: line
         description: "Reporting line."
       - name: direction_id

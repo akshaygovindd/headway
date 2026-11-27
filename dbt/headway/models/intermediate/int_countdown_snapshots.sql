@@ -12,6 +12,7 @@ with snapshots as (
         p.capture_id,
         p.collected_at,
         p.service_date,
+        p.scheduled_hour_local,
         p.line,
         p.direction_id,
         p.stop_id,
