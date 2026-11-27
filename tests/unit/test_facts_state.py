@@ -59,13 +59,13 @@ def _run(s3: Any, tmp_path: Path, now: datetime, data: list[date]) -> tuple[Any,
 
 
 def _persisted(s3: Any, table: str = "fct_headways") -> list[str]:
-    prefix = f"state/facts/{table}/metric_version=1/"
+    prefix = f"state/facts/{table}/metric_version={facts_state.FACT_VERSIONS[table]}/"
     keys = [o["Key"] for o in s3.list_objects_v2(Bucket="raw", Prefix=prefix).get("Contents", [])]
     return sorted(k.split("service_date=")[1].split("/")[0] for k in keys)
 
 
 def _etag(s3: Any, day: str) -> str:
-    key = facts_state.key_for("fct_headways", 1, date.fromisoformat(day))
+    key = facts_state.key_for("fct_headways", facts_state.FACT_VERSIONS["fct_headways"], date.fromisoformat(day))
     return str(s3.head_object(Bucket="raw", Key=key)["ETag"])
 
 
@@ -137,7 +137,7 @@ def test_a_day_missing_one_table_is_computed_again(s3: Any, tmp_path: Path) -> N
 
 def test_a_new_version_starts_from_nothing_next_to_the_old_one(s3: Any, tmp_path: Path) -> None:
     _run(s3, tmp_path, AFTER_CLOSE, DATA)
-    bumped = {**facts_state.FACT_VERSIONS, "fct_headways": 2}
+    bumped = {**facts_state.FACT_VERSIONS, "fct_headways": facts_state.FACT_VERSIONS["fct_headways"] + 1}
     plan = facts_state.plan(s3, "raw", AFTER_CLOSE, 7, bumped)
     assert plan.persisted == [] and len(plan.compute) == 9
     assert _persisted(s3)  # version 1 stays where it was
@@ -210,7 +210,7 @@ def test_a_closed_day_without_rows_is_persisted_empty_and_not_computed_again(
     data = [d for d in DATA if d != date(2026, 11, 18)]  # an outage day: no rows in any fact
     _run(s3, tmp_path, AFTER_CLOSE, data)
     assert "2026-11-18" in _persisted(s3)
-    key = facts_state.key_for("fct_headways", 1, date(2026, 11, 18))
+    key = facts_state.key_for("fct_headways", facts_state.FACT_VERSIONS["fct_headways"], date(2026, 11, 18))
     path = tmp_path / "part.parquet"
     s3.download_file("raw", key, str(path))
     assert duckdb.sql(f"select count(*) from read_parquet('{path}')").fetchone() == (0,)

@@ -526,6 +526,10 @@ and `facts_written`.
 - **Look at the state:** `aws s3 ls s3://headway-raw-<account>/state/facts/fct_headways/metric_version=1/`
   lists one folder per day; a day missing from one of the four tables is built again by the next
   run. A closed day with no rows in a table has an empty partition (it is not built again).
+- **`fct_headways` is at version 2** (one headway per trip stop; DATA_QUALITY.md). The first run
+  after deploying it finds no version-2 partition, so it builds every window day from raw data and
+  writes the closed ones; that run is as heavy as one with the facts switched off. To avoid it,
+  backfill first with `rebuild_facts` and `metric_version` 2 (below), at most 14 days per call.
 - **Backfill or rebuild a range of days** (at most 14 days per call; it builds the window from
   the oldest day of the range, writes the days of the range that have no object yet for the
   tables at that version, and never touches gold):

@@ -92,7 +92,7 @@ select
     count(*) filter (where not data_outage and travel_s is not null and (travel_s <= 0 or travel_s > 10800)) as n_implausible,
     count(*) filter (where not data_outage and travel_s > 0 and travel_s <= 10800) as n_trips,
     count(*) filter (where not data_outage and travel_s > 0 and travel_s <= 10800 and service_disruption) as n_disruption,
-    median(travel_s) filter (where not data_outage and travel_s > 0 and travel_s <= 10800) as median_s,
+    round(median(travel_s) filter (where not data_outage and travel_s > 0 and travel_s <= 10800), 1) as median_s,
     round(quantile_cont(travel_s, 0.95) filter (where not data_outage and travel_s > 0 and travel_s <= 10800), 1) as p95_s,
     round((quantile_cont(travel_s, 0.95) filter (where not data_outage and travel_s > 0 and travel_s <= 10800)
         - median(travel_s) filter (where not data_outage and travel_s > 0 and travel_s <= 10800))

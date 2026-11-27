@@ -10,7 +10,8 @@
 --   implausible          actual headway over 3 h or scheduled headway over 2 h
 -- The neighbouring stops are the stops before and after the stop in B's run. A pair is proven
 -- when at least one neighbouring stop has both A and B, A first, and no other train between them.
--- A train that was never reconstructed anywhere cannot be seen; see METRICS.md.
+-- A trip stop reached by several runs of a reused trip id gives one row, from the run nearest the
+-- schedule. A train that was never reconstructed anywhere cannot be seen; see METRICS.md.
 -- hour_local and service_date are those of B's scheduled arrival. known_at is when both arrivals
 -- and the arrivals that prove the order at the neighbouring stops were known; features of a forecast at t use known_at <= t.
 with all_arrivals as (
@@ -77,6 +78,13 @@ pairs as (
         and n.segment = p.segment
         and n.stop_sequence = p.stop_sequence
     where p.a_arrival_ts is not null
+    -- A reused trip id gives several runs at one trip stop; one headway per trip stop, from the run
+    -- nearest the schedule (the rule of int_usable_arrivals), so valid headways never exceed the
+    -- scheduled headways they are covered against.
+    qualify row_number() over (
+        partition by p.trip_instance_key, p.stop_sequence
+        order by abs(epoch(p.arrival_ts) - epoch(p.scheduled_arrival_ts)), p.segment
+    ) = 1
 ),
 
 neighbours as (

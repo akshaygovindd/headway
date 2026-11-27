@@ -311,6 +311,9 @@ The metrics below (6-10) are computed from reconstructed arrivals.
   `unproven_order` (no neighbouring stop where both trains have a time), `no_scheduled_headway`
   (B is the first scheduled train at the stop), `implausible` (actual headway over 3 hours or
   scheduled headway over 2 hours, such as a day boundary).
+- **Reused trip ids:** when several runs of one trip id reach a trip stop, one headway is made for
+  it, from the run whose arrival is closest to the schedule (as for actual deviation), so valid
+  headways never exceed the scheduled headways of the hour.
 - **Exclusion:** low and missing arrivals as headway ends, ADDED trips, data outage hours.
 - **Source models:** `fct_reconstructed_arrivals`, `int_scheduled_stop_times`, `int_hour_flags`.
 - **Limitations:** a train never observed anywhere cannot be seen, so a gap can hide an
@@ -660,6 +663,9 @@ the number of distinct checks whose worst status is `fail` (N) or `warn` (M), no
   over the last 24 hourly heartbeat rows; checks are the data-quality checks of `/v1/pipeline/checks` over the
   last 24 hours (distinct checks failing or warning, see above).
 - **Prediction error** below the 20 s timing floor of the reconstruction is shown as "~20 s".
+
+Impossible and suspicious values in these tables are checked on every build: see
+[DATA_QUALITY.md](DATA_QUALITY.md).
 
 ## Known limitations
 

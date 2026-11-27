@@ -174,7 +174,7 @@ def main() -> int:
         persist(full, facts_root, persisted)
         if args.tamper:
             tampered = facts_root / facts_state.key_for(
-                "fct_headways", 1, _date(persisted[0])
+                "fct_headways", facts_state.FACT_VERSIONS["fct_headways"], _date(persisted[0])
             ).removeprefix(facts_state.PREFIX + "/")
             duckdb.execute(
                 f"copy (select * from read_parquet('{tampered}') where false) "  # noqa: S608

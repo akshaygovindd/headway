@@ -35,7 +35,7 @@ PREFIX = "state/facts"
 FACT_VERSIONS: dict[str, int] = {
     "int_vehicle_stop_events": 1,
     "fct_reconstructed_arrivals": 1,
-    "fct_headways": 1,
+    "fct_headways": 2,
     "fct_stop_predictions": 1,
 }
 
