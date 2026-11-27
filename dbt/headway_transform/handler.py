@@ -975,6 +975,7 @@ def _transform(
         timed("forecast_reports", t0)
     build = _build_and_test(variables, steps, lambda: _restore_observability(s3, db_path))
     run.tests_passed, run.tests_failed = build.tests_passed, build.tests_failed
+    emf.emit_data_tests(_now(), build.tests_failed, len(build.warned_tests))
     if build.tests_failed:
         logger.warning(
             "dbt tests failed: %d (export continues): %s",

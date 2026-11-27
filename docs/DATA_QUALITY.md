@@ -6,12 +6,15 @@ below say the numbers make sense: they read the real models and fail when a valu
 transform's `dbt test` step against production data.
 
 What a failure does in production: the run still exports and publishes gold (a failing test never
-skips a model), the run is recorded with status `tests_failed` and `tests_failed` in
-`agg_transform_runs`, and the run's JSON summary line lists the names under `failed_tests` (error
-severity) and `warned_tests` (warn severity). No alarm fires on a test failure and the slot still
-counts as a good one for the transform objective (SLO.md); the failure is read from the run summary,
-the pipeline page and this document. Tests are tagged `r2`, `r3` or `r4` like the models they read,
-so a deployment with a release off skips them.
+skips a model) and is recorded with status `tests_failed` and `tests_failed` in
+`agg_transform_runs`. The run's JSON summary line lists the names under `failed_tests` (error
+severity) and `warned_tests` (warn severity). The transform emits the metrics `DataTestsFailed` and
+`DataTestsWarned` (EMF, namespace `Headway`, zero on a clean run). **An error-severity failure
+alarms**: `headway-data-tests-failed` (at least 1 in the hourly run) notifies the `headway-alerts`
+topic ([RUNBOOK](RUNBOOK.md#alarm-headway-data-tests-failed)). **Warn severity never alarms**: it is
+in the summary and the metric only. The slot still counts as a good one for the transform objective
+(SLO.md): the alarm, not the objective, reports a failing data test. Tests are tagged `r2`, `r3` or
+`r4` like the models they read, so a deployment with a release off skips them.
 
 Units are those of METRICS.md: `pct_*`, `share_*` (reconstruction) and every `coverage_pct` are
 0-100; `skipped_share` is the one 0-1 fraction.

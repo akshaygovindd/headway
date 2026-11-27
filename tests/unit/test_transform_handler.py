@@ -330,7 +330,7 @@ def test_handler_builds_exports_costs_and_publishes(
 
 
 def test_test_failures_do_not_block_export(
-    fakes: dict[str, Any], caplog: pytest.LogCaptureFixture
+    fakes: dict[str, Any], caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
     caplog.set_level(logging.INFO)
     fakes["outcome"] = handler.DbtOutcome(
@@ -347,6 +347,9 @@ def test_test_failures_do_not_block_export(
     assert summary["failed_tests"] == ["data_invariants_r2", "no_arrivals_in_shuttle_stretch"]
     assert summary["warned_tests"] == ["data_suspicious_r2"]
     assert "data_invariants_r2" in caplog.text and "export continues" in caplog.text
+    # the metric the alarm reads: errors counted, warnings counted separately
+    out = capsys.readouterr().out
+    assert '"DataTestsFailed":2' in out and '"DataTestsWarned":1' in out
 
 
 def test_missing_export_objects_fail_loudly(fakes: dict[str, Any]) -> None:
@@ -903,3 +906,10 @@ def test_a_rebuild_task_does_not_emit_a_duration(
         None,
     )
     assert "TransformDurationSeconds" not in capsys.readouterr().out
+
+
+def test_a_clean_run_emits_zero_failed_data_tests(
+    fakes: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    handler.lambda_handler({}, None)
+    assert '"DataTestsFailed":0' in capsys.readouterr().out

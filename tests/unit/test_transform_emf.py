@@ -125,3 +125,16 @@ def test_duration_is_one_seconds_metric_line() -> None:
     assert metric["Namespace"] == "Headway"
     assert metric["Metrics"] == [{"Name": "TransformDurationSeconds", "Unit": "Seconds"}]
     assert line["TransformDurationSeconds"] == 453.0
+
+
+def test_data_test_counts_are_two_count_metric_lines_zero_included() -> None:
+    from datetime import UTC, datetime
+
+    lines = emf.emit_data_tests(datetime(2026, 11, 26, 12, 0, tzinfo=UTC), 0, 3)
+    failed, warned = (json.loads(x) for x in lines)
+    assert failed["_aws"]["CloudWatchMetrics"][0]["Metrics"] == [
+        {"Name": "DataTestsFailed", "Unit": "Count"}
+    ]
+    assert failed["DataTestsFailed"] == 0  # a clean run emits 0 so the alarm clears
+    assert warned["_aws"]["CloudWatchMetrics"][0]["Namespace"] == "Headway"
+    assert warned["DataTestsWarned"] == 3

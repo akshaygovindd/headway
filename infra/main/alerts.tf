@@ -100,6 +100,25 @@ resource "aws_cloudwatch_metric_alarm" "transform_memory_high" {
   alarm_actions       = [aws_sns_topic.alerts.arn]
 }
 
+# An error-severity dbt data test failed in the hourly run (docs/DATA_QUALITY.md): a value that
+# cannot be true. Gold is still exported, so this is the only signal; the metric is emitted by the
+# transform for every scheduled run (0 when clean, so the alarm clears). Warn-severity tests stay
+# in the run summary (DataTestsWarned) and have no alarm.
+resource "aws_cloudwatch_metric_alarm" "data_tests_failed" {
+  alarm_name          = "headway-data-tests-failed"
+  alarm_description   = "An error-severity dbt data test failed in the hourly transform run. Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-data-tests-failed"
+  namespace           = "Headway"
+  metric_name         = "DataTestsFailed"
+  statistic           = "Maximum"
+  period              = 3600
+  evaluation_periods  = 1
+  datapoints_to_alarm = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  threshold           = 1
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+}
+
 # Fires well before the 900 s Lambda timeout (a timed-out run emits nothing, and transform_errors
 # catches that). The metric is the run's own wall time (EMF, emitted by the transform for every
 # scheduled run, failed ones included); two runs in a row above 600 s means the window is outgrowing

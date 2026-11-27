@@ -173,6 +173,19 @@ def emit_memory(timestamp: datetime, used_pct: float) -> str:
     return line
 
 
+def emit_data_tests(timestamp: datetime, failed: int, warned: int) -> list[str]:
+    """Print the run's data-test counts: ``DataTestsFailed`` (error severity, alarmed at 1 or more)
+    and ``DataTestsWarned`` (warn severity, summary only). Zero is emitted on a clean run so the
+    alarm clears by itself."""
+    lines = [
+        emf_line(timestamp, {"DataTestsFailed": failed}, {}),
+        emf_line(timestamp, {"DataTestsWarned": warned}, {}),
+    ]
+    for line in lines:
+        print(line, flush=True)  # noqa: T201
+    return lines
+
+
 def emit_duration(timestamp: datetime, seconds: float) -> str:
     """Print the run's wall time (alarmed above 600 s twice in a row; the Lambda limit is 900 s)."""
     line = emf_line(

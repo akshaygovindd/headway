@@ -197,6 +197,35 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
 - **Recovery:** the next run's `memory_used_pct` is under 85, `spill_peak_mb` is under the 8 GB
   budget and `duration_ms` is well under 900000; the alarm clears after the next hour.
 
+### Alarm: headway-data-tests-failed
+
+- **Meaning:** an error-severity dbt data test failed in the hourly transform run
+  (`DataTestsFailed` of at least 1). These tests check that the numbers are possible (shares in
+  range, coverage from its own row, no arrivals in a shuttle stretch; the list is in
+  [DATA_QUALITY](DATA_QUALITY.md)). Gold is still exported and published, so the site shows the
+  suspect values until this is fixed. Warn-severity tests only appear in the summary
+  (`warned_tests`) and never alarm.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-transform --since 3h --filter-pattern '"dbt tests failed"'
+  aws logs tail /aws/lambda/headway-transform --since 3h --filter-pattern 'failed_tests' | tail -1
+  aws s3 cp s3://headway-public-<account>/boston/gold/manifest.json - | head -c 300
+  ```
+  The summary line's `failed_tests` names the tests. To see the rows, copy the curated data
+  read-only (`aws s3 sync s3://headway-raw-<account>/curated/ .local/prod_copy/curated/ --delete`),
+  build with `HEADWAY_ENABLE_R2=true` and run `dbt test --select <name>`; the compiled SQL in
+  `dbt/headway/target/compiled` returns the violating rows.
+- **Likely causes:** a real model bug that production data exposed (a count above its denominator,
+  a median above its p95); a new mart column named like a checked one but in another unit; a feed or
+  static GTFS change (a stop on a line it was never on); a partial copy of data (compaction or a
+  partial window) breaking a sum-of-hours check.
+- **Fix:** fix the model and add a regression unit test; or, if the data is legitimately unusual,
+  downgrade that check to warn with the reason written in DATA_QUALITY.md. Do not delete the test.
+  Redeploy the transform image.
+- **Recovery:** the next hourly run reports `tests_failed` 0 and emits `DataTestsFailed` 0; the
+  alarm clears after the next hour. A fix to a closed-day fact needs a `fct_*` version bump and a
+  `rebuild_facts` backfill ([Closed-day facts](#closed-day-facts)).
+
 ### Alarm: headway-transform-duration-high
 
 - **Meaning:** two transform runs in a row took more than 600 s (`TransformDurationSeconds`, the

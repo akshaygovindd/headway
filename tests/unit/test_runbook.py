@@ -31,7 +31,7 @@ def alarms() -> list[tuple[str, str]]:
     found = re.findall(
         r'alarm_name\s*=\s*"([^"]+)".*?alarm_description\s*=\s*"([^"]+)"', text, re.S
     )
-    assert len(found) == 12
+    assert len(found) == 13
     return found
 
 
@@ -51,7 +51,7 @@ def test_every_alarm_has_exactly_one_section_named_after_it() -> None:
         "headway-static-errors", "headway-transform-errors", "headway-transform-not-succeeded",
         "headway-transform-memory-high", "headway-transform-duration-high",
         "headway-feed-errors", "headway-gold-stale", "headway-missed-minutes",
-        "headway-arrival-coverage-low",
+        "headway-arrival-coverage-low", "headway-data-tests-failed",
     }  # fmt: skip
     assert {slug(f"Alarm: {n}") for n in names} <= known
     resolved = {
@@ -121,3 +121,18 @@ def test_the_transform_duration_alarm_fires_before_the_lambda_limit() -> None:
     assert "evaluation_periods  = 2" in body and "datapoints_to_alarm = 2" in body
     assert 'treat_missing_data  = "notBreaching"' in body
     assert "timeout       = 900" in (ROOT / "infra/main/pipeline.tf").read_text()
+
+
+def test_the_data_tests_alarm_fires_on_one_failure_in_one_hourly_run() -> None:
+    text = (ROOT / "infra/main/alerts.tf").read_text()
+    body = text[text.index('resource "aws_cloudwatch_metric_alarm" "data_tests_failed"') :]
+    body = body.split("\n}\n")[0]
+    assert 'alarm_name          = "headway-data-tests-failed"' in body
+    assert 'metric_name         = "DataTestsFailed"' in body
+    assert (
+        'comparison_operator = "GreaterThanOrEqualToThreshold"' in body
+        and "threshold           = 1" in body
+    )
+    assert "period              = 3600" in body and "datapoints_to_alarm = 1" in body
+    assert "alarm_actions       = [aws_sns_topic.alerts.arn]" in body
+    assert text.count("DataTestsWarned") == 1 and "DataTestsWarned" not in body  # warn: no alarm
