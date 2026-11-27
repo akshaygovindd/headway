@@ -401,8 +401,7 @@ The API function reserves concurrency (`api_reserved_concurrency`, default 3) ou
 pool, and Lambda keeps 100 unreserved. The account limit is 1000 (checked 2026-11-27), so this is
 now a confirmation, not a blocker: Terraform cannot read the quota, so it requires you to state it
 as `api_confirmed_concurrency_limit = 1000` (at least 103 by default). Without that line
-`enable_r4 = true` fails validation. The error text in `variables.tf` still talks about new accounts
-at 10; ignore it.
+`enable_r4 = true` fails validation.
 
 ```sh
 aws lambda get-account-settings --query 'AccountLimit.[ConcurrentExecutions,UnreservedConcurrentExecutions]'
@@ -547,7 +546,7 @@ object cannot be undone by rollback; it needs an admin delete and a re-run.
 ### D. Release 3 switch-on (`enable_r3 = true`)
 
 Do this only after A to C are verified by one clean scheduled run. Plan (real image URIs
-replaced by placeholders, tfvars copy): **8 to add, 5 to change, 0 to destroy.**
+replaced by placeholders, tfvars copy): **9 to add, 5 to change, 0 to destroy.**
 
 | Change | Resource |
 | --- | --- |
@@ -556,7 +555,8 @@ replaced by placeholders, tfvars copy): **8 to add, 5 to change, 0 to destroy.**
 | add | EventBridge schedule `headway-train-weekly`, `cron(0 6 ? * MON *)` UTC (Monday 01:00 ET) |
 | change | Transform Lambda and static Lambda: `HEADWAY_ENABLE_R3 = true` (static then fetches NOAA weather in its 09:00 UTC run) |
 | change | IAM: transform role gains `state/forecast_*`, `state/incident_summaries/*` and `models/forecast/*`; static role writes `table=weather_daily/`; scheduler policy may invoke the train Lambda |
-| none | No new alarm (a train failure alerts nobody), no new secret: `/headway/openai_api_key` read access already exists |
+| add | Alarm `headway-train-errors` (Lambda `Errors` sum >= 1 in an hour, to the alerts topic; runbook section `Alarm: headway-train-errors`) |
+| none | No new secret: `/headway/openai_api_key` read access already exists |
 
 Steps:
 ```sh
@@ -611,7 +611,7 @@ refit trigger (three full 15-second days) is met on 30 Nov. Either accept that, 
 ## Release 4 and Vercel go-live checklist (dry run, 2026-11-27)
 
 **R4 plan** (tfvars copy with R3 and R4 on, `api_confirmed_concurrency_limit = 1000`, placeholder
-image URIs and CORS origin): **21 to add, 5 to change, 0 to destroy.** The 13 additions beyond R3's 8 are:
+image URIs and CORS origin): **22 to add, 5 to change, 0 to destroy.** The 13 additions beyond R3's 9 are:
 
 | Resource | Setting |
 | --- | --- |
@@ -704,6 +704,6 @@ CLI alternative: `cd web && npx vercel link && npx vercel env add HEADWAY_API_UR
 
 **Risks, in one place.** Corrected-vs-uncorrected examples frozen by v1 (see D); first transform
 duration unknown on production; v3 history objects cannot be deleted by the role; train job
-untested on real data and no alarm; `make deploy` verifies only curate and transform tags; the
+untested on real data (a failure now raises `headway-train-errors`); `make deploy` checks the train and api tags as well when their switches are on; the
 site build needs the API live; axe findings above; reserved concurrency 3 and throttle 10/20 will
 cap a traffic spike (5xx alarm fires at 5 in 5 minutes).

@@ -105,12 +105,12 @@ variable "enable_r4" {
 
   validation {
     condition     = !var.enable_r4 || var.api_confirmed_concurrency_limit >= 100 + var.api_reserved_concurrency
-    error_message = "enable_r4 is blocked until the account's Lambda concurrent executions limit is at least 100 plus api_reserved_concurrency (new accounts start at 10; Lambda keeps 100 unreserved, so a reservation cannot be made, and one that could would starve the pipeline). Check: aws lambda get-account-settings --query AccountLimit.ConcurrentExecutions. Request 1000 under Service Quotas > Lambda > Concurrent executions, then set api_confirmed_concurrency_limit to the value the command prints."
+    error_message = "enable_r4 needs api_confirmed_concurrency_limit of at least 100 plus api_reserved_concurrency: Lambda keeps 100 unreserved, and the reservation comes out of the rest. Terraform cannot read the quota, so state it. Check: aws lambda get-account-settings --query AccountLimit.ConcurrentExecutions (1000 on this account), then set api_confirmed_concurrency_limit to the value it prints. If it prints less, request an increase under Service Quotas > Lambda > Concurrent executions first."
   }
 }
 
 variable "api_confirmed_concurrency_limit" {
-  description = "The account's Lambda concurrent executions limit as printed by `aws lambda get-account-settings --query AccountLimit.ConcurrentExecutions`. enable_r4 requires at least 100 plus api_reserved_concurrency (request 1000). A statement you make, not a lookup: the plan cannot read the quota."
+  description = "The account's Lambda concurrent executions limit as printed by `aws lambda get-account-settings --query AccountLimit.ConcurrentExecutions`. enable_r4 requires at least 100 plus api_reserved_concurrency (the account has 1000). A statement you make, not a lookup: the plan cannot read the quota."
   type        = number
   default     = 0
 }
