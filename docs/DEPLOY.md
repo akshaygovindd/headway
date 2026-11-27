@@ -328,7 +328,7 @@ Switch-on, Phase 3.4 (incidents, summaries, alert vs reality; built and smoke-te
    `s3://<public>/public/boston/history/table=agg_actual_deviation_hourly/`). The deviation rule
    of incidents needs 14 closed days of the same day type (7 weeks for weekends) and stays off, and
    says so in each incident's evidence, until then. To start earlier, backfill with
-   `{"task":"rebuild_history","from":...,"to":...,"metric_version":2}` (at most 14 days per call),
+   `{"task":"rebuild_history","from":...,"to":...,"metric_version":3}` (at most 14 days per call),
    as far back as the raw curated data goes.
 4. Check the run summary for `incident_summary_status` (`ok`), `incident_count`,
    `incident_summaries_llm` / `incident_summaries_template`, `incident_llm_calls` and
@@ -374,7 +374,7 @@ family's current version; existing days are left as they are and gold is not tou
 ```
 aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
   --cli-binary-format raw-in-base64-out \
-  --payload '{"task":"rebuild_history","from":"2026-11-16","to":"2026-11-22","metric_version":2}' out.json
+  --payload '{"task":"rebuild_history","from":"2026-11-16","to":"2026-11-22","metric_version":3}' out.json
 ```
 
 A backfill reads as many days of curated data as separate it from today, inside the 900 s limit of

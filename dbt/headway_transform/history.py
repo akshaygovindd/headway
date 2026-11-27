@@ -34,15 +34,22 @@ _CONFLICT = {"PreconditionFailed", "ConditionalRequestConflict"}
 # family changes; never edit history in place.
 # Version 2 of the families that carry the service-disruption label (and the SLOs): an alert
 # disrupts a line only when it covers the route or two or more stations (docs/METRICS.md).
+# Version 3 of every family whose values read reconstructed arrival times, directly or through
+# int_usable_arrivals (fct_reconstructed_arrivals, fct_headways): bracketed arrivals are corrected
+# for the dwell the polls straddled (ADR-026), so closed days are rebuilt with one method instead
+# of mixing the old and the new. They share one version number so a single `rebuild_history` call
+# with metric_version 3 rebuilds them all; tests/unit/test_history_lineage.py checks that every
+# family that depends on those facts is at this version.
+ARRIVAL_TIMES_VERSION = 3
 METRIC_VERSIONS: dict[str, int] = {
-    "arrival_reconstruction": 1,
-    "prediction_accuracy": 2,
-    "actual_deviation": 2,
-    "headway_adherence": 2,
-    "ett": 2,
+    "arrival_reconstruction": ARRIVAL_TIMES_VERSION,
+    "prediction_accuracy": ARRIVAL_TIMES_VERSION,
+    "actual_deviation": ARRIVAL_TIMES_VERSION,
+    "headway_adherence": ARRIVAL_TIMES_VERSION,
+    "ett": ARRIVAL_TIMES_VERSION,
     "stop_deviation": 1,
-    "slo": 2,
-    "countdown_accuracy": 1,
+    "slo": ARRIVAL_TIMES_VERSION,
+    "countdown_accuracy": ARRIVAL_TIMES_VERSION,
 }
 # Daily aggregate -> metric family.
 HISTORY_TABLES: dict[str, str] = {
