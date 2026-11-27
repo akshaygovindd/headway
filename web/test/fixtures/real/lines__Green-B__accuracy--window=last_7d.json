@@ -1,7 +1,7 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 66.6,
+   "mean_coverage_pct": 66.7,
    "min_coverage_pct": 53.7,
    "rows": 4,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
@@ -14,15 +14,15 @@
     "metrics_md": "release-2-metrics-shared-rules",
     "rows": [
      {
-      "coverage_pct": 77.6,
+      "coverage_pct": 77.7,
       "horizon_bucket": "0-5",
       "line": "Green-B",
-      "mae_s": 26.84,
-      "median_abs_error_s": 22.0,
-      "n_observations": 19723,
-      "p90_abs_error_s": 54.0,
+      "mae_s": 25.2,
+      "median_abs_error_s": 19.5,
+      "n_observations": 20341,
+      "p90_abs_error_s": 53.46,
       "pct_within_120s": 99.48,
-      "pct_within_60s": 93.32,
+      "pct_within_60s": 93.56,
       "window": "last_7d",
       "withheld_reason": null
      },
@@ -30,25 +30,25 @@
       "coverage_pct": 70.5,
       "horizon_bucket": "5-10",
       "line": "Green-B",
-      "mae_s": 65.16,
-      "median_abs_error_s": 50.0,
-      "n_observations": 17917,
-      "p90_abs_error_s": 137.0,
-      "pct_within_120s": 86.54,
-      "pct_within_60s": 58.77,
+      "mae_s": 63.88,
+      "median_abs_error_s": 49.0,
+      "n_observations": 18456,
+      "p90_abs_error_s": 134.0,
+      "pct_within_120s": 87.14,
+      "pct_within_60s": 59.75,
       "window": "last_7d",
       "withheld_reason": null
      },
      {
-      "coverage_pct": 64.6,
+      "coverage_pct": 64.7,
       "horizon_bucket": "10-20",
       "line": "Green-B",
-      "mae_s": 101.91,
-      "median_abs_error_s": 76.5,
-      "n_observations": 16431,
-      "p90_abs_error_s": 214.22,
-      "pct_within_120s": 69.51,
-      "pct_within_60s": 40.33,
+      "mae_s": 101.58,
+      "median_abs_error_s": 75.5,
+      "n_observations": 16938,
+      "p90_abs_error_s": 212.88,
+      "pct_within_120s": 69.96,
+      "pct_within_60s": 40.93,
       "window": "last_7d",
       "withheld_reason": null
      },
@@ -56,12 +56,12 @@
       "coverage_pct": 53.7,
       "horizon_bucket": "20-30",
       "line": "Green-B",
-      "mae_s": 166.18,
-      "median_abs_error_s": 132.5,
-      "n_observations": 13655,
-      "p90_abs_error_s": 342.0,
-      "pct_within_120s": 45.5,
-      "pct_within_60s": 23.95,
+      "mae_s": 167.25,
+      "median_abs_error_s": 132.0,
+      "n_observations": 14071,
+      "p90_abs_error_s": 346.0,
+      "pct_within_120s": 45.6,
+      "pct_within_60s": 23.96,
       "window": "last_7d",
       "withheld_reason": null
      }
@@ -72,8 +72,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Accuracy of MBTA's published predictions by horizon bucket",

@@ -1,7 +1,7 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 87.6,
+   "mean_coverage_pct": 88.2,
    "min_coverage_pct": 66.7,
    "rows": 10,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
@@ -10,15 +10,15 @@
   "data": {
    "line": "Orange",
    "overall": {
-    "coverage_pct": 90.4,
-    "median_ett_s": -36.4,
+    "coverage_pct": 91.3,
+    "median_ett_s": -47.2,
     "n_disruption": 0,
-    "n_excluded_outage": 16,
+    "n_excluded_outage": 15,
     "n_implausible": 0,
-    "n_scheduled_trips": 293,
-    "n_trips": 265,
+    "n_scheduled_trips": 277,
+    "n_trips": 253,
     "no_trips_reason": null,
-    "p90_ett_s": 116.2,
+    "p90_ett_s": 97.0,
     "status": "measured",
     "withheld_reason": null
    },
@@ -26,8 +26,8 @@
     {
      "coverage_pct": 90.5,
      "direction_id": 0,
-     "median_actual_s": 1738.8,
-     "median_ett_s": -1.2,
+     "median_actual_s": 1735.5,
+     "median_ett_s": -4.5,
      "median_scheduled_s": 1740.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -35,7 +35,7 @@
      "n_scheduled_trips": 21,
      "n_trips": 19,
      "no_trips_reason": null,
-     "p90_ett_s": 44.6,
+     "p90_ett_s": 56.4,
      "status": "measured",
      "time_band": "am_peak",
      "withheld_reason": null
@@ -43,8 +43,8 @@
     {
      "coverage_pct": 100.0,
      "direction_id": 0,
-     "median_actual_s": 1756.6,
-     "median_ett_s": -38.1,
+     "median_actual_s": 1752.5,
+     "median_ett_s": -47.0,
      "median_scheduled_s": 1800.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -52,7 +52,7 @@
      "n_scheduled_trips": 51,
      "n_trips": 51,
      "no_trips_reason": null,
-     "p90_ett_s": 23.4,
+     "p90_ett_s": 16.0,
      "status": "measured",
      "time_band": "midday",
      "withheld_reason": null
@@ -75,18 +75,18 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 90.2,
+     "coverage_pct": 93.9,
      "direction_id": 0,
-     "median_actual_s": 1804.1,
-     "median_ett_s": 84.0,
-     "median_scheduled_s": 1680.0,
+     "median_actual_s": 1771.0,
+     "median_ett_s": 34.0,
+     "median_scheduled_s": 1740.0,
      "n_disruption": 0,
      "n_excluded_outage": 8,
      "n_implausible": 0,
-     "n_scheduled_trips": 41,
-     "n_trips": 37,
+     "n_scheduled_trips": 33,
+     "n_trips": 31,
      "no_trips_reason": null,
-     "p90_ett_s": 242.2,
+     "p90_ett_s": 156.5,
      "status": "measured",
      "time_band": "evening",
      "withheld_reason": null
@@ -94,8 +94,8 @@
     {
      "coverage_pct": 90.0,
      "direction_id": 0,
-     "median_actual_s": 1756.3,
-     "median_ett_s": 16.6,
+     "median_actual_s": 1743.1,
+     "median_ett_s": 5.0,
      "median_scheduled_s": 1680.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -103,7 +103,7 @@
      "n_scheduled_trips": 10,
      "n_trips": 9,
      "no_trips_reason": null,
-     "p90_ett_s": 131.1,
+     "p90_ett_s": 148.4,
      "status": "measured",
      "time_band": "other",
      "withheld_reason": null
@@ -111,8 +111,8 @@
     {
      "coverage_pct": 100.0,
      "direction_id": 1,
-     "median_actual_s": 1599.0,
-     "median_ett_s": -112.0,
+     "median_actual_s": 1618.0,
+     "median_ett_s": -102.1,
      "median_scheduled_s": 1680.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -120,7 +120,7 @@
      "n_scheduled_trips": 21,
      "n_trips": 21,
      "no_trips_reason": null,
-     "p90_ett_s": -8.7,
+     "p90_ett_s": 13.2,
      "status": "measured",
      "time_band": "am_peak",
      "withheld_reason": null
@@ -128,7 +128,7 @@
     {
      "coverage_pct": 96.1,
      "direction_id": 1,
-     "median_actual_s": 1658.5,
+     "median_actual_s": 1667.3,
      "median_ett_s": -126.5,
      "median_scheduled_s": 1800.0,
      "n_disruption": 0,
@@ -160,18 +160,18 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 86.0,
+     "coverage_pct": 88.6,
      "direction_id": 1,
-     "median_actual_s": 1666.6,
-     "median_ett_s": -29.5,
-     "median_scheduled_s": 1680.0,
+     "median_actual_s": 1687.0,
+     "median_ett_s": -90.0,
+     "median_scheduled_s": 1800.0,
      "n_disruption": 0,
-     "n_excluded_outage": 8,
+     "n_excluded_outage": 7,
      "n_implausible": 0,
-     "n_scheduled_trips": 43,
-     "n_trips": 37,
+     "n_scheduled_trips": 35,
+     "n_trips": 31,
      "no_trips_reason": null,
-     "p90_ett_s": 89.6,
+     "p90_ett_s": 52.3,
      "status": "measured",
      "time_band": "evening",
      "withheld_reason": null
@@ -179,8 +179,8 @@
     {
      "coverage_pct": 66.7,
      "direction_id": 1,
-     "median_actual_s": 1652.8,
-     "median_ett_s": -27.2,
+     "median_actual_s": 1676.4,
+     "median_ett_s": -3.6,
      "median_scheduled_s": 1680.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -199,8 +199,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Trip time against the timetable (ETT approximation) per direction and time band",

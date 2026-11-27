@@ -1,8 +1,8 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 56.0,
-   "min_coverage_pct": 56.0,
+   "mean_coverage_pct": 57.7,
+   "min_coverage_pct": 57.7,
    "rows": 2,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
@@ -15,7 +15,7 @@
    "station": null,
    "stations": [
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Ashmont Escalator 438 (Ashmont platform to Mattapan Line, busway) is unavailable due to maintenance."
      ],
@@ -24,18 +24,18 @@
       "Mattapan",
       "Red"
      ],
-     "longest_open_outage_h": 755.7,
+     "longest_open_outage_h": 758.7,
      "n_currently_out": 1,
      "n_elevator_outages": 1,
      "n_escalator_outages": 1,
      "n_outages": 2,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-asmnl",
      "station_name": "Ashmont",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "The Central Avenue mini-high platform (Ashmont side) is out of service. "
      ],
@@ -43,12 +43,12 @@
      "lines": [
       "Mattapan"
      ],
-     "longest_open_outage_h": 1473.2,
+     "longest_open_outage_h": 1476.2,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 0,
      "n_outages": 1,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-cenav",
      "station_name": "Central Avenue",
      "withheld_reason": null
@@ -58,8 +58,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Announced elevator and escalator outages per station",

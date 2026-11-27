@@ -1,15 +1,51 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 52.8,
+   "mean_coverage_pct": 54.4,
    "min_coverage_pct": 6.7,
-   "rows": 55,
+   "rows": 58,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
   },
   "data": {
    "from": "2026-10-28",
    "incidents": [
+    {
+     "alert_lag_s": null,
+     "coverage_pct": 85.7,
+     "direction_id": 0,
+     "end_ts": "2026-11-26 22:00:00-05",
+     "incident_id": "f0a87ea36cf6fd7d88f73f0f0d95d7f0",
+     "is_open": true,
+     "line": "Green-B",
+     "match_status": "unmatched_incident",
+     "mean_coverage_pct": 85.7,
+     "min_coverage_pct": 85.1,
+     "n_hours": 2,
+     "n_outage_hours_inside": 0,
+     "start_ts": "2026-11-26 20:00:00-05",
+     "summary_text": null,
+     "template_used": null,
+     "thresholds_crossed": "gap"
+    },
+    {
+     "alert_lag_s": null,
+     "coverage_pct": 76.9,
+     "direction_id": 0,
+     "end_ts": "2026-11-26 22:00:00-05",
+     "incident_id": "f884a9bc159ebb1396f2288195e36df6",
+     "is_open": true,
+     "line": "Red",
+     "match_status": "unmatched_incident",
+     "mean_coverage_pct": 76.9,
+     "min_coverage_pct": 67.2,
+     "n_hours": 2,
+     "n_outage_hours_inside": 0,
+     "start_ts": "2026-11-26 20:00:00-05",
+     "summary_text": null,
+     "template_used": null,
+     "thresholds_crossed": "gap,skipped"
+    },
     {
      "alert_lag_s": null,
      "coverage_pct": 68.3,
@@ -444,6 +480,24 @@
     },
     {
      "alert_lag_s": null,
+     "coverage_pct": 67.1,
+     "direction_id": 0,
+     "end_ts": "2026-11-24 15:00:00-05",
+     "incident_id": "dc876ff4ef021b81f876e8e1ed49c707",
+     "is_open": false,
+     "line": "Green-B",
+     "match_status": "unmatched_incident",
+     "mean_coverage_pct": 67.1,
+     "min_coverage_pct": 58.1,
+     "n_hours": 2,
+     "n_outage_hours_inside": 0,
+     "start_ts": "2026-11-24 13:00:00-05",
+     "summary_text": null,
+     "template_used": null,
+     "thresholds_crossed": "gap"
+    },
+    {
+     "alert_lag_s": null,
      "coverage_pct": 68.7,
      "direction_id": 1,
      "end_ts": "2026-11-24 14:00:00-05",
@@ -606,24 +660,6 @@
     },
     {
      "alert_lag_s": null,
-     "coverage_pct": 21.8,
-     "direction_id": 0,
-     "end_ts": "2026-11-24 02:00:00-05",
-     "incident_id": "b14b198ebee279f5c5f8bc71ed2f4ffa",
-     "is_open": false,
-     "line": "Red",
-     "match_status": "unmatched_incident",
-     "mean_coverage_pct": 21.8,
-     "min_coverage_pct": 0.0,
-     "n_hours": 2,
-     "n_outage_hours_inside": 0,
-     "start_ts": "2026-11-24 00:00:00-05",
-     "summary_text": null,
-     "template_used": null,
-     "thresholds_crossed": "gap,skipped"
-    },
-    {
-     "alert_lag_s": null,
      "coverage_pct": 54.9,
      "direction_id": 0,
      "end_ts": "2026-11-24 01:00:00-05",
@@ -639,6 +675,24 @@
      "summary_text": null,
      "template_used": null,
      "thresholds_crossed": "gap"
+    },
+    {
+     "alert_lag_s": null,
+     "coverage_pct": 40.1,
+     "direction_id": 0,
+     "end_ts": "2026-11-24 02:00:00-05",
+     "incident_id": "6268736e39e6367ff93761e7d9d5c9bc",
+     "is_open": false,
+     "line": "Red",
+     "match_status": "unmatched_incident",
+     "mean_coverage_pct": 40.1,
+     "min_coverage_pct": 0.0,
+     "n_hours": 3,
+     "n_outage_hours_inside": 0,
+     "start_ts": "2026-11-23 23:00:00-05",
+     "summary_text": null,
+     "template_used": null,
+     "thresholds_crossed": "gap,skipped"
     },
     {
      "alert_lag_s": null,
@@ -1006,8 +1060,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Incidents: line-hours that crossed a reliability threshold, with their evidence-checked summary",

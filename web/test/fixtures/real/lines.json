@@ -1,15 +1,15 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 85.2,
-   "min_coverage_pct": 73.5,
+   "mean_coverage_pct": 86.7,
+   "min_coverage_pct": 75.4,
    "rows": 16,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
   },
   "data": [
    {
-    "coverage_pct_last_24h": 86.9,
+    "coverage_pct_last_24h": 87.8,
     "endpoints": [
      "/v1/lines/Red/reliability",
      "/v1/lines/Red/accuracy",
@@ -21,7 +21,7 @@
     "withheld_reason": null
    },
    {
-    "coverage_pct_last_24h": 91.8,
+    "coverage_pct_last_24h": 91.9,
     "endpoints": [
      "/v1/lines/Orange/reliability",
      "/v1/lines/Orange/accuracy",
@@ -33,7 +33,7 @@
     "withheld_reason": null
    },
    {
-    "coverage_pct_last_24h": 88.8,
+    "coverage_pct_last_24h": 90.8,
     "endpoints": [
      "/v1/lines/Blue/reliability",
      "/v1/lines/Blue/accuracy",
@@ -45,7 +45,7 @@
     "withheld_reason": null
    },
    {
-    "coverage_pct_last_24h": 90.9,
+    "coverage_pct_last_24h": 90.5,
     "endpoints": [
      "/v1/lines/Green-B/reliability",
      "/v1/lines/Green-B/accuracy",
@@ -57,7 +57,7 @@
     "withheld_reason": null
    },
    {
-    "coverage_pct_last_24h": 83.1,
+    "coverage_pct_last_24h": 86.1,
     "endpoints": [
      "/v1/lines/Green-C/reliability",
      "/v1/lines/Green-C/accuracy",
@@ -69,7 +69,7 @@
     "withheld_reason": null
    },
    {
-    "coverage_pct_last_24h": 88.5,
+    "coverage_pct_last_24h": 88.3,
     "endpoints": [
      "/v1/lines/Green-D/reliability",
      "/v1/lines/Green-D/accuracy",
@@ -81,7 +81,7 @@
     "withheld_reason": null
    },
    {
-    "coverage_pct_last_24h": 93.1,
+    "coverage_pct_last_24h": 93.0,
     "endpoints": [
      "/v1/lines/Green-E/reliability",
      "/v1/lines/Green-E/accuracy",
@@ -107,8 +107,8 @@
   ],
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Predicted schedule deviation and prediction revision (last_24h only)",

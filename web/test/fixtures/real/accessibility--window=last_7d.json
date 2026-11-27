@@ -1,8 +1,8 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 56.0,
-   "min_coverage_pct": 56.0,
+   "mean_coverage_pct": 57.7,
+   "min_coverage_pct": 57.7,
    "rows": 41,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
@@ -15,7 +15,7 @@
    "station": null,
    "stations": [
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Alewife Escalator 351 (Main concourse to platform) is unavailable due to maintenance.",
       "Alewife Escalator 353 (Main concourse to busway) is unavailable due to maintenance."
@@ -24,18 +24,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 4774.8,
+     "longest_open_outage_h": 4777.8,
      "n_currently_out": 2,
      "n_elevator_outages": 0,
      "n_escalator_outages": 6,
      "n_outages": 6,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-alfcl",
      "station_name": "Alewife",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Andrew Escalator 123 (Ashmont/Braintree platform to busway) is unavailable until further notice, pending replacement.",
       "Andrew Escalator 124 (Ashmont/Braintree platform to busway) is unavailable."
@@ -44,18 +44,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 32290.3,
+     "longest_open_outage_h": 32293.3,
      "n_currently_out": 2,
      "n_elevator_outages": 0,
      "n_escalator_outages": 2,
      "n_outages": 2,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-andrw",
      "station_name": "Andrew",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Ashmont Escalator 438 (Ashmont platform to Mattapan Line, busway) is unavailable due to maintenance."
      ],
@@ -64,18 +64,18 @@
       "Mattapan",
       "Red"
      ],
-     "longest_open_outage_h": 755.7,
+     "longest_open_outage_h": 758.7,
      "n_currently_out": 1,
      "n_elevator_outages": 1,
      "n_escalator_outages": 1,
      "n_outages": 2,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-asmnl",
      "station_name": "Ashmont",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Back Bay Elevator 854 (Commuter Rail track 2 to lobby) is unavailable."
      ],
@@ -83,18 +83,18 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 1107.0,
+     "longest_open_outage_h": 1110.0,
      "n_currently_out": 1,
      "n_elevator_outages": 3,
      "n_escalator_outages": 0,
      "n_outages": 3,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-bbsta",
      "station_name": "Back Bay",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Bowdoin Escalator 125 (Lobby to street) is unavailable until further notice, pending replacement."
      ],
@@ -102,18 +102,18 @@
      "lines": [
       "Blue"
      ],
-     "longest_open_outage_h": 41218.4,
+     "longest_open_outage_h": 41221.4,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
      "n_outages": 1,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-bomnl",
      "station_name": "Bowdoin",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "The Central Avenue mini-high platform (Ashmont side) is out of service. "
      ],
@@ -121,18 +121,18 @@
      "lines": [
       "Mattapan"
      ],
-     "longest_open_outage_h": 1473.2,
+     "longest_open_outage_h": 1476.2,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 0,
      "n_outages": 1,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-cenav",
      "station_name": "Central Avenue",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Charles/MGH Escalator 426 (Lobby to Alewife platform) is unavailable due to maintenance."
      ],
@@ -140,18 +140,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 804.9,
+     "longest_open_outage_h": 807.9,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 2,
      "n_outages": 2,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-chmnl",
      "station_name": "Charles/MGH",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Davis Escalator 337 (College Avenue street to landing) is unavailable due to maintenance."
      ],
@@ -159,18 +159,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 179.7,
+     "longest_open_outage_h": 182.7,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 2,
      "n_outages": 2,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-davis",
      "station_name": "Davis",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Downtown Crossing Elevator 869 (Alewife platform to Summer Street Concourse) is unavailable due to maintenance through Tuesday, December 1."
      ],
@@ -184,13 +184,13 @@
      "n_elevator_outages": 1,
      "n_escalator_outages": 5,
      "n_outages": 6,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-dwnxg",
      "station_name": "Downtown Crossing",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Malden Center Escalator 312 (Street level to Commuter Rail platform) unavailable due to maintenance."
      ],
@@ -198,18 +198,18 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 13977.5,
+     "longest_open_outage_h": 13980.5,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
      "n_outages": 1,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-mlmnl",
      "station_name": "Malden Center",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Maverick Escalator 429 (Lewis Mall to unpaid lobby) is unavailable due to maintenance.",
       "Maverick Escalator 433 (Unpaid lobby to Maverick Square) is unavailable due to maintenance.",
@@ -219,18 +219,18 @@
      "lines": [
       "Blue"
      ],
-     "longest_open_outage_h": 917.3,
+     "longest_open_outage_h": 920.3,
      "n_currently_out": 3,
      "n_elevator_outages": 0,
      "n_escalator_outages": 4,
      "n_outages": 4,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-mvbcl",
      "station_name": "Maverick",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Oak Grove Escalator 105 (Commuter Rail platform to unpaid lobby) is unavailable."
      ],
@@ -238,18 +238,18 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 21515.6,
+     "longest_open_outage_h": 21518.6,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 2,
      "n_outages": 2,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-ogmnl",
      "station_name": "Oak Grove",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Ruggles Escalator 136 (Orange Line platform to upper lobby) is unavailable due to maintenance."
      ],
@@ -257,18 +257,18 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 227.7,
+     "longest_open_outage_h": 230.7,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
      "n_outages": 1,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-rugg",
      "station_name": "Ruggles",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "South Station Escalator 388 (Lobby to CSA area) is unavailable due to maintenance."
      ],
@@ -276,18 +276,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 2071.3,
+     "longest_open_outage_h": 2074.3,
      "n_currently_out": 1,
      "n_elevator_outages": 1,
      "n_escalator_outages": 3,
      "n_outages": 4,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-sstat",
      "station_name": "South Station",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "State Elevator 803 (Forest Hills platform to Washington Street, Milk Street) is unavailable due to maintenance through Tuesday, December 1. ",
       "State Escalator 374 (Oak Grove platform to City Hall Plaza) is unavailable due to maintenance.",
@@ -298,18 +298,18 @@
       "Blue",
       "Orange"
      ],
-     "longest_open_outage_h": 14532.0,
+     "longest_open_outage_h": 14535.0,
      "n_currently_out": 3,
      "n_elevator_outages": 1,
      "n_escalator_outages": 3,
      "n_outages": 4,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-state",
      "station_name": "State",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "JFK/UMass Escalator 322 (Ashmont platform to Columbia Road) is unavailable due to maintenance."
      ],
@@ -317,18 +317,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 99.0,
+     "longest_open_outage_h": 102.0,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
      "n_outages": 1,
-     "outage_hours": 89.4,
+     "outage_hours": 92.4,
      "station_id": "place-jfk",
      "station_name": "JFK/UMass",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Copley Elevator 977 (Kenmore & West, Heath Street platform to Boylston Street) is unavailable due to maintenance."
      ],
@@ -339,18 +339,18 @@
       "Green-D",
       "Green-E"
      ],
-     "longest_open_outage_h": 28.6,
+     "longest_open_outage_h": 31.6,
      "n_currently_out": 1,
      "n_elevator_outages": 1,
      "n_escalator_outages": 0,
      "n_outages": 1,
-     "outage_hours": 24.9,
+     "outage_hours": 27.9,
      "station_id": "place-coecl",
      "station_name": "Copley",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Prudential Escalator 503 (Lobby to Huntington Avenue) is unavailable due to maintenance."
      ],
@@ -358,18 +358,18 @@
      "lines": [
       "Green-E"
      ],
-     "longest_open_outage_h": 23.6,
+     "longest_open_outage_h": 26.6,
      "n_currently_out": 1,
      "n_elevator_outages": 2,
      "n_escalator_outages": 1,
      "n_outages": 3,
-     "outage_hours": 24.5,
+     "outage_hours": 27.5,
      "station_id": "place-prmnl",
      "station_name": "Prudential",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Arlington Elevator 962 (Copley & West platform to lobby) is unavailable due to maintenance."
      ],
@@ -380,18 +380,18 @@
       "Green-D",
       "Green-E"
      ],
-     "longest_open_outage_h": 0.4,
+     "longest_open_outage_h": 3.4,
      "n_currently_out": 1,
-     "n_elevator_outages": 1,
+     "n_elevator_outages": 2,
      "n_escalator_outages": 0,
-     "n_outages": 1,
-     "outage_hours": 1.7,
+     "n_outages": 2,
+     "outage_hours": 4.5,
      "station_id": "place-armnl",
      "station_name": "Arlington",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -412,7 +412,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -429,7 +429,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -448,7 +448,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -465,7 +465,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -484,7 +484,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -501,7 +501,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -518,7 +518,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -535,7 +535,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -554,7 +554,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -571,7 +571,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -588,7 +588,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -605,7 +605,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -622,7 +622,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -639,7 +639,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -656,7 +656,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -673,7 +673,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -690,7 +690,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -707,7 +707,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -727,7 +727,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -744,7 +744,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -765,7 +765,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -786,8 +786,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Announced elevator and escalator outages per station",

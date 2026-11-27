@@ -1,8 +1,8 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 78.3,
-   "min_coverage_pct": 78.3,
+   "mean_coverage_pct": 80.1,
+   "min_coverage_pct": 80.1,
    "rows": 1,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
@@ -13,14 +13,14 @@
     "metrics_md": "8-headway-adherence-release-2",
     "rows": [
      {
-      "coverage_pct": 78.3,
+      "coverage_pct": 80.1,
       "line": "Green-E",
       "median_ratio": 1.0,
-      "n_observations": 4237,
-      "p90_ratio": 1.54,
-      "pct_bunched": 8.26,
-      "pct_gap": 11.42,
-      "pct_within_band": 80.32,
+      "n_observations": 4086,
+      "p90_ratio": 1.55,
+      "pct_bunched": 8.91,
+      "pct_gap": 11.8,
+      "pct_within_band": 79.3,
       "window": "last_24h",
       "withheld_reason": null
      }
@@ -32,8 +32,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Headways within the band, bunched and gaps",

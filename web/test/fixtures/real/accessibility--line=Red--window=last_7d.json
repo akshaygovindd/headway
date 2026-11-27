@@ -1,8 +1,8 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 56.0,
-   "min_coverage_pct": 56.0,
+   "mean_coverage_pct": 57.7,
+   "min_coverage_pct": 57.7,
    "rows": 12,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
@@ -15,7 +15,7 @@
    "station": null,
    "stations": [
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Alewife Escalator 351 (Main concourse to platform) is unavailable due to maintenance.",
       "Alewife Escalator 353 (Main concourse to busway) is unavailable due to maintenance."
@@ -24,18 +24,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 4774.8,
+     "longest_open_outage_h": 4777.8,
      "n_currently_out": 2,
      "n_elevator_outages": 0,
      "n_escalator_outages": 6,
      "n_outages": 6,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-alfcl",
      "station_name": "Alewife",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Andrew Escalator 123 (Ashmont/Braintree platform to busway) is unavailable until further notice, pending replacement.",
       "Andrew Escalator 124 (Ashmont/Braintree platform to busway) is unavailable."
@@ -44,18 +44,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 32290.3,
+     "longest_open_outage_h": 32293.3,
      "n_currently_out": 2,
      "n_elevator_outages": 0,
      "n_escalator_outages": 2,
      "n_outages": 2,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-andrw",
      "station_name": "Andrew",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Ashmont Escalator 438 (Ashmont platform to Mattapan Line, busway) is unavailable due to maintenance."
      ],
@@ -64,18 +64,18 @@
       "Mattapan",
       "Red"
      ],
-     "longest_open_outage_h": 755.7,
+     "longest_open_outage_h": 758.7,
      "n_currently_out": 1,
      "n_elevator_outages": 1,
      "n_escalator_outages": 1,
      "n_outages": 2,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-asmnl",
      "station_name": "Ashmont",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Charles/MGH Escalator 426 (Lobby to Alewife platform) is unavailable due to maintenance."
      ],
@@ -83,18 +83,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 804.9,
+     "longest_open_outage_h": 807.9,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 2,
      "n_outages": 2,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-chmnl",
      "station_name": "Charles/MGH",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Davis Escalator 337 (College Avenue street to landing) is unavailable due to maintenance."
      ],
@@ -102,18 +102,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 179.7,
+     "longest_open_outage_h": 182.7,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 2,
      "n_outages": 2,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-davis",
      "station_name": "Davis",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "Downtown Crossing Elevator 869 (Alewife platform to Summer Street Concourse) is unavailable due to maintenance through Tuesday, December 1."
      ],
@@ -127,13 +127,13 @@
      "n_elevator_outages": 1,
      "n_escalator_outages": 5,
      "n_outages": 6,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-dwnxg",
      "station_name": "Downtown Crossing",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "South Station Escalator 388 (Lobby to CSA area) is unavailable due to maintenance."
      ],
@@ -141,18 +141,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 2071.3,
+     "longest_open_outage_h": 2074.3,
      "n_currently_out": 1,
      "n_elevator_outages": 1,
      "n_escalator_outages": 3,
      "n_outages": 4,
-     "outage_hours": 94.0,
+     "outage_hours": 97.0,
      "station_id": "place-sstat",
      "station_name": "South Station",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [
       "JFK/UMass Escalator 322 (Ashmont platform to Columbia Road) is unavailable due to maintenance."
      ],
@@ -160,18 +160,18 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 99.0,
+     "longest_open_outage_h": 102.0,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
      "n_outages": 1,
-     "outage_hours": 89.4,
+     "outage_hours": 92.4,
      "station_id": "place-jfk",
      "station_name": "JFK/UMass",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -188,7 +188,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -205,7 +205,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -222,7 +222,7 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 56.0,
+     "coverage_pct": 57.7,
      "current_outage_text": [],
      "currently_out": false,
      "lines": [
@@ -243,8 +243,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Announced elevator and escalator outages per station",

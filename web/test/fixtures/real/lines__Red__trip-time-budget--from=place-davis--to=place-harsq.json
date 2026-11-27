@@ -1,7 +1,7 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 80.7,
+   "mean_coverage_pct": 78.6,
    "min_coverage_pct": 66.7,
    "rows": 5,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
@@ -16,23 +16,23 @@
    "min_trips": 20,
    "rows": [
     {
-     "buffer_time_index": 1.883,
+     "buffer_time_index": 1.886,
      "coverage_pct": 80.0,
      "direction_id": 0,
-     "median_s": 276.5,
+     "median_s": 276.7,
      "n_disruption": 0,
      "n_excluded_outage": 0,
      "n_implausible": 0,
      "n_scheduled_trips": 25,
      "n_trips": 20,
      "no_trips_reason": null,
-     "p95_s": 797.1,
+     "p95_s": 798.5,
      "status": "measured",
      "time_band": "am_peak",
      "withheld_reason": null
     },
     {
-     "buffer_time_index": 0.269,
+     "buffer_time_index": 0.244,
      "coverage_pct": 90.5,
      "direction_id": 0,
      "median_s": 275.5,
@@ -42,7 +42,7 @@
      "n_scheduled_trips": 63,
      "n_trips": 57,
      "no_trips_reason": null,
-     "p95_s": 349.6,
+     "p95_s": 342.6,
      "status": "measured",
      "time_band": "midday",
      "withheld_reason": null
@@ -64,17 +64,17 @@
      "withheld_reason": null
     },
     {
-     "buffer_time_index": 0.379,
-     "coverage_pct": 89.4,
+     "buffer_time_index": 0.105,
+     "coverage_pct": 79.1,
      "direction_id": 0,
-     "median_s": 282.8,
+     "median_s": 270.5,
      "n_disruption": 0,
-     "n_excluded_outage": 9,
+     "n_excluded_outage": 10,
      "n_implausible": 0,
-     "n_scheduled_trips": 47,
-     "n_trips": 42,
+     "n_scheduled_trips": 43,
+     "n_trips": 34,
      "no_trips_reason": null,
-     "p95_s": 389.9,
+     "p95_s": 298.9,
      "status": "measured",
      "time_band": "evening",
      "withheld_reason": null
@@ -105,8 +105,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Travel time between two stations: median, 95th percentile and buffer time index per time band",

@@ -1,8 +1,8 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 79.3,
-   "min_coverage_pct": 79.3,
+   "mean_coverage_pct": 79.5,
+   "min_coverage_pct": 79.5,
    "rows": 1,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
@@ -13,12 +13,12 @@
     "metrics_md": "7-actual-schedule-deviation-release-2",
     "rows": [
      {
-      "coverage_pct": 79.3,
+      "coverage_pct": 79.5,
       "line": "Mattapan",
-      "median_deviation_s": -54.98,
-      "n_observations": 6567,
-      "p90_deviation_s": 157.5,
-      "pct_on_time_window": 45.32,
+      "median_deviation_s": -66.0,
+      "n_observations": 6760,
+      "p90_deviation_s": 153.5,
+      "pct_on_time_window": 42.94,
       "window": "last_7d",
       "withheld_reason": null
      }
@@ -36,8 +36,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Predicted schedule deviation and prediction revision (last_24h only)",

@@ -3,7 +3,7 @@
   "coverage": {
    "mean_coverage_pct": 83.3,
    "min_coverage_pct": 83.3,
-   "rows": 10,
+   "rows": 9,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
   },
@@ -23,7 +23,7 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 1107.0,
+     "longest_open_outage_h": 1110.0,
      "n_currently_out": 1,
      "n_elevator_outages": 3,
      "n_escalator_outages": 0,
@@ -62,7 +62,7 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 13977.5,
+     "longest_open_outage_h": 13980.5,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -81,7 +81,7 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 21515.6,
+     "longest_open_outage_h": 21518.6,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -100,7 +100,7 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 227.7,
+     "longest_open_outage_h": 230.7,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -122,7 +122,7 @@
       "Blue",
       "Orange"
      ],
-     "longest_open_outage_h": 14532.0,
+     "longest_open_outage_h": 14535.0,
      "n_currently_out": 3,
      "n_elevator_outages": 1,
      "n_escalator_outages": 2,
@@ -186,31 +186,14 @@
      "station_id": "place-haecl",
      "station_name": "Haymarket",
      "withheld_reason": null
-    },
-    {
-     "coverage_pct": 83.3,
-     "current_outage_text": [],
-     "currently_out": false,
-     "lines": [
-      "Orange"
-     ],
-     "longest_open_outage_h": null,
-     "n_currently_out": 0,
-     "n_elevator_outages": 1,
-     "n_escalator_outages": 0,
-     "n_outages": 1,
-     "outage_hours": 0.5,
-     "station_id": "place-astao",
-     "station_name": "Assembly",
-     "withheld_reason": null
     }
    ],
    "window": "last_24h"
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Announced elevator and escalator outages per station",

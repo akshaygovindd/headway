@@ -1,9 +1,9 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 100.0,
-   "min_coverage_pct": 100.0,
-   "rows": 1,
+   "mean_coverage_pct": 92.6,
+   "min_coverage_pct": 85.2,
+   "rows": 2,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
   },
@@ -27,8 +27,8 @@
     {
      "coverage_pct": 100.0,
      "direction_id": 1,
-     "excess_pct": 242.3,
-     "excess_s": 72.2,
+     "excess_pct": 163.6,
+     "excess_s": 63.3,
      "first_seen": "2026-11-26T20:34:56Z",
      "from_stop_id": "70236",
      "from_stop_name": "Englewood Avenue",
@@ -37,12 +37,35 @@
      "n_baseline_trips": 63,
      "n_disruption": 0,
      "n_trips": 17,
-     "normal_s": 29.8,
+     "normal_s": 38.7,
      "observed_s": 102.0,
      "segment_order": 2,
      "severity": "moderate",
      "share_slow_pct": 76.5,
      "time_band": "pm_peak",
+     "to_stop_id": "70234",
+     "to_stop_name": "Dean Road",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 85.2,
+     "direction_id": 1,
+     "excess_pct": 72.3,
+     "excess_s": 34.6,
+     "first_seen": "2026-11-26T23:37:51Z",
+     "from_stop_id": "70236",
+     "from_stop_name": "Englewood Avenue",
+     "last_seen": "2026-11-27T02:51:27Z",
+     "line": "Green-C",
+     "n_baseline_trips": 100,
+     "n_disruption": 0,
+     "n_trips": 23,
+     "normal_s": 47.9,
+     "observed_s": 82.5,
+     "segment_order": 2,
+     "severity": "minor",
+     "share_slow_pct": 60.9,
+     "time_band": "evening",
      "to_stop_id": "70234",
      "to_stop_name": "Dean Road",
      "withheld_reason": null
@@ -53,8 +76,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Observed slow segments (a signal, not official) and the comparison with the MBTA's speed-restriction list (a hand-captured snapshot)",

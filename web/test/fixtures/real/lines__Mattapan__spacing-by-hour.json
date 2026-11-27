@@ -1,9 +1,9 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 80.7,
+   "mean_coverage_pct": 81.7,
    "min_coverage_pct": 64.9,
-   "rows": 13,
+   "rows": 16,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
   },
@@ -178,15 +178,57 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 74.3,
+     "coverage_pct": 70.3,
      "data_outage": false,
      "hour_local": 18,
      "hour_start": "2026-11-26T23:00:00Z",
-     "n_headways": 55,
+     "n_headways": 52,
      "pct_bunched": 0.0,
-     "pct_gap": 29.09,
-     "pct_within_band": 70.91,
+     "pct_gap": 25.0,
+     "pct_within_band": 75.0,
      "scheduled_headways": 74,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 86.3,
+     "data_outage": false,
+     "hour_local": 19,
+     "hour_start": "2026-11-27T00:00:00Z",
+     "n_headways": 63,
+     "pct_bunched": 0.0,
+     "pct_gap": 0.0,
+     "pct_within_band": 100.0,
+     "scheduled_headways": 73,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 89.3,
+     "data_outage": false,
+     "hour_local": 20,
+     "hour_start": "2026-11-27T01:00:00Z",
+     "n_headways": 67,
+     "pct_bunched": 14.93,
+     "pct_gap": 1.49,
+     "pct_within_band": 83.58,
+     "scheduled_headways": 75,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 86.3,
+     "data_outage": false,
+     "hour_local": 21,
+     "hour_start": "2026-11-27T02:00:00Z",
+     "n_headways": 63,
+     "pct_bunched": 0.0,
+     "pct_gap": 0.0,
+     "pct_within_band": 100.0,
+     "scheduled_headways": 73,
      "service_date": "2026-11-26",
      "status": "measured",
      "withheld_reason": null
@@ -194,13 +236,13 @@
     {
      "coverage_pct": 0.0,
      "data_outage": true,
-     "hour_local": 19,
-     "hour_start": "2026-11-27T00:00:00Z",
+     "hour_local": 22,
+     "hour_start": "2026-11-27T03:00:00Z",
      "n_headways": 0,
      "pct_bunched": null,
      "pct_gap": null,
      "pct_within_band": null,
-     "scheduled_headways": 73,
+     "scheduled_headways": 74,
      "service_date": "2026-11-26",
      "status": "outage",
      "withheld_reason": "data outage: our capture, not the trains"
@@ -211,8 +253,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Headway adherence per service hour (05:00 to 01:00 local), directions combined",

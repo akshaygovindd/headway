@@ -1,9 +1,9 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": null,
-   "min_coverage_pct": null,
-   "rows": 0,
+   "mean_coverage_pct": 81.0,
+   "min_coverage_pct": 81.0,
+   "rows": 1,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
   },
@@ -23,14 +23,38 @@
     "source_url": null,
     "status": "not_captured"
    },
-   "segments": [],
+   "segments": [
+    {
+     "coverage_pct": 81.0,
+     "direction_id": 1,
+     "excess_pct": 28.0,
+     "excess_s": 116.5,
+     "first_seen": "2026-11-26T23:45:33Z",
+     "from_stop_id": "70276",
+     "from_stop_name": "Mattapan",
+     "last_seen": "2026-11-27T02:45:25Z",
+     "line": "Mattapan",
+     "n_baseline_trips": 48,
+     "n_disruption": 0,
+     "n_trips": 17,
+     "normal_s": 415.9,
+     "observed_s": 532.3,
+     "segment_order": 1,
+     "severity": "moderate",
+     "share_slow_pct": 70.6,
+     "time_band": "evening",
+     "to_stop_id": "70274",
+     "to_stop_name": "Capen Street",
+     "withheld_reason": null
+    }
+   ],
    "signal": "observed speed-restriction signal, not official",
    "window": "last_24h"
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Observed slow segments (a signal, not official) and the comparison with the MBTA's speed-restriction list (a hand-captured snapshot)",

@@ -10,27 +10,27 @@
   "data": {
    "slos": [
     {
-     "actual_pct": 76.73,
+     "actual_pct": 76.9,
      "counts_toward_slo": true,
      "days_covered": 5,
-     "error_budget_used": 1.163,
-     "good_events": 148352.0,
+     "error_budget_used": 1.155,
+     "good_events": 153109.0,
      "met": false,
      "slo_name": "arrival_coverage",
      "target_pct": 80.0,
-     "total_events": 193333.0,
+     "total_events": 199107.0,
      "window": "last_30d"
     },
     {
-     "actual_pct": 76.73,
+     "actual_pct": 76.9,
      "counts_toward_slo": true,
      "days_covered": 5,
-     "error_budget_used": 1.163,
-     "good_events": 148352.0,
+     "error_budget_used": 1.155,
+     "good_events": 153109.0,
      "met": false,
      "slo_name": "arrival_coverage",
      "target_pct": 80.0,
-     "total_events": 193333.0,
+     "total_events": 199107.0,
      "window": "last_7d"
     },
     {
@@ -58,35 +58,35 @@
      "window": "last_7d"
     },
     {
-     "actual_pct": 95.36,
+     "actual_pct": 93.06,
      "counts_toward_slo": true,
      "days_covered": 5,
-     "error_budget_used": 4.644,
-     "good_events": 5955.0,
+     "error_budget_used": 6.942,
+     "good_events": 5979.0,
      "met": false,
      "slo_name": "capture_completeness",
      "target_pct": 99.0,
-     "total_events": 6245.0,
+     "total_events": 6425.0,
      "window": "last_30d"
     },
     {
-     "actual_pct": 95.36,
+     "actual_pct": 93.06,
      "counts_toward_slo": true,
      "days_covered": 5,
-     "error_budget_used": 4.644,
-     "good_events": 5955.0,
+     "error_budget_used": 6.942,
+     "good_events": 5979.0,
      "met": false,
      "slo_name": "capture_completeness",
      "target_pct": 99.0,
-     "total_events": 6245.0,
+     "total_events": 6425.0,
      "window": "last_7d"
     }
    ]
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Service level objectives over 7 and 30 days",

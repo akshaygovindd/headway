@@ -1,24 +1,24 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 81.9,
-   "min_coverage_pct": 34.6,
+   "mean_coverage_pct": 87.0,
+   "min_coverage_pct": 60.9,
    "rows": 10,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
-   "withheld_rows": 1
+   "withheld_rows": 0
   },
   "data": {
    "line": "Green-C",
    "overall": {
-    "coverage_pct": 77.4,
-    "median_ett_s": -221.8,
+    "coverage_pct": 84.2,
+    "median_ett_s": -223.5,
     "n_disruption": 0,
     "n_excluded_outage": 12,
     "n_implausible": 0,
-    "n_scheduled_trips": 208,
-    "n_trips": 161,
+    "n_scheduled_trips": 203,
+    "n_trips": 171,
     "no_trips_reason": null,
-    "p90_ett_s": 90.6,
+    "p90_ett_s": 100.5,
     "status": "measured",
     "withheld_reason": null
    },
@@ -26,8 +26,8 @@
     {
      "coverage_pct": 86.7,
      "direction_id": 0,
-     "median_actual_s": 1611.5,
-     "median_ett_s": -188.5,
+     "median_actual_s": 1607.3,
+     "median_ett_s": -192.7,
      "median_scheduled_s": 1800.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -35,7 +35,7 @@
      "n_scheduled_trips": 15,
      "n_trips": 13,
      "no_trips_reason": null,
-     "p90_ett_s": 36.4,
+     "p90_ett_s": 34.3,
      "status": "measured",
      "time_band": "am_peak",
      "withheld_reason": null
@@ -43,8 +43,8 @@
     {
      "coverage_pct": 84.2,
      "direction_id": 0,
-     "median_actual_s": 1699.7,
-     "median_ett_s": -295.7,
+     "median_actual_s": 1696.4,
+     "median_ett_s": -298.0,
      "median_scheduled_s": 1920.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -52,7 +52,7 @@
      "n_scheduled_trips": 38,
      "n_trips": 32,
      "no_trips_reason": null,
-     "p90_ett_s": -53.3,
+     "p90_ett_s": -55.4,
      "status": "measured",
      "time_band": "midday",
      "withheld_reason": null
@@ -75,18 +75,18 @@
      "withheld_reason": null
     },
     {
-     "coverage_pct": 63.0,
+     "coverage_pct": 87.5,
      "direction_id": 0,
-     "median_actual_s": 1749.6,
-     "median_ett_s": -62.0,
-     "median_scheduled_s": 1860.0,
+     "median_actual_s": 1828.0,
+     "median_ett_s": -84.2,
+     "median_scheduled_s": 2040.0,
      "n_disruption": 0,
-     "n_excluded_outage": 5,
+     "n_excluded_outage": 6,
      "n_implausible": 0,
-     "n_scheduled_trips": 27,
-     "n_trips": 17,
+     "n_scheduled_trips": 24,
+     "n_trips": 21,
      "no_trips_reason": null,
-     "p90_ett_s": 54.5,
+     "p90_ett_s": 125.4,
      "status": "measured",
      "time_band": "evening",
      "withheld_reason": null
@@ -95,7 +95,7 @@
      "coverage_pct": 87.5,
      "direction_id": 0,
      "median_actual_s": 1665.5,
-     "median_ett_s": -52.5,
+     "median_ett_s": -57.3,
      "median_scheduled_s": 1680.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -103,7 +103,7 @@
      "n_scheduled_trips": 8,
      "n_trips": 7,
      "no_trips_reason": null,
-     "p90_ett_s": 179.0,
+     "p90_ett_s": 172.6,
      "status": "measured",
      "time_band": "other",
      "withheld_reason": null
@@ -111,8 +111,8 @@
     {
      "coverage_pct": 92.3,
      "direction_id": 1,
-     "median_actual_s": 1609.3,
-     "median_ett_s": -346.0,
+     "median_actual_s": 1612.2,
+     "median_ett_s": -339.5,
      "median_scheduled_s": 1920.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -120,7 +120,7 @@
      "n_scheduled_trips": 13,
      "n_trips": 12,
      "no_trips_reason": null,
-     "p90_ett_s": -180.2,
+     "p90_ett_s": -177.6,
      "status": "measured",
      "time_band": "am_peak",
      "withheld_reason": null
@@ -128,8 +128,8 @@
     {
      "coverage_pct": 76.9,
      "direction_id": 1,
-     "median_actual_s": 1689.4,
-     "median_ett_s": -417.9,
+     "median_actual_s": 1696.3,
+     "median_ett_s": -415.3,
      "median_scheduled_s": 2100.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -137,7 +137,7 @@
      "n_scheduled_trips": 39,
      "n_trips": 30,
      "no_trips_reason": null,
-     "p90_ett_s": -228.4,
+     "p90_ett_s": -227.9,
      "status": "measured",
      "time_band": "midday",
      "withheld_reason": null
@@ -145,36 +145,36 @@
     {
      "coverage_pct": 100.0,
      "direction_id": 1,
-     "median_actual_s": 1999.1,
-     "median_ett_s": -160.9,
+     "median_actual_s": 1999.5,
+     "median_ett_s": -160.5,
      "median_scheduled_s": 2160.0,
      "n_disruption": 0,
-     "n_excluded_outage": 1,
+     "n_excluded_outage": 0,
      "n_implausible": 0,
-     "n_scheduled_trips": 16,
-     "n_trips": 16,
+     "n_scheduled_trips": 17,
+     "n_trips": 17,
      "no_trips_reason": null,
-     "p90_ett_s": 146.3,
+     "p90_ett_s": 127.4,
      "status": "measured",
      "time_band": "pm_peak",
      "withheld_reason": null
     },
     {
-     "coverage_pct": 34.6,
+     "coverage_pct": 60.9,
      "direction_id": 1,
-     "median_actual_s": null,
-     "median_ett_s": null,
-     "median_scheduled_s": null,
+     "median_actual_s": 1924.5,
+     "median_ett_s": -109.0,
+     "median_scheduled_s": 2040.0,
      "n_disruption": 0,
      "n_excluded_outage": 6,
      "n_implausible": 0,
-     "n_scheduled_trips": 26,
-     "n_trips": 9,
+     "n_scheduled_trips": 23,
+     "n_trips": 14,
      "no_trips_reason": null,
-     "p90_ett_s": null,
-     "status": "withheld",
+     "p90_ett_s": 383.5,
+     "status": "measured",
      "time_band": "evening",
-     "withheld_reason": "coverage 34.6% is below 50%"
+     "withheld_reason": null
     },
     {
      "coverage_pct": 100.0,
@@ -188,7 +188,7 @@
      "n_scheduled_trips": 9,
      "n_trips": 9,
      "no_trips_reason": null,
-     "p90_ett_s": 112.6,
+     "p90_ett_s": 121.0,
      "status": "measured",
      "time_band": "other",
      "withheld_reason": null
@@ -199,8 +199,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Trip time against the timetable (ETT approximation) per direction and time band",

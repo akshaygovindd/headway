@@ -1,8 +1,8 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 84.0,
-   "min_coverage_pct": 83.7,
+   "mean_coverage_pct": 84.9,
+   "min_coverage_pct": 84.6,
    "rows": 4,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
@@ -14,54 +14,54 @@
     "metrics_md": "release-2-metrics-shared-rules",
     "rows": [
      {
-      "coverage_pct": 84.1,
+      "coverage_pct": 85.0,
       "horizon_bucket": "0-5",
       "line": "Orange",
-      "mae_s": 19.67,
-      "median_abs_error_s": 18.0,
-      "n_observations": 5107,
-      "p90_abs_error_s": 37.0,
-      "pct_within_120s": 99.96,
-      "pct_within_60s": 99.88,
+      "mae_s": 16.89,
+      "median_abs_error_s": 14.5,
+      "n_observations": 4859,
+      "p90_abs_error_s": 35.5,
+      "pct_within_120s": 99.98,
+      "pct_within_60s": 99.92,
       "window": "last_24h",
       "withheld_reason": null
      },
      {
-      "coverage_pct": 84.1,
+      "coverage_pct": 85.0,
       "horizon_bucket": "5-10",
       "line": "Orange",
-      "mae_s": 27.89,
-      "median_abs_error_s": 19.5,
-      "n_observations": 5108,
-      "p90_abs_error_s": 51.5,
-      "pct_within_120s": 97.59,
-      "pct_within_60s": 92.64,
+      "mae_s": 24.92,
+      "median_abs_error_s": 17.18,
+      "n_observations": 4860,
+      "p90_abs_error_s": 45.5,
+      "pct_within_120s": 97.96,
+      "pct_within_60s": 94.36,
       "window": "last_24h",
       "withheld_reason": null
      },
      {
-      "coverage_pct": 84.1,
+      "coverage_pct": 85.0,
       "horizon_bucket": "10-20",
       "line": "Orange",
-      "mae_s": 41.74,
-      "median_abs_error_s": 26.5,
-      "n_observations": 5105,
-      "p90_abs_error_s": 85.6,
-      "pct_within_120s": 94.08,
-      "pct_within_60s": 82.72,
+      "mae_s": 38.27,
+      "median_abs_error_s": 24.0,
+      "n_observations": 4857,
+      "p90_abs_error_s": 73.45,
+      "pct_within_120s": 95.24,
+      "pct_within_60s": 85.88,
       "window": "last_24h",
       "withheld_reason": null
      },
      {
-      "coverage_pct": 83.7,
+      "coverage_pct": 84.6,
       "horizon_bucket": "20-30",
       "line": "Orange",
-      "mae_s": 66.52,
-      "median_abs_error_s": 40.0,
-      "n_observations": 5082,
-      "p90_abs_error_s": 145.0,
-      "pct_within_120s": 86.28,
-      "pct_within_60s": 66.23,
+      "mae_s": 61.91,
+      "median_abs_error_s": 37.0,
+      "n_observations": 4833,
+      "p90_abs_error_s": 127.5,
+      "pct_within_120s": 88.64,
+      "pct_within_60s": 69.63,
       "window": "last_24h",
       "withheld_reason": null
      }
@@ -72,8 +72,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Accuracy of MBTA's published predictions by horizon bucket",

@@ -2,7 +2,7 @@
  "body": {
   "coverage": {
    "mean_coverage_pct": 63.5,
-   "min_coverage_pct": 18.6,
+   "min_coverage_pct": 19.0,
    "rows": 4,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 1
@@ -14,56 +14,56 @@
     "metrics_md": "release-2-metrics-shared-rules",
     "rows": [
      {
-      "coverage_pct": 79.3,
+      "coverage_pct": 79.2,
       "horizon_bucket": "0-5",
       "line": "Mattapan",
-      "mae_s": 12.27,
-      "median_abs_error_s": 10.0,
-      "n_observations": 1078,
-      "p90_abs_error_s": 25.0,
+      "mae_s": 9.88,
+      "median_abs_error_s": 7.0,
+      "n_observations": 1077,
+      "p90_abs_error_s": 22.0,
       "pct_within_120s": 99.81,
-      "pct_within_60s": 99.44,
+      "pct_within_60s": 99.63,
       "window": "last_24h",
       "withheld_reason": null
      },
      {
-      "coverage_pct": 78.6,
+      "coverage_pct": 78.5,
       "horizon_bucket": "5-10",
       "line": "Mattapan",
-      "mae_s": 65.42,
-      "median_abs_error_s": 48.88,
-      "n_observations": 1068,
-      "p90_abs_error_s": 137.72,
-      "pct_within_120s": 86.42,
-      "pct_within_60s": 58.33,
+      "mae_s": 64.13,
+      "median_abs_error_s": 47.57,
+      "n_observations": 1067,
+      "p90_abs_error_s": 132.64,
+      "pct_within_120s": 87.25,
+      "pct_within_60s": 59.51,
       "window": "last_24h",
       "withheld_reason": null
      },
      {
-      "coverage_pct": 77.6,
+      "coverage_pct": 77.5,
       "horizon_bucket": "10-20",
       "line": "Mattapan",
-      "mae_s": 100.14,
-      "median_abs_error_s": 79.47,
-      "n_observations": 1054,
-      "p90_abs_error_s": 206.35,
-      "pct_within_120s": 70.02,
-      "pct_within_60s": 37.38,
+      "mae_s": 98.65,
+      "median_abs_error_s": 77.75,
+      "n_observations": 1053,
+      "p90_abs_error_s": 206.1,
+      "pct_within_120s": 70.66,
+      "pct_within_60s": 39.03,
       "window": "last_24h",
       "withheld_reason": null
      },
      {
-      "coverage_pct": 18.6,
+      "coverage_pct": 19.0,
       "horizon_bucket": "20-30",
       "line": "Mattapan",
       "mae_s": null,
       "median_abs_error_s": null,
-      "n_observations": 253,
+      "n_observations": 258,
       "p90_abs_error_s": null,
       "pct_within_120s": null,
       "pct_within_60s": null,
       "window": "last_24h",
-      "withheld_reason": "coverage 18.6% is below 50%"
+      "withheld_reason": "coverage 19% is below 50%"
      }
     ],
     "table": "agg_accuracy_window"
@@ -72,8 +72,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Accuracy of MBTA's published predictions by horizon bucket",

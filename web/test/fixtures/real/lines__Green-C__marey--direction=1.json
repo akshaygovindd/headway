@@ -9,1060 +9,1104 @@
   },
   "data": {
    "direction": 1,
-   "hour_start": "2026-11-26T23:00:00Z",
+   "hour_start": "2026-11-27T02:00:00Z",
    "line": "Green-C",
    "rows": [
     {
-     "arrival_ts": "2026-11-26T23:55:52Z",
+     "arrival_ts": "2026-11-27T02:00:34Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:54:00Z",
+     "scheduled_ts": "2026-11-27T02:02:00Z",
+     "stop_id": "70201",
+     "stop_name": "Government Center",
+     "stop_sequence": 610,
+     "trip_id": "77661707"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:51:27Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:46:00Z",
      "stop_id": "70236",
      "stop_name": "Englewood Avenue",
      "stop_sequence": 190,
-     "trip_id": "77661705"
+     "trip_id": "77661708"
     },
     {
-     "arrival_ts": "2026-11-26T23:57:18Z",
+     "arrival_ts": "2026-11-27T02:52:52Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:56:00Z",
+     "scheduled_ts": "2026-11-27T02:48:00Z",
      "stop_id": "70234",
      "stop_name": "Dean Road",
      "stop_sequence": 200,
-     "trip_id": "77661705"
+     "trip_id": "77661708"
     },
     {
-     "arrival_ts": "2026-11-26T23:58:51Z",
+     "arrival_ts": "2026-11-27T02:54:16Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:57:00Z",
+     "scheduled_ts": "2026-11-27T02:49:00Z",
      "stop_id": "70232",
      "stop_name": "Tappan Street",
      "stop_sequence": 210,
-     "trip_id": "77661705"
+     "trip_id": "77661708"
     },
     {
-     "arrival_ts": "2026-11-26T23:01:47Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:06:00Z",
-     "stop_id": "70200",
-     "stop_name": "Park Street",
-     "stop_sequence": 600,
-     "trip_id": "77661721"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:03:59Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:08:00Z",
-     "stop_id": "70201",
-     "stop_name": "Government Center",
-     "stop_sequence": 610,
-     "trip_id": "77661721"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:02:45Z",
+     "arrival_ts": "2026-11-27T02:56:40Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:06:00Z",
-     "stop_id": "70152",
-     "stop_name": "Hynes Convention Center",
-     "stop_sequence": 560,
-     "trip_id": "77661736"
+     "scheduled_ts": "2026-11-27T02:50:00Z",
+     "stop_id": "70230",
+     "stop_name": "Washington Square",
+     "stop_sequence": 220,
+     "trip_id": "77661708"
     },
     {
-     "arrival_ts": "2026-11-26T23:04:46Z",
+     "arrival_ts": "2026-11-27T02:58:31Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:52:00Z",
+     "stop_id": "70226",
+     "stop_name": "Brandon Hall",
+     "stop_sequence": 240,
+     "trip_id": "77661708"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:59:39Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:09:00Z",
+     "scheduled_ts": "2026-11-27T02:53:00Z",
+     "stop_id": "70224",
+     "stop_name": "Summit Avenue",
+     "stop_sequence": 250,
+     "trip_id": "77661708"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:01:29Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:02:00Z",
      "stop_id": "70154",
      "stop_name": "Copley",
      "stop_sequence": 570,
-     "trip_id": "77661736"
+     "trip_id": "77661725"
     },
     {
-     "arrival_ts": "2026-11-26T23:05:39Z",
-     "confidence": "low",
+     "arrival_ts": "2026-11-27T02:03:39Z",
+     "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:11:00Z",
+     "scheduled_ts": "2026-11-27T02:04:00Z",
      "stop_id": "70156",
      "stop_name": "Arlington",
      "stop_sequence": 580,
-     "trip_id": "77661736"
+     "trip_id": "77661725"
     },
     {
-     "arrival_ts": "2026-11-26T23:09:06Z",
+     "arrival_ts": "2026-11-27T02:05:41Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:14:00Z",
+     "scheduled_ts": "2026-11-27T02:07:00Z",
      "stop_id": "70158",
      "stop_name": "Boylston",
      "stop_sequence": 590,
-     "trip_id": "77661736"
+     "trip_id": "77661725"
     },
     {
-     "arrival_ts": "2026-11-26T23:11:12Z",
+     "arrival_ts": "2026-11-27T02:07:39Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:16:00Z",
+     "scheduled_ts": "2026-11-27T02:09:00Z",
      "stop_id": "70200",
      "stop_name": "Park Street",
      "stop_sequence": 600,
-     "trip_id": "77661736"
+     "trip_id": "77661725"
     },
     {
-     "arrival_ts": "2026-11-26T23:13:33Z",
+     "arrival_ts": "2026-11-27T02:09:56Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:18:00Z",
+     "scheduled_ts": "2026-11-27T02:11:00Z",
      "stop_id": "70201",
      "stop_name": "Government Center",
      "stop_sequence": 610,
-     "trip_id": "77661736"
+     "trip_id": "77661725"
     },
     {
-     "arrival_ts": "2026-11-26T23:01:17Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:04:00Z",
-     "stop_id": "70218",
-     "stop_name": "Saint Paul Street",
-     "stop_sequence": 270,
-     "trip_id": "77661753"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:02:41Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:06:00Z",
-     "stop_id": "70216",
-     "stop_name": "Kent Street",
-     "stop_sequence": 280,
-     "trip_id": "77661753"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:04:00Z",
+     "arrival_ts": "2026-11-27T02:01:25Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:08:00Z",
+     "scheduled_ts": "2026-11-27T02:00:00Z",
      "stop_id": "70214",
      "stop_name": "Hawes Street",
      "stop_sequence": 290,
-     "trip_id": "77661753"
+     "trip_id": "77661741"
     },
     {
-     "arrival_ts": "2026-11-26T23:04:57Z",
+     "arrival_ts": "2026-11-27T02:02:44Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:10:00Z",
+     "scheduled_ts": "2026-11-27T02:02:00Z",
      "stop_id": "70212",
      "stop_name": "Saint Mary's Street",
      "stop_sequence": 300,
-     "trip_id": "77661753"
+     "trip_id": "77661741"
     },
     {
-     "arrival_ts": "2026-11-26T23:12:24Z",
+     "arrival_ts": "2026-11-27T02:07:11Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:14:00Z",
+     "scheduled_ts": "2026-11-27T02:06:00Z",
      "stop_id": "70150",
      "stop_name": "Kenmore",
      "stop_sequence": 550,
-     "trip_id": "77661753"
+     "trip_id": "77661741"
     },
     {
-     "arrival_ts": "2026-11-26T23:14:43Z",
+     "arrival_ts": "2026-11-27T02:10:13Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:17:00Z",
+     "scheduled_ts": "2026-11-27T02:09:00Z",
      "stop_id": "70152",
      "stop_name": "Hynes Convention Center",
      "stop_sequence": 560,
-     "trip_id": "77661753"
+     "trip_id": "77661741"
     },
     {
-     "arrival_ts": "2026-11-26T23:16:51Z",
+     "arrival_ts": "2026-11-27T02:12:28Z",
      "confidence": "low",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:20:00Z",
+     "scheduled_ts": "2026-11-27T02:12:00Z",
      "stop_id": "70154",
      "stop_name": "Copley",
      "stop_sequence": 570,
-     "trip_id": "77661753"
+     "trip_id": "77661741"
     },
     {
-     "arrival_ts": "2026-11-26T23:19:56Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:22:00Z",
-     "stop_id": "70156",
-     "stop_name": "Arlington",
-     "stop_sequence": 580,
-     "trip_id": "77661753"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:22:28Z",
+     "arrival_ts": "2026-11-27T02:19:35Z",
      "confidence": "low",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:25:00Z",
+     "scheduled_ts": "2026-11-27T02:14:00Z",
+     "stop_id": "70156",
+     "stop_name": "Arlington",
+     "stop_sequence": 580,
+     "trip_id": "77661741"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:26:25Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:17:00Z",
      "stop_id": "70158",
      "stop_name": "Boylston",
      "stop_sequence": 590,
-     "trip_id": "77661753"
+     "trip_id": "77661741"
     },
     {
-     "arrival_ts": "2026-11-26T23:24:50Z",
+     "arrival_ts": "2026-11-27T02:28:53Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:27:00Z",
+     "scheduled_ts": "2026-11-27T02:19:00Z",
      "stop_id": "70200",
      "stop_name": "Park Street",
      "stop_sequence": 600,
-     "trip_id": "77661753"
+     "trip_id": "77661741"
     },
     {
-     "arrival_ts": "2026-11-26T23:26:55Z",
+     "arrival_ts": "2026-11-27T02:31:36Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:29:00Z",
+     "scheduled_ts": "2026-11-27T02:21:00Z",
      "stop_id": "70201",
      "stop_name": "Government Center",
      "stop_sequence": 610,
-     "trip_id": "77661753"
+     "trip_id": "77661741"
     },
     {
-     "arrival_ts": "2026-11-26T23:12:44Z",
+     "arrival_ts": "2026-11-27T02:02:48Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:02:00Z",
-     "stop_id": "70236",
-     "stop_name": "Englewood Avenue",
-     "stop_sequence": 190,
-     "trip_id": "77661768"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:14:26Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:04:00Z",
-     "stop_id": "70234",
-     "stop_name": "Dean Road",
-     "stop_sequence": 200,
-     "trip_id": "77661768"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:15:28Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:05:00Z",
-     "stop_id": "70232",
-     "stop_name": "Tappan Street",
-     "stop_sequence": 210,
-     "trip_id": "77661768"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:16:26Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:06:00Z",
-     "stop_id": "70230",
-     "stop_name": "Washington Square",
-     "stop_sequence": 220,
-     "trip_id": "77661768"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:17:32Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:08:00Z",
+     "scheduled_ts": "2026-11-27T02:02:00Z",
      "stop_id": "70226",
      "stop_name": "Brandon Hall",
      "stop_sequence": 240,
-     "trip_id": "77661768"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:20:31Z",
+     "arrival_ts": "2026-11-27T02:04:14Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:10:00Z",
+     "scheduled_ts": "2026-11-27T02:04:00Z",
      "stop_id": "70224",
      "stop_name": "Summit Avenue",
      "stop_sequence": 250,
-     "trip_id": "77661768"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:22:15Z",
+     "arrival_ts": "2026-11-27T02:05:19Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:12:00Z",
+     "scheduled_ts": "2026-11-27T02:05:00Z",
      "stop_id": "70220",
      "stop_name": "Coolidge Corner",
      "stop_sequence": 260,
-     "trip_id": "77661768"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:26:30Z",
+     "arrival_ts": "2026-11-27T02:06:45Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:15:00Z",
+     "scheduled_ts": "2026-11-27T02:08:00Z",
      "stop_id": "70218",
      "stop_name": "Saint Paul Street",
      "stop_sequence": 270,
-     "trip_id": "77661768"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:28:10Z",
+     "arrival_ts": "2026-11-27T02:08:29Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:17:00Z",
+     "scheduled_ts": "2026-11-27T02:09:00Z",
      "stop_id": "70216",
      "stop_name": "Kent Street",
      "stop_sequence": 280,
-     "trip_id": "77661768"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:29:31Z",
+     "arrival_ts": "2026-11-27T02:09:14Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:19:00Z",
+     "scheduled_ts": "2026-11-27T02:11:00Z",
      "stop_id": "70214",
      "stop_name": "Hawes Street",
      "stop_sequence": 290,
-     "trip_id": "77661768"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:30:40Z",
+     "arrival_ts": "2026-11-27T02:10:31Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:21:00Z",
+     "scheduled_ts": "2026-11-27T02:13:00Z",
      "stop_id": "70212",
      "stop_name": "Saint Mary's Street",
      "stop_sequence": 300,
-     "trip_id": "77661768"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:33:15Z",
+     "arrival_ts": "2026-11-27T02:13:27Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:25:00Z",
+     "scheduled_ts": "2026-11-27T02:17:00Z",
      "stop_id": "70150",
      "stop_name": "Kenmore",
      "stop_sequence": 550,
-     "trip_id": "77661768"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:35:46Z",
+     "arrival_ts": "2026-11-27T02:16:29Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:28:00Z",
+     "scheduled_ts": "2026-11-27T02:20:00Z",
      "stop_id": "70152",
      "stop_name": "Hynes Convention Center",
      "stop_sequence": 560,
-     "trip_id": "77661768"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:37:17Z",
+     "arrival_ts": "2026-11-27T02:25:09Z",
      "confidence": "medium",
      "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:31:00Z",
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:23:00Z",
      "stop_id": "70154",
      "stop_name": "Copley",
      "stop_sequence": 570,
-     "trip_id": "77661768"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:39:25Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:33:00Z",
-     "stop_id": "70156",
-     "stop_name": "Arlington",
-     "stop_sequence": 580,
-     "trip_id": "77661768"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:41:18Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:36:00Z",
-     "stop_id": "70158",
-     "stop_name": "Boylston",
-     "stop_sequence": 590,
-     "trip_id": "77661768"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:42:55Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:38:00Z",
-     "stop_id": "70200",
-     "stop_name": "Park Street",
-     "stop_sequence": 600,
-     "trip_id": "77661768"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:44:43Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:40:00Z",
-     "stop_id": "70201",
-     "stop_name": "Government Center",
-     "stop_sequence": 610,
-     "trip_id": "77661768"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:04:25Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:13:00Z",
-     "stop_id": "70236",
-     "stop_name": "Englewood Avenue",
-     "stop_sequence": 190,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:06:42Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:15:00Z",
-     "stop_id": "70234",
-     "stop_name": "Dean Road",
-     "stop_sequence": 200,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:08:49Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:16:00Z",
-     "stop_id": "70232",
-     "stop_name": "Tappan Street",
-     "stop_sequence": 210,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:10:09Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:17:00Z",
-     "stop_id": "70230",
-     "stop_name": "Washington Square",
-     "stop_sequence": 220,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:11:43Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:19:00Z",
-     "stop_id": "70226",
-     "stop_name": "Brandon Hall",
-     "stop_sequence": 240,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:13:19Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:21:00Z",
-     "stop_id": "70224",
-     "stop_name": "Summit Avenue",
-     "stop_sequence": 250,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:14:16Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:23:00Z",
-     "stop_id": "70220",
-     "stop_name": "Coolidge Corner",
-     "stop_sequence": 260,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:16:52Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:26:00Z",
-     "stop_id": "70218",
-     "stop_name": "Saint Paul Street",
-     "stop_sequence": 270,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:17:15Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:28:00Z",
-     "stop_id": "70216",
-     "stop_name": "Kent Street",
-     "stop_sequence": 280,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:18:09Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:30:00Z",
-     "stop_id": "70214",
-     "stop_name": "Hawes Street",
-     "stop_sequence": 290,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:19:11Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:32:00Z",
-     "stop_id": "70212",
-     "stop_name": "Saint Mary's Street",
-     "stop_sequence": 300,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:21:59Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:36:00Z",
-     "stop_id": "70150",
-     "stop_name": "Kenmore",
-     "stop_sequence": 550,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:24:45Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:39:00Z",
-     "stop_id": "70152",
-     "stop_name": "Hynes Convention Center",
-     "stop_sequence": 560,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:26:47Z",
+     "arrival_ts": "2026-11-27T02:26:13Z",
      "confidence": "low",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:42:00Z",
-     "stop_id": "70154",
-     "stop_name": "Copley",
-     "stop_sequence": 570,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:29:29Z",
-     "confidence": "medium",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:44:00Z",
+     "scheduled_ts": "2026-11-27T02:25:00Z",
      "stop_id": "70156",
      "stop_name": "Arlington",
      "stop_sequence": 580,
-     "trip_id": "77661781"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:31:50Z",
+     "arrival_ts": "2026-11-27T02:30:48Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:47:00Z",
+     "scheduled_ts": "2026-11-27T02:28:00Z",
      "stop_id": "70158",
      "stop_name": "Boylston",
      "stop_sequence": 590,
-     "trip_id": "77661781"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:33:47Z",
+     "arrival_ts": "2026-11-27T02:33:11Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:49:00Z",
+     "scheduled_ts": "2026-11-27T02:30:00Z",
      "stop_id": "70200",
      "stop_name": "Park Street",
      "stop_sequence": 600,
-     "trip_id": "77661781"
+     "trip_id": "77661757"
     },
     {
-     "arrival_ts": "2026-11-26T23:35:55Z",
+     "arrival_ts": "2026-11-27T02:05:54Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:51:00Z",
-     "stop_id": "70201",
-     "stop_name": "Government Center",
-     "stop_sequence": 610,
-     "trip_id": "77661781"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:25:28Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:24:00Z",
+     "scheduled_ts": "2026-11-27T02:06:00Z",
      "stop_id": "70236",
      "stop_name": "Englewood Avenue",
      "stop_sequence": 190,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:26:56Z",
+     "arrival_ts": "2026-11-27T02:07:17Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:26:00Z",
+     "scheduled_ts": "2026-11-27T02:08:00Z",
      "stop_id": "70234",
      "stop_name": "Dean Road",
      "stop_sequence": 200,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:28:27Z",
-     "confidence": "high",
+     "arrival_ts": "2026-11-27T02:08:50Z",
+     "confidence": "medium",
      "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:27:00Z",
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:09:00Z",
      "stop_id": "70232",
      "stop_name": "Tappan Street",
      "stop_sequence": 210,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:29:53Z",
-     "confidence": "high",
+     "arrival_ts": "2026-11-27T02:09:58Z",
+     "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:28:00Z",
+     "scheduled_ts": "2026-11-27T02:10:00Z",
      "stop_id": "70230",
      "stop_name": "Washington Square",
      "stop_sequence": 220,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:31:20Z",
+     "arrival_ts": "2026-11-27T02:12:15Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:30:00Z",
+     "scheduled_ts": "2026-11-27T02:12:00Z",
      "stop_id": "70226",
      "stop_name": "Brandon Hall",
      "stop_sequence": 240,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:32:50Z",
+     "arrival_ts": "2026-11-27T02:13:21Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:32:00Z",
+     "scheduled_ts": "2026-11-27T02:14:00Z",
      "stop_id": "70224",
      "stop_name": "Summit Avenue",
      "stop_sequence": 250,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:33:44Z",
+     "arrival_ts": "2026-11-27T02:14:28Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:34:00Z",
+     "scheduled_ts": "2026-11-27T02:15:00Z",
      "stop_id": "70220",
      "stop_name": "Coolidge Corner",
      "stop_sequence": 260,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:39:16Z",
-     "confidence": "high",
+     "arrival_ts": "2026-11-27T02:16:52Z",
+     "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:37:00Z",
+     "scheduled_ts": "2026-11-27T02:18:00Z",
      "stop_id": "70218",
      "stop_name": "Saint Paul Street",
      "stop_sequence": 270,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:40:27Z",
+     "arrival_ts": "2026-11-27T02:18:52Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:39:00Z",
+     "scheduled_ts": "2026-11-27T02:19:00Z",
      "stop_id": "70216",
      "stop_name": "Kent Street",
      "stop_sequence": 280,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:41:27Z",
+     "arrival_ts": "2026-11-27T02:20:53Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:41:00Z",
+     "scheduled_ts": "2026-11-27T02:21:00Z",
      "stop_id": "70214",
      "stop_name": "Hawes Street",
      "stop_sequence": 290,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:42:29Z",
+     "arrival_ts": "2026-11-27T02:22:45Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:43:00Z",
+     "scheduled_ts": "2026-11-27T02:23:00Z",
      "stop_id": "70212",
      "stop_name": "Saint Mary's Street",
      "stop_sequence": 300,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:45:37Z",
+     "arrival_ts": "2026-11-27T02:27:55Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:47:00Z",
+     "scheduled_ts": "2026-11-27T02:27:00Z",
      "stop_id": "70150",
      "stop_name": "Kenmore",
      "stop_sequence": 550,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:48:25Z",
+     "arrival_ts": "2026-11-27T02:30:49Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:50:00Z",
+     "scheduled_ts": "2026-11-27T02:30:00Z",
      "stop_id": "70152",
      "stop_name": "Hynes Convention Center",
      "stop_sequence": 560,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:49:59Z",
+     "arrival_ts": "2026-11-27T02:32:22Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:53:00Z",
+     "scheduled_ts": "2026-11-27T02:33:00Z",
      "stop_id": "70154",
      "stop_name": "Copley",
      "stop_sequence": 570,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:52:10Z",
+     "arrival_ts": "2026-11-27T02:35:24Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:55:00Z",
+     "scheduled_ts": "2026-11-27T02:35:00Z",
      "stop_id": "70156",
      "stop_name": "Arlington",
      "stop_sequence": 580,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:55:12Z",
+     "arrival_ts": "2026-11-27T02:38:08Z",
      "confidence": "low",
      "direction_id": 1,
-     "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:58:00Z",
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:38:00Z",
      "stop_id": "70158",
      "stop_name": "Boylston",
      "stop_sequence": 590,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:55:57Z",
+     "arrival_ts": "2026-11-27T02:40:47Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-27T00:00:00Z",
+     "scheduled_ts": "2026-11-27T02:40:00Z",
      "stop_id": "70200",
      "stop_name": "Park Street",
      "stop_sequence": 600,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:57:44Z",
+     "arrival_ts": "2026-11-27T02:43:31Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-27T00:02:00Z",
+     "scheduled_ts": "2026-11-27T02:42:00Z",
      "stop_id": "70201",
      "stop_name": "Government Center",
      "stop_sequence": 610,
-     "trip_id": "77661801"
+     "trip_id": "77661772"
     },
     {
-     "arrival_ts": "2026-11-26T23:37:51Z",
+     "arrival_ts": "2026-11-27T02:17:19Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:34:00Z",
+     "scheduled_ts": "2026-11-27T02:17:00Z",
      "stop_id": "70236",
      "stop_name": "Englewood Avenue",
      "stop_sequence": 190,
-     "trip_id": "77661817"
+     "trip_id": "77661788"
     },
     {
-     "arrival_ts": "2026-11-26T23:40:25Z",
+     "arrival_ts": "2026-11-27T02:17:53Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:36:00Z",
+     "scheduled_ts": "2026-11-27T02:19:00Z",
      "stop_id": "70234",
      "stop_name": "Dean Road",
      "stop_sequence": 200,
-     "trip_id": "77661817"
+     "trip_id": "77661788"
     },
     {
-     "arrival_ts": "2026-11-26T23:42:20Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:37:00Z",
-     "stop_id": "70232",
-     "stop_name": "Tappan Street",
-     "stop_sequence": 210,
-     "trip_id": "77661817"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:43:50Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:38:00Z",
-     "stop_id": "70230",
-     "stop_name": "Washington Square",
-     "stop_sequence": 220,
-     "trip_id": "77661817"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:45:51Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:40:00Z",
-     "stop_id": "70226",
-     "stop_name": "Brandon Hall",
-     "stop_sequence": 240,
-     "trip_id": "77661817"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:47:49Z",
+     "arrival_ts": "2026-11-27T02:18:47Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:42:00Z",
+     "scheduled_ts": "2026-11-27T02:20:00Z",
+     "stop_id": "70232",
+     "stop_name": "Tappan Street",
+     "stop_sequence": 210,
+     "trip_id": "77661788"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:20:41Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:21:00Z",
+     "stop_id": "70230",
+     "stop_name": "Washington Square",
+     "stop_sequence": 220,
+     "trip_id": "77661788"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:22:22Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:23:00Z",
+     "stop_id": "70226",
+     "stop_name": "Brandon Hall",
+     "stop_sequence": 240,
+     "trip_id": "77661788"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:23:38Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:25:00Z",
      "stop_id": "70224",
      "stop_name": "Summit Avenue",
      "stop_sequence": 250,
-     "trip_id": "77661817"
+     "trip_id": "77661788"
     },
     {
-     "arrival_ts": "2026-11-26T23:49:43Z",
+     "arrival_ts": "2026-11-27T02:24:52Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:44:00Z",
+     "scheduled_ts": "2026-11-27T02:26:00Z",
      "stop_id": "70220",
      "stop_name": "Coolidge Corner",
      "stop_sequence": 260,
-     "trip_id": "77661817"
+     "trip_id": "77661788"
     },
     {
-     "arrival_ts": "2026-11-26T23:51:30Z",
-     "confidence": "high",
+     "arrival_ts": "2026-11-27T02:29:45Z",
+     "confidence": "medium",
      "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:47:00Z",
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:29:00Z",
      "stop_id": "70218",
      "stop_name": "Saint Paul Street",
      "stop_sequence": 270,
-     "trip_id": "77661817"
+     "trip_id": "77661788"
     },
     {
-     "arrival_ts": "2026-11-26T23:54:16Z",
+     "arrival_ts": "2026-11-27T02:30:18Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:49:00Z",
+     "scheduled_ts": "2026-11-27T02:30:00Z",
      "stop_id": "70216",
      "stop_name": "Kent Street",
      "stop_sequence": 280,
-     "trip_id": "77661817"
+     "trip_id": "77661788"
     },
     {
-     "arrival_ts": "2026-11-26T23:55:39Z",
+     "arrival_ts": "2026-11-27T02:31:32Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:51:00Z",
+     "scheduled_ts": "2026-11-27T02:32:00Z",
      "stop_id": "70214",
      "stop_name": "Hawes Street",
      "stop_sequence": 290,
-     "trip_id": "77661817"
+     "trip_id": "77661788"
     },
     {
-     "arrival_ts": "2026-11-26T23:56:45Z",
+     "arrival_ts": "2026-11-27T02:32:44Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:53:00Z",
+     "scheduled_ts": "2026-11-27T02:34:00Z",
      "stop_id": "70212",
      "stop_name": "Saint Mary's Street",
      "stop_sequence": 300,
-     "trip_id": "77661817"
+     "trip_id": "77661788"
     },
     {
-     "arrival_ts": "2026-11-26T23:45:49Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:44:00Z",
-     "stop_id": "70236",
-     "stop_name": "Englewood Avenue",
-     "stop_sequence": 190,
-     "trip_id": "77661829"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:47:47Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:46:00Z",
-     "stop_id": "70234",
-     "stop_name": "Dean Road",
-     "stop_sequence": 200,
-     "trip_id": "77661829"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:52:42Z",
+     "arrival_ts": "2026-11-27T02:35:27Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:47:00Z",
-     "stop_id": "70232",
-     "stop_name": "Tappan Street",
-     "stop_sequence": 210,
-     "trip_id": "77661829"
+     "scheduled_ts": "2026-11-27T02:38:00Z",
+     "stop_id": "70150",
+     "stop_name": "Kenmore",
+     "stop_sequence": 550,
+     "trip_id": "77661788"
     },
     {
-     "arrival_ts": "2026-11-26T23:54:12Z",
+     "arrival_ts": "2026-11-27T02:38:14Z",
      "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:48:00Z",
-     "stop_id": "70230",
-     "stop_name": "Washington Square",
-     "stop_sequence": 220,
-     "trip_id": "77661829"
+     "scheduled_ts": "2026-11-27T02:41:00Z",
+     "stop_id": "70152",
+     "stop_name": "Hynes Convention Center",
+     "stop_sequence": 560,
+     "trip_id": "77661788"
     },
     {
-     "arrival_ts": "2026-11-26T23:55:43Z",
-     "confidence": "high",
-     "direction_id": 1,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:50:00Z",
-     "stop_id": "70226",
-     "stop_name": "Brandon Hall",
-     "stop_sequence": 240,
-     "trip_id": "77661829"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:57:05Z",
+     "arrival_ts": "2026-11-27T02:39:48Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
-     "scheduled_ts": "2026-11-26T23:52:00Z",
+     "scheduled_ts": "2026-11-27T02:44:00Z",
+     "stop_id": "70154",
+     "stop_name": "Copley",
+     "stop_sequence": 570,
+     "trip_id": "77661788"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:40:52Z",
+     "confidence": "low",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:46:00Z",
+     "stop_id": "70156",
+     "stop_name": "Arlington",
+     "stop_sequence": 580,
+     "trip_id": "77661788"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:44:04Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:49:00Z",
+     "stop_id": "70158",
+     "stop_name": "Boylston",
+     "stop_sequence": 590,
+     "trip_id": "77661788"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:46:20Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:51:00Z",
+     "stop_id": "70200",
+     "stop_name": "Park Street",
+     "stop_sequence": 600,
+     "trip_id": "77661788"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:48:36Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:53:00Z",
+     "stop_id": "70201",
+     "stop_name": "Government Center",
+     "stop_sequence": 610,
+     "trip_id": "77661788"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:27:26Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:27:00Z",
+     "stop_id": "70236",
+     "stop_name": "Englewood Avenue",
+     "stop_sequence": 190,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:28:47Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:29:00Z",
+     "stop_id": "70234",
+     "stop_name": "Dean Road",
+     "stop_sequence": 200,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:30:45Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:30:00Z",
+     "stop_id": "70232",
+     "stop_name": "Tappan Street",
+     "stop_sequence": 210,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:31:47Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:31:00Z",
+     "stop_id": "70230",
+     "stop_name": "Washington Square",
+     "stop_sequence": 220,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:33:13Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:33:00Z",
+     "stop_id": "70226",
+     "stop_name": "Brandon Hall",
+     "stop_sequence": 240,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:34:18Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:34:00Z",
      "stop_id": "70224",
      "stop_name": "Summit Avenue",
      "stop_sequence": 250,
-     "trip_id": "77661829"
+     "trip_id": "77661804"
     },
     {
-     "arrival_ts": "2026-11-26T23:57:53Z",
-     "confidence": "medium",
+     "arrival_ts": "2026-11-27T02:35:29Z",
+     "confidence": "high",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:54:00Z",
+     "scheduled_ts": "2026-11-27T02:35:00Z",
      "stop_id": "70220",
      "stop_name": "Coolidge Corner",
      "stop_sequence": 260,
-     "trip_id": "77661829"
+     "trip_id": "77661804"
     },
     {
-     "arrival_ts": "2026-11-26T23:59:47Z",
+     "arrival_ts": "2026-11-27T02:38:57Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:57:00Z",
+     "scheduled_ts": "2026-11-27T02:38:00Z",
      "stop_id": "70218",
      "stop_name": "Saint Paul Street",
      "stop_sequence": 270,
-     "trip_id": "77661829"
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:40:51Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:39:00Z",
+     "stop_id": "70216",
+     "stop_name": "Kent Street",
+     "stop_sequence": 280,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:42:29Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:41:00Z",
+     "stop_id": "70214",
+     "stop_name": "Hawes Street",
+     "stop_sequence": 290,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:43:46Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:43:00Z",
+     "stop_id": "70212",
+     "stop_name": "Saint Mary's Street",
+     "stop_sequence": 300,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:47:11Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:47:00Z",
+     "stop_id": "70150",
+     "stop_name": "Kenmore",
+     "stop_sequence": 550,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:50:27Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:50:00Z",
+     "stop_id": "70152",
+     "stop_name": "Hynes Convention Center",
+     "stop_sequence": 560,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:52:14Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:53:00Z",
+     "stop_id": "70154",
+     "stop_name": "Copley",
+     "stop_sequence": 570,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:55:10Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:55:00Z",
+     "stop_id": "70156",
+     "stop_name": "Arlington",
+     "stop_sequence": 580,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:57:51Z",
+     "confidence": "low",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:58:00Z",
+     "stop_id": "70158",
+     "stop_name": "Boylston",
+     "stop_sequence": 590,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:58:56Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T03:00:00Z",
+     "stop_id": "70200",
+     "stop_name": "Park Street",
+     "stop_sequence": 600,
+     "trip_id": "77661804"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:36:14Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:36:00Z",
+     "stop_id": "70236",
+     "stop_name": "Englewood Avenue",
+     "stop_sequence": 190,
+     "trip_id": "77661820"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:36:48Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:38:00Z",
+     "stop_id": "70234",
+     "stop_name": "Dean Road",
+     "stop_sequence": 200,
+     "trip_id": "77661820"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:37:44Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:39:00Z",
+     "stop_id": "70232",
+     "stop_name": "Tappan Street",
+     "stop_sequence": 210,
+     "trip_id": "77661820"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:38:48Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:40:00Z",
+     "stop_id": "70230",
+     "stop_name": "Washington Square",
+     "stop_sequence": 220,
+     "trip_id": "77661820"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:40:23Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:42:00Z",
+     "stop_id": "70226",
+     "stop_name": "Brandon Hall",
+     "stop_sequence": 240,
+     "trip_id": "77661820"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:41:34Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:43:00Z",
+     "stop_id": "70224",
+     "stop_name": "Summit Avenue",
+     "stop_sequence": 250,
+     "trip_id": "77661820"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:42:48Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:44:00Z",
+     "stop_id": "70220",
+     "stop_name": "Coolidge Corner",
+     "stop_sequence": 260,
+     "trip_id": "77661820"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:44:42Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:47:00Z",
+     "stop_id": "70218",
+     "stop_name": "Saint Paul Street",
+     "stop_sequence": 270,
+     "trip_id": "77661820"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:45:54Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:48:00Z",
+     "stop_id": "70216",
+     "stop_name": "Kent Street",
+     "stop_sequence": 280,
+     "trip_id": "77661820"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:46:45Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T02:50:00Z",
+     "stop_id": "70214",
+     "stop_name": "Hawes Street",
+     "stop_sequence": 290,
+     "trip_id": "77661820"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:47:44Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:52:00Z",
+     "stop_id": "70212",
+     "stop_name": "Saint Mary's Street",
+     "stop_sequence": 300,
+     "trip_id": "77661820"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:50:16Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:56:00Z",
+     "stop_id": "70150",
+     "stop_name": "Kenmore",
+     "stop_sequence": 550,
+     "trip_id": "77661820"
     }
    ]
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Reconstructed arrivals of the last complete hour: observed or estimated",

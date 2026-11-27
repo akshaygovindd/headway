@@ -1,8 +1,8 @@
 {
  "body": {
   "coverage": {
-   "mean_coverage_pct": 86.8,
-   "min_coverage_pct": 82.6,
+   "mean_coverage_pct": 86.4,
+   "min_coverage_pct": 82.3,
    "rows": 2,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
@@ -13,12 +13,12 @@
     "metrics_md": "7-actual-schedule-deviation-release-2",
     "rows": [
      {
-      "coverage_pct": 82.6,
+      "coverage_pct": 82.3,
       "line": "Green-B",
-      "median_deviation_s": -118.46,
-      "n_observations": 4014,
-      "p90_deviation_s": 471.85,
-      "pct_on_time_window": 26.26,
+      "median_deviation_s": -176.5,
+      "n_observations": 3875,
+      "p90_deviation_s": 376.8,
+      "pct_on_time_window": 22.66,
       "window": "last_24h",
       "withheld_reason": null
      }
@@ -31,12 +31,12 @@
     "metrics_md": "1-predicted-schedule-deviation",
     "rows": [
      {
-      "coverage_pct": 90.9,
+      "coverage_pct": 90.5,
       "line": "Green-B",
-      "median_abs_revision_s": 10.0,
-      "median_predicted_deviation_s": -103.0,
-      "n_observations": 4648,
-      "p90_predicted_deviation_s": 402.6,
+      "median_abs_revision_s": 11.0,
+      "median_predicted_deviation_s": -150.0,
+      "n_observations": 4471,
+      "p90_predicted_deviation_s": 340.0,
       "skipped_share": 0.0,
       "window": "last_24h",
       "withheld_reason": null
@@ -48,8 +48,8 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Predicted schedule deviation and prediction revision (last_24h only)",

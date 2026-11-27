@@ -3,7 +3,7 @@
   "coverage": {
    "mean_coverage_pct": 83.3,
    "min_coverage_pct": 83.3,
-   "rows": 26,
+   "rows": 25,
    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
    "withheld_rows": 0
   },
@@ -24,7 +24,7 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 4774.8,
+     "longest_open_outage_h": 4777.8,
      "n_currently_out": 2,
      "n_elevator_outages": 0,
      "n_escalator_outages": 3,
@@ -44,7 +44,7 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 32290.3,
+     "longest_open_outage_h": 32293.3,
      "n_currently_out": 2,
      "n_elevator_outages": 0,
      "n_escalator_outages": 2,
@@ -64,7 +64,7 @@
       "Mattapan",
       "Red"
      ],
-     "longest_open_outage_h": 755.7,
+     "longest_open_outage_h": 758.7,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -83,7 +83,7 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 1107.0,
+     "longest_open_outage_h": 1110.0,
      "n_currently_out": 1,
      "n_elevator_outages": 3,
      "n_escalator_outages": 0,
@@ -102,7 +102,7 @@
      "lines": [
       "Blue"
      ],
-     "longest_open_outage_h": 41218.4,
+     "longest_open_outage_h": 41221.4,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -121,7 +121,7 @@
      "lines": [
       "Mattapan"
      ],
-     "longest_open_outage_h": 1473.2,
+     "longest_open_outage_h": 1476.2,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 0,
@@ -140,7 +140,7 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 804.9,
+     "longest_open_outage_h": 807.9,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -162,7 +162,7 @@
       "Green-D",
       "Green-E"
      ],
-     "longest_open_outage_h": 28.6,
+     "longest_open_outage_h": 31.6,
      "n_currently_out": 1,
      "n_elevator_outages": 1,
      "n_escalator_outages": 0,
@@ -181,7 +181,7 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 179.7,
+     "longest_open_outage_h": 182.7,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -220,7 +220,7 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 99.0,
+     "longest_open_outage_h": 102.0,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -239,7 +239,7 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 13977.5,
+     "longest_open_outage_h": 13980.5,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -260,7 +260,7 @@
      "lines": [
       "Blue"
      ],
-     "longest_open_outage_h": 917.3,
+     "longest_open_outage_h": 920.3,
      "n_currently_out": 3,
      "n_elevator_outages": 0,
      "n_escalator_outages": 3,
@@ -279,7 +279,7 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 21515.6,
+     "longest_open_outage_h": 21518.6,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -298,7 +298,7 @@
      "lines": [
       "Green-E"
      ],
-     "longest_open_outage_h": 23.6,
+     "longest_open_outage_h": 26.6,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -317,7 +317,7 @@
      "lines": [
       "Orange"
      ],
-     "longest_open_outage_h": 227.7,
+     "longest_open_outage_h": 230.7,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 1,
@@ -336,7 +336,7 @@
      "lines": [
       "Red"
      ],
-     "longest_open_outage_h": 2071.3,
+     "longest_open_outage_h": 2074.3,
      "n_currently_out": 1,
      "n_elevator_outages": 0,
      "n_escalator_outages": 2,
@@ -358,7 +358,7 @@
       "Blue",
       "Orange"
      ],
-     "longest_open_outage_h": 14532.0,
+     "longest_open_outage_h": 14535.0,
      "n_currently_out": 3,
      "n_elevator_outages": 1,
      "n_escalator_outages": 2,
@@ -380,12 +380,12 @@
       "Green-D",
       "Green-E"
      ],
-     "longest_open_outage_h": 0.4,
+     "longest_open_outage_h": 3.4,
      "n_currently_out": 1,
-     "n_elevator_outages": 0,
+     "n_elevator_outages": 1,
      "n_escalator_outages": 0,
-     "n_outages": 0,
-     "outage_hours": 0.0,
+     "n_outages": 1,
+     "outage_hours": 2.8,
      "station_id": "place-armnl",
      "station_name": "Arlington",
      "withheld_reason": null
@@ -495,31 +495,14 @@
      "station_id": "place-haecl",
      "station_name": "Haymarket",
      "withheld_reason": null
-    },
-    {
-     "coverage_pct": 83.3,
-     "current_outage_text": [],
-     "currently_out": false,
-     "lines": [
-      "Orange"
-     ],
-     "longest_open_outage_h": null,
-     "n_currently_out": 0,
-     "n_elevator_outages": 1,
-     "n_escalator_outages": 0,
-     "n_outages": 1,
-     "outage_hours": 0.5,
-     "station_id": "place-astao",
-     "station_name": "Assembly",
-     "withheld_reason": null
     }
    ],
    "window": "last_24h"
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Announced elevator and escalator outages per station",

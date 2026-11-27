@@ -9,1126 +9,1071 @@
   },
   "data": {
    "direction": 0,
-   "hour_start": "2026-11-26T23:00:00Z",
+   "hour_start": "2026-11-27T02:00:00Z",
    "line": "Blue",
    "rows": [
     {
-     "arrival_ts": "2026-11-26T23:00:18Z",
-     "confidence": "medium",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T22:59:00Z",
-     "stop_id": "70045",
-     "stop_name": "Maverick",
-     "stop_sequence": 70,
-     "trip_id": "78878457"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:02:40Z",
-     "confidence": "medium",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:02:00Z",
-     "stop_id": "70043",
-     "stop_name": "Aquarium",
-     "stop_sequence": 80,
-     "trip_id": "78878457"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:04:08Z",
+     "arrival_ts": "2026-11-27T02:01:28Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:03:00Z",
-     "stop_id": "70041",
-     "stop_name": "State",
-     "stop_sequence": 90,
-     "trip_id": "78878457"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:05:18Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:04:00Z",
-     "stop_id": "70039",
-     "stop_name": "Government Center",
-     "stop_sequence": 100,
-     "trip_id": "78878457"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:06:26Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:06:00Z",
-     "stop_id": "70838",
-     "stop_name": "Bowdoin",
-     "stop_sequence": 110,
-     "trip_id": "78878457"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:57:21Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-27T00:00:00Z",
-     "stop_id": "70059",
-     "stop_name": "Wonderland",
-     "stop_sequence": 1,
-     "trip_id": "78878468"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:06:27Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:09:00Z",
-     "stop_id": "70059",
-     "stop_name": "Wonderland",
-     "stop_sequence": 1,
-     "trip_id": "78878469"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:09:47Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:10:00Z",
-     "stop_id": "70057",
-     "stop_name": "Revere Beach",
-     "stop_sequence": 10,
-     "trip_id": "78878469"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:11:38Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:12:00Z",
-     "stop_id": "70055",
-     "stop_name": "Beachmont",
-     "stop_sequence": 20,
-     "trip_id": "78878469"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:13:14Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:13:00Z",
-     "stop_id": "70053",
-     "stop_name": "Suffolk Downs",
-     "stop_sequence": 30,
-     "trip_id": "78878469"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:15:10Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:15:00Z",
-     "stop_id": "70051",
-     "stop_name": "Orient Heights",
-     "stop_sequence": 40,
-     "trip_id": "78878469"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:17:35Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:17:00Z",
-     "stop_id": "70049",
-     "stop_name": "Wood Island",
-     "stop_sequence": 50,
-     "trip_id": "78878469"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:19:10Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:19:00Z",
+     "scheduled_ts": "2026-11-27T02:02:00Z",
      "stop_id": "70047",
      "stop_name": "Airport",
      "stop_sequence": 60,
-     "trip_id": "78878469"
+     "trip_id": "78878444"
     },
     {
-     "arrival_ts": "2026-11-26T23:21:12Z",
+     "arrival_ts": "2026-11-27T02:03:23Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:21:00Z",
+     "scheduled_ts": "2026-11-27T02:04:00Z",
      "stop_id": "70045",
      "stop_name": "Maverick",
      "stop_sequence": 70,
-     "trip_id": "78878469"
+     "trip_id": "78878444"
     },
     {
-     "arrival_ts": "2026-11-26T23:23:54Z",
+     "arrival_ts": "2026-11-27T02:05:53Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:24:00Z",
+     "scheduled_ts": "2026-11-27T02:07:00Z",
      "stop_id": "70043",
      "stop_name": "Aquarium",
      "stop_sequence": 80,
-     "trip_id": "78878469"
+     "trip_id": "78878444"
     },
     {
-     "arrival_ts": "2026-11-26T23:25:30Z",
+     "arrival_ts": "2026-11-27T02:07:19Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:25:00Z",
+     "scheduled_ts": "2026-11-27T02:08:00Z",
      "stop_id": "70041",
      "stop_name": "State",
      "stop_sequence": 90,
-     "trip_id": "78878469"
+     "trip_id": "78878444"
     },
     {
-     "arrival_ts": "2026-11-26T23:26:42Z",
-     "confidence": "medium",
+     "arrival_ts": "2026-11-27T02:08:36Z",
+     "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:26:00Z",
+     "scheduled_ts": "2026-11-27T02:09:00Z",
      "stop_id": "70039",
      "stop_name": "Government Center",
      "stop_sequence": 100,
-     "trip_id": "78878469"
+     "trip_id": "78878444"
     },
     {
-     "arrival_ts": "2026-11-26T23:28:13Z",
+     "arrival_ts": "2026-11-27T02:09:53Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:28:00Z",
+     "scheduled_ts": "2026-11-27T02:11:00Z",
      "stop_id": "70838",
      "stop_name": "Bowdoin",
      "stop_sequence": 110,
-     "trip_id": "78878469"
+     "trip_id": "78878444"
     },
     {
-     "arrival_ts": "2026-11-26T23:13:22Z",
+     "arrival_ts": "2026-11-27T02:10:49Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:17:00Z",
+     "scheduled_ts": "2026-11-27T02:14:00Z",
      "stop_id": "70059",
      "stop_name": "Wonderland",
      "stop_sequence": 1,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:17:43Z",
+     "arrival_ts": "2026-11-27T02:14:43Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:18:00Z",
+     "scheduled_ts": "2026-11-27T02:15:00Z",
      "stop_id": "70057",
      "stop_name": "Revere Beach",
      "stop_sequence": 10,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:19:30Z",
-     "confidence": "high",
+     "arrival_ts": "2026-11-27T02:16:28Z",
+     "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:20:00Z",
+     "scheduled_ts": "2026-11-27T02:17:00Z",
      "stop_id": "70055",
      "stop_name": "Beachmont",
      "stop_sequence": 20,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:20:52Z",
-     "confidence": "medium",
+     "arrival_ts": "2026-11-27T02:17:53Z",
+     "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:21:00Z",
+     "scheduled_ts": "2026-11-27T02:18:00Z",
      "stop_id": "70053",
      "stop_name": "Suffolk Downs",
      "stop_sequence": 30,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:22:43Z",
+     "arrival_ts": "2026-11-27T02:19:43Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:23:00Z",
+     "scheduled_ts": "2026-11-27T02:20:00Z",
      "stop_id": "70051",
      "stop_name": "Orient Heights",
      "stop_sequence": 40,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:24:56Z",
+     "arrival_ts": "2026-11-27T02:22:13Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:25:00Z",
+     "scheduled_ts": "2026-11-27T02:22:00Z",
      "stop_id": "70049",
      "stop_name": "Wood Island",
      "stop_sequence": 50,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:26:35Z",
+     "arrival_ts": "2026-11-27T02:23:39Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:27:00Z",
+     "scheduled_ts": "2026-11-27T02:24:00Z",
      "stop_id": "70047",
      "stop_name": "Airport",
      "stop_sequence": 60,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:28:47Z",
+     "arrival_ts": "2026-11-27T02:25:37Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:29:00Z",
+     "scheduled_ts": "2026-11-27T02:26:00Z",
      "stop_id": "70045",
      "stop_name": "Maverick",
      "stop_sequence": 70,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:31:15Z",
+     "arrival_ts": "2026-11-27T02:28:07Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:32:00Z",
+     "scheduled_ts": "2026-11-27T02:29:00Z",
      "stop_id": "70043",
      "stop_name": "Aquarium",
      "stop_sequence": 80,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:32:46Z",
+     "arrival_ts": "2026-11-27T02:29:31Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:33:00Z",
+     "scheduled_ts": "2026-11-27T02:30:00Z",
      "stop_id": "70041",
      "stop_name": "State",
      "stop_sequence": 90,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:34:07Z",
+     "arrival_ts": "2026-11-27T02:30:45Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:34:00Z",
+     "scheduled_ts": "2026-11-27T02:31:00Z",
      "stop_id": "70039",
      "stop_name": "Government Center",
      "stop_sequence": 100,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:35:27Z",
+     "arrival_ts": "2026-11-27T02:32:02Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:36:00Z",
+     "scheduled_ts": "2026-11-27T02:33:00Z",
      "stop_id": "70838",
      "stop_name": "Bowdoin",
      "stop_sequence": 110,
-     "trip_id": "78878476"
+     "trip_id": "78878452"
     },
     {
-     "arrival_ts": "2026-11-26T23:35:49Z",
-     "confidence": "high",
+     "arrival_ts": "2026-11-27T02:40:47Z",
+     "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:39:00Z",
+     "scheduled_ts": "2026-11-27T02:44:00Z",
      "stop_id": "70059",
      "stop_name": "Wonderland",
      "stop_sequence": 1,
-     "trip_id": "78878485"
+     "trip_id": "78878454"
     },
     {
-     "arrival_ts": "2026-11-26T23:39:45Z",
+     "arrival_ts": "2026-11-27T02:44:45Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:40:00Z",
+     "scheduled_ts": "2026-11-27T02:45:00Z",
      "stop_id": "70057",
      "stop_name": "Revere Beach",
      "stop_sequence": 10,
-     "trip_id": "78878485"
+     "trip_id": "78878454"
     },
     {
-     "arrival_ts": "2026-11-26T23:41:37Z",
-     "confidence": "medium",
+     "arrival_ts": "2026-11-27T02:46:29Z",
+     "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:42:00Z",
+     "scheduled_ts": "2026-11-27T02:47:00Z",
      "stop_id": "70055",
      "stop_name": "Beachmont",
      "stop_sequence": 20,
-     "trip_id": "78878485"
+     "trip_id": "78878454"
     },
     {
-     "arrival_ts": "2026-11-26T23:43:08Z",
+     "arrival_ts": "2026-11-27T02:47:48Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:43:00Z",
+     "scheduled_ts": "2026-11-27T02:48:00Z",
      "stop_id": "70053",
      "stop_name": "Suffolk Downs",
      "stop_sequence": 30,
-     "trip_id": "78878485"
+     "trip_id": "78878454"
     },
     {
-     "arrival_ts": "2026-11-26T23:45:10Z",
+     "arrival_ts": "2026-11-27T02:49:40Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:45:00Z",
+     "scheduled_ts": "2026-11-27T02:50:00Z",
      "stop_id": "70051",
      "stop_name": "Orient Heights",
      "stop_sequence": 40,
-     "trip_id": "78878485"
+     "trip_id": "78878454"
     },
     {
-     "arrival_ts": "2026-11-26T23:47:34Z",
+     "arrival_ts": "2026-11-27T02:52:31Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:47:00Z",
+     "scheduled_ts": "2026-11-27T02:52:00Z",
      "stop_id": "70049",
      "stop_name": "Wood Island",
      "stop_sequence": 50,
-     "trip_id": "78878485"
+     "trip_id": "78878454"
     },
     {
-     "arrival_ts": "2026-11-26T23:49:10Z",
+     "arrival_ts": "2026-11-27T02:54:07Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:49:00Z",
+     "scheduled_ts": "2026-11-27T02:54:00Z",
      "stop_id": "70047",
      "stop_name": "Airport",
      "stop_sequence": 60,
-     "trip_id": "78878485"
+     "trip_id": "78878454"
     },
     {
-     "arrival_ts": "2026-11-26T23:50:59Z",
+     "arrival_ts": "2026-11-27T02:55:59Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:51:00Z",
+     "scheduled_ts": "2026-11-27T02:56:00Z",
      "stop_id": "70045",
      "stop_name": "Maverick",
      "stop_sequence": 70,
-     "trip_id": "78878485"
+     "trip_id": "78878454"
     },
     {
-     "arrival_ts": "2026-11-26T23:53:26Z",
+     "arrival_ts": "2026-11-27T02:58:39Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:54:00Z",
+     "scheduled_ts": "2026-11-27T02:59:00Z",
      "stop_id": "70043",
      "stop_name": "Aquarium",
      "stop_sequence": 80,
-     "trip_id": "78878485"
+     "trip_id": "78878454"
     },
     {
-     "arrival_ts": "2026-11-26T23:54:47Z",
-     "confidence": "high",
+     "arrival_ts": "2026-11-27T02:59:37Z",
+     "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:55:00Z",
+     "scheduled_ts": "2026-11-27T03:00:00Z",
      "stop_id": "70041",
      "stop_name": "State",
      "stop_sequence": 90,
-     "trip_id": "78878485"
+     "trip_id": "78878454"
     },
     {
-     "arrival_ts": "2026-11-26T23:55:37Z",
-     "confidence": "medium",
+     "arrival_ts": "2026-11-27T02:00:26Z",
+     "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:56:00Z",
+     "scheduled_ts": "2026-11-27T02:01:00Z",
      "stop_id": "70039",
      "stop_name": "Government Center",
      "stop_sequence": 100,
-     "trip_id": "78878485"
+     "trip_id": "78878477"
     },
     {
-     "arrival_ts": "2026-11-26T23:57:19Z",
+     "arrival_ts": "2026-11-27T02:01:45Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:58:00Z",
+     "scheduled_ts": "2026-11-27T02:03:00Z",
      "stop_id": "70838",
      "stop_name": "Bowdoin",
      "stop_sequence": 110,
-     "trip_id": "78878485"
+     "trip_id": "78878477"
     },
     {
-     "arrival_ts": "2026-11-26T23:02:45Z",
+     "arrival_ts": "2026-11-27T02:31:54Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:03:00Z",
-     "stop_id": "70057",
-     "stop_name": "Revere Beach",
-     "stop_sequence": 10,
-     "trip_id": "78878509"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:04:32Z",
-     "confidence": "medium",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:05:00Z",
-     "stop_id": "70055",
-     "stop_name": "Beachmont",
-     "stop_sequence": 20,
-     "trip_id": "78878509"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:06:00Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:06:00Z",
-     "stop_id": "70053",
-     "stop_name": "Suffolk Downs",
-     "stop_sequence": 30,
-     "trip_id": "78878509"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:07:49Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:08:00Z",
-     "stop_id": "70051",
-     "stop_name": "Orient Heights",
-     "stop_sequence": 40,
-     "trip_id": "78878509"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:10:16Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:10:00Z",
-     "stop_id": "70049",
-     "stop_name": "Wood Island",
-     "stop_sequence": 50,
-     "trip_id": "78878509"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:11:42Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:12:00Z",
-     "stop_id": "70047",
-     "stop_name": "Airport",
-     "stop_sequence": 60,
-     "trip_id": "78878509"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:13:51Z",
-     "confidence": "medium",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:14:00Z",
-     "stop_id": "70045",
-     "stop_name": "Maverick",
-     "stop_sequence": 70,
-     "trip_id": "78878509"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:16:30Z",
-     "confidence": "medium",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:17:00Z",
-     "stop_id": "70043",
-     "stop_name": "Aquarium",
-     "stop_sequence": 80,
-     "trip_id": "78878509"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:18:06Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:18:00Z",
-     "stop_id": "70041",
-     "stop_name": "State",
-     "stop_sequence": 90,
-     "trip_id": "78878509"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:19:28Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:19:00Z",
-     "stop_id": "70039",
-     "stop_name": "Government Center",
-     "stop_sequence": 100,
-     "trip_id": "78878509"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:20:42Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:21:00Z",
-     "stop_id": "70838",
-     "stop_name": "Bowdoin",
-     "stop_sequence": 110,
-     "trip_id": "78878509"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:52:36Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:53:00Z",
+     "scheduled_ts": "2026-11-27T02:36:00Z",
      "stop_id": "70059",
      "stop_name": "Wonderland",
      "stop_sequence": 1,
-     "trip_id": "78878512"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:53:51Z",
-     "confidence": "medium",
+     "arrival_ts": "2026-11-27T02:36:44Z",
+     "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:54:00Z",
+     "scheduled_ts": "2026-11-27T02:37:00Z",
      "stop_id": "70057",
      "stop_name": "Revere Beach",
      "stop_sequence": 10,
-     "trip_id": "78878512"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:55:43Z",
+     "arrival_ts": "2026-11-27T02:38:25Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:56:00Z",
+     "scheduled_ts": "2026-11-27T02:39:00Z",
      "stop_id": "70055",
      "stop_name": "Beachmont",
      "stop_sequence": 20,
-     "trip_id": "78878512"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:57:08Z",
+     "arrival_ts": "2026-11-27T02:39:47Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:57:00Z",
+     "scheduled_ts": "2026-11-27T02:40:00Z",
      "stop_id": "70053",
      "stop_name": "Suffolk Downs",
      "stop_sequence": 30,
-     "trip_id": "78878512"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:58:36Z",
-     "confidence": "medium",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:59:00Z",
-     "stop_id": "70051",
-     "stop_name": "Orient Heights",
-     "stop_sequence": 40,
-     "trip_id": "78878512"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:00:41Z",
+     "arrival_ts": "2026-11-27T02:41:38Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:00:00Z",
+     "scheduled_ts": "2026-11-27T02:42:00Z",
      "stop_id": "70051",
      "stop_name": "Orient Heights",
      "stop_sequence": 40,
-     "trip_id": "78878561"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:03:09Z",
+     "arrival_ts": "2026-11-27T02:43:45Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:02:00Z",
+     "scheduled_ts": "2026-11-27T02:44:00Z",
      "stop_id": "70049",
      "stop_name": "Wood Island",
      "stop_sequence": 50,
-     "trip_id": "78878561"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:04:43Z",
+     "arrival_ts": "2026-11-27T02:45:16Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:04:00Z",
+     "scheduled_ts": "2026-11-27T02:46:00Z",
      "stop_id": "70047",
      "stop_name": "Airport",
      "stop_sequence": 60,
-     "trip_id": "78878561"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:06:38Z",
+     "arrival_ts": "2026-11-27T02:47:03Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:06:00Z",
+     "scheduled_ts": "2026-11-27T02:48:00Z",
      "stop_id": "70045",
      "stop_name": "Maverick",
      "stop_sequence": 70,
-     "trip_id": "78878561"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:09:09Z",
+     "arrival_ts": "2026-11-27T02:49:33Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:09:00Z",
+     "scheduled_ts": "2026-11-27T02:51:00Z",
      "stop_id": "70043",
      "stop_name": "Aquarium",
      "stop_sequence": 80,
-     "trip_id": "78878561"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:10:39Z",
-     "confidence": "high",
+     "arrival_ts": "2026-11-27T02:50:54Z",
+     "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:10:00Z",
+     "scheduled_ts": "2026-11-27T02:52:00Z",
      "stop_id": "70041",
      "stop_name": "State",
      "stop_sequence": 90,
-     "trip_id": "78878561"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:11:45Z",
+     "arrival_ts": "2026-11-27T02:52:14Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:11:00Z",
+     "scheduled_ts": "2026-11-27T02:53:00Z",
      "stop_id": "70039",
      "stop_name": "Government Center",
      "stop_sequence": 100,
-     "trip_id": "78878561"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:13:10Z",
+     "arrival_ts": "2026-11-27T02:53:32Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:13:00Z",
+     "scheduled_ts": "2026-11-27T02:55:00Z",
      "stop_id": "70838",
      "stop_name": "Bowdoin",
      "stop_sequence": 110,
-     "trip_id": "78878561"
+     "trip_id": "78878482"
     },
     {
-     "arrival_ts": "2026-11-26T23:44:29Z",
+     "arrival_ts": "2026-11-27T02:24:44Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:46:00Z",
+     "scheduled_ts": "2026-11-27T02:29:00Z",
      "stop_id": "70059",
      "stop_name": "Wonderland",
      "stop_sequence": 1,
-     "trip_id": "78878565"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:46:44Z",
+     "arrival_ts": "2026-11-27T02:29:42Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:47:00Z",
+     "scheduled_ts": "2026-11-27T02:30:00Z",
      "stop_id": "70057",
      "stop_name": "Revere Beach",
      "stop_sequence": 10,
-     "trip_id": "78878565"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:48:30Z",
+     "arrival_ts": "2026-11-27T02:31:23Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:49:00Z",
+     "scheduled_ts": "2026-11-27T02:32:00Z",
      "stop_id": "70055",
      "stop_name": "Beachmont",
      "stop_sequence": 20,
-     "trip_id": "78878565"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:49:50Z",
-     "confidence": "medium",
+     "arrival_ts": "2026-11-27T02:32:48Z",
+     "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:50:00Z",
+     "scheduled_ts": "2026-11-27T02:33:00Z",
      "stop_id": "70053",
      "stop_name": "Suffolk Downs",
      "stop_sequence": 30,
-     "trip_id": "78878565"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:51:39Z",
+     "arrival_ts": "2026-11-27T02:34:39Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:52:00Z",
+     "scheduled_ts": "2026-11-27T02:35:00Z",
      "stop_id": "70051",
      "stop_name": "Orient Heights",
      "stop_sequence": 40,
-     "trip_id": "78878565"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:53:56Z",
-     "confidence": "medium",
+     "arrival_ts": "2026-11-27T02:36:50Z",
+     "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:54:00Z",
+     "scheduled_ts": "2026-11-27T02:37:00Z",
      "stop_id": "70049",
      "stop_name": "Wood Island",
      "stop_sequence": 50,
-     "trip_id": "78878565"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:55:37Z",
+     "arrival_ts": "2026-11-27T02:38:22Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:56:00Z",
+     "scheduled_ts": "2026-11-27T02:39:00Z",
      "stop_id": "70047",
      "stop_name": "Airport",
      "stop_sequence": 60,
-     "trip_id": "78878565"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:57:32Z",
+     "arrival_ts": "2026-11-27T02:40:13Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:58:00Z",
+     "scheduled_ts": "2026-11-27T02:41:00Z",
      "stop_id": "70045",
      "stop_name": "Maverick",
      "stop_sequence": 70,
-     "trip_id": "78878565"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:59:57Z",
+     "arrival_ts": "2026-11-27T02:42:38Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-27T00:01:00Z",
+     "scheduled_ts": "2026-11-27T02:44:00Z",
      "stop_id": "70043",
      "stop_name": "Aquarium",
      "stop_sequence": 80,
-     "trip_id": "78878565"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:00:09Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T22:56:00Z",
-     "stop_id": "70039",
-     "stop_name": "Government Center",
-     "stop_sequence": 100,
-     "trip_id": "78878615"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:01:29Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T22:58:00Z",
-     "stop_id": "70838",
-     "stop_name": "Bowdoin",
-     "stop_sequence": 110,
-     "trip_id": "78878615"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:30:29Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:31:00Z",
-     "stop_id": "70059",
-     "stop_name": "Wonderland",
-     "stop_sequence": 1,
-     "trip_id": "78878641"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:31:50Z",
+     "arrival_ts": "2026-11-27T02:43:38Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:32:00Z",
-     "stop_id": "70057",
-     "stop_name": "Revere Beach",
-     "stop_sequence": 10,
-     "trip_id": "78878641"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:33:55Z",
-     "confidence": "medium",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:34:00Z",
-     "stop_id": "70055",
-     "stop_name": "Beachmont",
-     "stop_sequence": 20,
-     "trip_id": "78878641"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:35:29Z",
-     "confidence": "medium",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:35:00Z",
-     "stop_id": "70053",
-     "stop_name": "Suffolk Downs",
-     "stop_sequence": 30,
-     "trip_id": "78878641"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:37:26Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:37:00Z",
-     "stop_id": "70051",
-     "stop_name": "Orient Heights",
-     "stop_sequence": 40,
-     "trip_id": "78878641"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:39:45Z",
-     "confidence": "medium",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:39:00Z",
-     "stop_id": "70049",
-     "stop_name": "Wood Island",
-     "stop_sequence": 50,
-     "trip_id": "78878641"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:41:30Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:41:00Z",
-     "stop_id": "70047",
-     "stop_name": "Airport",
-     "stop_sequence": 60,
-     "trip_id": "78878641"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:43:26Z",
-     "confidence": "medium",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:43:00Z",
-     "stop_id": "70045",
-     "stop_name": "Maverick",
-     "stop_sequence": 70,
-     "trip_id": "78878641"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:46:17Z",
-     "confidence": "medium",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:46:00Z",
-     "stop_id": "70043",
-     "stop_name": "Aquarium",
-     "stop_sequence": 80,
-     "trip_id": "78878641"
-    },
-    {
-     "arrival_ts": "2026-11-26T23:47:42Z",
-     "confidence": "high",
-     "direction_id": 0,
-     "method": "observed",
-     "scheduled_ts": "2026-11-26T23:47:00Z",
+     "scheduled_ts": "2026-11-27T02:45:00Z",
      "stop_id": "70041",
      "stop_name": "State",
      "stop_sequence": 90,
-     "trip_id": "78878641"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:48:53Z",
-     "confidence": "medium",
+     "arrival_ts": "2026-11-27T02:45:20Z",
+     "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:48:00Z",
+     "scheduled_ts": "2026-11-27T02:46:00Z",
      "stop_id": "70039",
      "stop_name": "Government Center",
      "stop_sequence": 100,
-     "trip_id": "78878641"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:50:18Z",
+     "arrival_ts": "2026-11-27T02:46:37Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:50:00Z",
+     "scheduled_ts": "2026-11-27T02:48:00Z",
      "stop_id": "70838",
      "stop_name": "Bowdoin",
      "stop_sequence": 110,
-     "trip_id": "78878641"
+     "trip_id": "78878523"
     },
     {
-     "arrival_ts": "2026-11-26T23:23:23Z",
+     "arrival_ts": "2026-11-27T02:19:10Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:24:00Z",
+     "scheduled_ts": "2026-11-27T02:22:00Z",
      "stop_id": "70059",
      "stop_name": "Wonderland",
      "stop_sequence": 1,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
     },
     {
-     "arrival_ts": "2026-11-26T23:24:51Z",
-     "confidence": "medium",
+     "arrival_ts": "2026-11-27T02:22:45Z",
+     "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:25:00Z",
+     "scheduled_ts": "2026-11-27T02:23:00Z",
      "stop_id": "70057",
      "stop_name": "Revere Beach",
      "stop_sequence": 10,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
     },
     {
-     "arrival_ts": "2026-11-26T23:26:49Z",
+     "arrival_ts": "2026-11-27T02:24:26Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:27:00Z",
+     "scheduled_ts": "2026-11-27T02:25:00Z",
      "stop_id": "70055",
      "stop_name": "Beachmont",
      "stop_sequence": 20,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
     },
     {
-     "arrival_ts": "2026-11-26T23:28:23Z",
+     "arrival_ts": "2026-11-27T02:25:51Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:28:00Z",
+     "scheduled_ts": "2026-11-27T02:26:00Z",
      "stop_id": "70053",
      "stop_name": "Suffolk Downs",
      "stop_sequence": 30,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
     },
     {
-     "arrival_ts": "2026-11-26T23:30:15Z",
+     "arrival_ts": "2026-11-27T02:27:41Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:30:00Z",
+     "scheduled_ts": "2026-11-27T02:28:00Z",
      "stop_id": "70051",
      "stop_name": "Orient Heights",
      "stop_sequence": 40,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
     },
     {
-     "arrival_ts": "2026-11-26T23:32:32Z",
+     "arrival_ts": "2026-11-27T02:29:52Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:32:00Z",
+     "scheduled_ts": "2026-11-27T02:30:00Z",
      "stop_id": "70049",
      "stop_name": "Wood Island",
      "stop_sequence": 50,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
     },
     {
-     "arrival_ts": "2026-11-26T23:33:49Z",
-     "confidence": "medium",
+     "arrival_ts": "2026-11-27T02:31:26Z",
+     "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:34:00Z",
+     "scheduled_ts": "2026-11-27T02:32:00Z",
      "stop_id": "70047",
      "stop_name": "Airport",
      "stop_sequence": 60,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
     },
     {
-     "arrival_ts": "2026-11-26T23:35:49Z",
+     "arrival_ts": "2026-11-27T02:33:19Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:36:00Z",
+     "scheduled_ts": "2026-11-27T02:34:00Z",
      "stop_id": "70045",
      "stop_name": "Maverick",
      "stop_sequence": 70,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
     },
     {
-     "arrival_ts": "2026-11-26T23:38:15Z",
+     "arrival_ts": "2026-11-27T02:35:46Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:39:00Z",
+     "scheduled_ts": "2026-11-27T02:37:00Z",
      "stop_id": "70043",
      "stop_name": "Aquarium",
      "stop_sequence": 80,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
     },
     {
-     "arrival_ts": "2026-11-26T23:39:42Z",
+     "arrival_ts": "2026-11-27T02:37:30Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:40:00Z",
+     "scheduled_ts": "2026-11-27T02:38:00Z",
      "stop_id": "70041",
      "stop_name": "State",
      "stop_sequence": 90,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
     },
     {
-     "arrival_ts": "2026-11-26T23:40:47Z",
-     "confidence": "high",
+     "arrival_ts": "2026-11-27T02:38:40Z",
+     "confidence": "medium",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:41:00Z",
+     "scheduled_ts": "2026-11-27T02:39:00Z",
      "stop_id": "70039",
      "stop_name": "Government Center",
      "stop_sequence": 100,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
     },
     {
-     "arrival_ts": "2026-11-26T23:42:10Z",
+     "arrival_ts": "2026-11-27T02:40:10Z",
      "confidence": "high",
      "direction_id": 0,
      "method": "observed",
-     "scheduled_ts": "2026-11-26T23:43:00Z",
+     "scheduled_ts": "2026-11-27T02:41:00Z",
      "stop_id": "70838",
      "stop_name": "Bowdoin",
      "stop_sequence": 110,
-     "trip_id": "78878718"
+     "trip_id": "78878584"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:03:54Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:07:00Z",
+     "stop_id": "70059",
+     "stop_name": "Wonderland",
+     "stop_sequence": 1,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:07:36Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:08:00Z",
+     "stop_id": "70057",
+     "stop_name": "Revere Beach",
+     "stop_sequence": 10,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:09:26Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:10:00Z",
+     "stop_id": "70055",
+     "stop_name": "Beachmont",
+     "stop_sequence": 20,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:10:52Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:11:00Z",
+     "stop_id": "70053",
+     "stop_name": "Suffolk Downs",
+     "stop_sequence": 30,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:12:46Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:13:00Z",
+     "stop_id": "70051",
+     "stop_name": "Orient Heights",
+     "stop_sequence": 40,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:15:45Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:15:00Z",
+     "stop_id": "70049",
+     "stop_name": "Wood Island",
+     "stop_sequence": 50,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:17:27Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:17:00Z",
+     "stop_id": "70047",
+     "stop_name": "Airport",
+     "stop_sequence": 60,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:19:17Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:19:00Z",
+     "stop_id": "70045",
+     "stop_name": "Maverick",
+     "stop_sequence": 70,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:21:46Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:22:00Z",
+     "stop_id": "70043",
+     "stop_name": "Aquarium",
+     "stop_sequence": 80,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:23:19Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:23:00Z",
+     "stop_id": "70041",
+     "stop_name": "State",
+     "stop_sequence": 90,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:24:42Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:24:00Z",
+     "stop_id": "70039",
+     "stop_name": "Government Center",
+     "stop_sequence": 100,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:25:52Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:26:00Z",
+     "stop_id": "70838",
+     "stop_name": "Bowdoin",
+     "stop_sequence": 110,
+     "trip_id": "78878638"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:56:45Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:58:00Z",
+     "stop_id": "70059",
+     "stop_name": "Wonderland",
+     "stop_sequence": 1,
+     "trip_id": "78878643"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:58:46Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:59:00Z",
+     "stop_id": "70057",
+     "stop_name": "Revere Beach",
+     "stop_sequence": 10,
+     "trip_id": "78878643"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:49:53Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:51:00Z",
+     "stop_id": "70059",
+     "stop_name": "Wonderland",
+     "stop_sequence": 1,
+     "trip_id": "78878717"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:51:51Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:52:00Z",
+     "stop_id": "70057",
+     "stop_name": "Revere Beach",
+     "stop_sequence": 10,
+     "trip_id": "78878717"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:53:36Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:54:00Z",
+     "stop_id": "70055",
+     "stop_name": "Beachmont",
+     "stop_sequence": 20,
+     "trip_id": "78878717"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:54:59Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:55:00Z",
+     "stop_id": "70053",
+     "stop_name": "Suffolk Downs",
+     "stop_sequence": 30,
+     "trip_id": "78878717"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:56:46Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:57:00Z",
+     "stop_id": "70051",
+     "stop_name": "Orient Heights",
+     "stop_sequence": 40,
+     "trip_id": "78878717"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:59:16Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:59:00Z",
+     "stop_id": "70049",
+     "stop_name": "Wood Island",
+     "stop_sequence": 50,
+     "trip_id": "78878717"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:01:28Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:02:00Z",
+     "stop_id": "70055",
+     "stop_name": "Beachmont",
+     "stop_sequence": 20,
+     "trip_id": "78878720"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:02:53Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:03:00Z",
+     "stop_id": "70053",
+     "stop_name": "Suffolk Downs",
+     "stop_sequence": 30,
+     "trip_id": "78878720"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:04:42Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:05:00Z",
+     "stop_id": "70051",
+     "stop_name": "Orient Heights",
+     "stop_sequence": 40,
+     "trip_id": "78878720"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:06:54Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:07:00Z",
+     "stop_id": "70049",
+     "stop_name": "Wood Island",
+     "stop_sequence": 50,
+     "trip_id": "78878720"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:08:38Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:09:00Z",
+     "stop_id": "70047",
+     "stop_name": "Airport",
+     "stop_sequence": 60,
+     "trip_id": "78878720"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:10:44Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:11:00Z",
+     "stop_id": "70045",
+     "stop_name": "Maverick",
+     "stop_sequence": 70,
+     "trip_id": "78878720"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:13:27Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:14:00Z",
+     "stop_id": "70043",
+     "stop_name": "Aquarium",
+     "stop_sequence": 80,
+     "trip_id": "78878720"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:14:53Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:15:00Z",
+     "stop_id": "70041",
+     "stop_name": "State",
+     "stop_sequence": 90,
+     "trip_id": "78878720"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:16:21Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:16:00Z",
+     "stop_id": "70039",
+     "stop_name": "Government Center",
+     "stop_sequence": 100,
+     "trip_id": "78878720"
+    },
+    {
+     "arrival_ts": "2026-11-27T02:17:46Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T02:18:00Z",
+     "stop_id": "70838",
+     "stop_name": "Bowdoin",
+     "stop_sequence": 110,
+     "trip_id": "78878720"
     }
    ]
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T00:52:44Z",
-   "metrics_as_of": "2026-11-27T00:00:00Z"
+   "exported_at": "2026-11-27T03:47:47Z",
+   "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
    "definition": "Reconstructed arrivals of the last complete hour: observed or estimated",
