@@ -74,12 +74,13 @@ export function orderHours(hours: SpacingHour[]): SpacingHour[] {
 }
 
 /**
- * Countdown rows that belong to this line: the station must be one of the line's own stops (from
- * /segments) and the row must name this line. A guard: the API already filters by line, but a
- * station of another line must never be shown under this one.
+ * Countdown rows that belong to this line: the row must name this line. The API already filters by
+ * line; this is a guard so a station of another line is never shown under this one. A row with no
+ * line falls back to the line's own stops (from /segments). Rows are keyed by station and segments
+ * by platform stop, so stop ids cannot be compared with `station_id` for a row that has a line.
  */
 export function countdownRowsFor<R extends { station_id: string; line?: string }>(rows: R[], line: string, stopIds: Set<string>): R[] {
-  return rows.filter((r) => (r.line == null || r.line === line) && (stopIds.size === 0 || stopIds.has(r.station_id)));
+  return rows.filter((r) => (r.line != null ? r.line === line : stopIds.size === 0 || stopIds.has(r.station_id)));
 }
 
 /** Horizon buckets ("0-5", "5-10", "10-20", "20-30") in numeric order, whatever order they arrived in. */

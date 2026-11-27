@@ -64,14 +64,21 @@ describe("disruption text", () => {
 });
 
 describe("countdownRowsFor", () => {
-  it("drops stations that are not stops of the line and rows naming another line", async () => {
+  it("drops rows naming another line, whatever kind of stop ids the segments carry", async () => {
     const { countdownRowsFor } = await import("@/lib/linedata");
     const rows = [
       { station_id: "place-mlmnl", line: "Orange" },
       { station_id: "place-davis", line: "Orange" },
       { station_id: "place-asmnl", line: "Red" },
     ];
-    expect(countdownRowsFor(rows, "Orange", new Set(["place-mlmnl", "place-asmnl"]))).toEqual([rows[0]]);
-    expect(countdownRowsFor(rows, "Orange", new Set())).toHaveLength(2); // no stop list: only the line check
+    // /segments carries platform stop ids ("70036"), countdown rows station ids: no match is needed
+    expect(countdownRowsFor(rows, "Orange", new Set(["70036", "70034"]))).toEqual([rows[0], rows[1]]);
+    expect(countdownRowsFor(rows, "Orange", new Set())).toEqual([rows[0], rows[1]]);
+  });
+
+  it("uses the line's stops only for a row that names no line", async () => {
+    const { countdownRowsFor } = await import("@/lib/linedata");
+    const rows = [{ station_id: "place-mlmnl" }, { station_id: "place-davis" }];
+    expect(countdownRowsFor(rows, "Orange", new Set(["place-mlmnl"]))).toEqual([rows[0]]);
   });
 });
