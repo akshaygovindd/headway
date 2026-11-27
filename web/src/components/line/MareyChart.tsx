@@ -130,11 +130,11 @@ export function MareyChart({ rows, hourStart, toward, path, covered, scored = tr
   const label = `Marey chart, trains toward ${toward}, ${hhmmET(hourStart)} to ${hhmmET(new Date(t0 + 3600000).toISOString())} ET. ${new Set(rows.map((r) => r.trip_id)).size} trains.`;
   return (
     <figure data-testid="marey">
-      <div id={`marey-full-${uid}`} className="marey-desktop overflow-x-auto" data-testid="marey-desktop">
+      <div id={`marey-full-${uid}`} className="marey-desktop overflow-x-auto" tabIndex={0} role="region" aria-label={`Marey chart toward ${toward}, last hour, scrollable`} data-testid="marey-desktop">
         <Svg uid={uid} rows={rows} hourStart={t0} orientation="across" minutes={60} label={label} annotations={annotations} path={path} covered={covered} />
         <p className="mt-1 text-xs sm:hidden"><a href={`#marey-${uid}`}>Back to the last 30 minutes</a></p>
       </div>
-      <div className="marey-phone overflow-x-auto" id={`marey-${uid}`} data-testid="marey-phone">
+      <div className="marey-phone overflow-x-auto" tabIndex={0} role="region" aria-label={`Marey chart toward ${toward}, last 30 minutes, scrollable`} id={`marey-${uid}`} data-testid="marey-phone">
         <Svg uid={uid} rows={rows} hourStart={t0} orientation="down" minutes={30} label={`${label} Last 30 minutes.`} annotations={annotations} path={path} covered={covered} />
         <p className="mt-2 text-sm"><a href={`#marey-full-${uid}`} className="inline-block py-2">Open full chart (last hour)</a></p>
       </div>

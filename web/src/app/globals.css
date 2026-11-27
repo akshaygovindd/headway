@@ -55,6 +55,11 @@ a {
   text-underline-offset: 2px;
 }
 
+/* Links inside running text are told apart by more than colour (WCAG 1.4.1). */
+p a {
+  text-decoration: underline;
+}
+
 /* Nothing may widen the page: grid items shrink, long words wrap. Wide charts scroll in their own box. */
 .grid > * {
   min-width: 0;

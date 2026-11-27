@@ -69,7 +69,7 @@ export function NetworkDiagram({ rows }: { rows: { line: string; segs: Seg[]; he
               <LineBadge line={line} size={26} />
               {lineName(line)}
             </Link>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={`${lineName(line)} stations, scrollable`}>
               {segs.length ? (
                 <div className="flex min-w-[28rem] gap-0.5 py-0.5" data-testid="network-row">{items}</div>
               ) : (

@@ -16,7 +16,7 @@ export function StationStrip({ segs, label }: { segs: Seg[]; label: string }) {
   const flat = plan.mode === "flat";
   return (
     <>
-      <div className="strip-desktop overflow-x-auto">
+      <div className="strip-desktop overflow-x-auto" tabIndex={0} role="region" aria-label={`${label}, scrollable`}>
         <div className="relative min-w-[40rem] px-1" style={{ paddingBottom: flat ? "3.25rem" : "8.5rem" }} data-testid="strip-box" data-mode={plan.mode}>
           <ol className="strip flex gap-0.5" aria-label={label} data-testid="station-strip">
             {segs.map((s) => (

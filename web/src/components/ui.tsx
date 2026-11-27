@@ -74,7 +74,7 @@ export function Table({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={`${caption}, scrollable`}>
       <table className="w-full text-left text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead>

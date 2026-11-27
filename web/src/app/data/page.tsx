@@ -60,7 +60,7 @@ export default function DataPage() {
               <dd>{t.coverage}</dd>
             </dl>
             <h3 className="mb-2 mt-4 font-semibold">Columns</h3>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={`Columns of ${t.name}, scrollable`}>
               <table className="w-full text-left text-sm">
                 <caption className="sr-only">Columns of {t.name}</caption>
                 <thead>
