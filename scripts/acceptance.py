@@ -81,6 +81,18 @@ def pytest_result(*args: str, group: str | None = None) -> Result:
 # --- A1 ---------------------------------------------------------------------------------------
 
 
+def last_completed_minute_key(objects: list[tuple[datetime, str]], now: datetime) -> str | None:
+    """The newest manifest written before the current minute began.
+
+    A run writes its manifest while its minute is still going (feeds are fetched over the first
+    half minute), so the newest object can be a run that has not finished: take the last minute
+    that is over.
+    """
+    minute_start = now.replace(second=0, microsecond=0)
+    done = [(modified, key) for modified, key in objects if modified < minute_start]
+    return max(done)[1] if done else None
+
+
 def newest_manifest_from_aws() -> tuple[dict[str, Any], str] | None:
     try:
         import boto3
@@ -95,8 +107,8 @@ def newest_manifest_from_aws() -> tuple[dict[str, Any], str] | None:
             keys: list[tuple[datetime, str]] = []
             for page in s3.get_paginator("list_objects_v2").paginate(Bucket=bucket, Prefix=prefix):
                 keys += [(o["LastModified"], o["Key"]) for o in page.get("Contents", [])]
-            if keys:
-                key = max(keys)[1]
+            key = last_completed_minute_key(keys, now)
+            if key is not None:
                 body = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
                 return json.loads(body), f"s3://{bucket}/{key}"
     except Exception:  # no credentials, no network, no access: fall back to the sample
