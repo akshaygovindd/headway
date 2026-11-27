@@ -42,7 +42,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SEED = ROOT / "dbt" / "headway" / "seeds" / "reconstruction_dwell.csv"
 CLASSES = (15, 30, 60, 120)
 SHAPES = (1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 20.0, 40.0)
-# The shape is barely identified (under 1 % of visits have two sightings on most lines), so it is
+# The shape is barely identified (0.1 to 7 % of visits have two sightings), so it is
 # bounded from above: a shape of 12 is a coefficient of variation of 0.29. A prior, not a fit.
 MAX_SHAPE = 12.0
 MEANS = np.arange(5.0, 150.5, 0.5)
