@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pre-push check: `make check` and `make e2e` the way GitHub CI runs them.
 #
-# It exports the committed tree (a clone of HEAD) into a temporary directory and runs both there
+# It clones the committed tree (HEAD) into a temporary directory and runs both there
 # with a fresh environment (UV_PROJECT_ENVIRONMENT=.local/ci-venv, uv sync --frozen), so nothing
 # that exists only on this machine can make it pass: uncommitted or ignored files, a stale venv or
 # dbt_packages, the checkout's absolute path. Commit first; uncommitted changes are not tested.

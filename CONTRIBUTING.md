@@ -8,7 +8,7 @@ scripts/prepush.sh e2e    # one of them
 ln -s ../../scripts/prepush.sh .git/hooks/pre-push   # optional: run it on every push
 ```
 
-It tests the committed tree (`git archive HEAD`) in a temporary directory with a fresh environment
+It tests the committed tree (a fresh clone of HEAD) in a temporary directory with a fresh environment
 (`UV_PROJECT_ENVIRONMENT=.local/ci-venv uv sync --frozen`), the way `.github/workflows/ci.yml`
 does. Commit first; uncommitted changes are not tested. Running `make check` in your working copy
 is not enough: it passes on files and paths that exist only on your machine. CI was red for three
