@@ -379,6 +379,28 @@ Past incidents and their root causes are in [INCIDENTS.md](INCIDENTS.md); design
 - **Recovery:** `curl -s "$(terraform -chdir=infra/main output -raw api_url)/v1/meta"` returns 200 and
   the alarm returns to OK within 5 minutes.
 
+### Alarm: headway-train-errors
+
+- **Meaning:** the weekly training Lambda (R3, only with `enable_r3`) ended in an error: an unhandled
+  exception, the 300 s timeout or an out-of-memory kill, at least once in an hour. A run that
+  returns `baselines_only`, `no_data` or `skipped: locked` is not an error and does not alarm.
+  The job has no retry, so the next scheduled run is Monday 06:00 UTC.
+- **First 3 commands:**
+  ```sh
+  aws logs tail /aws/lambda/headway-train --since 3h --filter-pattern '?ERROR ?Traceback ?"Task timed out" ?"Runtime exited"'
+  aws logs tail /aws/lambda/headway-train --since 3h | grep REPORT     # Duration and Max Memory Used
+  aws s3 ls s3://<raw>/state/forecast_examples/metric_version=1/ | tail -3
+  ```
+- **Likely causes:** more rows than the function was sized for (4096 MB, 300 s: sized on 448 k
+  examples, 43 s, 2.3 GiB peak); an unreadable or half-written `state/forecast_*` object; a bad image
+  after a deploy. See the failure table under [Training job](#training-job).
+- **Fix:** read the log, then run it by hand: `aws lambda invoke --function-name headway-train --cli-read-timeout 330 --payload '{}' out.json`.
+  For a timeout or memory kill lower `TRAIN_MAX_ROWS_PER_DAY` or raise the memory or timeout in
+  `infra/main/train.tf` and deploy. Nothing live changes on a failed run: `models/forecast/latest.json`
+  is only written after a successful run.
+- **Recovery:** the manual invoke returns a `status` (`trained`, `baselines_only` or `no_data`); the
+  alarm returns to OK after an hour with no error.
+
 ### Budget forecast alert
 
 AWS Budgets also mails `budget_email` when the month's **forecast** passes USD 15, besides the
@@ -640,8 +662,9 @@ and `facts_written`.
 
 The weekly forecast training (`headway-train`, only with `enable_r3`; ADR-019). Monday 06:00 UTC,
 no retry. It reads the closed service days the transform keeps in `s3://<raw>/state/forecast_*`,
-backtests, trains one model over the lines past the gate, and logs to MLflow. No alarm is attached
-in this phase: look at it after the schedule.
+backtests, trains one model over the lines past the gate, and logs to MLflow. An error, timeout or
+out-of-memory kill raises [headway-train-errors](#alarm-headway-train-errors); a `baselines_only`
+result does not.
 
 **What a run returns** (the invocation result and the log line): `status` is `trained`,
 `baselines_only` (no line passed the gate: `gate_reasons` says why per line, nothing under

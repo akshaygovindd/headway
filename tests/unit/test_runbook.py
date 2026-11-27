@@ -31,7 +31,7 @@ def alarms() -> list[tuple[str, str]]:
     found = re.findall(
         r'alarm_name\s*=\s*"([^"]+)".*?alarm_description\s*=\s*"([^"]+)"', text, re.S
     )
-    assert len(found) == 13
+    assert len(found) == 14
     return found
 
 
@@ -51,7 +51,7 @@ def test_every_alarm_has_exactly_one_section_named_after_it() -> None:
         "headway-static-errors", "headway-transform-errors", "headway-transform-not-succeeded",
         "headway-transform-memory-high", "headway-transform-duration-high",
         "headway-feed-errors", "headway-gold-stale", "headway-missed-minutes",
-        "headway-arrival-coverage-low", "headway-data-tests-failed",
+        "headway-arrival-coverage-low", "headway-data-tests-failed", "headway-train-errors",
     }  # fmt: skip
     assert {slug(f"Alarm: {n}") for n in names} <= known
     resolved = {
@@ -59,6 +59,7 @@ def test_every_alarm_has_exactly_one_section_named_after_it() -> None:
         .replace("${local.curate_name}", "headway-curate")
         .replace("${local.static_name}", "headway-static")
         .replace("${local.transform_name}", "headway-transform")
+        .replace("${local.train_name}", "headway-train")
         for n, _ in alarms()
     }
     assert resolved == names
@@ -136,3 +137,20 @@ def test_the_data_tests_alarm_fires_on_one_failure_in_one_hourly_run() -> None:
     assert "period              = 3600" in body and "datapoints_to_alarm = 1" in body
     assert "alarm_actions       = [aws_sns_topic.alerts.arn]" in body
     assert text.count("DataTestsWarned") == 1 and "DataTestsWarned" not in body  # warn: no alarm
+
+
+def test_the_train_alarm_exists_only_with_release_3_and_fires_on_one_error() -> None:
+    text = (ROOT / "infra/main/alerts.tf").read_text()
+    body = text[text.index('resource "aws_cloudwatch_metric_alarm" "train_errors"') :]
+    body = body.split("\n}\n")[0]
+    assert "count = var.enable_r3 ? 1 : 0" in body
+    assert 'alarm_name          = "${local.train_name}-errors"' in body
+    assert 'metric_name         = "Errors"' in body and 'statistic           = "Sum"' in body
+    assert "FunctionName = aws_lambda_function.train[0].function_name" in body
+    assert (
+        'comparison_operator = "GreaterThanOrEqualToThreshold"' in body
+        and "threshold           = 1" in body
+    )
+    assert "evaluation_periods  = 1" in body and 'treat_missing_data  = "notBreaching"' in body
+    assert "alarm_actions       = [aws_sns_topic.alerts.arn]" in body
+    assert "train_name" in (ROOT / "infra/main/train.tf").read_text()

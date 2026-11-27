@@ -268,3 +268,23 @@ resource "aws_cloudwatch_metric_alarm" "arrival_coverage_low" {
   treat_missing_data  = var.enable_r2 ? "missing" : "notBreaching"
   alarm_actions       = [aws_sns_topic.alerts.arn]
 }
+
+# The weekly training job (R3 only) failed: an unhandled error, a timeout or an out-of-memory kill all
+# count as Lambda Errors. A run that returns baselines_only or no_data is not an error. The job runs
+# once a week with no retry, so one error in the hour of the run is the signal.
+resource "aws_cloudwatch_metric_alarm" "train_errors" {
+  count = var.enable_r3 ? 1 : 0
+
+  alarm_name          = "${local.train_name}-errors"
+  alarm_description   = "The weekly training Lambda failed (error, timeout or out of memory). Runbook: https://github.com/akshaygovindd/headway/blob/main/docs/RUNBOOK.md#alarm-headway-train-errors"
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  dimensions          = { FunctionName = aws_lambda_function.train[0].function_name }
+  statistic           = "Sum"
+  period              = 3600
+  evaluation_periods  = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  threshold           = 1
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+}
