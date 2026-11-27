@@ -1,0 +1,87 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/forecast/Red",
+ "status": 200,
+ "body": {
+  "coverage": {
+   "rows": 2,
+   "mean_coverage_pct": 71.8,
+   "min_coverage_pct": 71.8,
+   "withheld_rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "freshness": {
+   "exported_at": "2026-11-24T12:00:00Z",
+   "metrics_as_of": "2026-11-24T11:45:00Z",
+   "age_minutes": 12
+  },
+  "provenance": {
+   "tables": [
+    "agg_forecast_next_hour"
+   ],
+   "definition": "Predicted schedule deviation and prediction revision (last_24h only)",
+   "metrics_md": "docs/METRICS.md",
+   "row_limit": 500,
+   "truncated": false,
+   "served_from": "remote"
+  },
+  "data": {
+   "line": "Red",
+   "prediction_ts": "2026-11-24T11:00:00+00:00",
+   "status": "baselines_only",
+   "status_reason": "training gate not passed",
+   "model_version": null,
+   "unit": "seconds of delay against the schedule, trip-weighted",
+   "horizons": [
+    {
+     "direction_id": 0,
+     "horizon_min": 15,
+     "n_trips": 40,
+     "model_forecast_s": null,
+     "model_forecast_s_coverage_pct": 0,
+     "persistence": 35,
+     "persistence_coverage_pct": 90,
+     "daytype_hour": 28,
+     "daytype_hour_coverage_pct": 85,
+     "rolling_median_60m": null,
+     "rolling_median_60m_coverage_pct": 30,
+     "mbta_reference": 31,
+     "mbta_reference_coverage_pct": 60,
+     "withheld_reasons": {
+      "model_forecast_s": "coverage 0% is below 50%",
+      "rolling_median_60m": "coverage 30% is below 50%"
+     }
+    },
+    {
+     "direction_id": 0,
+     "horizon_min": 60,
+     "n_trips": 40,
+     "model_forecast_s": null,
+     "model_forecast_s_coverage_pct": 0,
+     "persistence": 35,
+     "persistence_coverage_pct": 90,
+     "daytype_hour": 28,
+     "daytype_hour_coverage_pct": 85,
+     "rolling_median_60m": null,
+     "rolling_median_60m_coverage_pct": 30,
+     "mbta_reference": 31,
+     "mbta_reference_coverage_pct": 60,
+     "withheld_reasons": {
+      "model_forecast_s": "coverage 0% is below 50%",
+      "rolling_median_60m": "coverage 30% is below 50%"
+     }
+    }
+   ],
+   "training_gate": [
+    {
+     "line": "Red",
+     "n_days": 4,
+     "n_weekend_days": 1,
+     "min_days": 21,
+     "min_weekend_days": 3,
+     "gate_passed": false
+    }
+   ]
+  }
+ }
+}

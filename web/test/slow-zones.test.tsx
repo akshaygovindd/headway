@@ -26,7 +26,8 @@ function stubSlowZones(slow: (body: ReturnType<typeof load>) => void) {
     }),
   );
 }
-const load = () => JSON.parse(readFileSync(`${process.cwd()}/test/fixtures/slow-zones_not-captured.json`, "utf8"));
+// Not captured yet but with flagged segments: a synthetic edge state (the real snapshot has no flagged segment).
+const load = () => JSON.parse(readFileSync(`${process.cwd()}/test/fixtures/synthetic/_slow-zones_not-captured.json`, "utf8")).body;
 
 afterEach(() => vi.unstubAllGlobals());
 

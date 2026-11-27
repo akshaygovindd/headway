@@ -1,0 +1,107 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "rows": 6,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "slos": [
+    {
+     "actual_pct": 76.73,
+     "counts_toward_slo": true,
+     "days_covered": 5,
+     "error_budget_used": 1.163,
+     "good_events": 148352.0,
+     "met": false,
+     "slo_name": "arrival_coverage",
+     "target_pct": 80.0,
+     "total_events": 193333.0,
+     "window": "last_30d"
+    },
+    {
+     "actual_pct": 76.73,
+     "counts_toward_slo": true,
+     "days_covered": 5,
+     "error_budget_used": 1.163,
+     "good_events": 148352.0,
+     "met": false,
+     "slo_name": "arrival_coverage",
+     "target_pct": 80.0,
+     "total_events": 193333.0,
+     "window": "last_7d"
+    },
+    {
+     "actual_pct": 12.87,
+     "counts_toward_slo": false,
+     "days_covered": 1,
+     "error_budget_used": 4.356,
+     "good_events": 401.0,
+     "met": false,
+     "slo_name": "arrival_coverage_disrupted",
+     "target_pct": 80.0,
+     "total_events": 3115.0,
+     "window": "last_30d"
+    },
+    {
+     "actual_pct": 12.87,
+     "counts_toward_slo": false,
+     "days_covered": 1,
+     "error_budget_used": 4.356,
+     "good_events": 401.0,
+     "met": false,
+     "slo_name": "arrival_coverage_disrupted",
+     "target_pct": 80.0,
+     "total_events": 3115.0,
+     "window": "last_7d"
+    },
+    {
+     "actual_pct": 95.36,
+     "counts_toward_slo": true,
+     "days_covered": 5,
+     "error_budget_used": 4.644,
+     "good_events": 5955.0,
+     "met": false,
+     "slo_name": "capture_completeness",
+     "target_pct": 99.0,
+     "total_events": 6245.0,
+     "window": "last_30d"
+    },
+    {
+     "actual_pct": 95.36,
+     "counts_toward_slo": true,
+     "days_covered": 5,
+     "error_budget_used": 4.644,
+     "good_events": 5955.0,
+     "met": false,
+     "slo_name": "capture_completeness",
+     "target_pct": 99.0,
+     "total_events": 6245.0,
+     "window": "last_7d"
+    }
+   ]
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Service level objectives over 7 and 30 days",
+   "metrics_md": "docs/METRICS.md#release-2-slos",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select slo_name, window_label as window, target_pct, good_events, total_events, round(actual_pct, 2) as actual_pct, met, round(error_budget_used, 3) as error_budget_used, days_covered, counts_toward_slo from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_slo_rollup.parquet') order by slo_name, window_label limit 501"
+   ],
+   "tables": [
+    "agg_slo_rollup"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/slo",
+ "status": 200
+}

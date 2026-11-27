@@ -1,0 +1,130 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "from_station": null,
+   "line": "Red",
+   "min_trips": 20,
+   "rows": [],
+   "stations": [
+    {
+     "id": "place-alfcl",
+     "name": "Alewife"
+    },
+    {
+     "id": "place-andrw",
+     "name": "Andrew"
+    },
+    {
+     "id": "place-asmnl",
+     "name": "Ashmont"
+    },
+    {
+     "id": "place-brntn",
+     "name": "Braintree"
+    },
+    {
+     "id": "place-brdwy",
+     "name": "Broadway"
+    },
+    {
+     "id": "place-cntsq",
+     "name": "Central"
+    },
+    {
+     "id": "place-chmnl",
+     "name": "Charles/MGH"
+    },
+    {
+     "id": "place-davis",
+     "name": "Davis"
+    },
+    {
+     "id": "place-dwnxg",
+     "name": "Downtown Crossing"
+    },
+    {
+     "id": "place-fldcr",
+     "name": "Fields Corner"
+    },
+    {
+     "id": "place-harsq",
+     "name": "Harvard"
+    },
+    {
+     "id": "place-jfk",
+     "name": "JFK/UMass"
+    },
+    {
+     "id": "place-knncl",
+     "name": "Kendall/MIT"
+    },
+    {
+     "id": "place-nqncy",
+     "name": "North Quincy"
+    },
+    {
+     "id": "place-pktrm",
+     "name": "Park Street"
+    },
+    {
+     "id": "place-portr",
+     "name": "Porter"
+    },
+    {
+     "id": "place-qamnl",
+     "name": "Quincy Adams"
+    },
+    {
+     "id": "place-qnctr",
+     "name": "Quincy Center"
+    },
+    {
+     "id": "place-shmnl",
+     "name": "Savin Hill"
+    },
+    {
+     "id": "place-smmnl",
+     "name": "Shawmut"
+    },
+    {
+     "id": "place-sstat",
+     "name": "South Station"
+    },
+    {
+     "id": "place-wlsta",
+     "name": "Wollaston"
+    }
+   ],
+   "to_station": null,
+   "unit": "seconds",
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Stations of the line with a trip-time budget",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select distinct id, name from (select from_station_id as id, from_station_name as name from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_trip_time_budget.parquet') where line = 'Red' union all select to_station_id, to_station_name from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_trip_time_budget.parquet') where line = 'Red') order by name, id"
+   ],
+   "tables": [
+    "agg_trip_time_budget"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Red/trip-time-budget",
+ "status": 200
+}

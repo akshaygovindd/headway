@@ -1,0 +1,688 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "direction": null,
+   "hour_start": "2026-11-26T23:00:00Z",
+   "line": "Mattapan",
+   "rows": [
+    {
+     "arrival_ts": "2026-11-26T23:23:50Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:26:00Z",
+     "stop_id": "70263",
+     "stop_name": "Cedar Grove",
+     "stop_sequence": 2,
+     "trip_id": "77714399"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:26:13Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:29:00Z",
+     "stop_id": "70265",
+     "stop_name": "Butler",
+     "stop_sequence": 3,
+     "trip_id": "77714399"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:27:14Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:30:00Z",
+     "stop_id": "70267",
+     "stop_name": "Milton",
+     "stop_sequence": 4,
+     "trip_id": "77714399"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:28:28Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:32:00Z",
+     "stop_id": "70269",
+     "stop_name": "Central Avenue",
+     "stop_sequence": 5,
+     "trip_id": "77714399"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:30:27Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:34:00Z",
+     "stop_id": "70271",
+     "stop_name": "Valley Road",
+     "stop_sequence": 6,
+     "trip_id": "77714399"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:31:45Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:35:00Z",
+     "stop_id": "70273",
+     "stop_name": "Capen Street",
+     "stop_sequence": 7,
+     "trip_id": "77714399"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:32:32Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:36:00Z",
+     "stop_id": "70275",
+     "stop_name": "Mattapan",
+     "stop_sequence": 8,
+     "trip_id": "77714399"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:50:58Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:52:00Z",
+     "stop_id": "70263",
+     "stop_name": "Cedar Grove",
+     "stop_sequence": 2,
+     "trip_id": "77714400"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:52:52Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:55:00Z",
+     "stop_id": "70265",
+     "stop_name": "Butler",
+     "stop_sequence": 3,
+     "trip_id": "77714400"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:53:49Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:56:00Z",
+     "stop_id": "70267",
+     "stop_name": "Milton",
+     "stop_sequence": 4,
+     "trip_id": "77714400"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:55:12Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:58:00Z",
+     "stop_id": "70269",
+     "stop_name": "Central Avenue",
+     "stop_sequence": 5,
+     "trip_id": "77714400"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:56:56Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T00:00:00Z",
+     "stop_id": "70271",
+     "stop_name": "Valley Road",
+     "stop_sequence": 6,
+     "trip_id": "77714400"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:58:27Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T00:01:00Z",
+     "stop_id": "70273",
+     "stop_name": "Capen Street",
+     "stop_sequence": 7,
+     "trip_id": "77714400"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:59:11Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-27T00:02:00Z",
+     "stop_id": "70275",
+     "stop_name": "Mattapan",
+     "stop_sequence": 8,
+     "trip_id": "77714400"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:37:32Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:39:00Z",
+     "stop_id": "70263",
+     "stop_name": "Cedar Grove",
+     "stop_sequence": 2,
+     "trip_id": "77714424"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:39:17Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:42:00Z",
+     "stop_id": "70265",
+     "stop_name": "Butler",
+     "stop_sequence": 3,
+     "trip_id": "77714424"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:39:53Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:43:00Z",
+     "stop_id": "70267",
+     "stop_name": "Milton",
+     "stop_sequence": 4,
+     "trip_id": "77714424"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:40:53Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:45:00Z",
+     "stop_id": "70269",
+     "stop_name": "Central Avenue",
+     "stop_sequence": 5,
+     "trip_id": "77714424"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:42:29Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:47:00Z",
+     "stop_id": "70271",
+     "stop_name": "Valley Road",
+     "stop_sequence": 6,
+     "trip_id": "77714424"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:43:23Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:48:00Z",
+     "stop_id": "70273",
+     "stop_name": "Capen Street",
+     "stop_sequence": 7,
+     "trip_id": "77714424"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:43:53Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:49:00Z",
+     "stop_id": "70275",
+     "stop_name": "Mattapan",
+     "stop_sequence": 8,
+     "trip_id": "77714424"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:13:57Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:13:00Z",
+     "stop_id": "70263",
+     "stop_name": "Cedar Grove",
+     "stop_sequence": 2,
+     "trip_id": "77714468"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:15:59Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:16:00Z",
+     "stop_id": "70265",
+     "stop_name": "Butler",
+     "stop_sequence": 3,
+     "trip_id": "77714468"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:16:54Z",
+     "confidence": "medium",
+     "direction_id": 0,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:17:00Z",
+     "stop_id": "70267",
+     "stop_name": "Milton",
+     "stop_sequence": 4,
+     "trip_id": "77714468"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:18:12Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:19:00Z",
+     "stop_id": "70269",
+     "stop_name": "Central Avenue",
+     "stop_sequence": 5,
+     "trip_id": "77714468"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:19:53Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:21:00Z",
+     "stop_id": "70271",
+     "stop_name": "Valley Road",
+     "stop_sequence": 6,
+     "trip_id": "77714468"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:21:17Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:22:00Z",
+     "stop_id": "70273",
+     "stop_name": "Capen Street",
+     "stop_sequence": 7,
+     "trip_id": "77714468"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:22:08Z",
+     "confidence": "high",
+     "direction_id": 0,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:23:00Z",
+     "stop_id": "70275",
+     "stop_name": "Mattapan",
+     "stop_sequence": 8,
+     "trip_id": "77714468"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:01:48Z",
+     "confidence": "low",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T22:49:00Z",
+     "stop_id": "70274",
+     "stop_name": "Capen Street",
+     "stop_sequence": 2,
+     "trip_id": "77714391"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:03:58Z",
+     "confidence": "low",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T22:50:00Z",
+     "stop_id": "70272",
+     "stop_name": "Valley Road",
+     "stop_sequence": 3,
+     "trip_id": "77714391"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:13:07Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:15:00Z",
+     "stop_id": "70274",
+     "stop_name": "Capen Street",
+     "stop_sequence": 2,
+     "trip_id": "77714398"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:13:55Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:16:00Z",
+     "stop_id": "70272",
+     "stop_name": "Valley Road",
+     "stop_sequence": 3,
+     "trip_id": "77714398"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:15:40Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:18:00Z",
+     "stop_id": "70270",
+     "stop_name": "Central Avenue",
+     "stop_sequence": 4,
+     "trip_id": "77714398"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:16:50Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:19:00Z",
+     "stop_id": "70268",
+     "stop_name": "Milton",
+     "stop_sequence": 5,
+     "trip_id": "77714398"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:18:13Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:20:00Z",
+     "stop_id": "70266",
+     "stop_name": "Butler",
+     "stop_sequence": 6,
+     "trip_id": "77714398"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:20:18Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:23:00Z",
+     "stop_id": "70264",
+     "stop_name": "Cedar Grove",
+     "stop_sequence": 7,
+     "trip_id": "77714398"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:34:23Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:40:00Z",
+     "stop_id": "70276",
+     "stop_name": "Mattapan",
+     "stop_sequence": 1,
+     "trip_id": "77714403"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:40:05Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:41:00Z",
+     "stop_id": "70274",
+     "stop_name": "Capen Street",
+     "stop_sequence": 2,
+     "trip_id": "77714403"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:40:54Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:42:00Z",
+     "stop_id": "70272",
+     "stop_name": "Valley Road",
+     "stop_sequence": 3,
+     "trip_id": "77714403"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:42:29Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:44:00Z",
+     "stop_id": "70270",
+     "stop_name": "Central Avenue",
+     "stop_sequence": 4,
+     "trip_id": "77714403"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:44:09Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:45:00Z",
+     "stop_id": "70268",
+     "stop_name": "Milton",
+     "stop_sequence": 5,
+     "trip_id": "77714403"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:44:50Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:46:00Z",
+     "stop_id": "70266",
+     "stop_name": "Butler",
+     "stop_sequence": 6,
+     "trip_id": "77714403"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:47:09Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:49:00Z",
+     "stop_id": "70264",
+     "stop_name": "Cedar Grove",
+     "stop_sequence": 7,
+     "trip_id": "77714403"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:45:33Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:53:00Z",
+     "stop_id": "70276",
+     "stop_name": "Mattapan",
+     "stop_sequence": 1,
+     "trip_id": "77714419"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:54:20Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:54:00Z",
+     "stop_id": "70274",
+     "stop_name": "Capen Street",
+     "stop_sequence": 2,
+     "trip_id": "77714419"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:54:53Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:55:00Z",
+     "stop_id": "70272",
+     "stop_name": "Valley Road",
+     "stop_sequence": 3,
+     "trip_id": "77714419"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:56:13Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:57:00Z",
+     "stop_id": "70270",
+     "stop_name": "Central Avenue",
+     "stop_sequence": 4,
+     "trip_id": "77714419"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:57:17Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:58:00Z",
+     "stop_id": "70268",
+     "stop_name": "Milton",
+     "stop_sequence": 5,
+     "trip_id": "77714419"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:57:56Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:59:00Z",
+     "stop_id": "70266",
+     "stop_name": "Butler",
+     "stop_sequence": 6,
+     "trip_id": "77714419"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:59:54Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-27T00:02:00Z",
+     "stop_id": "70264",
+     "stop_name": "Cedar Grove",
+     "stop_sequence": 7,
+     "trip_id": "77714419"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:24:14Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:27:00Z",
+     "stop_id": "70276",
+     "stop_name": "Mattapan",
+     "stop_sequence": 1,
+     "trip_id": "77714427"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:29:23Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:28:00Z",
+     "stop_id": "70274",
+     "stop_name": "Capen Street",
+     "stop_sequence": 2,
+     "trip_id": "77714427"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:29:55Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:29:00Z",
+     "stop_id": "70272",
+     "stop_name": "Valley Road",
+     "stop_sequence": 3,
+     "trip_id": "77714427"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:31:18Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:31:00Z",
+     "stop_id": "70270",
+     "stop_name": "Central Avenue",
+     "stop_sequence": 4,
+     "trip_id": "77714427"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:31:56Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:32:00Z",
+     "stop_id": "70268",
+     "stop_name": "Milton",
+     "stop_sequence": 5,
+     "trip_id": "77714427"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:33:11Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:33:00Z",
+     "stop_id": "70266",
+     "stop_name": "Butler",
+     "stop_sequence": 6,
+     "trip_id": "77714427"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:34:45Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:36:00Z",
+     "stop_id": "70264",
+     "stop_name": "Cedar Grove",
+     "stop_sequence": 7,
+     "trip_id": "77714427"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:07:52Z",
+     "confidence": "medium",
+     "direction_id": 1,
+     "method": "estimated",
+     "scheduled_ts": "2026-11-26T23:07:00Z",
+     "stop_id": "70266",
+     "stop_name": "Butler",
+     "stop_sequence": 6,
+     "trip_id": "77714485"
+    },
+    {
+     "arrival_ts": "2026-11-26T23:09:49Z",
+     "confidence": "high",
+     "direction_id": 1,
+     "method": "observed",
+     "scheduled_ts": "2026-11-26T23:10:00Z",
+     "stop_id": "70264",
+     "stop_name": "Cedar Grove",
+     "stop_sequence": 7,
+     "trip_id": "77714485"
+    }
+   ]
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Reconstructed arrivals of the last complete hour: observed or estimated",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select direction_id, trip_id, stop_id, stop_name, stop_sequence, strftime(arrival_ts at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as arrival_ts, method, confidence, strftime(scheduled_ts at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as scheduled_ts from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_marey_last_hour.parquet') where line = 'Mattapan' order by direction_id, trip_instance_key, segment, stop_sequence limit 501",
+    "select strftime(max(hour_start) at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as hour_start from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_marey_last_hour.parquet')"
+   ],
+   "tables": [
+    "agg_marey_last_hour"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Mattapan/marey",
+ "status": 200
+}

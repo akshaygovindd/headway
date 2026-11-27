@@ -1,0 +1,54 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 78.8,
+   "min_coverage_pct": 78.8,
+   "rows": 1,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "headway_adherence": {
+    "label": "Headways within the band, bunched and gaps",
+    "metrics_md": "8-headway-adherence-release-2",
+    "rows": [
+     {
+      "coverage_pct": 78.8,
+      "line": "Green-B",
+      "median_ratio": 1.01,
+      "n_observations": 3780,
+      "p90_ratio": 1.82,
+      "pct_bunched": 11.77,
+      "pct_gap": 17.28,
+      "pct_within_band": 70.95,
+      "window": "last_24h",
+      "withheld_reason": null
+     }
+    ],
+    "table": "agg_headway_window"
+   },
+   "line": "Green-B",
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Headways within the band, bunched and gaps",
+   "metrics_md": "docs/METRICS.md#8-headway-adherence-release-2",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select line, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_band end, 2) as pct_within_band, round(case when coalesce(coverage_pct, 0) >= 50 then pct_bunched end, 2) as pct_bunched, round(case when coalesce(coverage_pct, 0) >= 50 then pct_gap end, 2) as pct_gap, round(case when coalesce(coverage_pct, 0) >= 50 then median_ratio end, 2) as median_ratio, round(case when coalesce(coverage_pct, 0) >= 50 then p90_ratio end, 2) as p90_ratio, n_headways as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_headway_window.parquet') where window_label = 'last_24h' and line = 'Green-B' order by line limit 501"
+   ],
+   "tables": [
+    "agg_headway_window"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Green-B/headways",
+ "status": 200
+}

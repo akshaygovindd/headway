@@ -1,0 +1,170 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "from_station": null,
+   "line": "Green-B",
+   "min_trips": 20,
+   "rows": [],
+   "stations": [
+    {
+     "id": "place-alsgr",
+     "name": "Allston Street"
+    },
+    {
+     "id": "place-amory",
+     "name": "Amory Street"
+    },
+    {
+     "id": "place-armnl",
+     "name": "Arlington"
+    },
+    {
+     "id": "place-babck",
+     "name": "Babcock Street"
+    },
+    {
+     "id": "place-balsq",
+     "name": "Ball Square"
+    },
+    {
+     "id": "place-bland",
+     "name": "Blandford Street"
+    },
+    {
+     "id": "place-lake",
+     "name": "Boston College"
+    },
+    {
+     "id": "place-bucen",
+     "name": "Boston University Central"
+    },
+    {
+     "id": "place-buest",
+     "name": "Boston University East"
+    },
+    {
+     "id": "place-boyls",
+     "name": "Boylston"
+    },
+    {
+     "id": "place-chill",
+     "name": "Chestnut Hill Avenue"
+    },
+    {
+     "id": "place-chswk",
+     "name": "Chiswick Road"
+    },
+    {
+     "id": "place-coecl",
+     "name": "Copley"
+    },
+    {
+     "id": "place-esomr",
+     "name": "East Somerville"
+    },
+    {
+     "id": "place-gilmn",
+     "name": "Gilman Square"
+    },
+    {
+     "id": "place-gover",
+     "name": "Government Center"
+    },
+    {
+     "id": "place-grigg",
+     "name": "Griggs Street"
+    },
+    {
+     "id": "place-harvd",
+     "name": "Harvard Avenue"
+    },
+    {
+     "id": "place-haecl",
+     "name": "Haymarket"
+    },
+    {
+     "id": "place-hymnl",
+     "name": "Hynes Convention Center"
+    },
+    {
+     "id": "place-kencl",
+     "name": "Kenmore"
+    },
+    {
+     "id": "place-lech",
+     "name": "Lechmere"
+    },
+    {
+     "id": "place-mgngl",
+     "name": "Magoun Square"
+    },
+    {
+     "id": "place-mdftf",
+     "name": "Medford/Tufts"
+    },
+    {
+     "id": "place-north",
+     "name": "North Station"
+    },
+    {
+     "id": "place-brico",
+     "name": "Packard's Corner"
+    },
+    {
+     "id": "place-pktrm",
+     "name": "Park Street"
+    },
+    {
+     "id": "place-spmnl",
+     "name": "Science Park/West End"
+    },
+    {
+     "id": "place-sougr",
+     "name": "South Street"
+    },
+    {
+     "id": "place-sthld",
+     "name": "Sutherland Road"
+    },
+    {
+     "id": "place-wrnst",
+     "name": "Warren Street"
+    },
+    {
+     "id": "place-wascm",
+     "name": "Washington Street"
+    }
+   ],
+   "to_station": null,
+   "unit": "seconds",
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Stations of the line with a trip-time budget",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select distinct id, name from (select from_station_id as id, from_station_name as name from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_trip_time_budget.parquet') where line = 'Green-B' union all select to_station_id, to_station_name from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_trip_time_budget.parquet') where line = 'Green-B') order by name, id"
+   ],
+   "tables": [
+    "agg_trip_time_budget"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Green-B/trip-time-budget",
+ "status": 200
+}

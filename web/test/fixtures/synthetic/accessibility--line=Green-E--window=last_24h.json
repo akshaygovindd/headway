@@ -1,0 +1,60 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/accessibility?line=Green-E&window=last_24h",
+ "status": 200,
+ "body": {
+  "data": {
+   "line": "Green-E",
+   "window": "last_24h",
+   "station": null,
+   "signal": "announced outages (service alerts), not the facility's own status",
+   "n_stations_in_network": 125,
+   "n_stations_out_now": 0,
+   "stations": [
+    {
+     "station_id": "place-pktrm",
+     "station_name": "Park Street",
+     "lines": [
+      "Green-B",
+      "Green-C",
+      "Green-D",
+      "Green-E",
+      "Red"
+     ],
+     "n_outages": 1,
+     "n_elevator_outages": 1,
+     "n_escalator_outages": 0,
+     "outage_hours": 0.5,
+     "currently_out": false,
+     "n_currently_out": 0,
+     "longest_open_outage_h": null,
+     "current_outage_text": [],
+     "coverage_pct": 91.7,
+     "withheld_reason": null
+    }
+   ]
+  },
+  "coverage": {
+   "rows": 5,
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "withheld_rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "freshness": {
+   "exported_at": "2026-11-24T12:00:00Z",
+   "metrics_as_of": "2026-11-24T11:45:00Z",
+   "age_minutes": 12
+  },
+  "provenance": {
+   "tables": [
+    "agg_accessibility_outages"
+   ],
+   "definition": "Announced elevator and escalator outages per station",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "truncated": false,
+   "served_from": "remote"
+  }
+ }
+}

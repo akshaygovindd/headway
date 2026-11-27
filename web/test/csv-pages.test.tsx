@@ -54,7 +54,7 @@ describe("CSV on the Line page", () => {
 
 describe("CSV completeness", () => {
   it("keeps bands with no trips as rows with a reason", async () => {
-    const lines = await downloaded("/lines/Orange (partial)");
+    const lines = await downloaded("/lines/Orange");
     const trip = lines.filter((l) => l.includes(",Trip time against the plan,") && l.includes("Afternoon peak") && l.includes("Toward"));
     const noTrips = trip.filter((l) => l.includes("scheduled trips were not observed"));
     expect(noTrips).toHaveLength(8); // 4 measures x 2 windows

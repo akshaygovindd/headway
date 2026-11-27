@@ -1,0 +1,198 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": [
+   {
+    "higher_is_worse": true,
+    "label": "Median predicted schedule deviation (s)",
+    "metrics_md": "docs/METRICS.md#1-predicted-schedule-deviation",
+    "name": "predicted_deviation_median_s",
+    "tables": [
+     "agg_line_reliability_hourly",
+     "agg_line_reliability_window"
+    ],
+    "windows": [
+     "last_24h"
+    ]
+   },
+   {
+    "higher_is_worse": true,
+    "label": "90th percentile predicted schedule deviation (s)",
+    "metrics_md": "docs/METRICS.md#1-predicted-schedule-deviation",
+    "name": "predicted_deviation_p90_s",
+    "tables": [
+     "agg_line_reliability_hourly",
+     "agg_line_reliability_window"
+    ],
+    "windows": [
+     "last_24h"
+    ]
+   },
+   {
+    "higher_is_worse": true,
+    "label": "Median absolute prediction revision (s)",
+    "metrics_md": "docs/METRICS.md#2-prediction-revision",
+    "name": "prediction_revision_median_s",
+    "tables": [
+     "agg_line_reliability_hourly",
+     "agg_line_reliability_window"
+    ],
+    "windows": [
+     "last_24h"
+    ]
+   },
+   {
+    "higher_is_worse": false,
+    "label": "Arrival coverage (%)",
+    "metrics_md": "docs/METRICS.md#3-coverage",
+    "name": "coverage_pct",
+    "tables": [
+     "agg_line_reliability_hourly",
+     "agg_line_reliability_window"
+    ],
+    "windows": [
+     "last_24h"
+    ]
+   },
+   {
+    "higher_is_worse": true,
+    "label": "Share of skipped stops (%)",
+    "metrics_md": "docs/METRICS.md#1-predicted-schedule-deviation",
+    "name": "skipped_share_pct",
+    "tables": [
+     "agg_line_reliability_hourly",
+     "agg_line_reliability_window"
+    ],
+    "windows": [
+     "last_24h"
+    ]
+   },
+   {
+    "higher_is_worse": true,
+    "label": "Median actual schedule deviation (s)",
+    "metrics_md": "docs/METRICS.md#7-actual-schedule-deviation-release-2",
+    "name": "actual_deviation_median_s",
+    "tables": [
+     "agg_actual_deviation_daily",
+     "agg_actual_deviation_hourly",
+     "agg_actual_deviation_window"
+    ],
+    "windows": [
+     "last_24h",
+     "last_7d"
+    ]
+   },
+   {
+    "higher_is_worse": true,
+    "label": "90th percentile actual schedule deviation (s)",
+    "metrics_md": "docs/METRICS.md#7-actual-schedule-deviation-release-2",
+    "name": "actual_deviation_p90_s",
+    "tables": [
+     "agg_actual_deviation_daily",
+     "agg_actual_deviation_hourly",
+     "agg_actual_deviation_window"
+    ],
+    "windows": [
+     "last_24h",
+     "last_7d"
+    ]
+   },
+   {
+    "higher_is_worse": false,
+    "label": "Arrivals within -60 to +300 s of schedule (%)",
+    "metrics_md": "docs/METRICS.md#7-actual-schedule-deviation-release-2",
+    "name": "on_time_pct",
+    "tables": [
+     "agg_actual_deviation_daily",
+     "agg_actual_deviation_hourly",
+     "agg_actual_deviation_window"
+    ],
+    "windows": [
+     "last_24h",
+     "last_7d"
+    ]
+   },
+   {
+    "higher_is_worse": false,
+    "label": "Headways within the band (%)",
+    "metrics_md": "docs/METRICS.md#8-headway-adherence-release-2",
+    "name": "headway_within_band_pct",
+    "tables": [
+     "agg_headway_adherence_daily",
+     "agg_headway_adherence_hourly",
+     "agg_headway_window"
+    ],
+    "windows": [
+     "last_24h",
+     "last_7d"
+    ]
+   },
+   {
+    "higher_is_worse": true,
+    "label": "Bunched headways (%)",
+    "metrics_md": "docs/METRICS.md#8-headway-adherence-release-2",
+    "name": "headway_bunched_pct",
+    "tables": [
+     "agg_headway_adherence_daily",
+     "agg_headway_adherence_hourly",
+     "agg_headway_window"
+    ],
+    "windows": [
+     "last_24h",
+     "last_7d"
+    ]
+   },
+   {
+    "higher_is_worse": true,
+    "label": "Gap headways (%)",
+    "metrics_md": "docs/METRICS.md#8-headway-adherence-release-2",
+    "name": "headway_gap_pct",
+    "tables": [
+     "agg_headway_adherence_daily",
+     "agg_headway_adherence_hourly",
+     "agg_headway_window"
+    ],
+    "windows": [
+     "last_24h",
+     "last_7d"
+    ]
+   },
+   {
+    "higher_is_worse": true,
+    "label": "Median excess trip time (s)",
+    "metrics_md": "docs/METRICS.md#9-ett-approximation-release-2",
+    "name": "ett_median_s",
+    "tables": [
+     "agg_ett_daily",
+     "agg_ett_window"
+    ],
+    "windows": [
+     "last_24h",
+     "last_7d"
+    ]
+   }
+  ],
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Metric definitions",
+   "metrics_md": "docs/METRICS.md#",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [],
+   "tables": [],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/metrics",
+ "status": 200
+}

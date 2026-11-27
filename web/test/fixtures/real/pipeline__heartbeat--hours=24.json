@@ -1,0 +1,204 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "hours": 24,
+   "rows": [
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T01:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T02:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T03:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T04:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T05:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T06:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T07:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T08:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T09:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T10:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T11:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T12:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T13:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T14:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T15:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T16:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 0.0,
+     "hour_start": "2026-11-26T17:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 15.0,
+     "hour_start": "2026-11-26T18:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 10.0,
+     "hour_start": "2026-11-26T19:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 10.0,
+     "hour_start": "2026-11-26T20:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 16.0,
+     "hour_start": "2026-11-26T21:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 25.0,
+     "hour_start": "2026-11-26T22:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": false,
+     "expected_runs": 60.0,
+     "feed_gap_min": 25.0,
+     "hour_start": "2026-11-26T23:00:00Z",
+     "missed_runs": 0.0
+    },
+    {
+     "data_outage": true,
+     "expected_runs": 40.0,
+     "feed_gap_min": 24.0,
+     "hour_start": "2026-11-27T00:00:00Z",
+     "missed_runs": 0.0
+    }
+   ]
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Hourly capture heartbeat: expected and missed runs, feed gap, data outage",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "with t as (select * from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_capture_heartbeat_hourly.parquet')) select strftime(hour_start at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as hour_start, expected_runs, missed_runs, feed_gap_min, data_outage from t where hour_start > (select max(hour_start) from t) - to_hours(24) order by hour_start limit 501"
+   ],
+   "tables": [
+    "agg_capture_heartbeat_hourly"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/pipeline/heartbeat?hours=24",
+ "status": 200
+}

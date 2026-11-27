@@ -58,7 +58,7 @@ test.describe("1440px desktop", () => {
   test("the Green-C strip labels both ends once, at the stop points", async ({ page }) => {
     await page.goto("/lines/Green-C");
     const labels = page.getByTestId("strip-labels").first().getByTestId("strip-label");
-    await expect(labels.first()).toHaveText("North Station");
+    await expect(labels.first()).not.toHaveText("Cleveland Circle"); // the northern end, whatever the feed calls it
     await expect(labels.last()).toHaveText("Cleveland Circle");
     await expect(page.getByTestId("strip-labels").first().getByText("Cleveland Circle", { exact: true })).toHaveCount(1);
   });

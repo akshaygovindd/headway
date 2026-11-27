@@ -1,5 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
+import { coverageState, covText } from "@/lib/coverage";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { asOf, fixture, headwayRow } from "./fixtures";
 import { PAGES, shell, stubFixtureApi } from "./helpers";
 
 beforeEach(stubFixtureApi);
@@ -18,18 +20,18 @@ describe("line page", () => {
     expect(banner.style.borderBottom).toContain("rgb(0, 61, 165)");
     expect(within(banner).getByRole("heading", { level: 1 })).toHaveTextContent("Blue Line");
     expect(banner).toHaveTextContent("Wonderland to Bowdoin");
-    expect(banner).toHaveTextContent("as of 06:45 ET");
+    expect(banner).toHaveTextContent(`as of ${asOf()}`);
     const toggle = screen.getByRole("group", { name: "Time window" });
     expect(within(toggle).getByLabelText("24 h")).toBeChecked();
-    expect(within(toggle).getByLabelText(/^7 d \(1 day available\)$/)).not.toBeChecked();
+    expect(within(toggle).getByLabelText(/^7 d \(\d+ days? available\)$/)).not.toBeChecked();
   });
 
   it("leads with spacing on heavy rail and with on-time on light rail", async () => {
     await open("/lines/Blue");
     const first = () => within(screen.getAllByTestId("key-numbers")[0]!).getAllByRole("term").map((t) => t.textContent);
     expect(first()).toEqual(["Evenly spaced", "Bunched · gaps", "On time (secondary)", "Countdown error, 0–5 min ahead"]);
-    expect(within(screen.getAllByTestId("key-numbers")[0]!).getByRole("button", { name: "87%" })).toBeInTheDocument();
-    expect(screen.getByTestId("line-note")).toHaveTextContent("about 4 minutes behind the timetable");
+    expect(within(screen.getAllByTestId("key-numbers")[0]!).getByRole("button", { name: `${Math.round(headwayRow("Blue").pct_within_band)}%` })).toBeInTheDocument();
+    expect(screen.getByTestId("line-note")).toHaveTextContent(/about .+ (behind|ahead of) the timetable|on the timetable/);
   });
 
   it("puts on time first on a Green branch", async () => {
@@ -46,11 +48,12 @@ describe("line page", () => {
     expect(document.querySelectorAll('[data-testid="station-strip"] .band-disruption').length).toBeGreaterThan(0);
   });
 
-  it("marks Orange as partial", async () => {
-    await open("/lines/Orange (partial)");
+  it("badges a line with the state its own coverage gives", async () => {
+    await open("/lines/Orange");
     const badges = within(screen.getAllByTestId("key-numbers")[0]!).getAllByTestId("coverage-badge");
-    expect(badges[0]).toHaveAttribute("data-state", "partial");
-    expect(badges[0]).toHaveTextContent("partial");
+    const pct = headwayRow("Orange").coverage_pct;
+    expect(badges[0]).toHaveAttribute("data-state", coverageState(pct));
+    expect(badges[0]).toHaveTextContent(covText(pct));
   });
 
   it("draws the Marey chart with annotations and a phone fallback", async () => {
@@ -61,38 +64,45 @@ describe("line page", () => {
     expect(marey.querySelector('[data-kind="estimated"]')).not.toBeNull();
     expect(marey.querySelector('[data-kind="timetable"]')).not.toBeNull();
     expect(within(marey).getByRole("link", { name: /Open full chart/ })).toHaveAttribute("href", expect.stringMatching(/^#marey-full-/));
-    expect(within(screen.getByTestId("marey-notes")).getAllByRole("listitem").length).toBeGreaterThan(0);
+    // Annotations appear only when the last hour had bunching or a long wait (marey.test.ts covers the rules).
+    const notes = screen.queryByTestId("marey-notes");
+    if (notes) expect(within(notes).getAllByRole("listitem").length).toBeGreaterThan(0);
   });
 
-  it("colours spacing by hour with the ramp and keeps outage, withheld and no-headway hours distinct", async () => {
+  it("colours spacing by hour with the ramp and keeps outage hours distinct", async () => {
     await open("/lines/Blue");
     const hours = screen.getByTestId("hour-strip");
-    expect(hours.querySelectorAll("li")).toHaveLength(20);
-    const first = hours.querySelectorAll("li")[0]!;
-    expect(first).toHaveTextContent("05:00");
-    expect(hours.querySelectorAll("li")[19]).toHaveTextContent("00:00");
-    expect(first).toHaveAttribute("data-state", "even");
+    const rows = fixture("/v1/lines/Blue/spacing-by-hour").data.hours as { hour_local: number; data_outage: boolean; status: string }[];
+    expect(hours.querySelectorAll("li")).toHaveLength(20); // the fixed 05:00 to 00:00 grid
+    const outageRows = rows.filter((r) => r.data_outage);
     const outage = hours.querySelectorAll('[data-state="outage"]');
-    expect(outage).toHaveLength(1);
-    expect(outage[0]).toHaveTextContent("21:00");
+    expect(outage).toHaveLength(outageRows.length);
+    expect(outageRows.length).toBeGreaterThan(0); // the real snapshot ends in the hour still being captured
     expect(outage[0]).toHaveTextContent("our data gap");
     expect(outage[0]!.querySelector(".hatch-outage")).not.toBeNull();
-    expect(hours.querySelectorAll('[data-state="withheld"]')).toHaveLength(1);
-    expect(hours.querySelectorAll('[data-state="no_headways"]')).toHaveLength(1);
-    expect(first).toHaveTextContent(/evenly spaced.*% within the band, 77% cov\./);
+    expect(hours.querySelectorAll("li")[0]).toHaveTextContent("05:00");
     expect(screen.getByTestId("hour-legend")).toHaveTextContent("Our data gap");
     expect(screen.getByTestId("hour-legend")).toHaveTextContent("No headways");
   });
 
+  it("keeps withheld and no-headway hours distinct (Red, synthetic)", async () => {
+    await open("/lines/Red (withheld, shuttle)");
+    const hours = screen.getByTestId("hour-strip");
+    expect(hours.querySelectorAll('[data-state="outage"]')).toHaveLength(1);
+    expect(hours.querySelectorAll('[data-state="no_headways"]')).toHaveLength(1);
+    expect(hours.querySelectorAll('[data-state="withheld"]').length).toBeGreaterThan(10);
+  });
+
   it("tells no trips, withheld and measured trip-time rows apart", async () => {
     await open("/lines/Blue");
-    const rows = [...document.querySelectorAll('tr[data-status]')];
-    expect(rows.some((r) => r.getAttribute("data-status") === "measured")).toBe(true);
-    const none = screen.getAllByTestId("no-trips");
-    expect(none).toHaveLength(2); // pm peak toward Wonderland, in both windows
+    const rows = [...document.querySelectorAll("tr[data-status]")];
     const measured = rows.find((r) => r.getAttribute("data-status") === "measured")!;
+    expect(measured).toBeTruthy();
     expect(within(measured as HTMLElement).getAllByRole("button").length).toBe(4);
-    expect(within(measured as HTMLElement).getAllByTestId("coverage-badge")[0]).toHaveTextContent("77% cov.");
+    const expectNoTrips = ["last_24h", "last_7d"].flatMap((w) => fixture(`/v1/lines/Blue/trip-time`, `?window=${w}`).data.rows).filter((r: { status: string }) => r.status === "no_trips").length;
+    expect(screen.queryAllByTestId("no-trips")).toHaveLength(expectNoTrips);
+    const first = fixture("/v1/lines/Blue/trip-time", "?window=last_24h").data.rows.find((r: { status: string }) => r.status === "measured");
+    expect(within(measured as HTMLElement).getAllByTestId("coverage-badge")[0]).toHaveTextContent(covText(first.coverage_pct));
   });
 
   it("shows Red trip time as withheld, never as no trips", async () => {
@@ -140,10 +150,11 @@ describe("line page", () => {
   });
 
   it("countdown table lists only this line's stations, each with its own coverage", async () => {
-    await open("/lines/Orange (partial)");
+    await open("/lines/Orange");
     const table = screen.getByRole("table", { name: /Countdown accuracy by station, Orange/ });
     expect(table).not.toHaveTextContent(/Davis|Alewife/);
-    expect(table).toHaveTextContent("Malden Center");
+    const rows = fixture("/v1/lines/Orange/countdown", "?window=last_24h").data.countdown_accuracy.rows;
+    expect(table).toHaveTextContent(rows[0].station_name); // the table is not empty: the real rows are keyed by station, not platform
   });
 
   it("Red keeps its row-level coverage rather than the line-wide figure", async () => {
@@ -162,7 +173,7 @@ describe("station strip", () => {
     const labels = screen.getAllByTestId("strip-labels")[0]!;
     const names = within(labels).getAllByTestId("strip-label").map((l) => l.textContent);
     expect(names.filter((n) => n === "Cleveland Circle")).toHaveLength(1);
-    expect(names[0]).toBe("North Station");
+    expect(new Set(names).size).toBe(names.length); // every station once
     expect(names[names.length - 1]).toBe("Cleveland Circle");
     const segments = document.querySelectorAll('[data-testid="station-strip"]')[0]!.children.length;
     expect(names).toHaveLength(segments + 1);

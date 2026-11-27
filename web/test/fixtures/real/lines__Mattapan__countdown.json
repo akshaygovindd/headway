@@ -1,0 +1,426 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 76.7,
+   "min_coverage_pct": 5.9,
+   "rows": 32,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 7
+  },
+  "data": {
+   "countdown_accuracy": {
+    "label": "Countdown accuracy of MBTA's published predictions by station",
+    "metrics_md": "release-2-metrics-shared-rules",
+    "rows": [
+     {
+      "countdown_min": 1,
+      "coverage_pct": 7.1,
+      "line": "Mattapan",
+      "n_observations": 12,
+      "pct_within_120s": null,
+      "pct_within_60s": null,
+      "station_id": "place-asmnl",
+      "station_name": "Ashmont",
+      "window": "last_24h",
+      "withheld_reason": "coverage 7.1% is below 50%"
+     },
+     {
+      "countdown_min": 3,
+      "coverage_pct": 6.5,
+      "line": "Mattapan",
+      "n_observations": 11,
+      "pct_within_120s": null,
+      "pct_within_60s": null,
+      "station_id": "place-asmnl",
+      "station_name": "Ashmont",
+      "window": "last_24h",
+      "withheld_reason": "coverage 6.5% is below 50%"
+     },
+     {
+      "countdown_min": 5,
+      "coverage_pct": 6.5,
+      "line": "Mattapan",
+      "n_observations": 11,
+      "pct_within_120s": null,
+      "pct_within_60s": null,
+      "station_id": "place-asmnl",
+      "station_name": "Ashmont",
+      "window": "last_24h",
+      "withheld_reason": "coverage 6.5% is below 50%"
+     },
+     {
+      "countdown_min": 10,
+      "coverage_pct": 5.9,
+      "line": "Mattapan",
+      "n_observations": 10,
+      "pct_within_120s": null,
+      "pct_within_60s": null,
+      "station_id": "place-asmnl",
+      "station_name": "Ashmont",
+      "window": "last_24h",
+      "withheld_reason": "coverage 5.9% is below 50%"
+     },
+     {
+      "countdown_min": 1,
+      "coverage_pct": 96.5,
+      "line": "Mattapan",
+      "n_observations": 164,
+      "pct_within_120s": 100.0,
+      "pct_within_60s": 100.0,
+      "station_id": "place-butlr",
+      "station_name": "Butler",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 3,
+      "coverage_pct": 89.4,
+      "line": "Mattapan",
+      "n_observations": 152,
+      "pct_within_120s": 96.05,
+      "pct_within_60s": 80.26,
+      "station_id": "place-butlr",
+      "station_name": "Butler",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 5,
+      "coverage_pct": 91.2,
+      "line": "Mattapan",
+      "n_observations": 155,
+      "pct_within_120s": 79.35,
+      "pct_within_60s": 49.03,
+      "station_id": "place-butlr",
+      "station_name": "Butler",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 10,
+      "coverage_pct": 94.1,
+      "line": "Mattapan",
+      "n_observations": 160,
+      "pct_within_120s": 68.13,
+      "pct_within_60s": 31.25,
+      "station_id": "place-butlr",
+      "station_name": "Butler",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 1,
+      "coverage_pct": 82.9,
+      "line": "Mattapan",
+      "n_observations": 141,
+      "pct_within_120s": 92.91,
+      "pct_within_60s": 84.4,
+      "station_id": "place-capst",
+      "station_name": "Capen Street",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 3,
+      "coverage_pct": 90.6,
+      "line": "Mattapan",
+      "n_observations": 154,
+      "pct_within_120s": 91.56,
+      "pct_within_60s": 77.92,
+      "station_id": "place-capst",
+      "station_name": "Capen Street",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 5,
+      "coverage_pct": 91.2,
+      "line": "Mattapan",
+      "n_observations": 155,
+      "pct_within_120s": 89.68,
+      "pct_within_60s": 66.45,
+      "station_id": "place-capst",
+      "station_name": "Capen Street",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 10,
+      "coverage_pct": 90.6,
+      "line": "Mattapan",
+      "n_observations": 154,
+      "pct_within_120s": 73.38,
+      "pct_within_60s": 48.05,
+      "station_id": "place-capst",
+      "station_name": "Capen Street",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 1,
+      "coverage_pct": 90.6,
+      "line": "Mattapan",
+      "n_observations": 154,
+      "pct_within_120s": 100.0,
+      "pct_within_60s": 98.7,
+      "station_id": "place-cedgr",
+      "station_name": "Cedar Grove",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 3,
+      "coverage_pct": 94.7,
+      "line": "Mattapan",
+      "n_observations": 161,
+      "pct_within_120s": 95.65,
+      "pct_within_60s": 78.88,
+      "station_id": "place-cedgr",
+      "station_name": "Cedar Grove",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 5,
+      "coverage_pct": 95.3,
+      "line": "Mattapan",
+      "n_observations": 162,
+      "pct_within_120s": 90.74,
+      "pct_within_60s": 66.05,
+      "station_id": "place-cedgr",
+      "station_name": "Cedar Grove",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 10,
+      "coverage_pct": 90.0,
+      "line": "Mattapan",
+      "n_observations": 153,
+      "pct_within_120s": 58.17,
+      "pct_within_60s": 26.8,
+      "station_id": "place-cedgr",
+      "station_name": "Cedar Grove",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 1,
+      "coverage_pct": 97.6,
+      "line": "Mattapan",
+      "n_observations": 166,
+      "pct_within_120s": 99.4,
+      "pct_within_60s": 98.8,
+      "station_id": "place-cenav",
+      "station_name": "Central Avenue",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 3,
+      "coverage_pct": 90.0,
+      "line": "Mattapan",
+      "n_observations": 153,
+      "pct_within_120s": 90.2,
+      "pct_within_60s": 71.9,
+      "station_id": "place-cenav",
+      "station_name": "Central Avenue",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 5,
+      "coverage_pct": 90.6,
+      "line": "Mattapan",
+      "n_observations": 154,
+      "pct_within_120s": 83.77,
+      "pct_within_60s": 55.19,
+      "station_id": "place-cenav",
+      "station_name": "Central Avenue",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 10,
+      "coverage_pct": 94.7,
+      "line": "Mattapan",
+      "n_observations": 161,
+      "pct_within_120s": 75.78,
+      "pct_within_60s": 39.75,
+      "station_id": "place-cenav",
+      "station_name": "Central Avenue",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 1,
+      "coverage_pct": 49.4,
+      "line": "Mattapan",
+      "n_observations": 84,
+      "pct_within_120s": null,
+      "pct_within_60s": null,
+      "station_id": "place-matt",
+      "station_name": "Mattapan",
+      "window": "last_24h",
+      "withheld_reason": "coverage 49.4% is below 50%"
+     },
+     {
+      "countdown_min": 3,
+      "coverage_pct": 48.8,
+      "line": "Mattapan",
+      "n_observations": 83,
+      "pct_within_120s": null,
+      "pct_within_60s": null,
+      "station_id": "place-matt",
+      "station_name": "Mattapan",
+      "window": "last_24h",
+      "withheld_reason": "coverage 48.8% is below 50%"
+     },
+     {
+      "countdown_min": 5,
+      "coverage_pct": 50.0,
+      "line": "Mattapan",
+      "n_observations": 85,
+      "pct_within_120s": 97.65,
+      "pct_within_60s": 77.65,
+      "station_id": "place-matt",
+      "station_name": "Mattapan",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 10,
+      "coverage_pct": 49.4,
+      "line": "Mattapan",
+      "n_observations": 84,
+      "pct_within_120s": null,
+      "pct_within_60s": null,
+      "station_id": "place-matt",
+      "station_name": "Mattapan",
+      "window": "last_24h",
+      "withheld_reason": "coverage 49.4% is below 50%"
+     },
+     {
+      "countdown_min": 1,
+      "coverage_pct": 97.6,
+      "line": "Mattapan",
+      "n_observations": 166,
+      "pct_within_120s": 100.0,
+      "pct_within_60s": 100.0,
+      "station_id": "place-miltt",
+      "station_name": "Milton",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 3,
+      "coverage_pct": 95.3,
+      "line": "Mattapan",
+      "n_observations": 162,
+      "pct_within_120s": 95.68,
+      "pct_within_60s": 83.95,
+      "station_id": "place-miltt",
+      "station_name": "Milton",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 5,
+      "coverage_pct": 93.5,
+      "line": "Mattapan",
+      "n_observations": 159,
+      "pct_within_120s": 82.39,
+      "pct_within_60s": 48.43,
+      "station_id": "place-miltt",
+      "station_name": "Milton",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 10,
+      "coverage_pct": 94.7,
+      "line": "Mattapan",
+      "n_observations": 161,
+      "pct_within_120s": 70.81,
+      "pct_within_60s": 33.54,
+      "station_id": "place-miltt",
+      "station_name": "Milton",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 1,
+      "coverage_pct": 94.1,
+      "line": "Mattapan",
+      "n_observations": 159,
+      "pct_within_120s": 96.23,
+      "pct_within_60s": 91.19,
+      "station_id": "place-valrd",
+      "station_name": "Valley Road",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 3,
+      "coverage_pct": 94.1,
+      "line": "Mattapan",
+      "n_observations": 159,
+      "pct_within_120s": 90.57,
+      "pct_within_60s": 76.73,
+      "station_id": "place-valrd",
+      "station_name": "Valley Road",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 5,
+      "coverage_pct": 95.3,
+      "line": "Mattapan",
+      "n_observations": 161,
+      "pct_within_120s": 88.2,
+      "pct_within_60s": 63.35,
+      "station_id": "place-valrd",
+      "station_name": "Valley Road",
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "countdown_min": 10,
+      "coverage_pct": 97.0,
+      "line": "Mattapan",
+      "n_observations": 164,
+      "pct_within_120s": 73.17,
+      "pct_within_60s": 45.73,
+      "station_id": "place-valrd",
+      "station_name": "Valley Road",
+      "window": "last_24h",
+      "withheld_reason": null
+     }
+    ],
+    "table": "agg_countdown_accuracy_window"
+   },
+   "line": "Mattapan",
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Countdown accuracy of MBTA's published predictions by station",
+   "metrics_md": "docs/METRICS.md#release-2-metrics-shared-rules",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select line, station_id, station_name, countdown_min, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_60s end, 2) as pct_within_60s, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_120s end, 2) as pct_within_120s, n as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_countdown_accuracy_window.parquet') where window_label = 'last_24h' and line = 'Mattapan' order by line, station_id, station_name, countdown_min limit 501"
+   ],
+   "tables": [
+    "agg_countdown_accuracy_window"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Mattapan/countdown",
+ "status": 200
+}

@@ -1,0 +1,52 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/lines/Red/headways",
+ "status": 200,
+ "body": {
+  "data": {
+   "line": "Red",
+   "window": "last_24h",
+   "headway_adherence": {
+    "table": "agg_headway_window",
+    "label": "Headways within the band, bunched and gaps",
+    "metrics_md": "8-headway-adherence-release-2",
+    "rows": [
+     {
+      "line": "Red",
+      "window": "last_24h",
+      "pct_within_band": null,
+      "pct_bunched": null,
+      "pct_gap": null,
+      "median_ratio": null,
+      "p90_ratio": null,
+      "n_observations": 412,
+      "coverage_pct": 35,
+      "withheld_reason": "coverage 35% is below 50%"
+     }
+    ]
+   }
+  },
+  "coverage": {
+   "rows": 1,
+   "mean_coverage_pct": 88.2,
+   "min_coverage_pct": 88.2,
+   "withheld_rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "freshness": {
+   "exported_at": "2026-11-24T12:00:00Z",
+   "metrics_as_of": "2026-11-24T11:45:00Z",
+   "age_minutes": 12
+  },
+  "provenance": {
+   "tables": [
+    "agg_headway_window"
+   ],
+   "definition": "Headways within the band, bunched and gaps",
+   "metrics_md": "docs/METRICS.md#8-headway-adherence-release-2",
+   "row_limit": 500,
+   "truncated": false,
+   "served_from": "remote"
+  }
+ }
+}

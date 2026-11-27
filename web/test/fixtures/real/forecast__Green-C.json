@@ -1,0 +1,196 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 0.0,
+   "min_coverage_pct": 0.0,
+   "rows": 6,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "horizons": [
+    {
+     "daytype_hour": 80.9,
+     "daytype_hour_coverage_pct": 100.0,
+     "direction_id": 0,
+     "forecast_status": "baselines_only",
+     "horizon_min": 15,
+     "mbta_reference": -11.1,
+     "mbta_reference_coverage_pct": 96.6,
+     "model_forecast_s": null,
+     "model_forecast_s_coverage_pct": 0.0,
+     "model_version": null,
+     "n_trips": 29,
+     "persistence": null,
+     "persistence_coverage_pct": 48.3,
+     "prediction_ts": "2026-11-26 19:30:00-05",
+     "rolling_median_60m": -5.5,
+     "rolling_median_60m_coverage_pct": 100.0,
+     "status_reason": "no approved model for this line",
+     "withheld_reasons": {
+      "model_forecast_s": "coverage 0% is below 50%",
+      "persistence": "coverage 48.3% is below 50%"
+     }
+    },
+    {
+     "daytype_hour": 80.9,
+     "daytype_hour_coverage_pct": 100.0,
+     "direction_id": 0,
+     "forecast_status": "baselines_only",
+     "horizon_min": 30,
+     "mbta_reference": -60.2,
+     "mbta_reference_coverage_pct": 93.3,
+     "model_forecast_s": null,
+     "model_forecast_s_coverage_pct": 0.0,
+     "model_version": null,
+     "n_trips": 30,
+     "persistence": null,
+     "persistence_coverage_pct": 6.7,
+     "prediction_ts": "2026-11-26 19:30:00-05",
+     "rolling_median_60m": -5.5,
+     "rolling_median_60m_coverage_pct": 100.0,
+     "status_reason": "no approved model for this line",
+     "withheld_reasons": {
+      "model_forecast_s": "coverage 0% is below 50%",
+      "persistence": "coverage 6.7% is below 50%"
+     }
+    },
+    {
+     "daytype_hour": 80.9,
+     "daytype_hour_coverage_pct": 100.0,
+     "direction_id": 0,
+     "forecast_status": "baselines_only",
+     "horizon_min": 60,
+     "mbta_reference": null,
+     "mbta_reference_coverage_pct": 33.3,
+     "model_forecast_s": null,
+     "model_forecast_s_coverage_pct": 0.0,
+     "model_version": null,
+     "n_trips": 24,
+     "persistence": null,
+     "persistence_coverage_pct": 0.0,
+     "prediction_ts": "2026-11-26 19:30:00-05",
+     "rolling_median_60m": -5.5,
+     "rolling_median_60m_coverage_pct": 100.0,
+     "status_reason": "no approved model for this line",
+     "withheld_reasons": {
+      "mbta_reference": "coverage 33.3% is below 50%",
+      "model_forecast_s": "coverage 0% is below 50%",
+      "persistence": "coverage 0% is below 50%"
+     }
+    },
+    {
+     "daytype_hour": 80.9,
+     "daytype_hour_coverage_pct": 100.0,
+     "direction_id": 1,
+     "forecast_status": "baselines_only",
+     "horizon_min": 15,
+     "mbta_reference": null,
+     "mbta_reference_coverage_pct": 32.1,
+     "model_forecast_s": null,
+     "model_forecast_s_coverage_pct": 0.0,
+     "model_version": null,
+     "n_trips": 28,
+     "persistence": null,
+     "persistence_coverage_pct": 32.1,
+     "prediction_ts": "2026-11-26 19:30:00-05",
+     "rolling_median_60m": -5.5,
+     "rolling_median_60m_coverage_pct": 100.0,
+     "status_reason": "no approved model for this line",
+     "withheld_reasons": {
+      "mbta_reference": "coverage 32.1% is below 50%",
+      "model_forecast_s": "coverage 0% is below 50%",
+      "persistence": "coverage 32.1% is below 50%"
+     }
+    },
+    {
+     "daytype_hour": 80.9,
+     "daytype_hour_coverage_pct": 100.0,
+     "direction_id": 1,
+     "forecast_status": "baselines_only",
+     "horizon_min": 30,
+     "mbta_reference": null,
+     "mbta_reference_coverage_pct": 3.8,
+     "model_forecast_s": null,
+     "model_forecast_s_coverage_pct": 0.0,
+     "model_version": null,
+     "n_trips": 26,
+     "persistence": null,
+     "persistence_coverage_pct": 3.8,
+     "prediction_ts": "2026-11-26 19:30:00-05",
+     "rolling_median_60m": -5.5,
+     "rolling_median_60m_coverage_pct": 100.0,
+     "status_reason": "no approved model for this line",
+     "withheld_reasons": {
+      "mbta_reference": "coverage 3.8% is below 50%",
+      "model_forecast_s": "coverage 0% is below 50%",
+      "persistence": "coverage 3.8% is below 50%"
+     }
+    },
+    {
+     "daytype_hour": 80.9,
+     "daytype_hour_coverage_pct": 100.0,
+     "direction_id": 1,
+     "forecast_status": "baselines_only",
+     "horizon_min": 60,
+     "mbta_reference": null,
+     "mbta_reference_coverage_pct": 0.0,
+     "model_forecast_s": null,
+     "model_forecast_s_coverage_pct": 0.0,
+     "model_version": null,
+     "n_trips": 31,
+     "persistence": null,
+     "persistence_coverage_pct": 0.0,
+     "prediction_ts": "2026-11-26 19:30:00-05",
+     "rolling_median_60m": -5.5,
+     "rolling_median_60m_coverage_pct": 100.0,
+     "status_reason": "no approved model for this line",
+     "withheld_reasons": {
+      "mbta_reference": "coverage 0% is below 50%",
+      "model_forecast_s": "coverage 0% is below 50%",
+      "persistence": "coverage 0% is below 50%"
+     }
+    }
+   ],
+   "line": "Green-C",
+   "model_version": null,
+   "prediction_ts": "2026-11-26 19:30:00-05",
+   "status": "baselines_only",
+   "status_reason": "no approved model for this line",
+   "training_gate": [
+    {
+     "gate_passed": false,
+     "line": "Green-C",
+     "min_days": 21,
+     "min_weekend_days": 3,
+     "n_days": 5,
+     "n_weekend_days": 1,
+     "source": "transform_build"
+    }
+   ],
+   "unit": "seconds of delay against the schedule, trip-weighted"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Next-hour delay forecasts: model (when approved) and baselines",
+   "metrics_md": "docs/METRICS.md#release-3-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select direction_id, horizon_min, cast(any_value(prediction_ts) as varchar) as prediction_ts, sum(n_trips) as n_trips, round(case when 100.0 * sum(n_model) / nullif(sum(n_trips), 0) >= 50 then sum(model_forecast_s * n_model) / nullif(sum(n_model), 0) end, 1) as model_forecast_s, round(100.0 * sum(n_model) / nullif(sum(n_trips), 0), 1) as model_forecast_s_coverage_pct, round(case when 100.0 * sum(n_persistence) / nullif(sum(n_trips), 0) >= 50 then sum(persistence * n_persistence) / nullif(sum(n_persistence), 0) end, 1) as persistence, round(100.0 * sum(n_persistence) / nullif(sum(n_trips), 0), 1) as persistence_coverage_pct, round(case when 100.0 * sum(n_daytype_hour) / nullif(sum(n_trips), 0) >= 50 then sum(daytype_hour * n_daytype_hour) / nullif(sum(n_daytype_hour), 0) end, 1) as daytype_hour, round(100.0 * sum(n_daytype_hour) / nullif(sum(n_trips), 0), 1) as daytype_hour_coverage_pct, round(case when 100.0 * sum(n_rolling_median_60m) / nullif(sum(n_trips), 0) >= 50 then sum(rolling_median_60m * n_rolling_median_60m) / nullif(sum(n_rolling_median_60m), 0) end, 1) as rolling_median_60m, round(100.0 * sum(n_rolling_median_60m) / nullif(sum(n_trips), 0), 1) as rolling_median_60m_coverage_pct, round(case when 100.0 * sum(n_mbta_reference) / nullif(sum(n_trips), 0) >= 50 then sum(mbta_reference * n_mbta_reference) / nullif(sum(n_mbta_reference), 0) end, 1) as mbta_reference, round(100.0 * sum(n_mbta_reference) / nullif(sum(n_trips), 0), 1) as mbta_reference_coverage_pct, any_value(forecast_status) as forecast_status, any_value(status_reason) as status_reason, any_value(model_version) as model_version from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_forecast_next_hour.parquet') where line = 'Green-C' and prediction_ts = (select max(prediction_ts) from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_forecast_next_hour.parquet') where line = 'Green-C') group by direction_id, horizon_min order by direction_id, horizon_min limit 501",
+    "select line, n_days, n_weekend_days, min_days, min_weekend_days, gate_passed, \"source\" from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_forecast_gate_status.parquet') where line = 'Green-C'"
+   ],
+   "tables": [
+    "agg_forecast_next_hour",
+    "agg_forecast_gate_status"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/forecast/Green-C",
+ "status": 200
+}

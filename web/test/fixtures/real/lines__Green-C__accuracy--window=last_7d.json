@@ -1,0 +1,94 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 61.5,
+   "min_coverage_pct": 49.2,
+   "rows": 4,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 1
+  },
+  "data": {
+   "line": "Green-C",
+   "prediction_accuracy": {
+    "label": "Accuracy of MBTA's published predictions by horizon bucket",
+    "metrics_md": "release-2-metrics-shared-rules",
+    "rows": [
+     {
+      "coverage_pct": 73.5,
+      "horizon_bucket": "0-5",
+      "line": "Green-C",
+      "mae_s": 27.77,
+      "median_abs_error_s": 22.0,
+      "n_observations": 15940,
+      "p90_abs_error_s": 55.48,
+      "pct_within_120s": 98.77,
+      "pct_within_60s": 92.48,
+      "window": "last_7d",
+      "withheld_reason": null
+     },
+     {
+      "coverage_pct": 64.2,
+      "horizon_bucket": "5-10",
+      "line": "Green-C",
+      "mae_s": 71.32,
+      "median_abs_error_s": 56.5,
+      "n_observations": 13919,
+      "p90_abs_error_s": 144.5,
+      "pct_within_120s": 84.43,
+      "pct_within_60s": 53.11,
+      "window": "last_7d",
+      "withheld_reason": null
+     },
+     {
+      "coverage_pct": 58.9,
+      "horizon_bucket": "10-20",
+      "line": "Green-C",
+      "mae_s": 106.2,
+      "median_abs_error_s": 80.0,
+      "n_observations": 12774,
+      "p90_abs_error_s": 222.83,
+      "pct_within_120s": 68.34,
+      "pct_within_60s": 38.87,
+      "window": "last_7d",
+      "withheld_reason": null
+     },
+     {
+      "coverage_pct": 49.2,
+      "horizon_bucket": "20-30",
+      "line": "Green-C",
+      "mae_s": null,
+      "median_abs_error_s": null,
+      "n_observations": 10667,
+      "p90_abs_error_s": null,
+      "pct_within_120s": null,
+      "pct_within_60s": null,
+      "window": "last_7d",
+      "withheld_reason": "coverage 49.2% is below 50%"
+     }
+    ],
+    "table": "agg_accuracy_window"
+   },
+   "window": "last_7d"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Accuracy of MBTA's published predictions by horizon bucket",
+   "metrics_md": "docs/METRICS.md#release-2-metrics-shared-rules",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select line, horizon_bucket, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then median_abs_error_s end, 2) as median_abs_error_s, round(case when coalesce(coverage_pct, 0) >= 50 then p90_abs_error_s end, 2) as p90_abs_error_s, round(case when coalesce(coverage_pct, 0) >= 50 then mae_s end, 2) as mae_s, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_60s end, 2) as pct_within_60s, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_120s end, 2) as pct_within_120s, n as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_accuracy_window.parquet') where window_label = 'last_7d' and line = 'Green-C' order by line, try_cast(split_part(horizon_bucket, '-', 1) as integer), horizon_bucket limit 501"
+   ],
+   "tables": [
+    "agg_accuracy_window"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Green-C/accuracy?window=last_7d",
+ "status": 200
+}

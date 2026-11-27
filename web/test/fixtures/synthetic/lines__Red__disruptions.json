@@ -1,0 +1,78 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/lines/Red/disruptions",
+ "status": 200,
+ "body": {
+  "data": {
+   "line": "Red",
+   "window": "last_24h",
+   "rows": [
+    {
+     "alert_id": "a1",
+     "effect": "SHUTTLE",
+     "header_text": "Shuttle buses replace Red Line trains between Broadway and North Quincy",
+     "first_seen": "2026-11-23T20:10:00Z",
+     "last_seen": "2026-11-24T11:40:00Z",
+     "is_active": true,
+     "n_stations": 4,
+     "from_station_name": "Broadway",
+     "to_station_name": "North Quincy",
+     "segments": [
+      {
+       "direction_id": 0,
+       "from_stop_id": "place-broadway",
+       "to_stop_id": "place-andrew"
+      },
+      {
+       "direction_id": 0,
+       "from_stop_id": "place-andrew",
+       "to_stop_id": "place-jfkumass"
+      },
+      {
+       "direction_id": 0,
+       "from_stop_id": "place-jfkumass",
+       "to_stop_id": "place-northquincy"
+      },
+      {
+       "direction_id": 1,
+       "from_stop_id": "place-northquincy",
+       "to_stop_id": "place-jfkumass"
+      },
+      {
+       "direction_id": 1,
+       "from_stop_id": "place-jfkumass",
+       "to_stop_id": "place-andrew"
+      },
+      {
+       "direction_id": 1,
+       "from_stop_id": "place-andrew",
+       "to_stop_id": "place-broadway"
+      }
+     ]
+    }
+   ]
+  },
+  "coverage": {
+   "rows": 1,
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "withheld_rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "freshness": {
+   "exported_at": "2026-11-24T12:00:00Z",
+   "metrics_as_of": "2026-11-24T11:45:00Z",
+   "age_minutes": 12
+  },
+  "provenance": {
+   "tables": [
+    "agg_service_disruptions"
+   ],
+   "definition": "disruption-alerts-agg_service_disruptions",
+   "metrics_md": "docs/METRICS.md#disruption-alerts-agg_service_disruptions",
+   "row_limit": 500,
+   "truncated": false,
+   "served_from": "remote"
+  }
+ }
+}

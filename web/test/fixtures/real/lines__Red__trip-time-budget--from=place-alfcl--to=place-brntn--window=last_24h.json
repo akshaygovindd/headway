@@ -1,0 +1,128 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 0.0,
+   "min_coverage_pct": 0.0,
+   "rows": 5,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "from_station": {
+    "id": "place-alfcl",
+    "name": "Alewife"
+   },
+   "line": "Red",
+   "min_trips": 20,
+   "rows": [
+    {
+     "buffer_time_index": null,
+     "coverage_pct": 0.0,
+     "direction_id": 0,
+     "median_s": null,
+     "n_disruption": 0,
+     "n_excluded_outage": 0,
+     "n_implausible": 0,
+     "n_scheduled_trips": 12,
+     "n_trips": 0,
+     "no_trips_reason": "no trips measured: 12 scheduled, none with usable arrivals at both stations",
+     "p95_s": null,
+     "status": "no_trips",
+     "time_band": "am_peak",
+     "withheld_reason": null
+    },
+    {
+     "buffer_time_index": null,
+     "coverage_pct": 0.0,
+     "direction_id": 0,
+     "median_s": null,
+     "n_disruption": 0,
+     "n_excluded_outage": 0,
+     "n_implausible": 0,
+     "n_scheduled_trips": 32,
+     "n_trips": 0,
+     "no_trips_reason": "no trips measured: 32 scheduled, none with usable arrivals at both stations",
+     "p95_s": null,
+     "status": "no_trips",
+     "time_band": "midday",
+     "withheld_reason": null
+    },
+    {
+     "buffer_time_index": null,
+     "coverage_pct": 0.0,
+     "direction_id": 0,
+     "median_s": null,
+     "n_disruption": 0,
+     "n_excluded_outage": 2,
+     "n_implausible": 0,
+     "n_scheduled_trips": 13,
+     "n_trips": 0,
+     "no_trips_reason": "no trips measured: 13 scheduled, none with usable arrivals at both stations",
+     "p95_s": null,
+     "status": "no_trips",
+     "time_band": "pm_peak",
+     "withheld_reason": null
+    },
+    {
+     "buffer_time_index": null,
+     "coverage_pct": 0.0,
+     "direction_id": 0,
+     "median_s": null,
+     "n_disruption": 0,
+     "n_excluded_outage": 3,
+     "n_implausible": 0,
+     "n_scheduled_trips": 22,
+     "n_trips": 0,
+     "no_trips_reason": "no trips measured: 22 scheduled, none with usable arrivals at both stations",
+     "p95_s": null,
+     "status": "no_trips",
+     "time_band": "evening",
+     "withheld_reason": null
+    },
+    {
+     "buffer_time_index": null,
+     "coverage_pct": 0.0,
+     "direction_id": 0,
+     "median_s": null,
+     "n_disruption": 0,
+     "n_excluded_outage": 0,
+     "n_implausible": 0,
+     "n_scheduled_trips": 4,
+     "n_trips": 0,
+     "no_trips_reason": "no trips measured: 4 scheduled, none with usable arrivals at both stations",
+     "p95_s": null,
+     "status": "no_trips",
+     "time_band": "other",
+     "withheld_reason": null
+    }
+   ],
+   "to_station": {
+    "id": "place-brntn",
+    "name": "Braintree"
+   },
+   "unit": "seconds",
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Travel time between two stations: median, 95th percentile and buffer time index per time band",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select distinct id, name from (select from_station_id as id, from_station_name as name from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_trip_time_budget.parquet') where line = 'Red' union all select to_station_id, to_station_name from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_trip_time_budget.parquet') where line = 'Red') order by name, id",
+    "select direction_id, time_band, n_trips, n_scheduled_trips, n_excluded_outage, n_implausible, n_disruption, round(case when coalesce(coverage_pct, 0) >= 50 and n_trips >= 20 then median_s end, 1) as median_s, round(case when coalesce(coverage_pct, 0) >= 50 and n_trips >= 20 then p95_s end, 1) as p95_s, round(case when coalesce(coverage_pct, 0) >= 50 and n_trips >= 20 then buffer_time_index end, 3) as buffer_time_index, round(coverage_pct, 1) as coverage_pct from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_trip_time_budget.parquet') where line = 'Red' and window_label = 'last_24h' and from_station_id = 'place-alfcl' and to_station_id = 'place-brntn' order by direction_id, case time_band when 'am_peak' then 0 when 'midday' then 1 when 'pm_peak' then 2 when 'evening' then 3 when 'other' then 4 else 9 end, time_band limit 501"
+   ],
+   "tables": [
+    "agg_trip_time_budget"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Red/trip-time-budget?from=place-alfcl&to=place-brntn&window=last_24h",
+ "status": 200
+}

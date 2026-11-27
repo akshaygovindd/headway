@@ -1,0 +1,72 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 83.2,
+   "min_coverage_pct": 77.9,
+   "rows": 2,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "actual_deviation": {
+    "label": "Actual schedule deviation and on-time share",
+    "metrics_md": "7-actual-schedule-deviation-release-2",
+    "rows": [
+     {
+      "coverage_pct": 77.9,
+      "line": "Green-D",
+      "median_deviation_s": 26.0,
+      "n_observations": 4236,
+      "p90_deviation_s": 422.74,
+      "pct_on_time_window": 46.79,
+      "window": "last_24h",
+      "withheld_reason": null
+     }
+    ],
+    "table": "agg_actual_deviation_window"
+   },
+   "line": "Green-D",
+   "predicted_deviation": {
+    "label": "Predicted schedule deviation and prediction revision (last_24h only)",
+    "metrics_md": "1-predicted-schedule-deviation",
+    "rows": [
+     {
+      "coverage_pct": 88.5,
+      "line": "Green-D",
+      "median_abs_revision_s": 8.0,
+      "median_predicted_deviation_s": 21.0,
+      "n_observations": 5029,
+      "p90_predicted_deviation_s": 385.2,
+      "skipped_share": 0.01,
+      "window": "last_24h",
+      "withheld_reason": null
+     }
+    ],
+    "table": "agg_line_reliability_window"
+   },
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Predicted schedule deviation and prediction revision (last_24h only)",
+   "metrics_md": "docs/METRICS.md#1-predicted-schedule-deviation",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select line, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then median_predicted_deviation_s end, 2) as median_predicted_deviation_s, round(case when coalesce(coverage_pct, 0) >= 50 then p90_predicted_deviation_s end, 2) as p90_predicted_deviation_s, round(case when coalesce(coverage_pct, 0) >= 50 then median_abs_revision_s end, 2) as median_abs_revision_s, round(case when coalesce(coverage_pct, 0) >= 50 then skipped_share end, 2) as skipped_share, n_eligible as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_line_reliability_window.parquet') where window_label = 'last_24h' and line = 'Green-D' order by line limit 501",
+    "select line, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then median_deviation_s end, 2) as median_deviation_s, round(case when coalesce(coverage_pct, 0) >= 50 then p90_deviation_s end, 2) as p90_deviation_s, round(case when coalesce(coverage_pct, 0) >= 50 then pct_on_time_window end, 2) as pct_on_time_window, n_arrivals as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_actual_deviation_window.parquet') where window_label = 'last_24h' and line = 'Green-D' order by line limit 501"
+   ],
+   "tables": [
+    "agg_line_reliability_window",
+    "agg_actual_deviation_window"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Green-D/reliability?window=last_24h",
+ "status": 200
+}

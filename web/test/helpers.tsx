@@ -18,7 +18,7 @@ export function stubFixtureApi() {
 export const PAGES: { name: string; load: () => Promise<ReactElement> }[] = [
   { name: "/", load: async () => (await import("@/app/page")).default() },
   { name: "/lines/Red (withheld, shuttle)", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Red" }) }) },
-  { name: "/lines/Orange (partial)", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Orange" }) }) },
+  { name: "/lines/Orange", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Orange" }) }) },
   { name: "/lines/Blue", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Blue" }) }) },
   { name: "/lines/Green-D", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Green-D" }) }) },
   { name: "/lines/Mattapan", load: async () => (await import("@/app/lines/[line]/page")).default({ params: Promise.resolve({ line: "Mattapan" }) }) },

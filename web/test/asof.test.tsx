@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { respond } from "../scripts/mock-api.mjs";
+import { asOf } from "./fixtures";
 import { PAGES, shell, stubFixtureApi } from "./helpers";
 
 beforeEach(stubFixtureApi);
@@ -16,7 +17,7 @@ describe("one shared as-of from /v1/meta", () => {
       render(await shell(await page.load()));
       const el = screen.getAllByTestId("as-of");
       expect(el, page.name).toHaveLength(1);
-      expect(el[0]).toHaveTextContent("Data as of 06:45 ET");
+      expect(el[0]).toHaveTextContent(`Data as of ${asOf()}`);
       seen.add(el[0]!.textContent!.replace(/exported.*|updated.*/, ""));
       cleanup();
     }

@@ -1,0 +1,16 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/lines/Red/trip-time-budget?from=place-braintree&to=place-davis",
+ "status": 422,
+ "body": {
+  "error": "validation_error",
+  "detail": [
+   {
+    "loc": [
+     "query"
+    ],
+    "message": "no scheduled Red trip runs from Braintree to Davis"
+   }
+  ]
+ }
+}

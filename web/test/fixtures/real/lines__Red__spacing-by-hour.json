@@ -1,0 +1,233 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 69.9,
+   "min_coverage_pct": 20.9,
+   "rows": 13,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 1
+  },
+  "data": {
+   "hours": [
+    {
+     "coverage_pct": 20.9,
+     "data_outage": false,
+     "hour_local": 6,
+     "hour_start": "2026-11-26T11:00:00Z",
+     "n_headways": 43,
+     "pct_bunched": null,
+     "pct_gap": null,
+     "pct_within_band": null,
+     "scheduled_headways": 206,
+     "service_date": "2026-11-26",
+     "status": "withheld",
+     "withheld_reason": "coverage 20.9% is below 50%"
+    },
+    {
+     "coverage_pct": 51.3,
+     "data_outage": false,
+     "hour_local": 7,
+     "hour_start": "2026-11-26T12:00:00Z",
+     "n_headways": 178,
+     "pct_bunched": 11.8,
+     "pct_gap": 37.08,
+     "pct_within_band": 51.12,
+     "scheduled_headways": 347,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 73.5,
+     "data_outage": false,
+     "hour_local": 8,
+     "hour_start": "2026-11-26T13:00:00Z",
+     "n_headways": 253,
+     "pct_bunched": 9.49,
+     "pct_gap": 19.76,
+     "pct_within_band": 70.75,
+     "scheduled_headways": 344,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 50.7,
+     "data_outage": false,
+     "hour_local": 9,
+     "hour_start": "2026-11-26T14:00:00Z",
+     "n_headways": 175,
+     "pct_bunched": 1.71,
+     "pct_gap": 39.43,
+     "pct_within_band": 58.86,
+     "scheduled_headways": 345,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 68.0,
+     "data_outage": false,
+     "hour_local": 10,
+     "hour_start": "2026-11-26T15:00:00Z",
+     "n_headways": 236,
+     "pct_bunched": 6.36,
+     "pct_gap": 21.61,
+     "pct_within_band": 72.03,
+     "scheduled_headways": 347,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 71.9,
+     "data_outage": false,
+     "hour_local": 11,
+     "hour_start": "2026-11-26T16:00:00Z",
+     "n_headways": 246,
+     "pct_bunched": 2.44,
+     "pct_gap": 13.41,
+     "pct_within_band": 84.15,
+     "scheduled_headways": 342,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 82.4,
+     "data_outage": false,
+     "hour_local": 12,
+     "hour_start": "2026-11-26T17:00:00Z",
+     "n_headways": 281,
+     "pct_bunched": 13.17,
+     "pct_gap": 11.74,
+     "pct_within_band": 75.09,
+     "scheduled_headways": 341,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 84.3,
+     "data_outage": false,
+     "hour_local": 13,
+     "hour_start": "2026-11-26T18:00:00Z",
+     "n_headways": 285,
+     "pct_bunched": 11.58,
+     "pct_gap": 7.72,
+     "pct_within_band": 80.7,
+     "scheduled_headways": 338,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 84.3,
+     "data_outage": false,
+     "hour_local": 14,
+     "hour_start": "2026-11-26T19:00:00Z",
+     "n_headways": 285,
+     "pct_bunched": 4.56,
+     "pct_gap": 7.37,
+     "pct_within_band": 88.07,
+     "scheduled_headways": 338,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.1,
+     "data_outage": false,
+     "hour_local": 15,
+     "hour_start": "2026-11-26T20:00:00Z",
+     "n_headways": 280,
+     "pct_bunched": 11.07,
+     "pct_gap": 18.21,
+     "pct_within_band": 70.71,
+     "scheduled_headways": 337,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 81.7,
+     "data_outage": false,
+     "hour_local": 16,
+     "hour_start": "2026-11-26T21:00:00Z",
+     "n_headways": 276,
+     "pct_bunched": 13.41,
+     "pct_gap": 11.59,
+     "pct_within_band": 75.0,
+     "scheduled_headways": 338,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 77.6,
+     "data_outage": false,
+     "hour_local": 17,
+     "hour_start": "2026-11-26T22:00:00Z",
+     "n_headways": 264,
+     "pct_bunched": 11.74,
+     "pct_gap": 14.39,
+     "pct_within_band": 73.86,
+     "scheduled_headways": 340,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 78.6,
+     "data_outage": false,
+     "hour_local": 18,
+     "hour_start": "2026-11-26T23:00:00Z",
+     "n_headways": 265,
+     "pct_bunched": 13.58,
+     "pct_gap": 13.58,
+     "pct_within_band": 72.83,
+     "scheduled_headways": 337,
+     "service_date": "2026-11-26",
+     "status": "measured",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 0.0,
+     "data_outage": true,
+     "hour_local": 19,
+     "hour_start": "2026-11-27T00:00:00Z",
+     "n_headways": 0,
+     "pct_bunched": null,
+     "pct_gap": null,
+     "pct_within_band": null,
+     "scheduled_headways": 341,
+     "service_date": "2026-11-26",
+     "status": "outage",
+     "withheld_reason": "data outage: our capture, not the trains"
+    }
+   ],
+   "line": "Red",
+   "service_date": "2026-11-26"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Headway adherence per service hour (05:00 to 01:00 local), directions combined",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "with t as (select service_date, hour_local, (cast(service_date as timestamp) + to_hours(hour_local + case when hour_local < 3 then 24 else 0 end)) at time zone 'America/New_York' as hour_start, direction_id, n_headways, pct_within_band, pct_bunched, pct_gap, scheduled_headways, coverage_numerator, coverage_denominator, data_outage from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_headway_adherence_hourly.parquet') where line = 'Red' and service_date = (select max(service_date) from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_headway_adherence_hourly.parquet') where line = 'Red')), g as (select service_date, hour_local, any_value(hour_start) as hour_start, sum(n_headways) as n_headways, sum(pct_within_band * n_headways) filter (where n_headways > 0) / nullif(sum(n_headways) filter (where n_headways > 0), 0) as pct_within_band, sum(pct_bunched * n_headways) filter (where n_headways > 0) / nullif(sum(n_headways) filter (where n_headways > 0), 0) as pct_bunched, sum(pct_gap * n_headways) filter (where n_headways > 0) / nullif(sum(n_headways) filter (where n_headways > 0), 0) as pct_gap, sum(scheduled_headways) as scheduled_headways, 100.0 * sum(coverage_numerator) / nullif(sum(coverage_denominator), 0) as coverage_pct, bool_or(data_outage) as data_outage from t group by service_date, hour_local) select strftime(service_date, '%Y-%m-%d') as service_date, hour_local, strftime(hour_start at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as hour_start, n_headways, round(case when coalesce(coverage_pct, 0) >= 50 and not data_outage then pct_within_band end, 2) as pct_within_band, round(case when coalesce(coverage_pct, 0) >= 50 and not data_outage then pct_bunched end, 2) as pct_bunched, round(case when coalesce(coverage_pct, 0) >= 50 and not data_outage then pct_gap end, 2) as pct_gap, scheduled_headways, round(coverage_pct, 1) as coverage_pct, data_outage from g order by hour_start limit 501"
+   ],
+   "tables": [
+    "agg_headway_adherence_hourly"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Red/spacing-by-hour",
+ "status": 200
+}

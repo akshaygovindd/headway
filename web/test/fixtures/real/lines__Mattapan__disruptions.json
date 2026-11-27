@@ -1,0 +1,36 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "line": "Mattapan",
+   "rows": [],
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Line-scope service-disruption alerts of the last 24 hours: the public MBTA header text, the affected stations and segments",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select alert_id, effect, header_text, strftime(first_seen at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as first_seen, strftime(last_seen at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as last_seen, is_active, n_stations, from_station_name, to_station_name, segment_keys from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_service_disruptions.parquet') where line = 'Mattapan' order by is_active desc, last_seen desc, alert_id limit 501"
+   ],
+   "tables": [
+    "agg_service_disruptions"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Mattapan/disruptions",
+ "status": 200
+}

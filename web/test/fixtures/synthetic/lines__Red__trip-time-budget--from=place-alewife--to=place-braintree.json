@@ -1,0 +1,110 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/lines/Red/trip-time-budget?from=place-alewife&to=place-braintree",
+ "status": 200,
+ "body": {
+  "data": {
+   "line": "Red",
+   "window": "last_24h",
+   "unit": "seconds",
+   "min_trips": 20,
+   "from_station": {
+    "id": "place-alewife",
+    "name": "Alewife"
+   },
+   "to_station": {
+    "id": "place-braintree",
+    "name": "Braintree"
+   },
+   "stations": [],
+   "rows": [
+    {
+     "direction_id": 0,
+     "time_band": "am_peak",
+     "n_trips": 12,
+     "n_scheduled_trips": 40,
+     "n_excluded_outage": 0,
+     "n_implausible": 0,
+     "n_disruption": 1,
+     "median_s": null,
+     "p95_s": null,
+     "buffer_time_index": null,
+     "coverage_pct": 30,
+     "status": "withheld",
+     "withheld_reason": "coverage 30% is below 50%",
+     "no_trips_reason": null
+    },
+    {
+     "direction_id": 0,
+     "time_band": "midday",
+     "n_trips": 16,
+     "n_scheduled_trips": 44,
+     "n_excluded_outage": 0,
+     "n_implausible": 0,
+     "n_disruption": 0,
+     "median_s": null,
+     "p95_s": null,
+     "buffer_time_index": null,
+     "coverage_pct": 36.4,
+     "status": "withheld",
+     "withheld_reason": "coverage 36.4% is below 50%",
+     "no_trips_reason": null
+    },
+    {
+     "direction_id": 0,
+     "time_band": "pm_peak",
+     "n_trips": 18,
+     "n_scheduled_trips": 30,
+     "n_excluded_outage": 0,
+     "n_implausible": 0,
+     "n_disruption": 0,
+     "median_s": null,
+     "p95_s": null,
+     "buffer_time_index": null,
+     "coverage_pct": 60,
+     "status": "withheld",
+     "withheld_reason": "18 trips is below the minimum of 20",
+     "no_trips_reason": null
+    },
+    {
+     "direction_id": 0,
+     "time_band": "evening",
+     "n_trips": 0,
+     "n_scheduled_trips": 9,
+     "n_excluded_outage": 2,
+     "n_implausible": 0,
+     "n_disruption": 0,
+     "median_s": null,
+     "p95_s": null,
+     "buffer_time_index": null,
+     "coverage_pct": 0,
+     "status": "no_trips",
+     "withheld_reason": null,
+     "no_trips_reason": "no trips measured: 9 scheduled, none with usable arrivals at both stations"
+    }
+   ]
+  },
+  "coverage": {
+   "rows": 4,
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "withheld_rows": 3,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "freshness": {
+   "exported_at": "2026-11-24T12:00:00Z",
+   "metrics_as_of": "2026-11-24T11:45:00Z",
+   "age_minutes": 12
+  },
+  "provenance": {
+   "tables": [
+    "agg_trip_time_budget"
+   ],
+   "definition": "trip-time-budget-agg_trip_time_budget",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "truncated": false,
+   "served_from": "remote"
+  }
+ }
+}

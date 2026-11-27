@@ -4,6 +4,7 @@ import { sortBuckets } from "@/lib/linedata";
 import { checksText } from "@/lib/checks";
 import { sloTitle } from "@/lib/definitions";
 import { dateTimeET } from "@/lib/time";
+import { fixture } from "./fixtures";
 import { PAGES, shell, stubFixtureApi } from "./helpers";
 
 beforeEach(stubFixtureApi);
@@ -80,7 +81,9 @@ describe("/pipeline", () => {
     await open("/pipeline");
     const table = screen.getByRole("table", { name: "Service level objectives" });
     const names = new Set(within(table).getAllByRole("row").slice(1).map((r) => within(r).getAllByRole("cell")[0]!.textContent));
-    expect([...names].sort()).toEqual(["Arrival Coverage", "Capture Completeness", "Gold Freshness", "Transform Success"]);
+    const slos = fixture("/v1/slo").data.slos as { slo_name: string }[];
+    expect([...names].sort()).toEqual([...new Set(slos.map((s) => sloTitle(s.slo_name)))].sort());
+    expect(names.size).toBeGreaterThan(1);
     const pipelineFigure = within(screen.getByTestId("capture-24h")).getByRole("button").textContent;
     cleanup();
     await open("/");
@@ -101,7 +104,7 @@ describe("popover figures come from the data", () => {
       cleanup();
       return out;
     };
-    const orange = await n("/lines/Orange (partial)");
+    const orange = await n("/lines/Orange");
     const blue = await n("/lines/Blue");
     expect(orange.within).toBeTruthy();
     expect(orange.within).not.toBe(blue.within);

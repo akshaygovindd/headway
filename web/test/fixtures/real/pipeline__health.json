@@ -1,0 +1,81 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "rows": 5,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "daily": [
+    {
+     "date": "2026-11-22",
+     "duplicate_deliveries": 4,
+     "quarantined_records": 11,
+     "runs": 747,
+     "trip_update_failures": 0,
+     "vehicle_polls_error": 0,
+     "vehicle_polls_ok": 747
+    },
+    {
+     "date": "2026-11-23",
+     "duplicate_deliveries": 0,
+     "quarantined_records": 36,
+     "runs": 1440,
+     "trip_update_failures": 0,
+     "vehicle_polls_error": 0,
+     "vehicle_polls_ok": 1440
+    },
+    {
+     "date": "2026-11-24",
+     "duplicate_deliveries": 0,
+     "quarantined_records": 312,
+     "runs": 1440,
+     "trip_update_failures": 0,
+     "vehicle_polls_error": 0,
+     "vehicle_polls_ok": 1440
+    },
+    {
+     "date": "2026-11-25",
+     "duplicate_deliveries": 0,
+     "quarantined_records": 48,
+     "runs": 1440,
+     "trip_update_failures": 0,
+     "vehicle_polls_error": 0,
+     "vehicle_polls_ok": 1440
+    },
+    {
+     "date": "2026-11-26",
+     "duplicate_deliveries": 0,
+     "quarantined_records": 161,
+     "runs": 1180,
+     "trip_update_failures": 0,
+     "vehicle_polls_error": 0,
+     "vehicle_polls_ok": 2090
+    }
+   ],
+   "days": 7
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Pipeline runs, feed polls, duplicates and quarantine",
+   "metrics_md": "docs/METRICS.md#4-freshness",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "with t as (select cast(scheduled_at at time zone 'America/New_York' as date) as d, * from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_pipeline_health.parquet')) select strftime(d, '%Y-%m-%d') as date, count(*) as runs, sum(vehicle_polls_ok) as vehicle_polls_ok, sum(vehicle_polls_error) as vehicle_polls_error, sum(duplicate_delivery_count) as duplicate_deliveries, sum(quarantine_total) as quarantined_records, count(*) filter (where trip_updates_status <> 'ok') as trip_update_failures from t where d > (select max(d) from t) - 7 group by d order by d limit 501"
+   ],
+   "tables": [
+    "agg_pipeline_health"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/pipeline/health",
+ "status": 200
+}

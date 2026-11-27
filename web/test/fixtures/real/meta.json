@@ -1,0 +1,80 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "api_version": "1.0.0",
+   "cache_control": "public, max-age=300",
+   "coverage_rules": {
+    "min_coverage_pct": 50.0,
+    "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+   },
+   "limits": {
+    "health_days": 30,
+    "incident_range_days": 31,
+    "max_request_bytes": 2048,
+    "max_rows": 500
+   },
+   "lines": [
+    "Red",
+    "Orange",
+    "Blue",
+    "Green-B",
+    "Green-C",
+    "Green-D",
+    "Green-E",
+    "Mattapan"
+   ],
+   "metrics_md": "docs/METRICS.md",
+   "tables_in_export": [
+    "agg_accessibility_outages",
+    "agg_accuracy_window",
+    "agg_actual_deviation_window",
+    "agg_capture_heartbeat_hourly",
+    "agg_countdown_accuracy_window",
+    "agg_ett_band_window",
+    "agg_ett_window",
+    "agg_forecast_gate_status",
+    "agg_forecast_next_hour",
+    "agg_headway_adherence_hourly",
+    "agg_headway_segment_window",
+    "agg_headway_window",
+    "agg_incidents",
+    "agg_line_reliability_window",
+    "agg_marey_last_hour",
+    "agg_pipeline_health",
+    "agg_quality_checks_hourly",
+    "agg_service_disruptions",
+    "agg_slo_rollup",
+    "agg_slow_segments",
+    "agg_slow_zone_comparison",
+    "agg_trip_time_budget"
+   ],
+   "windows": [
+    "last_24h",
+    "last_7d"
+   ]
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Export freshness and the rules every value follows",
+   "metrics_md": "docs/METRICS.md#",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [],
+   "tables": [],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/meta",
+ "status": 200
+}

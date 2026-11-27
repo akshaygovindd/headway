@@ -1,0 +1,14 @@
+{
+ "body": {
+  "detail": [
+   {
+    "allowed": null,
+    "loc": [],
+    "message": "no scheduled Red trip runs from Ashmont to Braintree (they are on different branches, or in the other order only on another line)"
+   }
+  ],
+  "error": "validation_error"
+ },
+ "request": "GET /v1/lines/Red/trip-time-budget?from=place-asmnl&to=place-brntn&window=last_7d",
+ "status": 422
+}

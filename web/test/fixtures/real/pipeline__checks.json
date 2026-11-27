@@ -1,0 +1,127 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "checks": [
+    {
+     "check_name": "duplicate_deliveries",
+     "n_fail_hours": 0,
+     "n_hours_evaluated": 24,
+     "n_ok_hours": 24,
+     "n_warn_hours": 0,
+     "worst_status": "ok"
+    },
+    {
+     "check_name": "duplicate_share",
+     "n_fail_hours": 0,
+     "n_hours_evaluated": 21,
+     "n_ok_hours": 21,
+     "n_warn_hours": 0,
+     "worst_status": "ok"
+    },
+    {
+     "check_name": "feed_gap_min",
+     "n_fail_hours": 7,
+     "n_hours_evaluated": 24,
+     "n_ok_hours": 17,
+     "n_warn_hours": 0,
+     "worst_status": "fail"
+    },
+    {
+     "check_name": "implausible_deviation_share",
+     "n_fail_hours": 0,
+     "n_hours_evaluated": 21,
+     "n_ok_hours": 21,
+     "n_warn_hours": 0,
+     "worst_status": "ok"
+    },
+    {
+     "check_name": "invalid_coordinate_share",
+     "n_fail_hours": 0,
+     "n_hours_evaluated": 21,
+     "n_ok_hours": 21,
+     "n_warn_hours": 0,
+     "worst_status": "ok"
+    },
+    {
+     "check_name": "late_event_share",
+     "n_fail_hours": 1,
+     "n_hours_evaluated": 21,
+     "n_ok_hours": 15,
+     "n_warn_hours": 5,
+     "worst_status": "fail"
+    },
+    {
+     "check_name": "missed_runs",
+     "n_fail_hours": 0,
+     "n_hours_evaluated": 24,
+     "n_ok_hours": 24,
+     "n_warn_hours": 0,
+     "worst_status": "ok"
+    },
+    {
+     "check_name": "missing_trip_id_share",
+     "n_fail_hours": 0,
+     "n_hours_evaluated": 21,
+     "n_ok_hours": 21,
+     "n_warn_hours": 0,
+     "worst_status": "ok"
+    },
+    {
+     "check_name": "prediction_coverage",
+     "n_fail_hours": 0,
+     "n_hours_evaluated": 21,
+     "n_ok_hours": 20,
+     "n_warn_hours": 1,
+     "worst_status": "warn"
+    },
+    {
+     "check_name": "schedule_join_coverage",
+     "n_fail_hours": 0,
+     "n_hours_evaluated": 21,
+     "n_ok_hours": 21,
+     "n_warn_hours": 0,
+     "worst_status": "ok"
+    },
+    {
+     "check_name": "vehicle_count_drop",
+     "n_fail_hours": 0,
+     "n_hours_evaluated": 0,
+     "n_ok_hours": 0,
+     "n_warn_hours": 0,
+     "worst_status": "not_evaluated"
+    }
+   ],
+   "hours": 24,
+   "n_checks": 11,
+   "n_failing_checks": 2,
+   "n_warning_checks": 1
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Pipeline data-quality checks: hours in fail and warn per check, hours with no service left out",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "with t as (select check_name, status, (cast(service_date as timestamp) + to_hours(hour_local + case when hour_local < 3 then 24 else 0 end)) at time zone 'America/New_York' as hour_start from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_quality_checks_hourly.parquet')), w as (select * from t where hour_start > (select max(hour_start) from t) - to_hours(24)) select check_name, count(*) filter (where status in ('ok', 'warn', 'fail')) as n_hours_evaluated, count(*) filter (where status = 'fail') as n_fail_hours, count(*) filter (where status = 'warn') as n_warn_hours, count(*) filter (where status = 'ok') as n_ok_hours, case when count(*) filter (where status = 'fail') > 0 then 'fail' when count(*) filter (where status = 'warn') > 0 then 'warn' when count(*) filter (where status = 'ok') > 0 then 'ok' else 'not_evaluated' end as worst_status from w group by check_name order by check_name limit 501"
+   ],
+   "tables": [
+    "agg_quality_checks_hourly"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/pipeline/checks",
+ "status": 200
+}

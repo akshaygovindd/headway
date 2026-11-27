@@ -1,0 +1,155 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 83.3,
+   "min_coverage_pct": 83.3,
+   "rows": 6,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "line": "Blue",
+   "n_stations_in_network": 124,
+   "n_stations_out_now": 3,
+   "signal": "announced outages (service alerts), not the facility's own status",
+   "station": null,
+   "stations": [
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "Bowdoin Escalator 125 (Lobby to street) is unavailable until further notice, pending replacement."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Blue"
+     ],
+     "longest_open_outage_h": 41218.4,
+     "n_currently_out": 1,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 1,
+     "n_outages": 1,
+     "outage_hours": 20.0,
+     "station_id": "place-bomnl",
+     "station_name": "Bowdoin",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "Maverick Escalator 429 (Lewis Mall to unpaid lobby) is unavailable due to maintenance.",
+      "Maverick Escalator 433 (Unpaid lobby to Maverick Square) is unavailable due to maintenance.",
+      "Maverick Escalator 434 (Maverick Square to unpaid lobby) is unavailable due to maintenance."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Blue"
+     ],
+     "longest_open_outage_h": 917.3,
+     "n_currently_out": 3,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 3,
+     "n_outages": 3,
+     "outage_hours": 20.0,
+     "station_id": "place-mvbcl",
+     "station_name": "Maverick",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "State Elevator 803 (Forest Hills platform to Washington Street, Milk Street) is unavailable due to maintenance through Tuesday, December 1. ",
+      "State Escalator 374 (Oak Grove platform to City Hall Plaza) is unavailable due to maintenance.",
+      "State Escalator 6 (Oak Grove platform to Old State House lobby) is unavailable."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Blue",
+      "Orange"
+     ],
+     "longest_open_outage_h": 14532.0,
+     "n_currently_out": 3,
+     "n_elevator_outages": 1,
+     "n_escalator_outages": 2,
+     "n_outages": 3,
+     "outage_hours": 20.0,
+     "station_id": "place-state",
+     "station_name": "State",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [],
+     "currently_out": false,
+     "lines": [
+      "Blue"
+     ],
+     "longest_open_outage_h": null,
+     "n_currently_out": 0,
+     "n_elevator_outages": 1,
+     "n_escalator_outages": 0,
+     "n_outages": 1,
+     "outage_hours": 7.4,
+     "station_id": "place-aqucl",
+     "station_name": "Aquarium",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [],
+     "currently_out": false,
+     "lines": [
+      "Blue"
+     ],
+     "longest_open_outage_h": null,
+     "n_currently_out": 0,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 1,
+     "n_outages": 1,
+     "outage_hours": 4.1,
+     "station_id": "place-bmmnl",
+     "station_name": "Beachmont",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [],
+     "currently_out": false,
+     "lines": [
+      "Blue"
+     ],
+     "longest_open_outage_h": null,
+     "n_currently_out": 0,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 1,
+     "n_outages": 1,
+     "outage_hours": 2.0,
+     "station_id": "place-aport",
+     "station_name": "Airport",
+     "withheld_reason": null
+    }
+   ],
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Announced elevator and escalator outages per station",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select distinct station_id as id, station_name as name from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_accessibility_outages.parquet') order by name, id",
+    "select station_id, station_name, lines, case when coalesce(coverage_pct, 0) >= 50 then n_outages end as n_outages, case when coalesce(coverage_pct, 0) >= 50 then n_elevator_outages end as n_elevator_outages, case when coalesce(coverage_pct, 0) >= 50 then n_escalator_outages end as n_escalator_outages, round(case when coalesce(coverage_pct, 0) >= 50 then outage_hours end, 1) as outage_hours, currently_out, n_currently_out, round(longest_open_outage_h, 1) as longest_open_outage_h, current_outage_text, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_accessibility_outages.parquet') where window_label = 'last_24h' and list_contains(lines, 'Blue') and (currently_out or coalesce(n_outages, 0) > 0) order by currently_out desc, outage_hours desc nulls last, station_name, station_id limit 501"
+   ],
+   "tables": [
+    "agg_accessibility_outages"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/accessibility?line=Blue&window=last_24h",
+ "status": 200
+}

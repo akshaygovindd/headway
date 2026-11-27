@@ -1,0 +1,92 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/lines/Red/accuracy?window=last_24h",
+ "status": 200,
+ "body": {
+  "data": {
+   "line": "Red",
+   "window": "last_24h",
+   "prediction_accuracy": {
+    "table": "agg_accuracy_window",
+    "label": "Accuracy of MBTA's published predictions by horizon bucket",
+    "metrics_md": "release-2-metrics-shared-rules",
+    "rows": [
+     {
+      "line": "Red",
+      "horizon_bucket": "0-5",
+      "window": "last_24h",
+      "median_abs_error_s": null,
+      "p90_abs_error_s": null,
+      "mae_s": null,
+      "pct_within_60s": null,
+      "pct_within_120s": null,
+      "n_observations": 900,
+      "coverage_pct": 35,
+      "withheld_reason": "coverage 35% is below 50%"
+     },
+     {
+      "line": "Red",
+      "horizon_bucket": "10-20",
+      "window": "last_24h",
+      "median_abs_error_s": null,
+      "p90_abs_error_s": null,
+      "mae_s": null,
+      "pct_within_60s": null,
+      "pct_within_120s": null,
+      "n_observations": 900,
+      "coverage_pct": 35,
+      "withheld_reason": "coverage 35% is below 50%"
+     },
+     {
+      "line": "Red",
+      "horizon_bucket": "20-30",
+      "window": "last_24h",
+      "median_abs_error_s": null,
+      "p90_abs_error_s": null,
+      "mae_s": null,
+      "pct_within_60s": null,
+      "pct_within_120s": null,
+      "n_observations": 900,
+      "coverage_pct": 35,
+      "withheld_reason": "coverage 35% is below 50%"
+     },
+     {
+      "line": "Red",
+      "horizon_bucket": "5-10",
+      "window": "last_24h",
+      "median_abs_error_s": null,
+      "p90_abs_error_s": null,
+      "mae_s": null,
+      "pct_within_60s": null,
+      "pct_within_120s": null,
+      "n_observations": 900,
+      "coverage_pct": 35,
+      "withheld_reason": "coverage 35% is below 50%"
+     }
+    ]
+   }
+  },
+  "coverage": {
+   "rows": 4,
+   "mean_coverage_pct": 76,
+   "min_coverage_pct": 76,
+   "withheld_rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "freshness": {
+   "exported_at": "2026-11-24T12:00:00Z",
+   "metrics_as_of": "2026-11-24T11:45:00Z",
+   "age_minutes": 12
+  },
+  "provenance": {
+   "tables": [
+    "agg_accuracy_window"
+   ],
+   "definition": "Accuracy of MBTA's published predictions by horizon bucket",
+   "metrics_md": "docs/METRICS.md#release-2-metrics-shared-rules",
+   "row_limit": 500,
+   "truncated": false,
+   "served_from": "remote"
+  }
+ }
+}

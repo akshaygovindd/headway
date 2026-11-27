@@ -1,0 +1,132 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour. Other lines are the real summary.",
+ "request": "GET /v1/lines",
+ "status": 200,
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 85.2,
+   "min_coverage_pct": 73.5,
+   "rows": 16,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": [
+   {
+    "line": "Red",
+    "coverage_pct_last_24h": 35,
+    "withheld_last_24h": true,
+    "withheld_reason": "coverage 35% is below 50%",
+    "endpoints": [
+     "/v1/lines/Red/reliability",
+     "/v1/lines/Red/accuracy",
+     "/v1/lines/Red/headways",
+     "/v1/lines/Red/countdown"
+    ]
+   },
+   {
+    "coverage_pct_last_24h": 91.8,
+    "endpoints": [
+     "/v1/lines/Orange/reliability",
+     "/v1/lines/Orange/accuracy",
+     "/v1/lines/Orange/headways",
+     "/v1/lines/Orange/countdown"
+    ],
+    "line": "Orange",
+    "withheld_last_24h": false,
+    "withheld_reason": null
+   },
+   {
+    "coverage_pct_last_24h": 88.8,
+    "endpoints": [
+     "/v1/lines/Blue/reliability",
+     "/v1/lines/Blue/accuracy",
+     "/v1/lines/Blue/headways",
+     "/v1/lines/Blue/countdown"
+    ],
+    "line": "Blue",
+    "withheld_last_24h": false,
+    "withheld_reason": null
+   },
+   {
+    "coverage_pct_last_24h": 90.9,
+    "endpoints": [
+     "/v1/lines/Green-B/reliability",
+     "/v1/lines/Green-B/accuracy",
+     "/v1/lines/Green-B/headways",
+     "/v1/lines/Green-B/countdown"
+    ],
+    "line": "Green-B",
+    "withheld_last_24h": false,
+    "withheld_reason": null
+   },
+   {
+    "coverage_pct_last_24h": 83.1,
+    "endpoints": [
+     "/v1/lines/Green-C/reliability",
+     "/v1/lines/Green-C/accuracy",
+     "/v1/lines/Green-C/headways",
+     "/v1/lines/Green-C/countdown"
+    ],
+    "line": "Green-C",
+    "withheld_last_24h": false,
+    "withheld_reason": null
+   },
+   {
+    "coverage_pct_last_24h": 88.5,
+    "endpoints": [
+     "/v1/lines/Green-D/reliability",
+     "/v1/lines/Green-D/accuracy",
+     "/v1/lines/Green-D/headways",
+     "/v1/lines/Green-D/countdown"
+    ],
+    "line": "Green-D",
+    "withheld_last_24h": false,
+    "withheld_reason": null
+   },
+   {
+    "coverage_pct_last_24h": 93.1,
+    "endpoints": [
+     "/v1/lines/Green-E/reliability",
+     "/v1/lines/Green-E/accuracy",
+     "/v1/lines/Green-E/headways",
+     "/v1/lines/Green-E/countdown"
+    ],
+    "line": "Green-E",
+    "withheld_last_24h": false,
+    "withheld_reason": null
+   },
+   {
+    "coverage_pct_last_24h": 87.2,
+    "endpoints": [
+     "/v1/lines/Mattapan/reliability",
+     "/v1/lines/Mattapan/accuracy",
+     "/v1/lines/Mattapan/headways",
+     "/v1/lines/Mattapan/countdown"
+    ],
+    "line": "Mattapan",
+    "withheld_last_24h": false,
+    "withheld_reason": null
+   }
+  ],
+  "freshness": {
+   "age_minutes": 7,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Predicted schedule deviation and prediction revision (last_24h only)",
+   "metrics_md": "docs/METRICS.md#1-predicted-schedule-deviation",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select line, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then median_predicted_deviation_s end, 2) as median_predicted_deviation_s, round(case when coalesce(coverage_pct, 0) >= 50 then p90_predicted_deviation_s end, 2) as p90_predicted_deviation_s, round(case when coalesce(coverage_pct, 0) >= 50 then median_abs_revision_s end, 2) as median_abs_revision_s, round(case when coalesce(coverage_pct, 0) >= 50 then skipped_share end, 2) as skipped_share, n_eligible as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_line_reliability_window.parquet') where window_label = 'last_24h' order by line limit 501",
+    "select line, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then median_deviation_s end, 2) as median_deviation_s, round(case when coalesce(coverage_pct, 0) >= 50 then p90_deviation_s end, 2) as p90_deviation_s, round(case when coalesce(coverage_pct, 0) >= 50 then pct_on_time_window end, 2) as pct_on_time_window, n_arrivals as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_actual_deviation_window.parquet') where window_label = 'last_24h' order by line limit 501"
+   ],
+   "tables": [
+    "agg_line_reliability_window",
+    "agg_actual_deviation_window"
+   ],
+   "truncated": false
+  }
+ }
+}

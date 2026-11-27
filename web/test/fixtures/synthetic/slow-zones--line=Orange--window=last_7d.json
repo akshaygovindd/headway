@@ -1,0 +1,105 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/slow-zones?line=Orange&window=last_7d",
+ "status": 200,
+ "body": {
+  "data": {
+   "line": "Orange",
+   "window": "last_7d",
+   "signal": "observed speed-restriction signal, not official",
+   "official": {
+    "status": "captured",
+    "is_snapshot": true,
+    "snapshot_date": "2026-11-20",
+    "source_url": "https://example.invalid/fixture-not-mbta-data",
+    "note": "The MBTA's list as copied by hand from its public page on the snapshot date; it is not a live feed."
+   },
+   "counts": {
+    "matched": 0,
+    "observed_only": 1,
+    "listed_only": 0,
+    "listed_unmapped": 0
+   },
+   "segments": [
+    {
+     "line": "Orange",
+     "direction_id": 0,
+     "from_stop_id": "place-wellington",
+     "from_stop_name": "Wellington",
+     "to_stop_id": "place-assembly",
+     "to_stop_name": "Assembly",
+     "segment_order": 3,
+     "time_band": "am_peak",
+     "n_trips": 22,
+     "n_baseline_trips": 88,
+     "n_disruption": 0,
+     "normal_s": 120,
+     "observed_s": 165,
+     "excess_s": 45,
+     "excess_pct": 37.5,
+     "share_slow_pct": 88.2,
+     "severity": "minor",
+     "first_seen": "2026-11-22T12:10:00Z",
+     "last_seen": "2026-11-23T13:05:00Z",
+     "coverage_pct": 78.6,
+     "withheld_reason": null
+    }
+   ],
+   "comparison": [
+    {
+     "row_key": "Orange:0:place-wellington:place-assembly",
+     "line": "Orange",
+     "direction_id": 0,
+     "from_stop_id": "place-wellington",
+     "from_stop_name": "Wellington",
+     "to_stop_id": "place-assembly",
+     "to_stop_name": "Assembly",
+     "segment_order": 3,
+     "status": "observed_only",
+     "observed_status": "flagged",
+     "severity": "minor",
+     "worst_excess_s": 45,
+     "n_trips": 22,
+     "flagged_bands": [
+      "am_peak"
+     ],
+     "first_seen": "2026-11-22T12:10:00Z",
+     "last_seen": "2026-11-23T13:05:00Z",
+     "coverage_pct": 78.6,
+     "restriction_ids": [],
+     "official_speed_limit_mph": null,
+     "official_date_reported": null,
+     "location_text": null,
+     "official_status": "captured",
+     "snapshot_date": "2026-11-20",
+     "source_url": "https://example.invalid/fixture-not-mbta-data",
+     "is_snapshot": true
+    }
+   ]
+  },
+  "coverage": {
+   "rows": 4,
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "withheld_rows": 1,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "freshness": {
+   "exported_at": "2026-11-24T12:00:00Z",
+   "metrics_as_of": "2026-11-24T11:45:00Z",
+   "age_minutes": 12
+  },
+  "provenance": {
+   "tables": [
+    "agg_slow_segments",
+    "agg_headway_segment_window",
+    "agg_slow_zone_comparison"
+   ],
+   "definition": "Observed slow segments (a signal, not official) and the comparison with the MBTA's speed-restriction list (a hand-captured snapshot)",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "truncated": false,
+   "served_from": "remote"
+  }
+ }
+}

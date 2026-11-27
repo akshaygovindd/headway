@@ -1,0 +1,94 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 73.2,
+   "min_coverage_pct": 72.8,
+   "rows": 4,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "line": "Red",
+   "prediction_accuracy": {
+    "label": "Accuracy of MBTA's published predictions by horizon bucket",
+    "metrics_md": "release-2-metrics-shared-rules",
+    "rows": [
+     {
+      "coverage_pct": 73.3,
+      "horizon_bucket": "0-5",
+      "line": "Red",
+      "mae_s": 21.41,
+      "median_abs_error_s": 19.0,
+      "n_observations": 4478,
+      "p90_abs_error_s": 39.71,
+      "pct_within_120s": 99.91,
+      "pct_within_60s": 98.28,
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "coverage_pct": 73.3,
+      "horizon_bucket": "5-10",
+      "line": "Red",
+      "mae_s": 43.89,
+      "median_abs_error_s": 26.5,
+      "n_observations": 4477,
+      "p90_abs_error_s": 92.0,
+      "pct_within_120s": 93.01,
+      "pct_within_60s": 82.67,
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "coverage_pct": 73.2,
+      "horizon_bucket": "10-20",
+      "line": "Red",
+      "mae_s": 72.89,
+      "median_abs_error_s": 41.5,
+      "n_observations": 4471,
+      "p90_abs_error_s": 179.0,
+      "pct_within_120s": 83.36,
+      "pct_within_60s": 64.86,
+      "window": "last_24h",
+      "withheld_reason": null
+     },
+     {
+      "coverage_pct": 72.8,
+      "horizon_bucket": "20-30",
+      "line": "Red",
+      "mae_s": 134.72,
+      "median_abs_error_s": 86.0,
+      "n_observations": 4448,
+      "p90_abs_error_s": 314.15,
+      "pct_within_120s": 61.6,
+      "pct_within_60s": 38.67,
+      "window": "last_24h",
+      "withheld_reason": null
+     }
+    ],
+    "table": "agg_accuracy_window"
+   },
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Accuracy of MBTA's published predictions by horizon bucket",
+   "metrics_md": "docs/METRICS.md#release-2-metrics-shared-rules",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select line, horizon_bucket, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then median_abs_error_s end, 2) as median_abs_error_s, round(case when coalesce(coverage_pct, 0) >= 50 then p90_abs_error_s end, 2) as p90_abs_error_s, round(case when coalesce(coverage_pct, 0) >= 50 then mae_s end, 2) as mae_s, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_60s end, 2) as pct_within_60s, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_120s end, 2) as pct_within_120s, n as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_accuracy_window.parquet') where window_label = 'last_24h' and line = 'Red' order by line, try_cast(split_part(horizon_bucket, '-', 1) as integer), horizon_bucket limit 501"
+   ],
+   "tables": [
+    "agg_accuracy_window"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Red/accuracy",
+ "status": 200
+}

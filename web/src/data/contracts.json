@@ -1450,6 +1450,16 @@
       "checks": [
         {
           "scope": "table",
+          "name": "line_stops_belong_to_line",
+          "detail": "column_name=\"from_stop_id\""
+        },
+        {
+          "scope": "table",
+          "name": "line_stops_belong_to_line",
+          "detail": "column_name=\"to_stop_id\""
+        },
+        {
+          "scope": "table",
           "name": "unique_grain",
           "detail": "columns=[\"line\",\"direction_id\",\"from_stop_id\",\"to_stop_id\",\"window_label\"]"
         },
@@ -2060,6 +2070,11 @@
         }
       ],
       "checks": [
+        {
+          "scope": "table",
+          "name": "line_stops_belong_to_line",
+          "detail": "column_name=\"stop_id\""
+        },
         {
           "scope": "table",
           "name": "unique_grain",
@@ -2819,6 +2834,16 @@
       "checks": [
         {
           "scope": "table",
+          "name": "line_stops_belong_to_line",
+          "detail": "column_name=\"from_stop_id\""
+        },
+        {
+          "scope": "table",
+          "name": "line_stops_belong_to_line",
+          "detail": "column_name=\"to_stop_id\""
+        },
+        {
+          "scope": "table",
           "name": "unique_grain",
           "detail": "columns=[\"line\",\"direction_id\",\"from_stop_id\",\"to_stop_id\",\"time_band\",\"window_label\"]"
         },
@@ -3170,6 +3195,16 @@
         }
       ],
       "checks": [
+        {
+          "scope": "table",
+          "name": "line_stops_belong_to_line",
+          "detail": "column_name=\"from_station_id\""
+        },
+        {
+          "scope": "table",
+          "name": "line_stops_belong_to_line",
+          "detail": "column_name=\"to_station_id\""
+        },
         {
           "scope": "table",
           "name": "unique_grain",

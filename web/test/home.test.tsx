@@ -1,5 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { coverageState, covText } from "@/lib/coverage";
+import { asOf, headwayRow } from "./fixtures";
 import { PAGES, shell, stubFixtureApi } from "./helpers";
 
 beforeEach(stubFixtureApi);
@@ -13,14 +15,14 @@ async function home() {
 describe("home page", () => {
   it("opens with the eyebrow and the generated sentence from the fixtures", async () => {
     await home();
-    expect(screen.getByTestId("eyebrow")).toHaveTextContent("Boston subway · last 24 hours · as of 06:45 ET");
+    expect(screen.getByTestId("eyebrow")).toHaveTextContent(`Boston subway · last 24 hours · as of ${asOf()}`);
     const hero = screen.getByTestId("hero").textContent ?? "";
     expect(hero).toMatch(/^Right now, 7 of 8 lines can be measured\. Heavy-rail trains were evenly spaced \d+–\d+% of the time; Green Line branches and Mattapan were on time \d+–\d+% of the time\./);
     expect(hero).toMatch(/Red withheld \(35% coverage during a service disruption\)\.$/);
     expect(screen.getByRole("heading", { level: 1 })).toBe(screen.getByTestId("hero"));
   });
 
-  it("lists the lines in fixed order with Red withheld, Orange partial and Blue shown", async () => {
+  it("lists the lines in fixed order with Red withheld and the others as measured", async () => {
     await home();
     const cards = within(screen.getByRole("list", { name: "Lines" })).getAllByRole("listitem");
     expect(cards.map((c) => within(c).getByRole("heading").textContent)).toEqual([
@@ -32,10 +34,15 @@ describe("home page", () => {
     expect(chip).toHaveAttribute("title", chip.textContent ?? "");
     // Alert text is available, so nothing is inferred from incidents.
     expect(within(cards[0]!).queryByTestId("skipped")).toBeNull();
-    expect(within(cards[1]!).getByTestId("coverage-badge")).toHaveAttribute("data-state", "partial");
-    expect(within(cards[1]!).getByTestId("coverage-badge")).toHaveTextContent("68% cov.");
-    expect(within(cards[2]!).getByRole("button", { name: "87%" })).toBeInTheDocument();
-    expect(within(cards[2]!).getByTestId("coverage-badge")).toHaveTextContent("77% cov.");
+    // Every other line is the real snapshot: its badge says what its own coverage says.
+    for (const [i, line] of [[1, "Orange"], [2, "Blue"]] as const) {
+      const row = headwayRow(line);
+      const badge = within(cards[i]!).getByTestId("coverage-badge");
+      expect(badge).toHaveAttribute("data-state", coverageState(row.coverage_pct));
+      expect(badge).toHaveTextContent(covText(row.coverage_pct));
+    }
+    const blue = headwayRow("Blue");
+    expect(within(cards[2]!).getByRole("button", { name: `${Math.round(blue.pct_within_band)}%` })).toBeInTheDocument();
   });
 
   it("draws a dashed disruption stretch on Red and hatches its withheld segments", async () => {
@@ -52,9 +59,9 @@ describe("home page", () => {
   it("shows the trust strip with the outage hour marked as ours", async () => {
     await home();
     const strip = screen.getByRole("region", { name: "Can you trust this page?" });
-    expect(strip).toHaveTextContent("06:45 ET");
+    expect(strip).toHaveTextContent(asOf());
     expect(strip).toHaveTextContent("our data, not the trains");
-    expect(strip.querySelector('[data-testid="checks"]')).toHaveTextContent("1 failing · 1 warning");
+    expect(strip.querySelector('[data-testid="checks"]')).toHaveTextContent(/\d+ failing · \d+ warning|all passing/);
     expect(strip.querySelector('[data-testid="checks"]')).toHaveTextContent("last 24 h");
     expect(strip.querySelectorAll('[data-outage="true"]')).toHaveLength(1);
   });

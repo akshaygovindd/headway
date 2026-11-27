@@ -1,0 +1,126 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 83.3,
+   "min_coverage_pct": 83.3,
+   "rows": 4,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "line": "Green-E",
+   "n_stations_in_network": 124,
+   "n_stations_out_now": 3,
+   "signal": "announced outages (service alerts), not the facility's own status",
+   "station": null,
+   "stations": [
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "Copley Elevator 977 (Kenmore & West, Heath Street platform to Boylston Street) is unavailable due to maintenance."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Green-B",
+      "Green-C",
+      "Green-D",
+      "Green-E"
+     ],
+     "longest_open_outage_h": 28.6,
+     "n_currently_out": 1,
+     "n_elevator_outages": 1,
+     "n_escalator_outages": 0,
+     "n_outages": 1,
+     "outage_hours": 20.0,
+     "station_id": "place-coecl",
+     "station_name": "Copley",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "Prudential Escalator 503 (Lobby to Huntington Avenue) is unavailable due to maintenance."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Green-E"
+     ],
+     "longest_open_outage_h": 23.6,
+     "n_currently_out": 1,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 1,
+     "n_outages": 1,
+     "outage_hours": 20.0,
+     "station_id": "place-prmnl",
+     "station_name": "Prudential",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "Arlington Elevator 962 (Copley & West platform to lobby) is unavailable due to maintenance."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Green-B",
+      "Green-C",
+      "Green-D",
+      "Green-E"
+     ],
+     "longest_open_outage_h": 0.4,
+     "n_currently_out": 1,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 0,
+     "n_outages": 0,
+     "outage_hours": 0.0,
+     "station_id": "place-armnl",
+     "station_name": "Arlington",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [],
+     "currently_out": false,
+     "lines": [
+      "Green-B",
+      "Green-C",
+      "Green-D",
+      "Green-E",
+      "Orange"
+     ],
+     "longest_open_outage_h": null,
+     "n_currently_out": 0,
+     "n_elevator_outages": 1,
+     "n_escalator_outages": 0,
+     "n_outages": 1,
+     "outage_hours": 0.6,
+     "station_id": "place-haecl",
+     "station_name": "Haymarket",
+     "withheld_reason": null
+    }
+   ],
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Announced elevator and escalator outages per station",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select distinct station_id as id, station_name as name from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_accessibility_outages.parquet') order by name, id",
+    "select station_id, station_name, lines, case when coalesce(coverage_pct, 0) >= 50 then n_outages end as n_outages, case when coalesce(coverage_pct, 0) >= 50 then n_elevator_outages end as n_elevator_outages, case when coalesce(coverage_pct, 0) >= 50 then n_escalator_outages end as n_escalator_outages, round(case when coalesce(coverage_pct, 0) >= 50 then outage_hours end, 1) as outage_hours, currently_out, n_currently_out, round(longest_open_outage_h, 1) as longest_open_outage_h, current_outage_text, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_accessibility_outages.parquet') where window_label = 'last_24h' and list_contains(lines, 'Green-E') and (currently_out or coalesce(n_outages, 0) > 0) order by currently_out desc, outage_hours desc nulls last, station_name, station_id limit 501"
+   ],
+   "tables": [
+    "agg_accessibility_outages"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/accessibility?line=Green-E&window=last_24h",
+ "status": 200
+}

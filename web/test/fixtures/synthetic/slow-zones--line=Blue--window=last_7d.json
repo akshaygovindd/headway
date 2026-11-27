@@ -1,0 +1,81 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/slow-zones?line=Blue&window=last_7d",
+ "status": 200,
+ "body": {
+  "data": {
+   "line": "Blue",
+   "window": "last_7d",
+   "signal": "observed speed-restriction signal, not official",
+   "official": {
+    "status": "captured",
+    "is_snapshot": true,
+    "snapshot_date": "2026-11-20",
+    "source_url": "https://example.invalid/fixture-not-mbta-data",
+    "note": "The MBTA's list as copied by hand from its public page on the snapshot date; it is not a live feed."
+   },
+   "counts": {
+    "matched": 0,
+    "observed_only": 0,
+    "listed_only": 1,
+    "listed_unmapped": 0
+   },
+   "segments": [],
+   "comparison": [
+    {
+     "row_key": "Blue:0:place-airport:place-maverick",
+     "line": "Blue",
+     "direction_id": 0,
+     "from_stop_id": "place-airport",
+     "from_stop_name": "Airport",
+     "to_stop_id": "place-maverick",
+     "to_stop_name": "Maverick",
+     "segment_order": 7,
+     "status": "listed_only",
+     "observed_status": "not_flagged",
+     "severity": null,
+     "worst_excess_s": null,
+     "n_trips": null,
+     "flagged_bands": [],
+     "first_seen": null,
+     "last_seen": null,
+     "coverage_pct": 90,
+     "restriction_ids": [
+      "R2"
+     ],
+     "official_speed_limit_mph": 25,
+     "official_date_reported": "2026-10-15",
+     "location_text": null,
+     "official_status": "captured",
+     "snapshot_date": "2026-11-20",
+     "source_url": "https://example.invalid/fixture-not-mbta-data",
+     "is_snapshot": true
+    }
+   ]
+  },
+  "coverage": {
+   "rows": 4,
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "withheld_rows": 1,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "freshness": {
+   "exported_at": "2026-11-24T12:00:00Z",
+   "metrics_as_of": "2026-11-24T11:45:00Z",
+   "age_minutes": 12
+  },
+  "provenance": {
+   "tables": [
+    "agg_slow_segments",
+    "agg_headway_segment_window",
+    "agg_slow_zone_comparison"
+   ],
+   "definition": "Observed slow segments (a signal, not official) and the comparison with the MBTA's speed-restriction list (a hand-captured snapshot)",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "truncated": false,
+   "served_from": "remote"
+  }
+ }
+}

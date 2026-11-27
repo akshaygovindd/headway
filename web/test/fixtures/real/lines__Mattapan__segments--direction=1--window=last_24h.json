@@ -1,0 +1,166 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 79.2,
+   "min_coverage_pct": 0.0,
+   "rows": 7,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 1
+  },
+  "data": {
+   "direction": 1,
+   "line": "Mattapan",
+   "rows": [
+    {
+     "coverage_pct": 72.6,
+     "direction_id": 1,
+     "disrupted": false,
+     "disruption_header": null,
+     "from_stop_id": "70276",
+     "from_stop_name": "Mattapan",
+     "health": "even",
+     "n_excluded_outage": 3,
+     "n_headways": 61,
+     "pct_bunched": 1.64,
+     "pct_gap": 3.28,
+     "pct_within_band": 95.08,
+     "segment_order": 1,
+     "to_stop_id": "70274",
+     "to_stop_name": "Capen Street",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 96.4,
+     "direction_id": 1,
+     "disrupted": false,
+     "disruption_header": null,
+     "from_stop_id": "70274",
+     "from_stop_name": "Capen Street",
+     "health": "even",
+     "n_excluded_outage": 3,
+     "n_headways": 81,
+     "pct_bunched": 1.23,
+     "pct_gap": 1.23,
+     "pct_within_band": 97.53,
+     "segment_order": 2,
+     "to_stop_id": "70272",
+     "to_stop_name": "Valley Road",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 96.4,
+     "direction_id": 1,
+     "disrupted": false,
+     "disruption_header": null,
+     "from_stop_id": "70272",
+     "from_stop_name": "Valley Road",
+     "health": "even",
+     "n_excluded_outage": 3,
+     "n_headways": 81,
+     "pct_bunched": 1.23,
+     "pct_gap": 2.47,
+     "pct_within_band": 96.3,
+     "segment_order": 3,
+     "to_stop_id": "70270",
+     "to_stop_name": "Central Avenue",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 96.4,
+     "direction_id": 1,
+     "disrupted": false,
+     "disruption_header": null,
+     "from_stop_id": "70270",
+     "from_stop_name": "Central Avenue",
+     "health": "even",
+     "n_excluded_outage": 3,
+     "n_headways": 81,
+     "pct_bunched": 1.23,
+     "pct_gap": 1.23,
+     "pct_within_band": 97.53,
+     "segment_order": 4,
+     "to_stop_id": "70268",
+     "to_stop_name": "Milton",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 98.8,
+     "direction_id": 1,
+     "disrupted": false,
+     "disruption_header": null,
+     "from_stop_id": "70268",
+     "from_stop_name": "Milton",
+     "health": "even",
+     "n_excluded_outage": 3,
+     "n_headways": 83,
+     "pct_bunched": 1.2,
+     "pct_gap": 2.41,
+     "pct_within_band": 96.39,
+     "segment_order": 5,
+     "to_stop_id": "70266",
+     "to_stop_name": "Butler",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 94.0,
+     "direction_id": 1,
+     "disrupted": false,
+     "disruption_header": null,
+     "from_stop_id": "70266",
+     "from_stop_name": "Butler",
+     "health": "even",
+     "n_excluded_outage": 4,
+     "n_headways": 79,
+     "pct_bunched": 2.53,
+     "pct_gap": 3.8,
+     "pct_within_band": 93.67,
+     "segment_order": 6,
+     "to_stop_id": "70264",
+     "to_stop_name": "Cedar Grove",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 0.0,
+     "direction_id": 1,
+     "disrupted": false,
+     "disruption_header": null,
+     "from_stop_id": "70264",
+     "from_stop_name": "Cedar Grove",
+     "health": null,
+     "n_excluded_outage": 0,
+     "n_headways": 0,
+     "pct_bunched": null,
+     "pct_gap": null,
+     "pct_within_band": null,
+     "segment_order": 7,
+     "to_stop_id": "70261",
+     "to_stop_name": "Ashmont",
+     "withheld_reason": "coverage 0% is below 50%"
+    }
+   ],
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Headway adherence per segment (two neighbouring stops) with a health bucket",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select direction_id, from_stop_id, from_stop_name, to_stop_id, to_stop_name, segment_order, case when coalesce(coverage_pct, 0) >= 50 then health end as health, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_band end, 2) as pct_within_band, round(case when coalesce(coverage_pct, 0) >= 50 then pct_bunched end, 2) as pct_bunched, round(case when coalesce(coverage_pct, 0) >= 50 then pct_gap end, 2) as pct_gap, n_headways, n_excluded_outage, disrupted, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_headway_segment_window.parquet') where line = 'Mattapan' and window_label = 'last_24h' and direction_id = 1 order by direction_id, segment_order, from_stop_id, to_stop_id limit 501",
+    "select alert_id, effect, header_text, strftime(first_seen at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as first_seen, strftime(last_seen at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as last_seen, is_active, n_stations, from_station_name, to_station_name, segment_keys from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_service_disruptions.parquet') where line = 'Mattapan' order by is_active desc, last_seen desc, alert_id limit 501"
+   ],
+   "tables": [
+    "agg_headway_segment_window",
+    "agg_service_disruptions"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/lines/Mattapan/segments?window=last_24h&direction=1",
+ "status": 200
+}

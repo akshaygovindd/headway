@@ -1,0 +1,128 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/lines/Red/trip-time-budget",
+ "status": 200,
+ "body": {
+  "data": {
+   "line": "Red",
+   "window": "last_24h",
+   "unit": "seconds",
+   "min_trips": 20,
+   "from_station": null,
+   "to_station": null,
+   "stations": [
+    {
+     "id": "place-alewife",
+     "name": "Alewife"
+    },
+    {
+     "id": "place-andrew",
+     "name": "Andrew"
+    },
+    {
+     "id": "place-ashmont",
+     "name": "Ashmont"
+    },
+    {
+     "id": "place-braintree",
+     "name": "Braintree"
+    },
+    {
+     "id": "place-broadway",
+     "name": "Broadway"
+    },
+    {
+     "id": "place-central",
+     "name": "Central"
+    },
+    {
+     "id": "place-charlesmgh",
+     "name": "Charles/MGH"
+    },
+    {
+     "id": "place-davis",
+     "name": "Davis"
+    },
+    {
+     "id": "place-downtowncrossing",
+     "name": "Downtown Crossing"
+    },
+    {
+     "id": "place-fieldscorner",
+     "name": "Fields Corner"
+    },
+    {
+     "id": "place-harvard",
+     "name": "Harvard"
+    },
+    {
+     "id": "place-jfkumass",
+     "name": "JFK/UMass"
+    },
+    {
+     "id": "place-kendallmit",
+     "name": "Kendall/MIT"
+    },
+    {
+     "id": "place-northquincy",
+     "name": "North Quincy"
+    },
+    {
+     "id": "place-parkstreet",
+     "name": "Park Street"
+    },
+    {
+     "id": "place-porter",
+     "name": "Porter"
+    },
+    {
+     "id": "place-quincyadams",
+     "name": "Quincy Adams"
+    },
+    {
+     "id": "place-quincycenter",
+     "name": "Quincy Center"
+    },
+    {
+     "id": "place-savinhill",
+     "name": "Savin Hill"
+    },
+    {
+     "id": "place-shawmut",
+     "name": "Shawmut"
+    },
+    {
+     "id": "place-southstation",
+     "name": "South Station"
+    },
+    {
+     "id": "place-wollaston",
+     "name": "Wollaston"
+    }
+   ],
+   "rows": []
+  },
+  "coverage": {
+   "rows": 0,
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "withheld_rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "freshness": {
+   "exported_at": "2026-11-24T12:00:00Z",
+   "metrics_as_of": "2026-11-24T11:45:00Z",
+   "age_minutes": 12
+  },
+  "provenance": {
+   "tables": [
+    "agg_trip_time_budget"
+   ],
+   "definition": "trip-time-budget-agg_trip_time_budget",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "truncated": false,
+   "served_from": "remote"
+  }
+ }
+}

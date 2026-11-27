@@ -1,0 +1,51 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/slow-zones?line=Green-E&window=last_7d",
+ "status": 200,
+ "body": {
+  "data": {
+   "line": "Green-E",
+   "window": "last_7d",
+   "signal": "observed speed-restriction signal, not official",
+   "official": {
+    "status": "captured",
+    "is_snapshot": true,
+    "snapshot_date": "2026-11-20",
+    "source_url": "https://example.invalid/fixture-not-mbta-data",
+    "note": "The MBTA's list as copied by hand from its public page on the snapshot date; it is not a live feed."
+   },
+   "counts": {
+    "matched": 0,
+    "observed_only": 0,
+    "listed_only": 0,
+    "listed_unmapped": 0
+   },
+   "segments": [],
+   "comparison": []
+  },
+  "coverage": {
+   "rows": 4,
+   "mean_coverage_pct": null,
+   "min_coverage_pct": null,
+   "withheld_rows": 1,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "freshness": {
+   "exported_at": "2026-11-24T12:00:00Z",
+   "metrics_as_of": "2026-11-24T11:45:00Z",
+   "age_minutes": 12
+  },
+  "provenance": {
+   "tables": [
+    "agg_slow_segments",
+    "agg_headway_segment_window",
+    "agg_slow_zone_comparison"
+   ],
+   "definition": "Observed slow segments (a signal, not official) and the comparison with the MBTA's speed-restriction list (a hand-captured snapshot)",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "truncated": false,
+   "served_from": "remote"
+  }
+ }
+}

@@ -1,0 +1,69 @@
+{
+ "_synthetic": "SYNTHETIC: hand-made edge state the real snapshot lacks. Red withheld (35% coverage) during a Broadway to North Quincy shuttle, with an outage hour.",
+ "request": "GET /v1/lines/Red/reliability",
+ "status": 200,
+ "body": {
+  "data": {
+   "line": "Red",
+   "window": "last_24h",
+   "predicted_deviation": {
+    "table": "agg_line_reliability_window",
+    "label": "Predicted schedule deviation and prediction revision (last_24h only)",
+    "metrics_md": "1-predicted-schedule-deviation",
+    "rows": [
+     {
+      "line": "Red",
+      "window": "last_24h",
+      "median_predicted_deviation_s": null,
+      "p90_predicted_deviation_s": null,
+      "median_abs_revision_s": null,
+      "skipped_share": null,
+      "n_observations": 36,
+      "coverage_pct": 35,
+      "withheld_reason": "coverage 35% is below 50%"
+     }
+    ]
+   },
+   "actual_deviation": {
+    "table": "agg_actual_deviation_window",
+    "label": "Actual schedule deviation and on-time share",
+    "metrics_md": "7-actual-schedule-deviation-release-2",
+    "rows": [
+     {
+      "line": "Red",
+      "window": "last_24h",
+      "median_deviation_s": null,
+      "p90_deviation_s": null,
+      "pct_on_time_window": null,
+      "n_observations": 380,
+      "coverage_pct": 35,
+      "withheld_reason": "coverage 35% is below 50%"
+     }
+    ]
+   }
+  },
+  "coverage": {
+   "rows": 2,
+   "mean_coverage_pct": 71.8,
+   "min_coverage_pct": 71.8,
+   "withheld_rows": 0,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it."
+  },
+  "freshness": {
+   "exported_at": "2026-11-24T12:00:00Z",
+   "metrics_as_of": "2026-11-24T11:45:00Z",
+   "age_minutes": 12
+  },
+  "provenance": {
+   "tables": [
+    "agg_line_reliability_window",
+    "agg_actual_deviation_window"
+   ],
+   "definition": "Predicted schedule deviation and prediction revision (last_24h only)",
+   "metrics_md": "docs/METRICS.md#1-predicted-schedule-deviation",
+   "row_limit": 500,
+   "truncated": false,
+   "served_from": "remote"
+  }
+ }
+}

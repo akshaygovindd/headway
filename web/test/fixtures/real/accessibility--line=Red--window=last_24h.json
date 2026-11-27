@@ -1,0 +1,198 @@
+{
+ "body": {
+  "coverage": {
+   "mean_coverage_pct": 83.3,
+   "min_coverage_pct": 83.3,
+   "rows": 8,
+   "rule": "A value from a row whose coverage is under 50% is withheld: null, with a reason next to it.",
+   "withheld_rows": 0
+  },
+  "data": {
+   "line": "Red",
+   "n_stations_in_network": 124,
+   "n_stations_out_now": 8,
+   "signal": "announced outages (service alerts), not the facility's own status",
+   "station": null,
+   "stations": [
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "Alewife Escalator 351 (Main concourse to platform) is unavailable due to maintenance.",
+      "Alewife Escalator 353 (Main concourse to busway) is unavailable due to maintenance."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Red"
+     ],
+     "longest_open_outage_h": 4774.8,
+     "n_currently_out": 2,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 3,
+     "n_outages": 3,
+     "outage_hours": 20.0,
+     "station_id": "place-alfcl",
+     "station_name": "Alewife",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "Andrew Escalator 123 (Ashmont/Braintree platform to busway) is unavailable until further notice, pending replacement.",
+      "Andrew Escalator 124 (Ashmont/Braintree platform to busway) is unavailable."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Red"
+     ],
+     "longest_open_outage_h": 32290.3,
+     "n_currently_out": 2,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 2,
+     "n_outages": 2,
+     "outage_hours": 20.0,
+     "station_id": "place-andrw",
+     "station_name": "Andrew",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "Ashmont Escalator 438 (Ashmont platform to Mattapan Line, busway) is unavailable due to maintenance."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Mattapan",
+      "Red"
+     ],
+     "longest_open_outage_h": 755.7,
+     "n_currently_out": 1,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 1,
+     "n_outages": 1,
+     "outage_hours": 20.0,
+     "station_id": "place-asmnl",
+     "station_name": "Ashmont",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "Charles/MGH Escalator 426 (Lobby to Alewife platform) is unavailable due to maintenance."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Red"
+     ],
+     "longest_open_outage_h": 804.9,
+     "n_currently_out": 1,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 1,
+     "n_outages": 1,
+     "outage_hours": 20.0,
+     "station_id": "place-chmnl",
+     "station_name": "Charles/MGH",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "Davis Escalator 337 (College Avenue street to landing) is unavailable due to maintenance."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Red"
+     ],
+     "longest_open_outage_h": 179.7,
+     "n_currently_out": 1,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 1,
+     "n_outages": 1,
+     "outage_hours": 20.0,
+     "station_id": "place-davis",
+     "station_name": "Davis",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "Downtown Crossing Elevator 869 (Alewife platform to Summer Street Concourse) is unavailable due to maintenance through Tuesday, December 1."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Orange",
+      "Red"
+     ],
+     "longest_open_outage_h": null,
+     "n_currently_out": 1,
+     "n_elevator_outages": 1,
+     "n_escalator_outages": 0,
+     "n_outages": 1,
+     "outage_hours": 20.0,
+     "station_id": "place-dwnxg",
+     "station_name": "Downtown Crossing",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "JFK/UMass Escalator 322 (Ashmont platform to Columbia Road) is unavailable due to maintenance."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Red"
+     ],
+     "longest_open_outage_h": 99.0,
+     "n_currently_out": 1,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 1,
+     "n_outages": 1,
+     "outage_hours": 20.0,
+     "station_id": "place-jfk",
+     "station_name": "JFK/UMass",
+     "withheld_reason": null
+    },
+    {
+     "coverage_pct": 83.3,
+     "current_outage_text": [
+      "South Station Escalator 388 (Lobby to CSA area) is unavailable due to maintenance."
+     ],
+     "currently_out": true,
+     "lines": [
+      "Red"
+     ],
+     "longest_open_outage_h": 2071.3,
+     "n_currently_out": 1,
+     "n_elevator_outages": 0,
+     "n_escalator_outages": 2,
+     "n_outages": 2,
+     "outage_hours": 20.0,
+     "station_id": "place-sstat",
+     "station_name": "South Station",
+     "withheld_reason": null
+    }
+   ],
+   "window": "last_24h"
+  },
+  "freshness": {
+   "age_minutes": 7.0,
+   "exported_at": "2026-11-27T00:52:44Z",
+   "metrics_as_of": "2026-11-27T00:00:00Z"
+  },
+  "provenance": {
+   "definition": "Announced elevator and escalator outages per station",
+   "metrics_md": "docs/METRICS.md#release-4-site-metrics",
+   "row_limit": 500,
+   "served_from": "remote",
+   "sql": [
+    "select distinct station_id as id, station_name as name from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_accessibility_outages.parquet') order by name, id",
+    "select station_id, station_name, lines, case when coalesce(coverage_pct, 0) >= 50 then n_outages end as n_outages, case when coalesce(coverage_pct, 0) >= 50 then n_elevator_outages end as n_elevator_outages, case when coalesce(coverage_pct, 0) >= 50 then n_escalator_outages end as n_escalator_outages, round(case when coalesce(coverage_pct, 0) >= 50 then outage_hours end, 1) as outage_hours, currently_out, n_currently_out, round(longest_open_outage_h, 1) as longest_open_outage_h, current_outage_text, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_accessibility_outages.parquet') where window_label = 'last_24h' and list_contains(lines, 'Red') and (currently_out or coalesce(n_outages, 0) > 0) order by currently_out desc, outage_hours desc nulls last, station_name, station_id limit 501"
+   ],
+   "tables": [
+    "agg_accessibility_outages"
+   ],
+   "truncated": false
+  }
+ },
+ "request": "GET /v1/accessibility?line=Red&window=last_24h",
+ "status": 200
+}
