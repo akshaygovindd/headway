@@ -92,3 +92,43 @@ seeds:
         description: "Platform stop id where the segment starts (as in agg_headway_segment_window)."
       - name: to_stop_id
         description: "Platform stop id where the segment ends."
+
+  - name: reconstruction_dwell
+    description: >-
+      Expected dwell of a visit that no capture saw STOPPED_AT (a bracketed stop), per spacing
+      class of the run's observations. Fitted by scripts/fit_reconstruction_dwell.py from our own
+      observed STOPPED_AT data (no MBTA data), on service dates 2026-11-22 to 2026-11-24. The
+      model reads the most specific level that has a row: stop_hour, then stop, then line.
+      Refitting is a change of definition: bump the fact version.
+    config:
+      meta:
+        grain: level, line, stop_id, hour_bucket
+    columns:
+      - name: level
+        description: "line, stop (line and platform) or stop_hour (line, platform and hour bucket)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [line, stop, stop_hour]
+      - name: line
+        description: Route id (Green is split by branch), as in fct_reconstructed_arrivals.
+        data_tests: [not_null]
+      - name: stop_id
+        description: Platform stop id; null at the line level.
+      - name: hour_bucket
+        description: "Local hour of the scheduled arrival: night 0-4, am 5-8, mid 9-14, pm 15-18, eve 19-23; null above stop_hour."
+      - name: n_visits
+        description: Visits (observed or bracketed) the cell was fitted on.
+      - name: shape
+        description: Gamma shape of the dwell distribution (bounded above by 12; see the script).
+      - name: mean_dwell_s
+        description: Fitted mean dwell of all visits, seconds.
+      - name: missed_t15_s
+        description: Expected dwell, seconds, of a visit that a poll spacing of about 15 s would miss.
+      - name: missed_t30_s
+        description: As missed_t15_s for a spacing of about 30 s.
+      - name: missed_t60_s
+        description: As missed_t15_s for a spacing of about 60 s.
+      - name: missed_t120_s
+        description: As missed_t15_s for a spacing of 90 s or more.

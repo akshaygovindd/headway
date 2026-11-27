@@ -156,6 +156,15 @@ models:
 seeds:
   headway:
     slo_targets: *r2
+    # The dwell table that corrects bracketed arrivals, fitted from our own STOPPED_AT data by
+    # scripts/fit_reconstruction_dwell.py. Text columns: stop ids look like numbers.
+    reconstruction_dwell:
+      +tags: ["r2"]
+      +column_types:
+        level: varchar
+        line: varchar
+        stop_id: varchar
+        hour_bucket: varchar
     quality_thresholds:
       +column_types:
         warn: double
