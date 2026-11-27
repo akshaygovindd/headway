@@ -89,12 +89,17 @@ class RunRecord:
         )  # fmt: skip
 
 
+MAX_LISTED_TESTS = 50  # test names listed in the run summary line
+
+
 @dataclass
 class DbtOutcome:
     success: bool
     tests_passed: int = 0
     tests_failed: int = 0
     node_errors: list[str] = field(default_factory=list)
+    failed_tests: list[str] = field(default_factory=list)  # error severity, by test name
+    warned_tests: list[str] = field(default_factory=list)  # warn severity: counted as passed
 
 
 def _now() -> datetime:
@@ -261,8 +266,11 @@ def run_dbt(args: list[str]) -> DbtOutcome:
         is_test = str(getattr(r.node.resource_type, "value", r.node.resource_type)) == "test"
         if is_test and status in ("fail", "error"):
             outcome.tests_failed += 1
+            outcome.failed_tests.append(str(r.node.name))
         elif is_test and status in ("pass", "warn"):
             outcome.tests_passed += 1
+            if status == "warn":
+                outcome.warned_tests.append(str(r.node.name))
         elif not is_test and status == "error":
             outcome.node_errors.append(str(r.node.name))
     return outcome
@@ -689,6 +697,7 @@ def _smoke(started: float) -> dict[str, Any]:
         "r4_enabled": publish.r4_enabled(),
         "tests_failed": build.tests_failed,
         "tests_passed": build.tests_passed,
+        "failed_tests": build.failed_tests[:MAX_LISTED_TESTS],
         "rows_exported": sum(counts.values()),
         "tables_exported": len(counts),
         "r2_tables_exported": len(set(counts) & set(publish.R2_GOLD_TABLES)),
@@ -967,7 +976,10 @@ def _transform(
     build = _build_and_test(variables, steps, lambda: _restore_observability(s3, db_path))
     run.tests_passed, run.tests_failed = build.tests_passed, build.tests_failed
     if build.tests_failed:
-        logger.warning("dbt tests failed: %d (export continues)", build.tests_failed)
+        logger.warning(
+            "dbt tests failed: %d (export continues): %s",
+            build.tests_failed, ", ".join(build.failed_tests[:MAX_LISTED_TESTS]),
+        )  # fmt: skip
 
     if publish.r2_enabled() and publish.r3_enabled():
         t0 = time.monotonic()
@@ -1101,6 +1113,8 @@ def _transform(
             "dbt_status": "success" if build.success else "tests_failed",
             "tests_failed": build.tests_failed,
             "tests_passed": build.tests_passed,
+            "failed_tests": build.failed_tests[:MAX_LISTED_TESTS],
+            "warned_tests": build.warned_tests[:MAX_LISTED_TESTS],
             "rows_exported": sum(rows_exported.values()),
             "tables_exported": len(rows_exported),
             "cost_rows": cost_rows,

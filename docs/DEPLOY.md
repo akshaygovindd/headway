@@ -136,7 +136,7 @@ Expected:
   first transform run at or after 06:00 UTC;
 - one JSON summary line per run in the logs. The transform line reports `dbt_status`,
   `tests_failed`, `rows_exported`, `cost_rows` and `step_ms` (`s3_load`, `dbt_build`, `dbt_test`,
-  `export_gold`, `cost`, `publish`). dbt test failures do not stop the export; they are counted.
+  `export_gold`, `cost`, `publish`). dbt test failures do not stop the export; they are counted, and `failed_tests` and `warned_tests` name them (DATA_QUALITY.md).
 
 Transform runs are serialized with a lock object (`state/boston/transform.lock` in the raw bucket).
 A run that finds a fresh lock, for example a manual invoke during the scheduled `:20` run, logs

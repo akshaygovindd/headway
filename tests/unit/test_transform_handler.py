@@ -333,12 +333,20 @@ def test_test_failures_do_not_block_export(
     fakes: dict[str, Any], caplog: pytest.LogCaptureFixture
 ) -> None:
     caplog.set_level(logging.INFO)
-    fakes["outcome"] = handler.DbtOutcome(False, tests_passed=8, tests_failed=2)
+    fakes["outcome"] = handler.DbtOutcome(
+        False, tests_passed=8, tests_failed=2,
+        failed_tests=["data_invariants_r2", "no_arrivals_in_shuttle_stretch"],
+        warned_tests=["data_suspicious_r2"],
+    )  # fmt: skip
     summary = handler.lambda_handler({}, None)
     assert [a[0] for a in fakes["dbt"]] == ["run", "build", "test", "run-operation"]
     assert summary["dbt_status"] == "tests_failed"
     assert summary["tests_failed"] == 2
     assert fakes["published"]
+    # no silent pass: the failed tests are named in the summary and in the log
+    assert summary["failed_tests"] == ["data_invariants_r2", "no_arrivals_in_shuttle_stretch"]
+    assert summary["warned_tests"] == ["data_suspicious_r2"]
+    assert "data_invariants_r2" in caplog.text and "export continues" in caplog.text
 
 
 def test_missing_export_objects_fail_loudly(fakes: dict[str, Any]) -> None:
@@ -547,14 +555,15 @@ def test_run_dbt_counts_tests_and_node_errors(monkeypatch: pytest.MonkeyPatch) -
 
     results = [
         _node_result("test", "pass"),
-        _node_result("test", "warn"),
-        _node_result("test", "fail"),
+        _node_result("test", "warn", "suspicious"),
+        _node_result("test", "fail", "impossible"),
         _node_result("model", "success"),
         _node_result("model", "error", "dim_stop"),
     ]
     calls = _fake_dbt(monkeypatch, NS(exception=None, success=False, result=NS(results=results)))
     out = handler.run_dbt(["build"])
     assert (out.tests_passed, out.tests_failed, out.node_errors) == (2, 1, ["dim_stop"])
+    assert out.failed_tests == ["impossible"] and out.warned_tests == ["suspicious"]
     assert not out.success
     assert calls[0][0] == "build" and "lambda" in calls[0] and "--target-path" in calls[0]
 
