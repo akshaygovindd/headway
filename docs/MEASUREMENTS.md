@@ -54,6 +54,32 @@ The first transform run with Release 2 on, in Lambda (900 s limit), on 1-minute 
 15-second vehicle sampling had just started, so vehicle rows grow about 4x as the 7-day window
 fills. See [INCIDENTS](INCIDENTS.md#transform-duration-at-half-the-lambda-limit-caught-by-monitoring).
 
+### Production runs after the incremental closed-day facts (2026-11-26 20:00 UTC to 2026-11-27 20:25 UTC)
+
+Read-only from the CloudWatch log group `/aws/lambda/headway-transform` (the JSON summary line of
+every run that logged `duration_ms`, 26 runs). Before: 453 s on 26 Nov (above), with Release 2 on
+and every window day recomputed on each run. After the incremental deploy: facts of closed days are
+loaded from `state/facts/` and only the open days are computed.
+
+| Measure | Value |
+| --- | --- |
+| Duration, 25 of 26 runs | 161 s to 276 s (median of all 26 runs 244 s) |
+| Duration, first runs after the deploy | 178 s (2026-11-26 20:19 UTC) and 172 s (20:23 UTC), against 453 s before |
+| Duration, slowest run | 402 s (2026-11-27 03:27 UTC): the run also wrote `fct_headways` for 20 to 25 Nov (`dbt_build` 277 s); the cause of that rebuild was not looked up here |
+| Memory used (`memory_used_pct`) | 61.8 % to 65.4 % of 3008 MB |
+| Days computed per run | 2 or 3 (the open days); 9 in the 402 s run; the other closed days are loaded from state |
+| Failed Lambda runs | none: every run logged `dbt_status` `success` or `tests_failed` |
+| Runs with a failing dbt test | 6 of 26 (2026-11-27 04:23, 10:25, 11:25, 12:24, 13:25 and 14:25 UTC), always `data_invariants_r2`, which alarms (`headway-data-tests-failed`); the 6 runs since 15:25 UTC passed. The failing row was not investigated here |
+
+All runs are far below the 900 s limit and the 600 s alarm. Runs grow during the day as the open day
+accumulates 15-second vehicle data (for example 161 s at 04:23 UTC to 276 s at 06:25 UTC, and 197 s
+at 12:24 UTC to 275 s at 17:25 UTC after the day closed and dropped out of the computed set), so
+the figure to read is the range, not one run. The 453 s run and these ones are different loads (1-minute data
+against the start of 15-second data), so this is not a like-for-like speed-up: it shows production
+staying at 161 to 276 s with 15-second data and the window full, where the full recompute of the
+earlier run was already at 453 s. The like-for-like comparison is the local one below (182.8 s
+full rebuild, 102.4 s incremental steady state).
+
 ### Where `s3_load` goes (read-only, production bucket, 2026-11-26)
 
 The window (`dt` from 7 days back to tomorrow, plus static GTFS) as the staging models read it:
@@ -254,12 +280,22 @@ Since the conditional manifest write (see ARCHITECTURE_DECISIONS.md, ADR-013), d
 deliveries are counted by `agg_pipeline_health.duplicate_delivery_count` and the hourly
 `duplicate_deliveries` check. No duplicate has occurred since that change shipped: pending.
 
+### 72-hour window (Release 1 acceptance A2)
+
+| Measure | Value | Method |
+| --- | --- | --- |
+| Missed minutes over 72 h | 0 of 4,321 minutes missed (0.00 %) over 72.0 h, A2 PASS | `make acceptance` (`scripts/acceptance.py`, test A2) run on 2026-11-27 at about 21:04 UTC and again at about 21:13 UTC, same result both times. A minute counts as seen when `agg_pipeline_health` in the public gold has a row with that `scheduled_at`; the window is the 72 h ending at the newest minute in the table (so it ends on 2026-11-27 about 21:00 UTC and starts on 2026-11-24). The limit is 1 %. |
+
+The window ends with the newest minute in the table, so a later run covers a later 72 h; the
+figure above is the one this run showed. Duplicate deliveries do not hide a gap: a minute counts
+once. The earlier 26-hour window above (1 missed of 1,562) is a different, earlier measurement.
+
 ## Latency and cost
 
 | Measure | Value | Method |
 | --- | --- | --- |
 | Capture to gold | pending | Needs several scheduled runs. By schedule alone (curate at :00/:15/:30/:45, transform at :20 plus about one minute) a capture is in gold between about 20 and 80 minutes after it is fetched; this is derived from the schedules, not measured. |
-| Cost per 1,000 captures | $0.0197 on 2026-11-25 (day total $0.0850, 4,320 captures) | `gold/cost_daily.parquet`: Cost Explorer spend for resources tagged `project=headway` divided by captures. The first day is partial (deployment started mid-day) and Lambda usage is inside the free tier, so S3 dominates. |
+| Cost per 1,000 captures | $0.0199 on 2026-11-26 (day total $0.1022, 5,146 captures) | `gold/cost_daily.parquet`: Cost Explorer spend for resources tagged `project=headway` divided by captures. The first day is partial (deployment started mid-day) and Lambda usage is inside the free tier, so S3 dominates. |
 
 ## Arrival reconstruction
 

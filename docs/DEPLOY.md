@@ -193,6 +193,18 @@ Fill this in on a fresh clone (acceptance test A8). Times are wall clock, includ
 | 8. Verify | 7 s | read-only commands: manifests current, snapshot 200 with `Cache-Control: max-age=30`, 11 gold objects, transform log line present |
 | **Total** | about 45 s of commands | walkthrough of 26 Nov 2026 from a fresh clone, stopping at `terraform plan` |
 
+## Release sign-offs
+
+| Release | Signed off | Evidence |
+| --- | --- | --- |
+| Release 1 | 2026-11-26 | `make acceptance`: 11 PASS, 0 FAIL, and the A8 walkthrough recorded above (commit `cfb8155`). A2 (72 h, missed under 1 %) is measured in [MEASUREMENTS](MEASUREMENTS.md#72-hour-window-release-1-acceptance-a2). |
+
+Checked again on 2026-11-27: `make acceptance` at `cfb8155` gives A2 PASS and A9 PASS. A1 reads the
+manifest of the current minute and can report FAIL in the first 45 seconds of a minute, because the
+four polls of a run finish before it writes the manifest; run later in the minute it passes. At
+the current head (`bbf10bb`) A9 fails: `make e2e` reports a difference in a forecast-example table
+(Release 3), not in a Release 1 table. That is a test to fix, not a withdrawal of the sign-off.
+
 ## Operations
 
 `scripts/bench_transform.py` (`uv run python scripts/bench_transform.py --days 1 --backfill`)

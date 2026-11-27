@@ -1,116 +1,133 @@
-# Headway: Near-Real-Time Transit Reliability & AI Analytics
+# Headway
 
-*Know the gap. Measure the reliability.*
+**Can you trust a real-time transit metric? Every Headway number shows how much data stands behind it.**
 
-Headway is a data platform for MBTA subway reliability. It captures the real-time and static
-transit feeds every minute, keeps every raw capture, validates and curates them into Parquet with
-a quarantine for bad rows, and builds reliability metrics with dbt on DuckDB. Every number is
-published with its coverage and freshness, and the pipeline reports its own health so a gap in the
-data is never mistaken for a disruption on the line. Cities are configured through YAML, so
-nothing is tied to a single agency. The Streamlit app reads only public files over HTTPS.
+Headway is a data platform for MBTA subway reliability, running continuously on AWS since 22 Nov 2026
+([MEASUREMENTS](docs/MEASUREMENTS.md#reliability-of-ingest)). It keeps every raw capture, validates and curates
+it, builds reliability metrics with dbt on DuckDB, and publishes each number with its coverage and freshness.
 
-**Live app:** https://headway-mbta.streamlit.app
+## Live
 
-**Measured:** transform 600 s timeout → about 46–54 s per run · $0.0086 per 1,000 captures ·
-1 missed run in about 1,580 minutes. Method and dates in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md).
-
-| Overview | Live map |
+| | Link |
 | --- | --- |
-| ![Overview](docs/img/overview.png) | ![Live map](docs/img/live-map.png) |
-| **Line explorer** | **Pipeline health** |
-| ![Line explorer](docs/img/line-explorer.png) | ![Pipeline health](docs/img/pipeline-health.png) |
+| Site | _to be added at go-live_ |
+| API | _to be added at go-live_ |
+| Streamlit app (Release 1) | https://headway-mbta.streamlit.app |
 
-<!-- TODO: docs/img is empty; add overview.png, live-map.png, line-explorer.png and
-pipeline-health.png (captures of https://headway-mbta.streamlit.app). -->
+Neither the site nor the API is deployed yet ([Status](#status)).
+
+## What it does
+
+- **Captures every minute and keeps everything.** Trip updates and alerts once a minute, vehicle positions every 15 seconds, raw objects never modified, one manifest per minute ([ADR-014](docs/ARCHITECTURE_DECISIONS.md#adr-014-vehicle-positions-sampled-every-15-s)).
+- **Validates before it counts.** Pydantic contracts at curation; rejected rows go to a quarantine with the reason; duplicate deliveries are flagged, never dropped ([lineage](docs/LINEAGE.md)).
+- **Builds metrics with dbt on DuckDB.** Schedule deviation, prediction revision, reconstructed arrivals, headway adherence and more, defined in [METRICS](docs/METRICS.md); facts of closed days are computed once and reused ([ADR-024](docs/ARCHITECTURE_DECISIONS.md#adr-024-account-lambda-memory-cap)).
+- **Shows its own health.** Coverage and freshness beside every number, and a data outage is kept apart from a disruption on the line ([Trust rules](#trust-rules)).
+- **Serves the results.** Public gold Parquet, a read-only metric API and a Next.js site (built, not deployed), a Streamlit app, and a question-answering analyst limited to read-only tools over gold ([ADR-020](docs/ARCHITECTURE_DECISIONS.md#adr-020-analyst-data-access-through-the-public-gold-tables)).
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    MBTA[MBTA GTFS-realtime<br/>and static feeds] --> ING[Ingest Lambda<br/>every minute]
-    ING --> RAW[(S3 raw captures<br/>and manifests)]
-    ING --> LIVE[(live snapshot JSON)]
-    RAW --> CUR[Curate Lambda<br/>contracts, quarantine]
+    MBTA[MBTA feeds] --> ING["Ingest<br/>every minute,<br/>vehicles every 15 s"]
+    ING --> RAW[("S3 raw captures<br/>and manifests")]
+    RAW --> CUR{{"Curate<br/>contracts, quarantine"}}
     CUR --> PQ[(curated Parquet)]
     CUR --> Q[(quarantine)]
-    PQ --> TR[Transform Lambda<br/>dbt on DuckDB + tests]
+    PQ --> TR["Transform<br/>dbt on DuckDB,<br/>closed-day facts"]
     Q --> TR
-    TR --> GOLD[(gold Parquet<br/>public S3)]
+    TR --> GOLD[(gold Parquet)]
     TR --> MD[(MotherDuck)]
+    GOLD --> API[Metric API]
+    API --> SITE[Site]
     GOLD --> APP[Streamlit app]
-    LIVE --> APP
+    ING -.-> AL[Alarms]
+    CUR -.-> AL
+    TR -.-> AL
+    AL -.-> SNS[SNS email]
 ```
 
-Lineage with the validation, quarantine, alarm and replay points is in
-[docs/LINEAGE.md](docs/LINEAGE.md).
+More detail, with a stage table and the monitoring: [docs/architecture.md](docs/architecture.md).
 
-## What it measures
+## Measured results
 
-Release 1 reports four metrics per subway line, defined in [docs/METRICS.md](docs/METRICS.md):
+Every figure links to the section that records its date and method.
 
-1. **Predicted schedule deviation:** predicted arrival minus scheduled arrival, from the last
-   prediction before the scheduled time (median and p90).
-2. **Prediction revision:** how much a prediction moves between snapshots.
-3. **Coverage:** the share of observable scheduled trip stops with a usable observation.
-4. **Freshness:** how old the data is when it arrives, and whether the pipeline kept up.
+| Measure | Result | Source |
+| --- | --- | --- |
+| Ingest completeness, 72 h | 0 of 4,321 minutes missed (0.00 %), checked 27 Nov | [MEASUREMENTS](docs/MEASUREMENTS.md#72-hour-window-release-1-acceptance-a2) |
+| Ingest completeness, first 26 h | 1 of 1,562 expected runs missed (0.06 %); delay from scheduled minute to fetch median 17.6 s | [MEASUREMENTS](docs/MEASUREMENTS.md#reliability-of-ingest) |
+| Volume | 4,320 captures a day at one poll a minute; about 2.0 million trip-update rows a day | [MEASUREMENTS](docs/MEASUREMENTS.md#volume) |
+| Transform, first Lambda runs | timed out at 600 s, then 46 to 54 s per run | [MEASUREMENTS](docs/MEASUREMENTS.md#transform-runtime) |
+| Transform with arrival facts on, production | 453 s (26 Nov), then 161 to 276 s over the next 26 runs (172 s on the first), one 402 s run during a rebuild; memory 62 to 65 % | [MEASUREMENTS](docs/MEASUREMENTS.md#production-runs-after-the-incremental-closed-day-facts-2026-11-26-2000-utc-to-2026-11-27-2025-utc) |
+| Full rebuild against incremental, local | 182.8 s against 102.4 s (steady state), same output | [MEASUREMENTS](docs/MEASUREMENTS.md#full-rebuild-versus-incremental-closed-days) |
+| S3 requests, manifest curation | 116,845 down to 143 in the benchmark (348 s down to 7.6 s) | [MEASUREMENTS](docs/MEASUREMENTS.md#transform-runtime) |
+| Cost per 1,000 captures | $0.0199 on 26 Nov (day total $0.1022); an early, partial day, billed from Cost Explorer, S3 dominates | [MEASUREMENTS](docs/MEASUREMENTS.md#latency-and-cost) |
+| Reconstructed arrivals against MBTA LAMP | 97.9 % of 165,684 rows matched; held-out days, bracketed stops: median absolute difference 15.8 s down to 7.0 s, within 30 s 82.5 % up to 90.3 % | [VALIDATION](docs/VALIDATION.md) |
+| Invariant tests | found 2 bugs on production data (headway coverage above 100 %, a median above its own p95) | [DATA_QUALITY](docs/DATA_QUALITY.md#bugs-these-tests-found-on-production-data) |
 
-Rule: no number is shown without its coverage and freshness. Below 50% coverage values are
-withheld, lines are ranked against each other only where coverage is comparable, and metrics are
-reported only for hours the pipeline was observing. These are Headway approximations of
-predictions, not official MBTA metrics.
+The LAMP comparison is a cross-check against MBTA's own times from the same feed, not ground truth.
+The dwell correction was fitted on 22 to 24 Nov only and scored on 25 and 26 Nov; 15-second data is
+left uncorrected until it has enough days ([ADR-026](docs/ARCHITECTURE_DECISIONS.md#adr-026-dwell-correction-of-bracketed-arrivals-from-our-own-data)).
+A hand check of 30 trip stops gave a median difference of 16.0 s ([MEASUREMENTS](docs/MEASUREMENTS.md#arrival-reconstruction)).
 
-## Key engineering decisions
+## Trust rules
 
-The full set is in [docs/ARCHITECTURE_DECISIONS.md](docs/ARCHITECTURE_DECISIONS.md).
+- **Coverage.** No number is shown without its coverage (the share of observable scheduled trip stops, headways or trips with a usable observation) and its freshness ([METRICS](docs/METRICS.md)).
+- **Withholding.** A value with coverage under 50 % is withheld everywhere, and lines are ranked only where coverage is comparable ([ADR-006](docs/ARCHITECTURE_DECISIONS.md#adr-006-data-outage-versus-transit-disruption)). Only high and medium confidence arrivals feed metrics ([ADR-016](docs/ARCHITECTURE_DECISIONS.md#adr-016-confidence-levels-only-high-and-medium-arrivals-feed-metrics)).
+- **Outage versus disruption.** Metrics cover only hours the pipeline was observing; missed runs, failed fetches and quarantine are reported on their own, so a gap in the data is not read as a problem on the line.
+
+These are Headway's approximations, not official MBTA metrics.
+
+## Engineering highlights
+
+Decisions ([all of them](docs/ARCHITECTURE_DECISIONS.md)):
 
 - [ADR-001](docs/ARCHITECTURE_DECISIONS.md#adr-001-lambda--eventbridge-instead-of-kafka): scheduled Lambdas instead of Kafka.
-- [ADR-002](docs/ARCHITECTURE_DECISIONS.md#adr-002-parquet-on-s3-instead-of-iceberg): plain Parquet on S3 instead of Iceberg.
-- [ADR-004](docs/ARCHITECTURE_DECISIONS.md#adr-004-event-time-feed-time-and-ingestion-time-kept-separate): event, feed and ingestion time kept separate.
-- [ADR-005](docs/ARCHITECTURE_DECISIONS.md#adr-005-duplicates-and-out-of-order-events) and [ADR-013](docs/ARCHITECTURE_DECISIONS.md#adr-013-duplicate-deliveries-are-flagged-never-dropped): duplicates are flagged, never dropped.
 - [ADR-006](docs/ARCHITECTURE_DECISIONS.md#adr-006-data-outage-versus-transit-disruption): a data outage is not a transit disruption.
-- [ADR-012](docs/ARCHITECTURE_DECISIONS.md#adr-012-dbt-compute-in-lambda-duckdb-motherduck-gold-only-duckdb-156-pin): dbt runs in Lambda on DuckDB; MotherDuck stores only gold.
+- [ADR-012](docs/ARCHITECTURE_DECISIONS.md#adr-012-dbt-compute-in-lambda-duckdb-motherduck-gold-only-duckdb-156-pin): dbt in Lambda on DuckDB; MotherDuck stores only gold.
+- [ADR-013](docs/ARCHITECTURE_DECISIONS.md#adr-013-duplicate-deliveries-are-flagged-never-dropped): duplicate deliveries are flagged, never dropped.
+- [ADR-015](docs/ARCHITECTURE_DECISIONS.md#adr-015-immutable-history-of-daily-aggregates-versioned-per-metric-family): immutable daily history, versioned per metric family.
+- [ADR-024](docs/ARCHITECTURE_DECISIONS.md#adr-024-account-lambda-memory-cap): work bounded to a fixed memory budget.
+- [ADR-026](docs/ARCHITECTURE_DECISIONS.md#adr-026-dwell-correction-of-bracketed-arrivals-from-our-own-data): a bias found against LAMP, corrected from our own data, scored on held-out days.
 
-## Production incidents
+Incidents (all of them in [INCIDENTS](docs/INCIDENTS.md), each with root cause, fix and guard):
 
-Twelve incidents found while bringing the pipeline up in AWS, each with root cause, fix and the
-test that now guards it, are in [docs/INCIDENTS.md](docs/INCIDENTS.md). Examples: the scheduler
-placeholder that was never substituted, asynchronous retries that duplicated runs, a DuckDB
-version MotherDuck did not support, and at-least-once scheduling that delivered the same minute
-twice. What to do when an alarm fires, and how to rehearse the failures (six replay
-simulations in `tests/simulations/`, two live drills through a chaos switch), is in
-[docs/RUNBOOK.md](docs/RUNBOOK.md).
+- [Duplicate deliveries](docs/INCIDENTS.md#duplicate-deliveries): at-least-once scheduling delivered one minute four times; fixed with a conditional manifest write.
+- [Transform scaling over S3 views](docs/INCIDENTS.md#transform-scaling-over-s3-views-and-overlapping-runs): 116,845 requests per benchmark down to 143, plus a run lock.
+- [Transform duration at half the Lambda limit](docs/INCIDENTS.md#transform-duration-at-half-the-lambda-limit-caught-by-monitoring): a near miss found in the logs, fixed with persisted closed-day facts and a duration alarm.
 
-## Measured numbers
+Operations: alarms to an SNS topic, a [RUNBOOK](docs/RUNBOOK.md) entry per alarm, six replay simulations in `tests/simulations/` and two live failure drills.
 
-[docs/MEASUREMENTS.md](docs/MEASUREMENTS.md) records runtimes (transform 54 s per run, down from a
-timeout), volumes (about 4,300 captures and 2 million prediction rows a day), ingest reliability
-(0.06 % missed runs in the first 26 hours) and cost per 1,000 captures, each with date and method.
+## Status
 
-## Tech stack
+As of 27 Nov 2026.
 
-Python 3.12 · AWS Lambda (arm64, zip and container images), EventBridge Scheduler, S3, CloudWatch,
-SSM · Terraform · dbt Core with DuckDB 1.5.6 · Parquet and PyArrow · Pydantic contracts ·
-MotherDuck · Streamlit, Plotly, pydeck · uv, ruff, mypy, pytest · GitHub Actions.
+| Release | Status | Source |
+| --- | --- | --- |
+| 1: capture, curate, four metrics, Streamlit app, pipeline health | Signed off 26 Nov 2026: `make acceptance` 11 PASS, 0 FAIL, deploy walkthrough recorded | [DEPLOY](docs/DEPLOY.md#release-sign-offs) |
+| 2: reconstructed arrivals, accuracy, headway adherence, immutable history, SLOs | Live, running continuously on AWS | [MEASUREMENTS](docs/MEASUREMENTS.md#transform-duration-with-closed-day-facts) |
+| 3: forecasts, weather comparison, analyst | Built and tested; not switched on in AWS. Switch-on steps are in the deploy runbook. The forecast comparison waits for the 21-day training gate: no line has passed it | [ADR-019](docs/ARCHITECTURE_DECISIONS.md#adr-019-forecasting-design-target-horizons-leakage-rule-gate-baselines), [DEPLOY](docs/DEPLOY.md#release-3-switch-off-by-default) |
+| 4: metric API and site | Built and tested; not deployed. Go-live checklist written | [API](docs/API.md), [web/README.md](web/README.md), [DEPLOY](docs/DEPLOY.md#release-4-switch-public-metric-api-off-by-default) |
+
+Open items: the alert-versus-reality hand check and the alert classifier labels are pending
+([MEASUREMENTS](docs/MEASUREMENTS.md#alert-vs-reality-hand-check)). Between 26 Nov 20:00 UTC and
+27 Nov 20:25 UTC, `data_invariants_r2` failed in 6 of 26 transform runs (none in the last 6) and has not yet been
+investigated ([MEASUREMENTS](docs/MEASUREMENTS.md#production-runs-after-the-incremental-closed-day-facts-2026-11-26-2000-utc-to-2026-11-27-2025-utc)).
+At the current head `make e2e` reports a difference in a forecast-example table ([DEPLOY](docs/DEPLOY.md#release-sign-offs)).
 
 ## Quick start
 
 ```sh
-make demo
-```
-
-Replays the bundled one-hour Boston sample, builds the dbt marts, exports the gold tables and a
-live snapshot to `.local/demo`, and starts the app at http://localhost:8501. It needs only `uv`
-(and the dbt environment it installs); no AWS account.
-
-```sh
+make demo         # replay the bundled one-hour Boston sample, build the marts, start the app (no AWS account)
 make check        # lint, types, unit tests
-make e2e          # replay the sample and compare the key tables
 make app-test     # Streamlit page and policy tests
-make acceptance   # PASS / FAIL / MANUAL for the Release 1 acceptance tests
+make acceptance   # PASS / FAIL / MANUAL for the Release 1 acceptance tests (reads public data and read-only AWS)
+make validate     # compare reconstructed arrivals with MBTA LAMP (see docs/VALIDATION.md)
+make evals        # score the analyst on 40 questions (needs an API key; see docs/EVALS.md)
+make api-dev      # run the metric API locally; make web-dev runs the site against it
 ```
 
-The app reads its data from `HEADWAY_DATA_URL` (environment, then Streamlit secret), falling back
-to the public gold bucket. Deploying your own copy is described in [docs/DEPLOY.md](docs/DEPLOY.md).
+Deploying a copy is described in [DEPLOY](docs/DEPLOY.md); failure handling in [RUNBOOK](docs/RUNBOOK.md).
 
 ## Repository map
 
@@ -119,55 +136,22 @@ to the public gold bucket. Deploying your own copy is described in [docs/DEPLOY.
 | `src/headway/` | ingest, parse, contracts, curate, export, CLI |
 | `dbt/headway/` | dbt project: staging, intermediate, marts, tests |
 | `dbt/headway_transform/` | transform Lambda: dbt run, gold export, publish, cost |
-| `src/headway_mcp/` | AI analyst: five read-only MCP tools over public gold, orchestration, budgets |
-| `src/headway_api/` | public read-only metric API (FastAPI on Lambda, R4; [docs/API.md](docs/API.md), ADR-023) |
-| `app/` | Streamlit app (`Home.py` navigation, `overview_page.py`, `pages/`, `lib/`, tests) |
-| `web/` | public Next.js site (design system v2) over the metric API (not deployed; [web/README.md](web/README.md): `make api-dev`, `make web-dev`) |
+| `src/headway_api/` | read-only metric API (FastAPI on Lambda; [docs/API.md](docs/API.md)) |
+| `src/headway_mcp/` | analyst: five read-only tools over public gold, budgets |
+| `web/` | Next.js site over the metric API ([web/README.md](web/README.md)) |
+| `app/` | Streamlit app |
+| `ml/` | forecast training and evaluation |
 | `infra/` | Terraform: `bootstrap/` (state bucket) and `main/` (stack) |
 | `docker/` | container images for curate, transform, train and the API |
 | `config/cities/` | city configuration (feeds, lines, timezone) |
 | `samples/boston/` | one-hour sample with expected results |
-| `scripts/` | demo build, e2e, acceptance report, benchmarks |
-| `docs/` | metrics, decisions, lineage, deploy, incidents, measurements |
+| `scripts/`, `tests/`, `evals/` | benchmarks and reports; unit, replay and simulation tests; analyst evals |
+| `docs/` | [architecture](docs/architecture.md), [metrics](docs/METRICS.md), [decisions](docs/ARCHITECTURE_DECISIONS.md), [lineage](docs/LINEAGE.md), [data quality](docs/DATA_QUALITY.md), [incidents](docs/INCIDENTS.md), [measurements](docs/MEASUREMENTS.md), [validation](docs/VALIDATION.md) |
 
-## AI analyst
-
-The AI analyst page answers questions through five read-only tools that query only the public
-gold Parquet (ADR-020). Every answer is checked against the tool results (numbers, causes,
-direction words; ADR-008) and shows its SQL, definition, comparison period, coverage and freshness.
-Without an OpenAI key, or over the cost limits (ADR-021), it shows precomputed examples.
-
-### Evals
-
-`make evals` scores the analyst on 40 questions (metric lookups, comparisons, dates, insufficient
-data, causal traps, service versus data outage, metrics not computed, out of scope and injection)
-against gold answers computed by SQL from a frozen snapshot of the demo data
-(`evals/snapshot/`, small Parquet). It needs `OPENAI_API_KEY`, prints the cost and stops at
-`--max-cost` (default $0.50), and exits non-zero unless numeric correctness is at least 90%,
-unsupported claims at most 2%, refusals are 100% correct on insufficient data and injection, and
-p90 latency is at most 10 s. The report is [docs/EVALS.md](docs/EVALS.md), regenerated by each
-real run. `make evals EVALS_ARGS=--fake` runs a scripted model instead (the scorer's own test in
-`make check`, no network).
-
-### Alert classifier pilot and weather comparison
-
-A pilot classifier sorts alert headers into six classes (`make alert-classifier`, labelling guide
-in `evals/ALERT_LABELLING.md`, report [docs/ALERT_CLASSIFIER.md](docs/ALERT_CLASSIFIER.md) once the
-labels are in); nothing in production depends on it. With R3 on, the Forecast page also compares
-on-time and headway shares on snow, heavy-rain and extreme-heat days with other days, descriptively
-and never causally ([docs/METRICS.md](docs/METRICS.md), weather source in ADR-022).
-
-## Roadmap
-
-- **Release 1 (this):** capture, curate, four metrics, public Streamlit app, pipeline health.
-- **Release 2:** reconstructed arrivals with accuracy, actual deviation, headway adherence and ETT
-  (exact 24 h and 7 d windows), immutable history beyond the 7-day rebuild window, persisted run
-  state and service level objectives (`docs/SLO.md`); more cities from config.
-- **Release 3:** natural-language analytics with unsupported claims prevented
-  (ADR-008) and an MCP server (ADR-011).
-- **Release 4:** a public read-only metric API (built, not deployed: [docs/API.md](docs/API.md),
-  ADR-023), then a Next.js front end (ADR-010).
+Python 3.12, AWS Lambda, EventBridge Scheduler, S3, CloudWatch, Terraform, dbt Core with DuckDB,
+Parquet, MotherDuck, FastAPI, Next.js, Streamlit.
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). Transit data: MBTA; LAMP validation data provided by MassDOT and the MBTA,
+not affiliated ([VALIDATION](docs/VALIDATION.md#source-and-licence)).
