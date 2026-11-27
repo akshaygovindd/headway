@@ -266,7 +266,8 @@ deliveries are counted by `agg_pipeline_health.duplicate_delivery_count` and the
 First pass on the 1-minute data of 2026-11-22T16:35Z to 2026-11-23T19:40Z (about 27 hours; read-only
 copy of the curated vehicle positions and static tables), dbt models `int_vehicle_stop_events`
 and `fct_reconstructed_arrivals`, built locally on 2026-11-23. Re-validation after 15 s sampling
-ships is pending; these numbers describe 1-minute sampling.
+ships is pending; these numbers describe 1-minute sampling. A comparison with MBTA's own times, at
+scale and including the first four hours of 15 s sampling, follows below.
 
 | Measure | Value | Method |
 | --- | --- | --- |
@@ -340,6 +341,31 @@ dropped for a train in between or unproven order: 1,580 of 34,000 candidates (ab
 The e2e sample is 59 minutes, so both of its hours are outages by the rule and the Release 2
 aggregates in `tests/e2e/expected` show the exclusion path, not values; the unit fixtures cover the
 statistics.
+
+### Cross-check against MBTA LAMP (2026-11-26)
+
+Service dates 2026-11-22 to 2026-11-26 (22 Nov from about 11:30 local, 26 Nov to the evening),
+`fct_reconstructed_arrivals` rebuilt locally from a fresh read-only copy of production on
+2026-11-26, against MBTA's LAMP subway on-time-performance files (MassDOT Developers License:
+use and redistribution allowed with MassDOT acknowledged; no LAMP rows are committed). Difference =
+ours minus LAMP `stop_timestamp`. Method, licence, all tables and limitations:
+[VALIDATION](VALIDATION.md); re-run with `make validate`.
+
+| Measure | Value | Method |
+| --- | --- | --- |
+| Match rate | 97.9 % of 164,578 rows with an arrival time (high 99.5 %, medium 97.8 %, low 95.0 %) | Trip id, direction and stop; then nearest scheduled arrival within 120 s; pairs more than 600 s apart rejected. Unmatched: bracketed Green-C/E stops LAMP has no row for, and reused trip ids. |
+| All matched rows | median absolute difference 23.7 s, p90 46.5 s, signed bias -21.0 s, 67.1 % within 30 s, 96.9 % within 60 s | 161,189 pairs. |
+| By confidence, median abs / p90 / within 30 s | high 10.5 s / 14.5 s / 99.9 %; medium 26.5 s / 45.5 s / 62.3 %; low 65.0 s / 119.0 s / 21.6 % | Same pairs. For observed stops the difference is half the interval width by construction (LAMP reports the first STOPPED_AT, we report the interval midpoint). |
+| Observed stops, ours moved to the interval end | median 0 s, 98.6 % within 5 s, 99.7 % within 30 s | 124,734 pairs. Both sides read the same STOPPED_AT report. |
+| Bracketed stops | median bias +13.1 s (ours later), median abs 15.6 s, 81.9 % within 30 s; after subtracting half of LAMP's dwell, bias -1.9 s, median abs 8.4 s, 92.9 % within 30 s | 36,455 pairs. Interpolation lands inside the dwell. |
+| 1 minute vs 15 s sampling | median abs 24.7 s vs 12.5 s, within 30 s 65.4 % vs 83.8 %; high share 13 % vs 56 % | 15 s is about four hours of one evening. |
+
+MBTA's times come from the same realtime feed, so this is a cross-check by an independent
+implementation, not ground truth. Conclusion: reconstruction reads the same stop reports as MBTA
+(match 97.9 %, observed stops identical to the second once the definitions are aligned); the -21 s
+bias is the midpoint-versus-first-STOPPED_AT definition, not a bug; bracketed arrivals are
+systematically about 13 s late, which a dwell correction would remove (proposed in VALIDATION,
+not applied).
 
 ## Blue and Green-E deviation: late and early departures, not a matching offset
 
