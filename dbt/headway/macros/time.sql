@@ -57,3 +57,18 @@ end
 {% macro service_date_naive(ts) -%}
 cast(({{ ts }} - interval {{ var("service_day_cutoff_hour") }} hour) as date)
 {%- endmacro %}
+
+{#
+  Hour bucket of a timestamp for the dwell table (reconstruction_dwell): night 0-4, am 5-8,
+  mid 9-14, pm 15-18, eve 19-23, by the local hour. scripts/fit_reconstruction_dwell.py has the
+  same expression.
+#}
+{% macro dwell_hour_bucket(ts) -%}
+case
+    when extract(hour from {{ ts }} at time zone '{{ var("timezone") }}') < 5 then 'night'
+    when extract(hour from {{ ts }} at time zone '{{ var("timezone") }}') < 9 then 'am'
+    when extract(hour from {{ ts }} at time zone '{{ var("timezone") }}') < 15 then 'mid'
+    when extract(hour from {{ ts }} at time zone '{{ var("timezone") }}') < 19 then 'pm'
+    else 'eve'
+end
+{%- endmacro %}

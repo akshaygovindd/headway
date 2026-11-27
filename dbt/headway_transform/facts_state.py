@@ -32,10 +32,14 @@ logger = logging.getLogger()
 PREFIX = "state/facts"
 # table -> metric version. Bump a version when the definition of the table (or of anything it
 # reads) changes: the new version is written next to the old one and `rebuild_facts` backfills it.
+# Version 3 of fct_reconstructed_arrivals: bracketed arrivals are corrected for the dwell the polls
+# straddled (reconstruction_dwell). fct_headways reads those arrivals, so it moves to 3 with it, and
+# one `rebuild_facts` call with metric_version 3 backfills both (a call writes the tables at its
+# version). Version 2 of fct_reconstructed_arrivals was never used.
 FACT_VERSIONS: dict[str, int] = {
     "int_vehicle_stop_events": 1,
-    "fct_reconstructed_arrivals": 1,
-    "fct_headways": 2,
+    "fct_reconstructed_arrivals": 3,
+    "fct_headways": 3,
     "fct_stop_predictions": 1,
 }
 

@@ -67,6 +67,41 @@ ev as (
         and c.vehicle_id = u.vehicle_id
 ),
 
+-- median spacing of the run's observations, in classes (15, 30, 60, 120 s) that match the
+-- columns of reconstruction_dwell; a run with one observation counts as 60 s
+run_spacing as (
+    select
+        trip_instance_key,
+        segment,
+        case
+            when median(gap_s) <= 22.5 then 15
+            when median(gap_s) <= 45 then 30
+            when median(gap_s) <= 90 then 60
+            else 120
+        end as spacing_class
+    from (
+        select
+            trip_instance_key,
+            segment,
+            epoch(event_ts) - epoch(lag(event_ts) over (
+                partition by trip_instance_key, segment order by n
+            )) as gap_s
+        from ev
+    )
+    where gap_s is not null
+    group by trip_instance_key, segment
+),
+
+dwell_cells as (
+    select level, line, stop_id, hour_bucket, 15 as spacing_class, missed_t15_s as missed_s from {{ ref('reconstruction_dwell') }}
+    union all
+    select level, line, stop_id, hour_bucket, 30, missed_t30_s from {{ ref('reconstruction_dwell') }}
+    union all
+    select level, line, stop_id, hour_bucket, 60, missed_t60_s from {{ ref('reconstruction_dwell') }}
+    union all
+    select level, line, stop_id, hour_bucket, 120, missed_t120_s from {{ ref('reconstruction_dwell') }}
+),
+
 span as (
     select trip_instance_key, segment, min(dist_m) as min_dist_m, max(dist_m) as max_dist_m
     from ev
@@ -194,16 +229,51 @@ bracketed as (
     where e.method = 'bracketed'
 ),
 
+-- the interpolated time, and how far to move it: along (how far the stop lies between the two
+-- anchors) times the expected dwell of a missed visit, never past the anchor before the stop
+corrected as (
+    select
+        b.trip_instance_key,
+        b.segment,
+        b.stop_sequence,
+        b.lo_ts + to_microseconds(cast(round(
+            1e6 * (epoch(b.up_ts) - epoch(b.lo_ts)) * (e.eff_dist_m - b.lo_dist_m)
+                / (b.up_dist_m - b.lo_dist_m)
+        ) as bigint)) as interpolated_ts,
+        least(
+            (e.eff_dist_m - b.lo_dist_m) / (b.up_dist_m - b.lo_dist_m)
+                * coalesce(sh.missed_s, st.missed_s, ln.missed_s, 0),
+            epoch(b.up_ts) - epoch(b.lo_ts)
+        ) as dwell_adjust_s,
+        b.lo_ts
+    from bracketed b
+    join estimated e
+        on e.trip_instance_key = b.trip_instance_key
+        and e.segment = b.segment
+        and e.stop_sequence = b.stop_sequence
+    left join run_spacing rs on rs.trip_instance_key = b.trip_instance_key and rs.segment = b.segment
+    left join dwell_cells sh
+        on sh.level = 'stop_hour' and sh.line = e.line and sh.stop_id = e.stop_id
+        and e.scheduled_arrival_ts is not null
+        and sh.hour_bucket = {{ dwell_hour_bucket('e.scheduled_arrival_ts') }}
+        and sh.spacing_class = coalesce(rs.spacing_class, 60)
+    left join dwell_cells st
+        on st.level = 'stop' and st.line = e.line and st.stop_id = e.stop_id
+        and st.spacing_class = coalesce(rs.spacing_class, 60)
+    left join dwell_cells ln
+        on ln.level = 'line' and ln.line = e.line and ln.spacing_class = coalesce(rs.spacing_class, 60)
+),
+
 timed as (
     select
         e.*,
         case e.method
             when 'observed' then o.observed_ts
-            when 'bracketed' then b.lo_ts + to_microseconds(cast(round(
-                1e6 * (epoch(b.up_ts) - epoch(b.lo_ts)) * (e.eff_dist_m - b.lo_dist_m)
-                    / (b.up_dist_m - b.lo_dist_m)
-            ) as bigint))
-        end as arrival_ts,
+            when 'bracketed' then greatest(
+                c.interpolated_ts - to_microseconds(cast(round(1e6 * c.dwell_adjust_s) as bigint)),
+                c.lo_ts
+            )
+        end as pre_arrival_ts,
         case e.method when 'observed' then e.interval_end_fetched_at when 'bracketed' then b.known_at end as own_known_at,
         case when e.method = 'observed' then epoch(e.interval_end_ts) - epoch(e.interval_start_ts) end as interval_width_s,
         case when e.method = 'bracketed' then epoch(b.up_ts) - epoch(b.lo_ts) end as bracket_gap_s
@@ -212,6 +282,26 @@ timed as (
         on o.trip_instance_key = e.trip_instance_key and o.segment = e.segment and o.stop_sequence = e.stop_sequence
     left join bracketed b
         on b.trip_instance_key = e.trip_instance_key and b.segment = e.segment and b.stop_sequence = e.stop_sequence
+    left join corrected c
+        on c.trip_instance_key = e.trip_instance_key and c.segment = e.segment and c.stop_sequence = e.stop_sequence
+),
+
+-- the corrections of two bracketed stops of a run differ, so keep them in order: a bracketed stop
+-- is never earlier than the bracketed stops before it (at most its own interpolated time)
+ordered as (
+    select
+        *,
+        case
+            when method = 'bracketed' then greatest(
+                pre_arrival_ts,
+                max(case when method = 'bracketed' then pre_arrival_ts end) over (
+                    partition by trip_instance_key, segment order by stop_sequence
+                    rows between unbounded preceding and 1 preceding
+                )
+            )
+            else pre_arrival_ts
+        end as arrival_ts
+    from timed
 ),
 
 -- compare each reconstructed stop with the neighbouring reconstructed stops of its run
@@ -227,7 +317,7 @@ checked as (
             lag(own_known_at ignore nulls) over w,
             lead(own_known_at ignore nulls) over w
         ) as known_at
-    from timed
+    from ordered
     window w as (partition by trip_instance_key, segment order by stop_sequence)
 ),
 

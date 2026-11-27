@@ -15,6 +15,8 @@ unit_tests:
       13:05:20 to 13:06:00, midpoint 13:05:40, medium.
     model: fct_reconstructed_arrivals
     given:
+      - input: ref('reconstruction_dwell')
+        rows: []
       - input: ref('int_trip_stop_distances')
         rows:
           - {trip_instance_key: "T1|2026-11-22|08:00:00", stop_sequence: 1, stop_id: s1, dist_m: 0}
@@ -49,6 +51,8 @@ unit_tests:
       medium, low); a bracket gap of 121 s is low.
     model: fct_reconstructed_arrivals
     given:
+      - input: ref('reconstruction_dwell')
+        rows: []
       - input: ref('int_trip_stop_distances')
         rows:
           - {trip_instance_key: "T2|2026-11-22|08:00:00", stop_sequence: 1, stop_id: s1, dist_m: 0}
@@ -81,6 +85,8 @@ unit_tests:
       earlier (36 s); stop 3 follows. Every row is monotonic.
     model: fct_reconstructed_arrivals
     given:
+      - input: ref('reconstruction_dwell')
+        rows: []
       - input: ref('int_trip_stop_distances')
         rows:
           - {trip_instance_key: "T3|2026-11-22|08:00:00", stop_sequence: 1, stop_id: s1, dist_m: 1000}
@@ -107,6 +113,8 @@ unit_tests:
       (500 m) sits between the 0 m and 800 m observations: 13:00:37.5 on its own interpolation.
     model: fct_reconstructed_arrivals
     given:
+      - input: ref('reconstruction_dwell')
+        rows: []
       - input: ref('int_trip_stop_distances')
         rows:
           - {trip_instance_key: "T4|2026-11-22|08:00:00", stop_sequence: 1, stop_id: s1, dist_m: 500}
@@ -135,6 +143,8 @@ unit_tests:
       is flagged. Run 0 reaches stop 3 at 13:08:20.
     model: fct_reconstructed_arrivals
     given:
+      - input: ref('reconstruction_dwell')
+        rows: []
       - input: ref('int_trip_stop_distances')
         rows:
           - {trip_instance_key: "T5|2026-11-22|08:00:00", stop_sequence: 1, stop_id: s1, dist_m: 0}
@@ -719,6 +729,8 @@ unit_tests:
       reconstructed neighbours (order flag, confidence), so it is known at 13:04:05 too.
     model: fct_reconstructed_arrivals
     given:
+      - input: ref('reconstruction_dwell')
+        rows: []
       - input: ref('int_trip_stop_distances')
         rows:
           - {trip_instance_key: "K|2026-11-22|08:00:00", stop_sequence: 1, stop_id: s1, dist_m: 0}
@@ -1475,3 +1487,111 @@ unit_tests:
       rows:
         - {line: Red, alert_id: a1, effect: SIGNIFICANT_DELAYS, header_text: "Shuttle buses replace trains", first_seen: "2026-11-22 13:05:00+00", last_seen: "2026-11-22 14:50:00+00", is_active: true, n_stations: 2, from_station_name: Beta, to_station_name: Gamma, segment_keys: ["0:s1:s2", "0:s2:s3", "1:s3:s2"]}
         - {line: Red, alert_id: a4, effect: DETOUR, header_text: Detour, first_seen: "2026-11-22 13:00:00+00", last_seen: "2026-11-22 13:10:00+00", is_active: false, n_stations: 1, from_station_name: Alpha, to_station_name: Alpha, segment_keys: ["0:s1:s2"]}
+
+  - name: reconstructed_arrivals_bracketed_stops_are_moved_earlier_by_their_share_of_the_missed_dwell
+    config:
+      tags: [r2]
+    description: >-
+      Trip R1 is seen at 0 m (13:00:00) and 2000 m (13:01:00), 60 s apart, so the run's spacing
+      class is 60. Stops at 1000, 1500 and 1800 m are bracketed; interpolated 13:00:30, 13:00:45
+      and 13:00:54, a share 0.5, 0.75 and 0.9 of the way along. Stop 1 has only the line row
+      (missed dwell 20 s): moved 0.5 x 20 = 10 s, to 13:00:20. Stop 2 has a stop row (20 s) that
+      is used over the line row: 0.75 x 20 = 15 s, to 13:00:30. Stop 3 has a stop_hour row for the am bucket (20 s, 8 am local) and one
+      for pm (100 s) that must not be used: 0.9 x 20 = 18 s, to 13:00:36.
+    model: fct_reconstructed_arrivals
+    given:
+      - input: ref('reconstruction_dwell')
+        rows:
+          - {level: line, line: Red, stop_id: null, hour_bucket: null, missed_t15_s: 1, missed_t30_s: 1, missed_t60_s: 20, missed_t120_s: 1}
+          - {level: stop, line: Red, stop_id: r2, hour_bucket: null, missed_t15_s: 1, missed_t30_s: 1, missed_t60_s: 20, missed_t120_s: 1}
+          - {level: stop_hour, line: Red, stop_id: r3, hour_bucket: am, missed_t15_s: 1, missed_t30_s: 1, missed_t60_s: 20, missed_t120_s: 1}
+          - {level: stop_hour, line: Red, stop_id: r3, hour_bucket: pm, missed_t15_s: 100, missed_t30_s: 100, missed_t60_s: 100, missed_t120_s: 100}
+      - input: ref('int_trip_stop_distances')
+        rows:
+          - {trip_instance_key: "R1|2026-11-22|08:00:00", stop_sequence: 1, stop_id: r1, line: Red, dist_m: 1000, scheduled_arrival_ts: "2026-11-22 13:00:30+00"}
+          - {trip_instance_key: "R1|2026-11-22|08:00:00", stop_sequence: 2, stop_id: r2, line: Red, dist_m: 1500, scheduled_arrival_ts: "2026-11-22 13:00:40+00"}
+          - {trip_instance_key: "R1|2026-11-22|08:00:00", stop_sequence: 3, stop_id: r3, line: Red, dist_m: 1800, scheduled_arrival_ts: "2026-11-22 13:00:50+00"}
+      - input: ref('int_vehicle_stop_events')
+        rows:
+          - {vehicle_id: vr1, segment: 0, trip_instance_key: "R1|2026-11-22|08:00:00", capture_id: c1, event_ts: "2026-11-22 13:00:00+00", dist_m: 0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1}
+          - {vehicle_id: vr1, segment: 0, trip_instance_key: "R1|2026-11-22|08:00:00", capture_id: c2, event_ts: "2026-11-22 13:01:00+00", dist_m: 2000, current_status: IN_TRANSIT_TO, current_stop_sequence: 4}
+    expect:
+      rows:
+        - {trip_instance_key: "R1|2026-11-22|08:00:00", stop_sequence: 1, method: bracketed, arrival_ts: "2026-11-22 13:00:20+00", monotonic_ok: true}
+        - {trip_instance_key: "R1|2026-11-22|08:00:00", stop_sequence: 2, method: bracketed, arrival_ts: "2026-11-22 13:00:30+00", monotonic_ok: true}
+        - {trip_instance_key: "R1|2026-11-22|08:00:00", stop_sequence: 3, method: bracketed, arrival_ts: "2026-11-22 13:00:36+00", monotonic_ok: true}
+
+  - name: reconstructed_arrivals_dwell_correction_reads_the_column_of_the_runs_spacing
+    config:
+      tags: [r2]
+    description: >-
+      Trip R2 is seen at 0 m (13:00:00) and 2000 m (13:00:30): 30 s apart, spacing class 30. The
+      stop at 1000 m is interpolated to 13:00:15, share 0.5; the line row has 30 s in the 30 s
+      column and 200 s in the 60 s column, so the stop moves 0.5 x 8 = 4 s, to 13:00:11 (the 60 s
+      column, 200 s, would have been capped at the 30 s between the anchors and held at 13:00:00).
+    model: fct_reconstructed_arrivals
+    given:
+      - input: ref('reconstruction_dwell')
+        rows:
+          - {level: line, line: Red, stop_id: null, hour_bucket: null, missed_t15_s: 1, missed_t30_s: 8, missed_t60_s: 200, missed_t120_s: 200}
+      - input: ref('int_trip_stop_distances')
+        rows:
+          - {trip_instance_key: "R2|2026-11-22|08:00:00", stop_sequence: 1, stop_id: r1, line: Red, dist_m: 1000, scheduled_arrival_ts: "2026-11-22 13:00:15+00"}
+      - input: ref('int_vehicle_stop_events')
+        rows:
+          - {vehicle_id: vr2, segment: 0, trip_instance_key: "R2|2026-11-22|08:00:00", capture_id: c1, event_ts: "2026-11-22 13:00:00+00", dist_m: 0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1}
+          - {vehicle_id: vr2, segment: 0, trip_instance_key: "R2|2026-11-22|08:00:00", capture_id: c2, event_ts: "2026-11-22 13:00:30+00", dist_m: 2000, current_status: IN_TRANSIT_TO, current_stop_sequence: 2}
+    expect:
+      rows:
+        - {trip_instance_key: "R2|2026-11-22|08:00:00", stop_sequence: 1, method: bracketed, arrival_ts: "2026-11-22 13:00:11+00", monotonic_ok: true}
+
+  - name: reconstructed_arrivals_dwell_correction_never_passes_the_anchor_before_the_stop
+    config:
+      tags: [r2]
+    description: >-
+      Trip R3 is seen at 0 m (13:00:00) and 2000 m (13:00:04), spacing class 15. The stop at 1000 m
+      is interpolated to 13:00:02 and would move 0.5 x 30 s, but the move is limited to the 4 s
+      between the anchors and the result is not earlier than the anchor before the stop: 13:00:00.
+    model: fct_reconstructed_arrivals
+    given:
+      - input: ref('reconstruction_dwell')
+        rows:
+          - {level: line, line: Red, stop_id: null, hour_bucket: null, missed_t15_s: 30, missed_t30_s: 30, missed_t60_s: 30, missed_t120_s: 30}
+      - input: ref('int_trip_stop_distances')
+        rows:
+          - {trip_instance_key: "R3|2026-11-22|08:00:00", stop_sequence: 1, stop_id: r1, line: Red, dist_m: 1000, scheduled_arrival_ts: "2026-11-22 13:00:02+00"}
+      - input: ref('int_vehicle_stop_events')
+        rows:
+          - {vehicle_id: vr3, segment: 0, trip_instance_key: "R3|2026-11-22|08:00:00", capture_id: c1, event_ts: "2026-11-22 13:00:00+00", dist_m: 0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1}
+          - {vehicle_id: vr3, segment: 0, trip_instance_key: "R3|2026-11-22|08:00:00", capture_id: c2, event_ts: "2026-11-22 13:00:04+00", dist_m: 2000, current_status: IN_TRANSIT_TO, current_stop_sequence: 2}
+    expect:
+      rows:
+        - {trip_instance_key: "R3|2026-11-22|08:00:00", stop_sequence: 1, method: bracketed, arrival_ts: "2026-11-22 13:00:00+00", monotonic_ok: true}
+
+  - name: reconstructed_arrivals_corrected_bracketed_stops_stay_in_order
+    config:
+      tags: [r2]
+    description: >-
+      Trip R4 is seen at 0 m (13:00:00) and 2000 m (13:01:00). Stop 1 (1000 m) is interpolated to
+      13:00:30 with no correction (stop row 0 s). Stop 2 (1100 m, 13:00:33) has a stop row of 100 s
+      and would move 0.55 x 100 = 55 s, to before the anchor preceding the stop, so it is held at
+      that anchor, 13:00:00, which is before stop 1; it is kept in order, at 13:00:30, and stays
+      monotonic.
+    model: fct_reconstructed_arrivals
+    given:
+      - input: ref('reconstruction_dwell')
+        rows:
+          - {level: stop, line: Red, stop_id: r1, hour_bucket: null, missed_t15_s: 0, missed_t30_s: 0, missed_t60_s: 0, missed_t120_s: 0}
+          - {level: stop, line: Red, stop_id: r2, hour_bucket: null, missed_t15_s: 100, missed_t30_s: 100, missed_t60_s: 100, missed_t120_s: 100}
+      - input: ref('int_trip_stop_distances')
+        rows:
+          - {trip_instance_key: "R4|2026-11-22|08:00:00", stop_sequence: 1, stop_id: r1, line: Red, dist_m: 1000, scheduled_arrival_ts: "2026-11-22 13:00:30+00"}
+          - {trip_instance_key: "R4|2026-11-22|08:00:00", stop_sequence: 2, stop_id: r2, line: Red, dist_m: 1100, scheduled_arrival_ts: "2026-11-22 13:00:33+00"}
+      - input: ref('int_vehicle_stop_events')
+        rows:
+          - {vehicle_id: vr4, segment: 0, trip_instance_key: "R4|2026-11-22|08:00:00", capture_id: c1, event_ts: "2026-11-22 13:00:00+00", dist_m: 0, current_status: IN_TRANSIT_TO, current_stop_sequence: 1}
+          - {vehicle_id: vr4, segment: 0, trip_instance_key: "R4|2026-11-22|08:00:00", capture_id: c2, event_ts: "2026-11-22 13:01:00+00", dist_m: 2000, current_status: IN_TRANSIT_TO, current_stop_sequence: 3}
+    expect:
+      rows:
+        - {trip_instance_key: "R4|2026-11-22|08:00:00", stop_sequence: 1, method: bracketed, arrival_ts: "2026-11-22 13:00:30+00", monotonic_ok: true}
+        - {trip_instance_key: "R4|2026-11-22|08:00:00", stop_sequence: 2, method: bracketed, arrival_ts: "2026-11-22 13:00:30+00", monotonic_ok: true}
