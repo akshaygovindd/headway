@@ -165,8 +165,8 @@
     {
      "coverage_pct": 81.0,
      "direction_id": 1,
-     "excess_pct": 28.0,
-     "excess_s": 116.5,
+     "excess_pct": 29.5,
+     "excess_s": 122.9,
      "first_seen": "2026-11-26T23:45:33Z",
      "from_stop_id": "70276",
      "from_stop_name": "Mattapan",
@@ -176,9 +176,9 @@
      "n_disruption": 0,
      "n_trips": 17,
      "normal_s": 415.9,
-     "observed_s": 532.3,
+     "observed_s": 538.7,
      "segment_order": 1,
-     "severity": "moderate",
+     "severity": "severe",
      "share_slow_pct": 70.6,
      "time_band": "evening",
      "to_stop_id": "70274",
@@ -283,7 +283,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

@@ -11,7 +11,7 @@
    "line": "Green-C",
    "overall": {
     "coverage_pct": 84.2,
-    "median_ett_s": -223.5,
+    "median_ett_s": -217.6,
     "n_disruption": 0,
     "n_excluded_outage": 12,
     "n_implausible": 0,
@@ -78,7 +78,7 @@
      "coverage_pct": 87.5,
      "direction_id": 0,
      "median_actual_s": 1828.0,
-     "median_ett_s": -84.2,
+     "median_ett_s": -79.3,
      "median_scheduled_s": 2040.0,
      "n_disruption": 0,
      "n_excluded_outage": 6,
@@ -86,7 +86,7 @@
      "n_scheduled_trips": 24,
      "n_trips": 21,
      "no_trips_reason": null,
-     "p90_ett_s": 125.4,
+     "p90_ett_s": 130.2,
      "status": "measured",
      "time_band": "evening",
      "withheld_reason": null
@@ -137,7 +137,7 @@
      "n_scheduled_trips": 39,
      "n_trips": 30,
      "no_trips_reason": null,
-     "p90_ett_s": -227.9,
+     "p90_ett_s": -228.4,
      "status": "measured",
      "time_band": "midday",
      "withheld_reason": null
@@ -145,8 +145,8 @@
     {
      "coverage_pct": 100.0,
      "direction_id": 1,
-     "median_actual_s": 1999.5,
-     "median_ett_s": -160.5,
+     "median_actual_s": 1998.6,
+     "median_ett_s": -161.4,
      "median_scheduled_s": 2160.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -199,7 +199,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

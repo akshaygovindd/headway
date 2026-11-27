@@ -148,8 +148,8 @@
      "n_excluded_outage": 3,
      "n_headways": 87,
      "pct_bunched": 2.3,
-     "pct_gap": 11.49,
-     "pct_within_band": 86.21,
+     "pct_gap": 10.34,
+     "pct_within_band": 87.36,
      "segment_order": 8,
      "to_stop_id": "70128",
      "to_stop_name": "Griggs Street",
@@ -412,7 +412,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

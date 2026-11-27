@@ -24,7 +24,7 @@
      "persistence": 38.6,
      "persistence_coverage_pct": 66.7,
      "prediction_ts": "2026-11-26 22:30:00-05",
-     "rolling_median_60m": -211.5,
+     "rolling_median_60m": -201.5,
      "rolling_median_60m_coverage_pct": 100.0,
      "status_reason": "no approved model for this line",
      "withheld_reasons": {
@@ -46,7 +46,7 @@
      "persistence": null,
      "persistence_coverage_pct": 33.3,
      "prediction_ts": "2026-11-26 22:30:00-05",
-     "rolling_median_60m": -211.5,
+     "rolling_median_60m": -201.5,
      "rolling_median_60m_coverage_pct": 100.0,
      "status_reason": "no approved model for this line",
      "withheld_reasons": {
@@ -69,7 +69,7 @@
      "persistence": null,
      "persistence_coverage_pct": 0.0,
      "prediction_ts": "2026-11-26 22:30:00-05",
-     "rolling_median_60m": -211.5,
+     "rolling_median_60m": -201.5,
      "rolling_median_60m_coverage_pct": 100.0,
      "status_reason": "no approved model for this line",
      "withheld_reasons": {
@@ -90,10 +90,10 @@
      "model_forecast_s_coverage_pct": 0.0,
      "model_version": null,
      "n_trips": 36,
-     "persistence": -465.1,
+     "persistence": -462.8,
      "persistence_coverage_pct": 63.9,
      "prediction_ts": "2026-11-26 22:30:00-05",
-     "rolling_median_60m": -211.5,
+     "rolling_median_60m": -201.5,
      "rolling_median_60m_coverage_pct": 100.0,
      "status_reason": "no approved model for this line",
      "withheld_reasons": {
@@ -115,7 +115,7 @@
      "persistence": null,
      "persistence_coverage_pct": 37.5,
      "prediction_ts": "2026-11-26 22:30:00-05",
-     "rolling_median_60m": -211.5,
+     "rolling_median_60m": -201.5,
      "rolling_median_60m_coverage_pct": 100.0,
      "status_reason": "no approved model for this line",
      "withheld_reasons": {
@@ -138,7 +138,7 @@
      "persistence": null,
      "persistence_coverage_pct": 0.0,
      "prediction_ts": "2026-11-26 22:30:00-05",
-     "rolling_median_60m": -211.5,
+     "rolling_median_60m": -201.5,
      "rolling_median_60m_coverage_pct": 100.0,
      "status_reason": "no approved model for this line",
      "withheld_reasons": {
@@ -167,7 +167,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

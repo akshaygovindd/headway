@@ -128,8 +128,8 @@
      "hour_start": "2026-11-26T18:00:00Z",
      "n_headways": 187,
      "pct_bunched": 10.16,
-     "pct_gap": 5.35,
-     "pct_within_band": 84.49,
+     "pct_gap": 5.88,
+     "pct_within_band": 83.96,
      "scheduled_headways": 218,
      "service_date": "2026-11-26",
      "status": "measured",
@@ -184,8 +184,8 @@
      "hour_start": "2026-11-26T22:00:00Z",
      "n_headways": 187,
      "pct_bunched": 7.49,
-     "pct_gap": 11.23,
-     "pct_within_band": 81.28,
+     "pct_gap": 11.76,
+     "pct_within_band": 80.75,
      "scheduled_headways": 218,
      "service_date": "2026-11-26",
      "status": "measured",
@@ -267,7 +267,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

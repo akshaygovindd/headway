@@ -381,8 +381,8 @@
      "health": "some_bunching",
      "n_excluded_outage": 3,
      "n_headways": 517,
-     "pct_bunched": 11.8,
-     "pct_gap": 21.47,
+     "pct_bunched": 11.99,
+     "pct_gap": 21.28,
      "pct_within_band": 66.73,
      "segment_order": 21,
      "to_stop_id": "70253",
@@ -831,9 +831,9 @@
      "health": "bunched_gaps",
      "n_excluded_outage": 4,
      "n_headways": 572,
-     "pct_bunched": 18.36,
+     "pct_bunched": 18.18,
      "pct_gap": 25.87,
-     "pct_within_band": 55.77,
+     "pct_within_band": 55.94,
      "segment_order": 22,
      "to_stop_id": "70507",
      "to_stop_name": "Magoun Square",
@@ -880,7 +880,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

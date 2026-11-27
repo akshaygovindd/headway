@@ -17,10 +17,10 @@
       "line": "Green-C",
       "median_ratio": 0.98,
       "n_observations": 3259,
-      "p90_ratio": 1.56,
+      "p90_ratio": 1.55,
       "pct_bunched": 9.48,
-      "pct_gap": 11.57,
-      "pct_within_band": 78.95,
+      "pct_gap": 11.63,
+      "pct_within_band": 78.89,
       "window": "last_24h",
       "withheld_reason": null
      }
@@ -32,7 +32,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

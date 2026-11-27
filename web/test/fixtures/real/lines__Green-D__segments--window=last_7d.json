@@ -525,9 +525,9 @@
      "health": "even",
      "n_excluded_outage": 5,
      "n_headways": 484,
-     "pct_bunched": 2.89,
+     "pct_bunched": 3.1,
      "pct_gap": 14.67,
-     "pct_within_band": 82.44,
+     "pct_within_band": 82.23,
      "segment_order": 5,
      "to_stop_id": "70170",
      "to_stop_name": "Newton Centre",
@@ -831,9 +831,9 @@
      "health": "bunched_gaps",
      "n_excluded_outage": 2,
      "n_headways": 424,
-     "pct_bunched": 10.85,
+     "pct_bunched": 11.08,
      "pct_gap": 31.13,
-     "pct_within_band": 58.02,
+     "pct_within_band": 57.78,
      "segment_order": 22,
      "to_stop_id": "70207",
      "to_stop_name": "Science Park/West End",
@@ -880,7 +880,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

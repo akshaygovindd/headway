@@ -18,7 +18,7 @@
     "n_scheduled_trips": 330,
     "n_trips": 249,
     "no_trips_reason": null,
-    "p90_ett_s": 318.6,
+    "p90_ett_s": 323.1,
     "status": "measured",
     "withheld_reason": null
    },
@@ -69,7 +69,7 @@
      "n_scheduled_trips": 30,
      "n_trips": 24,
      "no_trips_reason": null,
-     "p90_ett_s": 296.8,
+     "p90_ett_s": 303.5,
      "status": "measured",
      "time_band": "pm_peak",
      "withheld_reason": null
@@ -129,7 +129,7 @@
      "coverage_pct": 71.9,
      "direction_id": 1,
      "median_actual_s": 2178.4,
-     "median_ett_s": -41.8,
+     "median_ett_s": -43.1,
      "median_scheduled_s": 2130.0,
      "n_disruption": 0,
      "n_excluded_outage": 0,
@@ -154,7 +154,7 @@
      "n_scheduled_trips": 29,
      "n_trips": 24,
      "no_trips_reason": null,
-     "p90_ett_s": 458.3,
+     "p90_ett_s": 452.5,
      "status": "measured",
      "time_band": "pm_peak",
      "withheld_reason": null
@@ -199,7 +199,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

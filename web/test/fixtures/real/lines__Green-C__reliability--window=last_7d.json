@@ -15,10 +15,10 @@
      {
       "coverage_pct": 79.7,
       "line": "Green-C",
-      "median_deviation_s": -32.7,
+      "median_deviation_s": -32.67,
       "n_observations": 17821,
       "p90_deviation_s": 313.03,
-      "pct_on_time_window": 46.09,
+      "pct_on_time_window": 46.11,
       "window": "last_7d",
       "withheld_reason": null
      }
@@ -36,7 +36,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

@@ -277,7 +277,7 @@
      "trip_id": "77662015"
     },
     {
-     "arrival_ts": "2026-11-27T02:21:39Z",
+     "arrival_ts": "2026-11-27T02:21:50Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "estimated",
@@ -310,7 +310,7 @@
      "trip_id": "77662015"
     },
     {
-     "arrival_ts": "2026-11-27T02:31:40Z",
+     "arrival_ts": "2026-11-27T02:31:54Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "estimated",
@@ -486,7 +486,7 @@
      "trip_id": "77662023"
     },
     {
-     "arrival_ts": "2026-11-27T02:38:50Z",
+     "arrival_ts": "2026-11-27T02:38:59Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "estimated",
@@ -717,7 +717,7 @@
      "trip_id": "77662038"
     },
     {
-     "arrival_ts": "2026-11-27T02:53:56Z",
+     "arrival_ts": "2026-11-27T02:54:11Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "estimated",
@@ -739,7 +739,7 @@
      "trip_id": "77662038"
     },
     {
-     "arrival_ts": "2026-11-27T02:59:18Z",
+     "arrival_ts": "2026-11-27T02:59:33Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "estimated",
@@ -904,7 +904,7 @@
      "trip_id": "77662043"
     },
     {
-     "arrival_ts": "2026-11-27T02:58:38Z",
+     "arrival_ts": "2026-11-27T02:58:59Z",
      "confidence": "medium",
      "direction_id": 0,
      "method": "estimated",
@@ -1278,7 +1278,7 @@
      "trip_id": "77662049"
     },
     {
-     "arrival_ts": "2026-11-27T02:16:27Z",
+     "arrival_ts": "2026-11-27T02:16:39Z",
      "confidence": "low",
      "direction_id": 1,
      "method": "estimated",
@@ -1355,7 +1355,7 @@
      "trip_id": "77662049"
     },
     {
-     "arrival_ts": "2026-11-27T02:46:28Z",
+     "arrival_ts": "2026-11-27T02:46:47Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -1553,7 +1553,7 @@
      "trip_id": "77662051"
     },
     {
-     "arrival_ts": "2026-11-27T02:50:44Z",
+     "arrival_ts": "2026-11-27T02:51:03Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -1663,7 +1663,7 @@
      "trip_id": "77662053"
     },
     {
-     "arrival_ts": "2026-11-27T02:23:34Z",
+     "arrival_ts": "2026-11-27T02:23:36Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -1839,7 +1839,7 @@
      "trip_id": "77662055"
     },
     {
-     "arrival_ts": "2026-11-27T02:15:44Z",
+     "arrival_ts": "2026-11-27T02:15:55Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -2059,7 +2059,7 @@
      "trip_id": "77662055"
     },
     {
-     "arrival_ts": "2026-11-27T02:59:09Z",
+     "arrival_ts": "2026-11-27T02:59:28Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -2147,7 +2147,7 @@
      "trip_id": "77662059"
     },
     {
-     "arrival_ts": "2026-11-27T02:42:49Z",
+     "arrival_ts": "2026-11-27T02:42:56Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -2282,7 +2282,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

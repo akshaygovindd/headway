@@ -17,8 +17,8 @@
       "line": "Green-D",
       "median_deviation_s": 34.0,
       "n_observations": 21567,
-      "p90_deviation_s": 408.31,
-      "pct_on_time_window": 48.55,
+      "p90_deviation_s": 408.5,
+      "pct_on_time_window": 48.54,
       "window": "last_7d",
       "withheld_reason": null
      }
@@ -36,7 +36,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

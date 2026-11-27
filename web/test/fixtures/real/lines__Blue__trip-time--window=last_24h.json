@@ -11,7 +11,7 @@
    "line": "Blue",
    "overall": {
     "coverage_pct": 77.7,
-    "median_ett_s": 3.9,
+    "median_ett_s": 2.9,
     "n_disruption": 0,
     "n_excluded_outage": 16,
     "n_implausible": 0,
@@ -199,7 +199,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

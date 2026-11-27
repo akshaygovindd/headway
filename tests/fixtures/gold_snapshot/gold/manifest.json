@@ -397,8 +397,8 @@
    "window_label": "VARCHAR"
   }
  },
- "dbt_run_at": "2026-11-27T03:47:46Z",
- "exported_at": "2026-11-27T03:47:47Z",
+ "dbt_run_at": "2026-11-27T04:22:48Z",
+ "exported_at": "2026-11-27T04:22:48Z",
  "metrics_as_of": "2026-11-27T03:00:00Z",
  "row_counts": {
   "agg_accessibility_outages": 248,
@@ -415,7 +415,7 @@
   "agg_headway_window": 16,
   "agg_incidents": 58,
   "agg_line_reliability_window": 8,
-  "agg_marey_last_hour": 1549,
+  "agg_marey_last_hour": 1550,
   "agg_pipeline_health": 6427,
   "agg_quality_checks_hourly": 1161,
   "agg_service_disruptions": 0,

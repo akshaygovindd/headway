@@ -17,12 +17,12 @@
       "coverage_pct": 77.7,
       "horizon_bucket": "0-5",
       "line": "Green-B",
-      "mae_s": 25.2,
+      "mae_s": 25.21,
       "median_abs_error_s": 19.5,
       "n_observations": 20341,
       "p90_abs_error_s": 53.46,
       "pct_within_120s": 99.48,
-      "pct_within_60s": 93.56,
+      "pct_within_60s": 93.57,
       "window": "last_7d",
       "withheld_reason": null
      },
@@ -34,8 +34,8 @@
       "median_abs_error_s": 49.0,
       "n_observations": 18456,
       "p90_abs_error_s": 134.0,
-      "pct_within_120s": 87.14,
-      "pct_within_60s": 59.75,
+      "pct_within_120s": 87.15,
+      "pct_within_60s": 59.76,
       "window": "last_7d",
       "withheld_reason": null
      },
@@ -46,9 +46,9 @@
       "mae_s": 101.58,
       "median_abs_error_s": 75.5,
       "n_observations": 16938,
-      "p90_abs_error_s": 212.88,
-      "pct_within_120s": 69.96,
-      "pct_within_60s": 40.93,
+      "p90_abs_error_s": 212.82,
+      "pct_within_120s": 69.97,
+      "pct_within_60s": 40.94,
       "window": "last_7d",
       "withheld_reason": null
      },
@@ -56,7 +56,7 @@
       "coverage_pct": 53.7,
       "horizon_bucket": "20-30",
       "line": "Green-B",
-      "mae_s": 167.25,
+      "mae_s": 167.26,
       "median_abs_error_s": 132.0,
       "n_observations": 14071,
       "p90_abs_error_s": 346.0,
@@ -72,7 +72,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

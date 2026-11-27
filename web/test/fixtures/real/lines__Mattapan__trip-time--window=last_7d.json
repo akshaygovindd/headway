@@ -11,14 +11,14 @@
    "line": "Mattapan",
    "overall": {
     "coverage_pct": 85.3,
-    "median_ett_s": -88.2,
+    "median_ett_s": -88.8,
     "n_disruption": 0,
     "n_excluded_outage": 20,
     "n_implausible": 0,
     "n_scheduled_trips": 1060,
     "n_trips": 904,
     "no_trips_reason": null,
-    "p90_ett_s": -3.3,
+    "p90_ett_s": -3.8,
     "status": "measured",
     "withheld_reason": null
    },
@@ -60,7 +60,7 @@
     {
      "coverage_pct": 94.3,
      "direction_id": 0,
-     "median_actual_s": 452.1,
+     "median_actual_s": 451.1,
      "median_ett_s": -57.1,
      "median_scheduled_s": 480.0,
      "n_disruption": 0,
@@ -154,7 +154,7 @@
      "n_scheduled_trips": 106,
      "n_trips": 79,
      "no_trips_reason": null,
-     "p90_ett_s": -28.5,
+     "p90_ett_s": -30.3,
      "status": "measured",
      "time_band": "pm_peak",
      "withheld_reason": null
@@ -162,7 +162,7 @@
     {
      "coverage_pct": 75.2,
      "direction_id": 1,
-     "median_actual_s": 386.0,
+     "median_actual_s": 385.3,
      "median_ett_s": -144.1,
      "median_scheduled_s": 540.0,
      "n_disruption": 0,
@@ -199,7 +199,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

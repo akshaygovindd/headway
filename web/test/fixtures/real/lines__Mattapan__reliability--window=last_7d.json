@@ -15,10 +15,10 @@
      {
       "coverage_pct": 79.5,
       "line": "Mattapan",
-      "median_deviation_s": -66.0,
+      "median_deviation_s": -65.99,
       "n_observations": 6760,
       "p90_deviation_s": 153.5,
-      "pct_on_time_window": 42.94,
+      "pct_on_time_window": 42.99,
       "window": "last_7d",
       "withheld_reason": null
      }
@@ -36,7 +36,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

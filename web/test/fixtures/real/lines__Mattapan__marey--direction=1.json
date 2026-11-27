@@ -46,7 +46,7 @@
      "trip_id": "77714367"
     },
     {
-     "arrival_ts": "2026-11-27T02:19:40Z",
+     "arrival_ts": "2026-11-27T02:19:41Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -68,7 +68,7 @@
      "trip_id": "77714367"
     },
     {
-     "arrival_ts": "2026-11-27T02:21:46Z",
+     "arrival_ts": "2026-11-27T02:21:48Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -101,7 +101,7 @@
      "trip_id": "77714380"
     },
     {
-     "arrival_ts": "2026-11-27T02:44:05Z",
+     "arrival_ts": "2026-11-27T02:44:11Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -167,7 +167,7 @@
      "trip_id": "77714380"
     },
     {
-     "arrival_ts": "2026-11-27T02:03:56Z",
+     "arrival_ts": "2026-11-27T02:04:00Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -178,7 +178,7 @@
      "trip_id": "77714426"
     },
     {
-     "arrival_ts": "2026-11-27T02:04:44Z",
+     "arrival_ts": "2026-11-27T02:04:45Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -189,7 +189,7 @@
      "trip_id": "77714426"
     },
     {
-     "arrival_ts": "2026-11-27T02:05:52Z",
+     "arrival_ts": "2026-11-27T02:06:00Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -211,7 +211,7 @@
      "trip_id": "77714426"
     },
     {
-     "arrival_ts": "2026-11-27T02:07:31Z",
+     "arrival_ts": "2026-11-27T02:07:38Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -244,7 +244,7 @@
      "trip_id": "77714429"
     },
     {
-     "arrival_ts": "2026-11-27T02:56:54Z",
+     "arrival_ts": "2026-11-27T02:57:00Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -255,7 +255,7 @@
      "trip_id": "77714429"
     },
     {
-     "arrival_ts": "2026-11-27T02:57:58Z",
+     "arrival_ts": "2026-11-27T02:58:04Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -343,7 +343,7 @@
      "trip_id": "77714431"
     },
     {
-     "arrival_ts": "2026-11-27T02:35:49Z",
+     "arrival_ts": "2026-11-27T02:35:52Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -357,7 +357,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

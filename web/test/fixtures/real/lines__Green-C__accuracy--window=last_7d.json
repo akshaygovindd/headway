@@ -17,7 +17,7 @@
       "coverage_pct": 73.6,
       "horizon_bucket": "0-5",
       "line": "Green-C",
-      "mae_s": 26.7,
+      "mae_s": 26.71,
       "median_abs_error_s": 20.0,
       "n_observations": 16463,
       "p90_abs_error_s": 55.0,
@@ -33,9 +33,9 @@
       "mae_s": 71.09,
       "median_abs_error_s": 56.0,
       "n_observations": 14390,
-      "p90_abs_error_s": 143.36,
-      "pct_within_120s": 84.59,
-      "pct_within_60s": 53.43,
+      "p90_abs_error_s": 143.5,
+      "pct_within_120s": 84.61,
+      "pct_within_60s": 53.47,
       "window": "last_7d",
       "withheld_reason": null
      },
@@ -43,12 +43,12 @@
       "coverage_pct": 59.1,
       "horizon_bucket": "10-20",
       "line": "Green-C",
-      "mae_s": 106.39,
+      "mae_s": 106.4,
       "median_abs_error_s": 80.0,
       "n_observations": 13207,
       "p90_abs_error_s": 222.97,
-      "pct_within_120s": 68.33,
-      "pct_within_60s": 38.65,
+      "pct_within_120s": 68.34,
+      "pct_within_60s": 38.63,
       "window": "last_7d",
       "withheld_reason": null
      },
@@ -72,7 +72,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

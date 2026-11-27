@@ -19,8 +19,8 @@
       "n_observations": 4086,
       "p90_ratio": 1.55,
       "pct_bunched": 8.91,
-      "pct_gap": 11.8,
-      "pct_within_band": 79.3,
+      "pct_gap": 11.77,
+      "pct_within_band": 79.32,
       "window": "last_24h",
       "withheld_reason": null
      }
@@ -32,7 +32,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {

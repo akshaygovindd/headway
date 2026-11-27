@@ -816,7 +816,7 @@
      "trip_id": "77881414"
     },
     {
-     "arrival_ts": "2026-11-27T02:31:16Z",
+     "arrival_ts": "2026-11-27T02:31:19Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -904,7 +904,7 @@
      "trip_id": "77881444"
     },
     {
-     "arrival_ts": "2026-11-27T02:23:44Z",
+     "arrival_ts": "2026-11-27T02:24:00Z",
      "confidence": "medium",
      "direction_id": 1,
      "method": "estimated",
@@ -1468,7 +1468,7 @@
   },
   "freshness": {
    "age_minutes": 7.0,
-   "exported_at": "2026-11-27T03:47:47Z",
+   "exported_at": "2026-11-27T04:22:48Z",
    "metrics_as_of": "2026-11-27T03:00:00Z"
   },
   "provenance": {
