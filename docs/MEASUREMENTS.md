@@ -65,7 +65,7 @@ loaded from `state/facts/` and only the open days are computed.
 | --- | --- |
 | Duration, 25 of 26 runs | 161 s to 276 s (median of all 26 runs 244 s) |
 | Duration, first runs after the deploy | 178 s (2026-11-26 20:19 UTC) and 172 s (20:23 UTC), against 453 s before |
-| Duration, slowest run | 402 s (2026-11-27 03:27 UTC): the run also wrote `fct_headways` for 20 to 25 Nov (`dbt_build` 277 s); the cause of that rebuild was not looked up here |
+| Duration, slowest run | 402 s (2026-11-27 03:27 UTC): the run also wrote `fct_headways` for 20 to 25 Nov (`dbt_build` 277 s). Cause: the fix for reused trip ids (one headway per trip stop, c71c50d, deployed from 324934d) bumped the `fct_headways` closed-day version to 2, so every persisted closed day was recomputed once; later runs load them from state |
 | Memory used (`memory_used_pct`) | 61.8 % to 65.4 % of 3008 MB |
 | Days computed per run | 2 or 3 (the open days); 9 in the 402 s run; the other closed days are loaded from state |
 | Failed Lambda runs | none: every run logged `dbt_status` `success` or `tests_failed` |
