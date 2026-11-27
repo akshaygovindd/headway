@@ -143,6 +143,23 @@ def load_mbta(con: duckdb.DuckDBPyConnection, files: list[Path]) -> None:
     )
 
 
+def drop_after_lamp_cutoff(con: duckdb.DuckDBPyConnection) -> int:
+    """Leave out our rows after LAMP's last timestamp (the last day's file is partial when we
+    read it, and our data runs later); returns how many were left out."""
+    row = con.execute(
+        """
+        select count(*) from ours
+        where coalesce(arrival_ts, scheduled_ts) > (select max(mbta_ts) from mbta)
+        """
+    ).fetchone()
+    n = int(row[0]) if row else 0
+    con.execute(
+        "delete from ours "
+        "where coalesce(arrival_ts, scheduled_ts) > (select max(mbta_ts) from mbta)"
+    )
+    return n
+
+
 def match(con: duckdb.DuckDBPyConnection) -> dict[str, int]:
     """Fill temp table pairs(row_id, mid, pass) from tables ours and mbta; return counters."""
     keys = (
@@ -299,14 +316,21 @@ def coverage(con: duckdb.DuckDBPyConnection) -> dict[str, list[tuple[Any, ...]]]
     return {"ours": ours_side, "mbta": mbta_side}
 
 
-def report(con: duckdb.DuckDBPyConnection, counters: dict[str, int], days: list[str]) -> str:
+def report(
+    con: duckdb.DuckDBPyConnection,
+    counters: dict[str, int],
+    days: list[str],
+    n_after_cutoff: int = 0,
+) -> str:
     out: list[str] = [f"# LAMP validation results ({', '.join(days)})", ""]
     n_ours, n_ts = con.execute("select count(*), count(arrival_ts) from ours").fetchone() or (0, 0)
     n_mbta = con.execute("select count(*) from mbta").fetchone() or (0,)
     out += [
         f"Our rows {n_ours} ({n_ts} with arrival_ts); LAMP rows {n_mbta[0]}. Pass 1 (trip id) "
         f"{counters['pass1']} pairs ({counters['pass1_ambiguous']} had more than one candidate); "
-        f"pass 2 (nearest scheduled arrival) {counters['pass2']} pairs.",
+        f"pass 2 (nearest scheduled arrival) {counters['pass2']} pairs. "
+        f"{n_after_cutoff} of our rows fall after LAMP's last timestamp (its last day is partial) "
+        "and are left out.",
         "",
     ]
     cov = coverage(con)
@@ -430,8 +454,9 @@ def main() -> int:
         + ")"
     )
     load_mbta(con, files)
+    n_after_cutoff = drop_after_lamp_cutoff(con)
     counters = match(con)
-    text = report(con, counters, have)
+    text = report(con, counters, have, n_after_cutoff)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(text)
     print(text)

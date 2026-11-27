@@ -158,3 +158,12 @@ def test_coverage_reasons() -> None:
     assert got["trip not in LAMP"] == 1
     assert got["stop not in LAMP trip"] == 1
     assert got["no arrival_ts (missing), LAMP has a time"] == 1
+
+
+def test_our_rows_after_the_last_lamp_timestamp_are_left_out() -> None:
+    con = _con(
+        [o(1, "A", "s1", 100, 100), o(2, "B", "s1", 900, 900), o(3, "C", "s1", None, 5000)],
+        [m(1, "A", "s1", 120, 100)],
+    )
+    assert vr.drop_after_lamp_cutoff(con) == 2
+    assert con.execute("select row_id from ours").fetchall() == [(1,)]
