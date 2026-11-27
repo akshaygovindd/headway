@@ -199,11 +199,12 @@ Fill this in on a fresh clone (acceptance test A8). Times are wall clock, includ
 | --- | --- | --- |
 | Release 1 | 2026-11-26 | `make acceptance`: 11 PASS, 0 FAIL, and the A8 walkthrough recorded above (commit `cfb8155`). A2 (72 h, missed under 1 %) is measured in [MEASUREMENTS](MEASUREMENTS.md#72-hour-window-release-1-acceptance-a2). |
 
-Checked again on 2026-11-27: `make acceptance` at `cfb8155` gives A2 PASS and A9 PASS. A1 reads the
-manifest of the current minute and can report FAIL in the first 45 seconds of a minute, because the
-four polls of a run finish before it writes the manifest; run later in the minute it passes. At
-the current head (`bbf10bb`) A9 fails: `make e2e` reports a difference in a forecast-example table
-(Release 3), not in a Release 1 table. That is a test to fix, not a withdrawal of the sign-off.
+Checked again on 2026-11-27: `make acceptance` at `cfb8155` gives A2 PASS and A9 PASS. A1 read the
+manifest of the current minute and could report FAIL in the first 45 seconds of a minute, because
+the four polls of a run finish before it writes the manifest; it now reads the last completed
+minute. At `bbf10bb` A9 failed because the e2e expected tables had not followed the dwell correction
+(38ed4a8); they were updated with the explanation in the commit, and `make e2e` passes again. That
+was a test to fix, not a withdrawal of the sign-off.
 
 ## Operations
 

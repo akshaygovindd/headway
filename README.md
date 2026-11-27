@@ -111,15 +111,17 @@ As of 27 Nov 2026.
 
 Open items: the alert-versus-reality hand check and the alert classifier labels are pending
 ([MEASUREMENTS](docs/MEASUREMENTS.md#alert-vs-reality-hand-check)). Between 26 Nov 20:00 UTC and
-27 Nov 20:25 UTC, `data_invariants_r2` failed in 6 of 26 transform runs (none in the last 6) and has not yet been
-investigated ([MEASUREMENTS](docs/MEASUREMENTS.md#production-runs-after-the-incremental-closed-day-facts-2026-11-26-2000-utc-to-2026-11-27-2025-utc)).
-At the current head `make e2e` reports a difference in a forecast-example table ([DEPLOY](docs/DEPLOY.md#release-sign-offs)).
+27 Nov 21:25 UTC, `data_invariants_r2` failed in 7 of 27 transform runs: a countdown-coverage
+definition bug, fixed in the repository and waiting for the next deploy
+([MEASUREMENTS](docs/MEASUREMENTS.md#production-runs-after-the-incremental-closed-day-facts-2026-11-26-2000-utc-to-2026-11-27-2025-utc),
+[DATA_QUALITY](docs/DATA_QUALITY.md#bugs-these-tests-found-on-production-data)).
 
 ## Quick start
 
 ```sh
 make demo         # replay the bundled one-hour Boston sample, build the marts, start the app (no AWS account)
 make check        # lint, types, unit tests
+scripts/prepush.sh # make check and make e2e in a clean checkout, as CI runs them (see CONTRIBUTING.md)
 make app-test     # Streamlit page and policy tests
 make acceptance   # PASS / FAIL / MANUAL for the Release 1 acceptance tests (reads public data and read-only AWS)
 make validate     # compare reconstructed arrivals with MBTA LAMP (see docs/VALIDATION.md)
