@@ -605,7 +605,7 @@
    "row_limit": 500,
    "served_from": "remote",
    "sql": [
-    "select line, station_id, station_name, countdown_min, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_60s end, 2) as pct_within_60s, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_120s end, 2) as pct_within_120s, n as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_countdown_accuracy_window.parquet') where window_label = 'last_7d' and line = 'Blue' order by line, station_id, station_name, countdown_min limit 501"
+    "select line, station_id, station_name, countdown_min, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_60s end, 2) as pct_within_60s, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_120s end, 2) as pct_within_120s, n as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('<gold_snapshot>/gold/agg_countdown_accuracy_window.parquet') where window_label = 'last_7d' and line = 'Blue' order by line, station_id, station_name, countdown_min limit 501"
    ],
    "tables": [
     "agg_countdown_accuracy_window"

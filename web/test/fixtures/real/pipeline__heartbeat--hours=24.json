@@ -191,7 +191,7 @@
    "row_limit": 500,
    "served_from": "remote",
    "sql": [
-    "with t as (select * from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_capture_heartbeat_hourly.parquet')) select strftime(hour_start at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as hour_start, expected_runs, missed_runs, feed_gap_min, data_outage from t where hour_start > (select max(hour_start) from t) - to_hours(24) order by hour_start limit 501"
+    "with t as (select * from read_parquet('<gold_snapshot>/gold/agg_capture_heartbeat_hourly.parquet')) select strftime(hour_start at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as hour_start, expected_runs, missed_runs, feed_gap_min, data_outage from t where hour_start > (select max(hour_start) from t) - to_hours(24) order by hour_start limit 501"
    ],
    "tables": [
     "agg_capture_heartbeat_hourly"

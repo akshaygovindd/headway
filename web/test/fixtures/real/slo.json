@@ -94,7 +94,7 @@
    "row_limit": 500,
    "served_from": "remote",
    "sql": [
-    "select slo_name, window_label as window, target_pct, good_events, total_events, round(actual_pct, 2) as actual_pct, met, round(error_budget_used, 3) as error_budget_used, days_covered, counts_toward_slo from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_slo_rollup.parquet') order by slo_name, window_label limit 501"
+    "select slo_name, window_label as window, target_pct, good_events, total_events, round(actual_pct, 2) as actual_pct, met, round(error_budget_used, 3) as error_budget_used, days_covered, counts_toward_slo from read_parquet('<gold_snapshot>/gold/agg_slo_rollup.parquet') order by slo_name, window_label limit 501"
    ],
    "tables": [
     "agg_slo_rollup"

@@ -68,7 +68,7 @@
    "row_limit": 500,
    "served_from": "remote",
    "sql": [
-    "with t as (select cast(scheduled_at at time zone 'America/New_York' as date) as d, * from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_pipeline_health.parquet')) select strftime(d, '%Y-%m-%d') as date, count(*) as runs, sum(vehicle_polls_ok) as vehicle_polls_ok, sum(vehicle_polls_error) as vehicle_polls_error, sum(duplicate_delivery_count) as duplicate_deliveries, sum(quarantine_total) as quarantined_records, count(*) filter (where trip_updates_status <> 'ok') as trip_update_failures from t where d > (select max(d) from t) - 7 group by d order by d limit 501"
+    "with t as (select cast(scheduled_at at time zone 'America/New_York' as date) as d, * from read_parquet('<gold_snapshot>/gold/agg_pipeline_health.parquet')) select strftime(d, '%Y-%m-%d') as date, count(*) as runs, sum(vehicle_polls_ok) as vehicle_polls_ok, sum(vehicle_polls_error) as vehicle_polls_error, sum(duplicate_delivery_count) as duplicate_deliveries, sum(quarantine_total) as quarantined_records, count(*) filter (where trip_updates_status <> 'ok') as trip_update_failures from t where d > (select max(d) from t) - 7 group by d order by d limit 501"
    ],
    "tables": [
     "agg_pipeline_health"

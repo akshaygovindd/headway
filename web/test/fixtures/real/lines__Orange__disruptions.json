@@ -23,7 +23,7 @@
    "row_limit": 500,
    "served_from": "remote",
    "sql": [
-    "select alert_id, effect, header_text, strftime(first_seen at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as first_seen, strftime(last_seen at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as last_seen, is_active, n_stations, from_station_name, to_station_name, segment_keys from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_service_disruptions.parquet') where line = 'Orange' order by is_active desc, last_seen desc, alert_id limit 501"
+    "select alert_id, effect, header_text, strftime(first_seen at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as first_seen, strftime(last_seen at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as last_seen, is_active, n_stations, from_station_name, to_station_name, segment_keys from read_parquet('<gold_snapshot>/gold/agg_service_disruptions.parquet') where line = 'Orange' order by is_active desc, last_seen desc, alert_id limit 501"
    ],
    "tables": [
     "agg_service_disruptions"

@@ -76,7 +76,20 @@ def requests() -> list[tuple[str, dict[str, str]]]:
     return out
 
 
+def _portable(node: Any, root: str) -> Any:
+    """The SQL in provenance names the parquet files by absolute path; a fixture must not depend on
+    where the repository is checked out (CI checks out elsewhere than the machine that wrote it)."""
+    if isinstance(node, str):
+        return node.replace(root, "<gold_snapshot>")
+    if isinstance(node, list):
+        return [_portable(v, root) for v in node]
+    if isinstance(node, dict):
+        return {k: _portable(v, root) for k, v in node.items()}
+    return node
+
+
 def _normalise(body: Any) -> Any:
+    body = _portable(body, SNAPSHOT.as_posix())
     if isinstance(body, dict):
         if isinstance(body.get("freshness"), dict) and "age_minutes" in body["freshness"]:
             body["freshness"]["age_minutes"] = 7.0

@@ -41,7 +41,7 @@
    "row_limit": 500,
    "served_from": "remote",
    "sql": [
-    "select line, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_band end, 2) as pct_within_band, round(case when coalesce(coverage_pct, 0) >= 50 then pct_bunched end, 2) as pct_bunched, round(case when coalesce(coverage_pct, 0) >= 50 then pct_gap end, 2) as pct_gap, round(case when coalesce(coverage_pct, 0) >= 50 then median_ratio end, 2) as median_ratio, round(case when coalesce(coverage_pct, 0) >= 50 then p90_ratio end, 2) as p90_ratio, n_headways as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_headway_window.parquet') where window_label = 'last_24h' and line = 'Green-D' order by line limit 501"
+    "select line, window_label as window, round(case when coalesce(coverage_pct, 0) >= 50 then pct_within_band end, 2) as pct_within_band, round(case when coalesce(coverage_pct, 0) >= 50 then pct_bunched end, 2) as pct_bunched, round(case when coalesce(coverage_pct, 0) >= 50 then pct_gap end, 2) as pct_gap, round(case when coalesce(coverage_pct, 0) >= 50 then median_ratio end, 2) as median_ratio, round(case when coalesce(coverage_pct, 0) >= 50 then p90_ratio end, 2) as p90_ratio, n_headways as n_observations, round(coverage_pct, 1) as coverage_pct, not (coalesce(coverage_pct, 0) >= 50) as withheld from read_parquet('<gold_snapshot>/gold/agg_headway_window.parquet') where window_label = 'last_24h' and line = 'Green-D' order by line limit 501"
    ],
    "tables": [
     "agg_headway_window"

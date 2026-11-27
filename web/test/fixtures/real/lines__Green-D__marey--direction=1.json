@@ -1158,8 +1158,8 @@
    "row_limit": 500,
    "served_from": "remote",
    "sql": [
-    "select direction_id, trip_id, stop_id, stop_name, stop_sequence, strftime(arrival_ts at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as arrival_ts, method, confidence, strftime(scheduled_ts at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as scheduled_ts from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_marey_last_hour.parquet') where line = 'Green-D' and direction_id = 1 order by direction_id, trip_instance_key, segment, stop_sequence limit 501",
-    "select strftime(max(hour_start) at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as hour_start from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_marey_last_hour.parquet')"
+    "select direction_id, trip_id, stop_id, stop_name, stop_sequence, strftime(arrival_ts at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as arrival_ts, method, confidence, strftime(scheduled_ts at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as scheduled_ts from read_parquet('<gold_snapshot>/gold/agg_marey_last_hour.parquet') where line = 'Green-D' and direction_id = 1 order by direction_id, trip_instance_key, segment, stop_sequence limit 501",
+    "select strftime(max(hour_start) at time zone 'UTC', '%Y-%m-%dT%H:%M:%SZ') as hour_start from read_parquet('<gold_snapshot>/gold/agg_marey_last_hour.parquet')"
    ],
    "tables": [
     "agg_marey_last_hour"

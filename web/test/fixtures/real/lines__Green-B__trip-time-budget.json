@@ -157,7 +157,7 @@
    "row_limit": 500,
    "served_from": "remote",
    "sql": [
-    "select distinct id, name from (select from_station_id as id, from_station_name as name from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_trip_time_budget.parquet') where line = 'Green-B' union all select to_station_id, to_station_name from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_trip_time_budget.parquet') where line = 'Green-B') order by name, id"
+    "select distinct id, name from (select from_station_id as id, from_station_name as name from read_parquet('<gold_snapshot>/gold/agg_trip_time_budget.parquet') where line = 'Green-B' union all select to_station_id, to_station_name from read_parquet('<gold_snapshot>/gold/agg_trip_time_budget.parquet') where line = 'Green-B') order by name, id"
    ],
    "tables": [
     "agg_trip_time_budget"

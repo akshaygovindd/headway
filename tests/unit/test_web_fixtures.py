@@ -2,6 +2,7 @@
 the API's data rules (docs/DATA_QUALITY.md)."""
 
 import json
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,20 @@ def test_real_fixtures_match_what_the_api_answers() -> None:
     ]
     stale += [p.name for p in bwf.OUT.glob("*.json") if p.name not in files]
     assert not stale, f"run `npm run fixtures` in web/: stale {sorted(stale)[:5]}"
+
+
+def test_fixtures_do_not_depend_on_where_the_repository_is_checked_out(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The fixtures once held the writer's absolute path in provenance SQL, so they were stale on
+    every other checkout (CI) while passing on the machine that wrote them."""
+    moved = tmp_path / "elsewhere" / "gold_snapshot"
+    shutil.copytree(bwf.SNAPSHOT, moved)
+    monkeypatch.setattr(bwf, "SNAPSHOT", moved)
+    files = bwf.build()
+    assert all(str(tmp_path) not in text and str(bwf.ROOT) not in text for text in files.values())
+    stale = [n for n, text in files.items() if (bwf.OUT / n).read_text() != text]
+    assert not stale, stale[:5]
 
 
 def _rows(node: Any) -> Any:

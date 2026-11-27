@@ -1069,7 +1069,7 @@
    "row_limit": 500,
    "served_from": "remote",
    "sql": [
-    "select incident_id, line, direction_id, cast(incident_start_ts as varchar) as start_ts, cast(incident_end_ts as varchar) as end_ts, n_hours, is_open, thresholds_crossed, round(min_coverage_pct, 1) as min_coverage_pct, round(mean_coverage_pct, 1) as mean_coverage_pct, n_outage_hours_inside, match_status, alert_lag_s, summary_text, template_used, epoch(incident_end_ts) - epoch(incident_start_ts) as span_s from read_parquet('/Users/akshay/projects/headway/tests/fixtures/gold_snapshot/gold/agg_incidents.parquet') where cast(incident_start_ts at time zone 'America/New_York' as date) between '2026-10-28' and '2026-11-27' order by incident_start_ts desc, incident_id limit 501"
+    "select incident_id, line, direction_id, cast(incident_start_ts as varchar) as start_ts, cast(incident_end_ts as varchar) as end_ts, n_hours, is_open, thresholds_crossed, round(min_coverage_pct, 1) as min_coverage_pct, round(mean_coverage_pct, 1) as mean_coverage_pct, n_outage_hours_inside, match_status, alert_lag_s, summary_text, template_used, epoch(incident_end_ts) - epoch(incident_start_ts) as span_s from read_parquet('<gold_snapshot>/gold/agg_incidents.parquet') where cast(incident_start_ts at time zone 'America/New_York' as date) between '2026-10-28' and '2026-11-27' order by incident_start_ts desc, incident_id limit 501"
    ],
    "tables": [
     "agg_incidents"
