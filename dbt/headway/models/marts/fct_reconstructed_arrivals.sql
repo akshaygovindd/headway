@@ -92,12 +92,11 @@ run_spacing as (
     group by trip_instance_key, segment
 ),
 
+-- only the 1-minute spacing classes are validated, so the seed has columns for 60 s and 120 s
+-- only; a run in a finer class (15 s, 30 s: the 15-second sampling) finds no row and is not
+-- corrected until the table is refitted on full days of 15-second data (ADR-026)
 dwell_cells as (
-    select level, line, stop_id, hour_bucket, 15 as spacing_class, missed_t15_s as missed_s from {{ ref('reconstruction_dwell') }}
-    union all
-    select level, line, stop_id, hour_bucket, 30, missed_t30_s from {{ ref('reconstruction_dwell') }}
-    union all
-    select level, line, stop_id, hour_bucket, 60, missed_t60_s from {{ ref('reconstruction_dwell') }}
+    select level, line, stop_id, hour_bucket, 60 as spacing_class, missed_t60_s as missed_s from {{ ref('reconstruction_dwell') }}
     union all
     select level, line, stop_id, hour_bucket, 120, missed_t120_s from {{ ref('reconstruction_dwell') }}
 ),

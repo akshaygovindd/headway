@@ -124,11 +124,7 @@ seeds:
         description: Gamma shape of the dwell distribution (bounded above by 12; see the script).
       - name: mean_dwell_s
         description: Fitted mean dwell of all visits, seconds.
-      - name: missed_t15_s
-        description: Expected dwell, seconds, of a visit that a poll spacing of about 15 s would miss.
-      - name: missed_t30_s
-        description: As missed_t15_s for a spacing of about 30 s.
       - name: missed_t60_s
-        description: As missed_t15_s for a spacing of about 60 s.
+        description: Expected dwell, seconds, of a visit that a poll spacing of about 60 s would miss.
       - name: missed_t120_s
-        description: As missed_t15_s for a spacing of 90 s or more.
+        description: As missed_t60_s for a spacing of 90 s or more. There are no columns for 15 s and 30 s spacing (uncorrected until a refit on 15-second data).

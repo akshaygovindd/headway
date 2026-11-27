@@ -18,14 +18,18 @@ distribution:
      (the runs' spacings, 15 / 30 / 60 / 120 s classes, enter as a mixture);
   3. per line and stop, and per line, stop and hour bucket, keep the shape and fit only the mean
      from the share of k = 0, when there are enough visits;
-  4. for each cell and each spacing class T store E[D | missed] = E[D (1 - D/T)+] / E[(1 - D/T)+],
-     the expected dwell of a visit that no poll at spacing T would see.
+  4. for each cell and each 1-minute spacing class T (about 60 s, and 90 s or more) store
+     E[D | missed] = E[D (1 - D/T)+] / E[(1 - D/T)+], the expected dwell of a visit that no poll
+     at spacing T would see.
 
-The dwell distribution does not depend on the polling rate, so the table stays right after the
-switch from 1-minute to 15-second sampling: only the spacing class of the run changes which column
-the model reads. Fit on a window of service dates (default 2026-11-22 to 2026-11-24, all 1-minute
-sampling) from a local build, then commit the CSV; refitting is a deliberate change of definition
-(bump the fact version), never a side effect of the lookback window.
+The dwell distribution does not depend on the polling rate, but the correction has only been
+validated at 1-minute sampling (it did not help on four hours of 15-second data), so only the
+60 s and 120 s columns are written and runs observed every 15 or 30 s are left uncorrected until
+the table is refitted on at least three full days of 15-second data and validated (ADR-026).
+
+Fit on a window of service dates (default 2026-11-22 to 2026-11-24, all 1-minute sampling) from a
+local build, then commit the CSV; refitting is a deliberate change of definition (bump the fact
+version), never a side effect of the lookback window.
 
     uv run python scripts/fit_reconstruction_dwell.py --db .local/prod_test.duckdb
 """
@@ -41,6 +45,10 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 SEED = ROOT / "dbt" / "headway" / "seeds" / "reconstruction_dwell.csv"
 CLASSES = (15, 30, 60, 120)
+# Only the 1-minute classes are written: the data the table is fitted on and validated against is
+# 1-minute sampling, so the model applies no correction to runs observed every 15 or 30 s until a
+# refit on full days of 15-second data (ADR-026).
+EMITTED_CLASSES = (60, 120)
 SHAPES = (1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 20.0, 40.0)
 # The shape is barely identified (0.1 to 7 % of visits have two sightings), so it is
 # bounded from above: a shape of 12 is a coefficient of variation of 0.29. A prior, not a fit.
@@ -173,7 +181,7 @@ def build(rows: list[tuple[Any, ...]], max_shape: float = MAX_SHAPE) -> list[dic
                 "n_visits": n,
                 "shape": shape,
                 "mean_dwell_s": round(mean, 1),
-                **{f"missed_t{t}_s": round(missed_dwell(q, mean, t), 1) for t in CLASSES},
+                **{f"missed_t{t}_s": round(missed_dwell(q, mean, t), 1) for t in EMITTED_CLASSES},
             }
         )
 
@@ -235,8 +243,8 @@ def main() -> int:
     for c in lines:
         print(
             f"  {c['line']:9s} n={c['n_visits']:6d} shape={c['shape']:4.1f} "
-            f"mean dwell {c['mean_dwell_s']:5.1f} s; missed at 15/30/60/120 s: "
-            f"{c['missed_t15_s']}/{c['missed_t30_s']}/{c['missed_t60_s']}/{c['missed_t120_s']}"
+            f"mean dwell {c['mean_dwell_s']:5.1f} s; missed at 60/120 s: "
+            f"{c['missed_t60_s']}/{c['missed_t120_s']}"
         )
     return 0
 
