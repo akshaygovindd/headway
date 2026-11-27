@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: images-list push-images-list api-dev web-dev api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance validate check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke transform-smoke-r4 curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
+.PHONY: prepush images-list push-images-list api-dev web-dev api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance validate check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke transform-smoke-r4 curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -9,6 +9,10 @@ DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
 # Install the pinned dbt packages (Elementary, dbt_utils) when dbt/headway/dbt_packages is missing.
 dbt-deps:
 	uv run python scripts/dbt_deps.py
+
+# Before pushing: make check and make e2e in a clean checkout of HEAD, as CI runs them.
+prepush:
+	scripts/prepush.sh
 
 check: dbt-deps
 	uv run ruff check .
