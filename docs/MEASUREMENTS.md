@@ -346,26 +346,55 @@ statistics.
 
 Service dates 2026-11-22 to 2026-11-26 (22 Nov from about 11:30 local, 26 Nov to the evening),
 `fct_reconstructed_arrivals` rebuilt locally from a fresh read-only copy of production on
-2026-11-26, against MBTA's LAMP subway on-time-performance files (MassDOT Developers License:
-use and redistribution allowed with MassDOT acknowledged; no LAMP rows are committed). Difference =
-ours minus LAMP `stop_timestamp`. Method, licence, all tables and limitations:
-[VALIDATION](VALIDATION.md); re-run with `make validate`.
+2026-11-26 (22:50 local), against MBTA's LAMP subway on-time-performance files (MassDOT Developers
+License: use and redistribution allowed with MassDOT acknowledged; no LAMP rows are committed).
+Difference = ours minus LAMP `stop_timestamp`, matched by trip id and stop, then by nearest
+scheduled arrival, pairs more than 600 s apart rejected; 1,158 of our rows after LAMP's last
+timestamp left out. Method, licence, all tables and limitations: [VALIDATION](VALIDATION.md);
+re-run with `make validate`.
 
 | Measure | Value | Method |
 | --- | --- | --- |
-| Match rate | 97.9 % of 164,578 rows with an arrival time (high 99.5 %, medium 97.8 %, low 95.0 %) | Trip id, direction and stop; then nearest scheduled arrival within 120 s; pairs more than 600 s apart rejected. Unmatched: bracketed Green-C/E stops LAMP has no row for, and reused trip ids. |
-| All matched rows | median absolute difference 23.7 s, p90 46.5 s, signed bias -21.0 s, 67.1 % within 30 s, 96.9 % within 60 s | 161,189 pairs. |
-| By confidence, median abs / p90 / within 30 s | high 10.5 s / 14.5 s / 99.9 %; medium 26.5 s / 45.5 s / 62.3 %; low 65.0 s / 119.0 s / 21.6 % | Same pairs. For observed stops the difference is half the interval width by construction (LAMP reports the first STOPPED_AT, we report the interval midpoint). |
-| Observed stops, ours moved to the interval end | median 0 s, 98.6 % within 5 s, 99.7 % within 30 s | 124,734 pairs. Both sides read the same STOPPED_AT report. |
-| Bracketed stops | median bias +13.1 s (ours later), median abs 15.6 s, 81.9 % within 30 s; after subtracting half of LAMP's dwell, bias -1.9 s, median abs 8.4 s, 92.9 % within 30 s | 36,455 pairs. Interpolation lands inside the dwell. |
-| 1 minute vs 15 s sampling | median abs 24.7 s vs 12.5 s, within 30 s 65.4 % vs 83.8 %; high share 13 % vs 56 % | 15 s is about four hours of one evening. |
+| Match rate | 97.9 % of 164,585 rows with an arrival time (high 99.5 %, medium 97.8 %, low 95.0 %) | Unmatched: bracketed Green-C/E stops LAMP has no row for (Green-C 92.8 %, Green-E 94.3 %), and reused trip ids. |
+| Observed stops, ours moved to the interval end | median 0 s, 98.7 % within 5 s, 99.8 % within 30 s | 124,735 pairs. Both sides read the same STOPPED_AT report; LAMP's time is the end of our interval, ours its midpoint, so unshifted the bias is -(interval width / 2), median -26 s, and the share within 30 s is set by interval width, not by error. |
+| By confidence, unshifted, median abs / p90 / within 30 s | high 10.5 s / 14.5 s / 99.9 %; medium 25.5 s / 45.5 s / 64.3 %; low 65.0 s / 119.5 s / 30.5 % | After the dwell correction below. Observed rows are identical before and after. |
+| Before the dwell correction: bracketed stops | median bias +13.6 s (ours late), median abs 15.7 s, 81.4 % within 30 s (22-24 Nov); +12.4 s, 15.3 s, 82.6 % (25-26 Nov) | Interpolation lands inside the dwell. The bias followed LAMP's dwell at the stop: +2 s for dwells up to 15 s, +9 s for 16-30 s, +20 s for 31-60 s. |
 
 MBTA's times come from the same realtime feed, so this is a cross-check by an independent
-implementation, not ground truth. Conclusion: reconstruction reads the same stop reports as MBTA
-(match 97.9 %, observed stops identical to the second once the definitions are aligned); the -21 s
-bias is the midpoint-versus-first-STOPPED_AT definition, not a bug; bracketed arrivals are
-systematically about 13 s late, which a dwell correction would remove (proposed in VALIDATION,
-not applied).
+implementation, not ground truth. Conclusion: reconstruction reads the same stop reports as MBTA;
+the -21 s bias of observed stops is the midpoint-versus-first-STOPPED_AT definition, not a bug;
+bracketed arrivals were systematically about 13 s late, which the next entry corrects.
+
+### Dwell correction of bracketed arrivals (2026-11-26)
+
+`fct_reconstructed_arrivals` and `fct_headways` at version 3: a bracketed arrival moves earlier by
+`along x E[dwell of a missed visit]` (`along`: how far the stop lies between the two observations
+that straddle it), from the `reconstruction_dwell` seed. The table is fitted on **22-24 Nov only,
+from our own observed STOPPED_AT data** (no LAMP data in the model; the fit uses the share of visits
+with 0, 1 and 2 or more sightings per line, stop and hour bucket, which identifies dwell where the
+median dwell of observed stops does not, because a short dwell is less likely to be seen);
+**25-26 Nov are held out**. Same data before and after (the before build has an empty seed). Observed
+arrivals, confidence counts and `known_at` are unchanged and there are no monotonic violations.
+Before → after, ours minus LAMP, bracketed stops:
+
+| Measure | In sample, 22-24 Nov (22,516 pairs) | Held out, 25-26 Nov (13,944 pairs) | Method |
+| --- | --- | --- | --- |
+| Median bias | +13.6 s → -3.3 s | +12.4 s → -4.2 s | `make validate`, bracketed rows, `By fit window`. |
+| Median absolute difference | 15.7 s → 6.6 s | 15.3 s → 7.0 s | Same. |
+| p90 absolute difference | 37.4 s → 27.2 s | 36.7 s → 31.0 s | Same. |
+| Within 30 s / within 60 s | 81.4 % → 90.9 % / 98.6 % → 98.1 % | 82.6 % → 89.7 % / 98.3 % → 97.6 % | Same. |
+| Line cells only (no stop or hour) | | within 30 s 88.2 %, median abs 7.9 s | Sensitivity, same split; shape bound 6 to 40: 89.5 to 89.9 %. |
+
+By line, held out, within 30 s before → after: Blue 84.8 → 99.5 %, Mattapan 98.9 → 99.5 %, Orange
+95.1 → 98.3 %, Red 75.2 → 90.7 %, Green-B 76.9 → 87.9 %, Green-C 79.4 → 86.7 %, Green-D 73.2 → 82.2 %,
+Green-E 77.8 → 80.4 %. Green-D and Green-E are the weakest, and within 60 s falls on them (Green-E
+97.4 → 94.8 %, Green-D 97.4 → 95.4 %). At 15-second sampling (held out, 790
+bracketed pairs, four hours of one evening) the correction does not help: median bias +2.9 s →
+-5.3 s, within 30 s 84.2 % → 79.6 %. All matched rows: median absolute 23.7 s → 22.0 s, within 30 s
+67.1 % → 69.1 % (observed stops, 76 % of rows, are unchanged). Bracketed stops moved by a median of
+16 s (largest 46 s). Conclusion: the 13 s lateness is largely removed on days the table was not
+fitted on (bias -4 s, 90 % within 30 s), with a small over-correction for short dwells; the 15 s
+sample is too short to say more and needs a refit on 15-second data when there are full days of it.
 
 ## Blue and Green-E deviation: late and early departures, not a matching offset
 

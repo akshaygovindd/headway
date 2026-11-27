@@ -793,3 +793,35 @@ Template: Status, Context, Decision, Consequences, Revisit when.
 - **Revisit when:** the MBTA publishes speed restrictions in a machine-readable form (then only the
   loader of the seed changes), the snapshot proves too stale to be useful, or the facility status
   is worth a feed.
+
+### ADR-026: Dwell correction of bracketed arrivals from our own data
+
+- **Status:** Accepted (2026-11-26)
+- **Context:** the comparison with MBTA's LAMP times ([VALIDATION](VALIDATION.md)) showed bracketed
+  arrivals (stops no capture saw STOPPED_AT) a median 13 s late: interpolating by distance between
+  the polls either side lands inside the dwell, a fraction `along` of it after the true arrival.
+  Observed stops are not affected (their bias against LAMP is the midpoint-versus-first-STOPPED_AT
+  definition).
+- **Decision:** move a bracketed time earlier by `along x E[dwell of a missed visit]`, never past
+  the observation before the stop, bracketed stops of a run kept in order. The expected dwell is a
+  committed dbt seed (`reconstruction_dwell`), fitted by `scripts/fit_reconstruction_dwell.py` from
+  our own STOPPED_AT data only, per line, stop and hour bucket (stop then line when a cell is thin),
+  with a column per observation-spacing class so it stays right when sampling changes from 60 s to
+  15 s. No LAMP or other MBTA performance data is read by the model or by the fit. Observed
+  arrivals, confidence and the schema are unchanged. `fct_reconstructed_arrivals` and
+  `fct_headways` (which reads it) move to version 3 and are backfilled with one `rebuild_facts`.
+- **Alternatives:** the median dwell of observed stops (rejected: a short dwell is less likely to
+  be seen, and a single sighting carries no dwell information, so it over-corrects by 17 s; the
+  fit uses the split of visits by number of sightings instead); fitting the table inside the
+  pipeline from the lookback window (rejected: a persisted closed day would depend on when it was
+  computed); a constant per line (kept as the fallback when a cell is thin; line cells alone score
+  88.2 % within 30 s against 89.7 % with stop and hour cells); calibrating a scale factor on LAMP
+  (rejected: LAMP must stay a yardstick).
+- **Consequences:** held out (25-26 Nov, fit on 22-24 Nov) bracketed stops go from +12.4 s median
+  bias and 82.6 % within 30 s of LAMP to -4.2 s and 89.7 %; the 15-second sample (four hours,
+  790 pairs) does not improve and the table should be refitted on full days of 15-second data. The
+  dwell shape is bounded by a prior (12). Public history aggregates that read arrival times are not
+  rebuilt (RUNBOOK, Closed-day facts). Confidence thresholds are not changed; a bracketed limit of
+  180 s instead of 120 s is proposed in VALIDATION.
+- **Revisit when:** several full days of 15-second sampling exist (refit, re-validate), or LAMP's
+  definition or the vehicle feed's reporting cadence changes.

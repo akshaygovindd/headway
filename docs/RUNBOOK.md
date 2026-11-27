@@ -555,10 +555,44 @@ and `facts_written`.
 - **Look at the state:** `aws s3 ls s3://headway-raw-<account>/state/facts/fct_headways/metric_version=1/`
   lists one folder per day; a day missing from one of the four tables is built again by the next
   run. A closed day with no rows in a table has an empty partition (it is not built again).
-- **`fct_headways` is at version 2** (one headway per trip stop; DATA_QUALITY.md). The first run
-  after deploying it finds no version-2 partition, so it builds every window day from raw data and
-  writes the closed ones; that run is as heavy as one with the facts switched off. To avoid it,
-  backfill first with `rebuild_facts` and `metric_version` 2 (below), at most 14 days per call.
+- **`fct_reconstructed_arrivals` and `fct_headways` are at version 3** (bracketed arrivals are
+  moved earlier by their share of the expected dwell, from the `reconstruction_dwell` seed;
+  [VALIDATION](VALIDATION.md); `fct_headways` reads those arrivals). The other two tables stay at
+  version 1. The first run after deploying finds no version-3 partition, so it builds every window
+  day from raw data and writes the closed ones; that run is as heavy as one with the facts switched
+  off (the duration alarm can fire once). To keep it short, backfill straight after the deploy with
+  one `rebuild_facts` call per range of at most 14 days and `metric_version` 3: a call writes the
+  tables at its version, so version 3 writes both. Walk back from the latest closed day, newest
+  range first, until every closed day of the window is covered:
+  ```sh
+  # 1. deploy the image (make lambda-zip / make deploy, see DEPLOY.md), then:
+  aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
+    --cli-binary-format raw-in-base64-out \
+    --payload '{"task":"rebuild_facts","from":"2026-11-13","to":"2026-11-26","metric_version":3}' \
+    /dev/stdout
+  # 2. check: every closed day of the window has a version-3 partition for both tables
+  aws s3 ls s3://headway-raw-<account>/state/facts/fct_reconstructed_arrivals/metric_version=3/
+  aws s3 ls s3://headway-raw-<account>/state/facts/fct_headways/metric_version=3/
+  # 3. the next scheduled run: facts_loaded_days lists the closed days, duration_ms under 300000
+  ```
+  Versions 1 (arrivals) and 2 (headways) stay in the bucket and are never read again; version 2 of
+  `fct_reconstructed_arrivals` was never used. Roll back by setting both versions back in
+  `facts_state.py` and deploying: the old partitions are still there.
+- **Closed-day history aggregates are not rebuilt by this.** The public history families that read
+  reconstructed arrival times (`actual_deviation`, `headway_adherence`, `ett`, `stop_deviation`,
+  `countdown_accuracy`, `prediction_accuracy`) were written with the old arrival times for the days
+  already closed, and `history.METRIC_VERSIONS` was not bumped. Bracketed arrivals move by a median
+  of 16 s, so a deviation computed for a bracketed stop changes by that much. Bump the families and
+  run `rebuild_history` ([ADR-015](ARCHITECTURE_DECISIONS.md)) when the history should be on one
+  definition; until then days before and after the deploy differ in definition.
+- **Refit the dwell table** (a change of definition, so bump the versions above and backfill):
+  build the facts locally from a read-only copy of production, then
+  `uv run python scripts/fit_reconstruction_dwell.py --db .local/prod_test.duckdb --from <first> --to <last>`
+  writes `dbt/headway/seeds/reconstruction_dwell.csv`. The fit reads only our own STOPPED_AT data.
+  Do not refit from the lookback window inside the pipeline: a persisted closed day would then
+  depend on when it was computed. After the 15-second sampling has several full days, refit on
+  those days: the dwell distribution is better identified there, and the held-out check in
+  [VALIDATION](VALIDATION.md) (`make validate`) should be repeated on days after the fit window.
 - **Backfill or rebuild a range of days** (at most 14 days per call; it builds the window from
   the oldest day of the range, writes the days of the range that have no object yet for the
   tables at that version, and never touches gold):
