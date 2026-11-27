@@ -315,6 +315,7 @@ def report(con: duckdb.DuckDBPyConnection, counters: dict[str, int], days: list[
         ("By confidence", "o.confidence", {"order": conf_order}),
         ("By sampling period", "o.period", {}),
         ("By method", "o.method", {}),
+        ("By method and confidence", "o.method || ' / ' || o.confidence", {}),
         ("By line and confidence", "o.line || ' / ' || o.confidence", {}),
         ("By confidence and sampling period", "o.confidence || ' / ' || o.period", {}),
         ("By line and sampling period", "o.line || ' / ' || o.period", {}),
@@ -357,7 +358,7 @@ def report(con: duckdb.DuckDBPyConnection, counters: dict[str, int], days: list[
         header, rows = accuracy(con, by, where=bracketed, **kw3)
         out += [f"### {title}", "", md_table(header, rows), ""]
     out += [
-        "### Minus half of LAMP's dwell time at the stop",
+        "## Bracketed rows minus half of LAMP's dwell time at the stop",
         "",
         "Interpolating between a before-stop and an after-stop observation lands inside the dwell; "
         "LAMP's time is when the vehicle first reported STOPPED_AT.",
