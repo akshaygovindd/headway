@@ -10,9 +10,10 @@ unless a `cd` is shown. Fill in the [walkthrough record](#walkthrough-record) as
 - AWS credentials for the target account in your shell (`aws sts get-caller-identity` works).
 - `terraform` >= 1.10, `uv`, `make`, `docker` (running) with buildx.
 - A MotherDuck account and token.
-- Account note: the ingest Lambda sets no reserved concurrency, because an account with the
-  default limit of 10 cannot reserve any. Runs take seconds once a minute and the scheduler
-  never retries, so overlapping runs are unlikely.
+- Account note: the ingest Lambda sets no reserved concurrency (it was written for an account at
+  the default limit of 10, which cannot reserve any). The account limit is now 1000, so only the
+  API function reserves concurrency (R4). Runs take seconds once a minute and the scheduler never
+  retries, so overlapping runs are unlikely.
 
 ```sh
 git clone https://github.com/akshaygovindd/headway.git && cd headway
@@ -395,19 +396,20 @@ Phase 4.1 is built and tested but not deployed. `enable_r4 = true` adds the API 
 arm64), an HTTP API with throttling and an access log, an ECR repository `headway-api` and a 5xx
 alarm (ADR-023, `docs/API.md`). It needs no new secrets and no access to any bucket.
 
-**Hard prerequisite: do not enable R4 until the account's Lambda concurrency limit is at least 100.**
+**Prerequisite: the account's Lambda concurrency limit must be at least 100 plus the reservation.**
 The API function reserves concurrency (`api_reserved_concurrency`, default 3) out of the account
-pool, and Lambda keeps 100 unreserved. On an account still at the default limit of 10 the reservation
-cannot be made, and one that could would starve ingest, curate and transform. Terraform therefore
-requires the confirmed limit to be at least 100 plus `api_reserved_concurrency` (103 by default;
-request 1000).
+pool, and Lambda keeps 100 unreserved. The account limit is 1000 (checked 2026-11-27), so this is
+now a confirmation, not a blocker: Terraform cannot read the quota, so it requires you to state it
+as `api_confirmed_concurrency_limit = 1000` (at least 103 by default). Without that line
+`enable_r4 = true` fails validation. The error text in `variables.tf` still talks about new accounts
+at 10; ignore it.
 
 ```sh
 aws lambda get-account-settings --query 'AccountLimit.[ConcurrentExecutions,UnreservedConcurrentExecutions]'
 ```
 
-If `ConcurrentExecutions` prints less than 100: Service Quotas > AWS Lambda > Concurrent
-executions > request an increase to 1000, and wait for approval. Then set the value the command
+If `ConcurrentExecutions` ever prints less than 103: Service Quotas > AWS Lambda > Concurrent
+executions > request an increase to 1000, and wait for approval. Set the value the command
 prints in `terraform.tfvars` as `api_confirmed_concurrency_limit`. Terraform cannot read the quota,
 so the variable is your statement of it: `enable_r4 = true` fails validation while it is below
 100 plus the reservation, and the Lambda has a matching precondition, so the step cannot be skipped silently.
@@ -455,10 +457,253 @@ manifest no longer lists the tables (old objects are not deleted).
 The site in `web/` is built and tested locally only. When the API is live (`enable_r4`):
 
 1. Create a Vercel project from this repository with root directory `web` (framework: Next.js, Node 20 or newer).
-2. Set `HEADWAY_API_URL` to `terraform output -raw api_url` (no trailing slash). Pages are rendered on the
+2. Set `HEADWAY_API_URL` to `terraform output -raw api_url` (no trailing slash) and
+   `NEXT_PUBLIC_SITE_URL` to the site's public origin (see the go-live checklist below). Pages are rendered on the
    server, so the API's `API_CORS_ORIGINS` does not need the site's origin unless a browser calls the API directly.
 3. Pages revalidate every 300 s, matching the API's `Cache-Control: public, max-age=300`.
 4. Check `/`, `/lines/Red` and `/pipeline` against the live API, then attach the domain.
 
 See [web/README.md](../web/README.md).
 
+
+## Sunday 2026-11-29 deploy runbook (dry run, 2026-11-27)
+
+Nothing here has been executed: the plans below are `terraform plan` runs on copies of
+`terraform.tfvars` (the real file and `tfplan` are untouched), plus read-only AWS calls.
+Current state (checked 2026-11-27): account 381232271655, Lambda limit 1000, ECR has only
+`headway-curate` and `headway-transform`, `enable_r2 = true`, `vehicle_polls = 4`, image tag
+`:324934d`, facts and history exist at `metric_version=1` only, `/headway/openai_api_key` does not
+exist. A plan of the current tree with the current tfvars shows no differences, so `make deploy`
+changes only image tags.
+
+**Data to rebuild.** Capture started 2026-11-22 (partial day). After 06:00 ET on Sunday the closed
+service days are 2026-11-22 to 2026-11-28, seven days: one call per task, well inside the 14-day
+cap. 22-25 Nov are 1-minute data (corrected), 26 Nov is mixed, 27-28 Nov are 15-second data
+(uncorrected, ADR-026).
+
+**Timing.** The transform runs at :20 every hour. Start right after a :20 run has finished (about
+:30) so the rebuilds have about 50 minutes. A scheduled run that starts while a rebuild holds
+`transform.lock` returns `{"skipped":"locked"}`; that is not an error. A rebuild started while a
+scheduled run holds the lock is skipped the same way: re-invoke it.
+
+### A. Deploy HEAD (R2 on, R3 and R4 off)
+
+```sh
+git status --short | grep -v mlruns     # clean
+git log -1 --oneline
+make deploy                              # builds curate+transform images, pushes, plan, applies if 0 destroy
+```
+Expected plan: `0 to add`, a handful `to change` (curate, static and transform image tags), `0 to destroy`.
+Check: `aws lambda get-function --function-name headway-transform --query Code.ImageUri`
+shows the new sha, and the next ingest manifests keep `poll_index` 0-3.
+Risk: `make deploy` edits `terraform.tfvars` with `sed` and verifies only the curate and
+transform tags. From here until step B finishes, **a scheduled transform run rebuilds every
+window day from raw data** (facts at v3 do not exist yet). If it lands first it takes about as long
+as a run with facts off. The duration alarm needs more than 600 s in two consecutive runs, so one
+slow run does not page.
+Rollback: `git checkout` the previous sha tag in `terraform.tfvars` (`:324934d`) and `make deploy`.
+
+### B. `rebuild_facts` v3
+
+```sh
+aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"task":"rebuild_facts","from":"2026-11-22","to":"2026-11-28","metric_version":3}' \
+  /dev/stdout
+```
+One invocation (7 days). Expected: `fct_reconstructed_arrivals` and `fct_headways` v3 written for
+each closed day, `duration_ms` in the order of 200-600 s (measured floor for a full rebuild on a
+laptop is 183 s; Lambda was slower, production runs took 453 s on 1-minute data before the
+incremental facts). The limit is 900 s. If it times out, no data is lost (days are written once
+and skipped when present): re-run with the same payload, or split newest day first, for example
+`2026-11-26..2026-11-28` then `2026-11-22..2026-11-25`.
+Check:
+```sh
+R=headway-raw-381232271655
+aws s3 ls s3://$R/state/facts/fct_reconstructed_arrivals/metric_version=3/
+aws s3 ls s3://$R/state/facts/fct_headways/metric_version=3/      # 7 service_date= prefixes each
+```
+Rollback: set both versions back in `facts_state.py` and deploy; v1 partitions are still there.
+
+### C. `rebuild_history` v3
+
+```sh
+aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"task":"rebuild_history","from":"2026-11-22","to":"2026-11-28","metric_version":3}' \
+  /dev/stdout
+```
+**One invocation** (7 days is under the 14-day cap) writes every family at version 3 (seven
+families; `stop_deviation` stays at v1). It also publishes to MotherDuck, so the SSM token must
+work. Expect about the same duration as B or a little less; the summary shows `history_written`
+per table and `history_existing`.
+Check: `aws s3 ls s3://headway-public-381232271655/public/boston/history/table=agg_actual_deviation_daily/metric_version=3/`
+lists service dates 2026-11-22 to 2026-11-28; repeat for `agg_actual_deviation_hourly`. Then wait
+for the next :20 run: `facts_loaded_days` lists the closed days, `duration_ms` is under 300000,
+no `skipped`.
+Risk: history objects are conditional puts that the transform role cannot delete. A wrong v3
+object cannot be undone by rollback; it needs an admin delete and a re-run.
+
+### D. Release 3 switch-on (`enable_r3 = true`)
+
+Do this only after A to C are verified by one clean scheduled run. Plan (real image URIs
+replaced by placeholders, tfvars copy): **8 to add, 5 to change, 0 to destroy.**
+
+| Change | Resource |
+| --- | --- |
+| add | ECR repo `headway-train` and its lifecycle policy |
+| add | Lambda `headway-train` (arm64 image, 4096 MB, 300 s timeout, 1024 MB ephemeral, no reserved concurrency), its log group (14 days), IAM role and role policy (own `state/forecast_*`, `mlflow/*`, `models/forecast/*` prefixes), event invoke config (0 retries) |
+| add | EventBridge schedule `headway-train-weekly`, `cron(0 6 ? * MON *)` UTC (Monday 01:00 ET) |
+| change | Transform Lambda and static Lambda: `HEADWAY_ENABLE_R3 = true` (static then fetches NOAA weather in its 09:00 UTC run) |
+| change | IAM: transform role gains `state/forecast_*`, `state/incident_summaries/*` and `models/forecast/*`; static role writes `table=weather_daily/`; scheduler policy may invoke the train Lambda |
+| none | No new alarm (a train failure alerts nobody), no new secret: `/headway/openai_api_key` read access already exists |
+
+Steps:
+```sh
+# 1. create the repository (applies two ECR resources; set enable_r3 = true and a placeholder train_image_uri first)
+terraform -chdir=infra/main apply -target='aws_ecr_repository.pipeline["train"]' \
+  -target='aws_ecr_lifecycle_policy.pipeline["train"]'
+# 2. build and push; copy the printed train_image_uri into terraform.tfvars next to enable_r3 = true
+make images-push
+# 3. deploy (the plan must show 0 to destroy)
+make deploy
+```
+Checks: `aws lambda get-function --function-name headway-train`; after the next :20 run the run
+summary has no `r3` errors and the step times are in line (R3 adds about 15 s on the laptop
+measurement); `aws s3 ls s3://$R/state/forecast_examples/metric_version=1/` appears once the first
+service day closes after the switch (Monday 06:00 local at the earliest).
+Rollback: `enable_r3 = false` and `make deploy` (the function and schedule are destroyed; data
+under `state/forecast_*`, `mlflow/`, `models/` stays).
+
+**First runs.**
+- *Transform:* builds the `r3` models and writes `forecast_examples` for closed days only, from
+  the corrected v3 arrivals (R3 has never been on, so no v1 examples exist). Exports
+  `agg_forecast_next_hour` and `agg_forecast_gate_status`; the Forecast page shows the gate
+  status and baselines.
+- *Train, Monday 06:00 UTC:* far below the 21 usable days (3 on weekends) the gate needs, so the result is
+  `baselines_only`; no model, no `latest.json`. Sized on 448k examples, 43 s and 2.3 GiB peak,
+  never run on real data: check `Max Memory Used` and the duration afterwards.
+- *Static:* the next 09:00 UTC run refetches 21 days of NOAA daily weather.
+- *LLM:* no key exists, so every incident summary is the deterministic template ($0). If you
+  create the key later: model `gpt-4o-mini`, at most 50 calls per UTC day
+  (`HEADWAY_INCIDENT_LLM_DAILY_CAP`, env only, not in Terraform), 20 s timeout: cents per day at
+  most (an estimate, not measured). The AI analyst's own cap is separate and lives in Streamlit.
+- *Budget:* $15 per month with alerts at $12 and $15 on the `project=headway` tag; R3 adds a
+  weekly job and a few storage prefixes.
+
+**Corrected arrivals, decide before the first service day closes.** `forecast_examples` v1 days
+are written once and never replaced. Examples for 15-second days (27 Nov onwards) are therefore
+frozen uncorrected, while 22-25 Nov are corrected: a bias in whatever trains on them. ADR-026's
+refit trigger (three full 15-second days) is met on 30 Nov. Either accept that, or bump
+`forecast_state.TABLES` after the refit and run `rebuild_forecast_examples` with the new version
+(it rejects v3 today, and at v1 it skips existing days). Do not run a v1 backfill on Sunday.
+
+### Sunday order, in one list
+
+1. `make deploy` (A), check image and a clean ingest.
+2. `rebuild_facts` 2026-11-22..2026-11-28 v3 (B), check the S3 listings.
+3. `rebuild_history` same range v3 (C), check the history listing.
+4. Watch the next :20 run: `duration_ms` under 300000, `facts_loaded_days` 7, memory under 85%
+   (`TransformMemoryUsedPct`), no failed dbt tests (the `unique_grain_agg_pipeline_health_run_id` failure seen
+   on synthetic data does not occur on real data).
+5. R3 (D) only if step 4 is clean; otherwise stop. Nothing in D is needed for the site.
+
+## Release 4 and Vercel go-live checklist (dry run, 2026-11-27)
+
+**R4 plan** (tfvars copy with R3 and R4 on, `api_confirmed_concurrency_limit = 1000`, placeholder
+image URIs and CORS origin): **21 to add, 5 to change, 0 to destroy.** The 13 additions beyond R3's 8 are:
+
+| Resource | Setting |
+| --- | --- |
+| ECR repo `headway-api` and lifecycle policy | arm64 image |
+| Lambda `headway-api` | 1024 MB, 15 s timeout, 512 MB ephemeral, **reserved concurrency 3**, env `HEADWAY_DATA_URL` (public bucket) and `API_CORS_ORIGINS` |
+| IAM role and policy | logs only, no bucket access |
+| Log groups | `/aws/lambda/headway-api` and the API access log, 14 days each |
+| HTTP API, integration (20 s), `$default` route, `$default` stage (auto deploy) | **throttle 10 requests/s, burst 20** (`api_throttle_rate`, `api_throttle_burst`) |
+| Lambda permission | API Gateway may invoke the function |
+| Alarm `headway-api-5xx` | `AWS/ApiGateway` 5xx sum >= 5 in 5 minutes, to the alerts topic |
+
+Changes: transform env `HEADWAY_ENABLE_R4=true` (needs R2), and the same IAM and scheduler
+changes as R3. CORS is answered by the app, not the gateway; `api_cors_origins` is a comma list
+without `*`.
+
+**Concurrency guard.** The account limit is 1000. The check is `api_confirmed_concurrency_limit >=
+100 + api_reserved_concurrency`; it is a statement, so set `api_confirmed_concurrency_limit =
+1000` (without it the plan fails validation). Reserved 3 of 1000 leaves 997 unreserved, far above
+Lambda's 100 floor, so ingest, curate and transform are not starved.
+
+**Transform cost with R2 + R3 + R4** ([MEASUREMENTS](MEASUREMENTS.md#release-4-phase-45-tables-cost-of-the-four-new-models),
+2026-11-26, laptop, 4x vehicle data, 3008 MB at 1.7 CPUs): +14.7 s on the first run (127.7 to
+142.4 s), no measurable memory change (peak 79-80% of 3008 MB; the budget is 85%), nine more
+tables exported (31 to 40). Production is slower than the laptop, so read the first real run's
+step times. The R4 smoke run took 19 s at 21% memory.
+
+**API smoke test against the image (run 2026-11-27, passed).** `make api-smoke` builds
+`headway-api:local` for arm64 and checks `/v1/meta` (200, `cache-control: public, max-age=300`,
+CORS header), a line route (200), an invalid line (422 with the allowed lines), `/docs` (200) and
+that the baked `httpfs` extension loads. I also ran that image over the demo gold
+(`.local/demo/public/boston` mounted read-only at `/fixture`): `/v1/meta` and
+`/v1/lines/Red/reliability` return 200, and `/v1/slo` returns `access-control-allow-origin` for
+an allowed origin and none for another. The image speaks the Lambda Runtime Interface
+Emulator, not plain HTTP, so a local site needs a shim that turns each request into an API Gateway v2
+event and POSTs it to `http://127.0.0.1:<port>/2015-03-31/functions/function/invocations`.
+`make api-dev` (uvicorn over the same gold) is the plain-HTTP alternative.
+
+**Go-live order (R4).**
+1. `terraform.tfvars`: `enable_r4 = true`, `api_confirmed_concurrency_limit = 1000`, a placeholder
+   `api_image_uri`, `api_cors_origins` (set the real Vercel domain later; see below).
+2. `terraform -chdir=infra/main apply -target='aws_ecr_repository.pipeline["api"]'`, then
+   `make images-push ENABLE_R4=true`, copy the printed `api_image_uri`.
+3. `make deploy ENABLE_R4=true` (plan must show 0 to destroy).
+4. Checks: the commands in the R4 section above (`/v1/meta`, 422 for Purple, CORS header, `/docs`,
+   reserved concurrency 3, one JSON access line per request). Then wait one transform run and
+   confirm `tables_in_export` lists the five site tables and `/v1/lines/Red/segments` answers 200.
+5. Capture the official slow-zone snapshot by hand (RUNBOOK), or `/slow-zones` says the list is not captured.
+
+### Vercel readiness (no account actions taken)
+
+**Local production check (run 2026-11-27, passed).** API image over the demo gold on :8000, then
+`HEADWAY_API_URL=http://localhost:8000 NEXT_PUBLIC_SITE_URL=http://localhost:3100 npm run build`
+and `npx next start -p 3100`: 24 static pages generated in 8 s, every page tested returned 200
+(`/`, `/lines/Red`, `/pipeline`, `/forecast`, `/slow-zones`, `/lines/Red/budget`, `/sitemap.xml`,
+`/robots.txt`, `/opengraph-image`). Lighthouse 12 (desktop defaults of the CLI): `/` performance 96, accessibility 100,
+best practices 100, SEO 100; `/lines/Red` 95/100/100/100; `/pipeline` 96/100/100/100. axe (wcag2a, 2aa,
+21aa, best-practice) on 11 pages: 0 violations on 9; `/lines/Red` has `page-has-heading-one` (1 node)
+and `/about` has `link-in-text-block` (1 node). Neither is fixed here; fix before launch if you want a
+clean axe run. The home page's `og:title` is "Lines", not the site name.
+
+**What the site needs.**
+
+| Item | Value |
+| --- | --- |
+| Root directory | `web` |
+| Framework | Next.js (auto-detected); install `npm ci`, build `npm run build`, no output directory override |
+| Node | `engines.node` is `>=20`; set the project's Node version to **22.x** (Settings > General > Node.js Version) so it does not drift. Local tests ran on Node 26 |
+| `HEADWAY_API_URL` | `terraform output -raw api_url`, no trailing slash. Server side only; Production **and** Preview |
+| `NEXT_PUBLIC_SITE_URL` | the final public origin, e.g. `https://<project>.vercel.app` or the custom domain. Drives canonical URLs, Open Graph/Twitter cards, `sitemap.xml`, `robots.txt`. Set it before the first build: it is inlined at build time |
+| `NEXT_PUBLIC_REPO_URL` | optional, GitHub repo link |
+| `vercel.json` | not needed (no rewrites, headers or cron) |
+| CORS | pages render on the server, so `api_cors_origins` is not needed for the site to work; add the Vercel origin anyway for browser calls and `/docs`, then `make deploy ENABLE_R4=true` |
+| OG image, sitemap, robots | `opengraph-image`, `twitter-image`, `icon.svg`, `sitemap.xml` (7 pages plus lines) and `robots.txt` are generated by the app; no files to add |
+
+**Flag: the API must be reachable when Vercel builds.** The build prerenders 24 pages from the API
+(`/` and the lines pages are static with a 5-minute revalidate). A build with `HEADWAY_API_URL`
+unset or down fails or bakes in an error state. Deploy R4 first, check `/v1/meta`, then create the project.
+
+**Exact steps on vercel.com (you do these):**
+1. Add New > Project > Import the GitHub repository `headway`.
+2. Root Directory: Edit > `web`. Framework Preset: Next.js. Leave the build and install commands on their defaults.
+3. Environment Variables: add `HEADWAY_API_URL` (Production, Preview) and `NEXT_PUBLIC_SITE_URL`
+   (Production; use the `*.vercel.app` URL first, then change it when the domain is attached).
+4. Deploy. Settings > General > Node.js Version: 22.x (redeploy if you changed it).
+5. Open the deployment URL and check `/`, `/lines/Red`, `/pipeline`, `/sitemap.xml`, `/robots.txt`.
+6. Put the production origin in `api_cors_origins` (terraform.tfvars), `make deploy ENABLE_R4=true`,
+   then `curl -si -H 'Origin: https://<domain>' "$API/v1/slo" | grep -i access-control`.
+7. If you attach a domain: Settings > Domains > Add; update `NEXT_PUBLIC_SITE_URL`, redeploy, and update `api_cors_origins`.
+CLI alternative: `cd web && npx vercel link && npx vercel env add HEADWAY_API_URL production && npx vercel --prod`.
+
+**Risks, in one place.** Corrected-vs-uncorrected examples frozen by v1 (see D); first transform
+duration unknown on production; v3 history objects cannot be deleted by the role; train job
+untested on real data and no alarm; `make deploy` verifies only curate and transform tags; the
+site build needs the API live; axe findings above; reserved concurrency 3 and throttle 10/20 will
+cap a traffic spike (5xx alarm fires at 5 in 5 minutes).
