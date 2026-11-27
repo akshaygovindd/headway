@@ -193,21 +193,14 @@ images-push: images-build
 		echo "api_image_uri       = \"$$registry/headway-api:$(IMAGE_TAG)\"  # only with enable_r4"; \
 	fi
 
-# Push the images, point terraform.tfvars at the new git short sha, plan and apply. Aborts before
-# the apply unless the plan destroys nothing. Needs AWS credentials and the ECR repositories.
+# Push the images, point terraform.tfvars at the new git short sha (curate, transform, and train and
+# api when their switches are on; scripts/set_image_tags.sh aborts if one did not take), plan and
+# apply. Aborts before the apply unless the plan destroys nothing. Needs AWS credentials and the ECR repositories.
 
 deploy: images-push
 	@set -eo pipefail; \
 	test -f $(TFVARS) || { echo "$(TFVARS) not found" >&2; exit 1; }; \
-	sed -i.bak -E \
-		-e 's|^(curate_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-curate:)[^"]*"|\1$(IMAGE_TAG)"|' \
-		-e 's|^(transform_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-transform:)[^"]*"|\1$(IMAGE_TAG)"|' \
-		-e 's|^(train_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-train:)[^"]*"|\1$(IMAGE_TAG)"|' \
-		-e 's|^(api_image_uri[[:space:]]*=[[:space:]]*"[^"]*headway-api:)[^"]*"|\1$(IMAGE_TAG)"|' \
-		$(TFVARS); \
-	rm -f $(TFVARS).bak; \
-	grep -q 'headway-curate:$(IMAGE_TAG)"' $(TFVARS) && grep -q 'headway-transform:$(IMAGE_TAG)"' $(TFVARS) \
-		|| { echo "could not set both image tags to $(IMAGE_TAG) in $(TFVARS)" >&2; exit 1; }; \
+	scripts/set_image_tags.sh $(TFVARS) $(IMAGE_TAG) $(if $(filter true,$(ENABLE_R3)),true,false) $(if $(filter true,$(ENABLE_R4)),true,false); \
 	cd infra/main; \
 	terraform plan -no-color -input=false -out=tfplan | tee tfplan.txt; \
 	if grep -q '^No changes' tfplan.txt; then echo "nothing to apply"; exit 0; fi; \
