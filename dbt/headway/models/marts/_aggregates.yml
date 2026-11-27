@@ -160,6 +160,9 @@ models:
       meta:
         grain: "line x direction_id x stop_id x service_date"
     data_tests:
+      - line_stops_belong_to_line:
+          arguments:
+            column_name: stop_id
       - unique_grain:
           arguments:
             columns: [line, direction_id, stop_id, service_date]
@@ -1813,6 +1816,12 @@ models:
       meta:
         grain: "line x direction_id x from_stop_id x to_stop_id x window_label"
     data_tests:
+      - line_stops_belong_to_line:
+          arguments:
+            column_name: from_stop_id
+      - line_stops_belong_to_line:
+          arguments:
+            column_name: to_stop_id
       - unique_grain:
           arguments:
             columns: [line, direction_id, from_stop_id, to_stop_id, window_label]
@@ -1867,6 +1876,9 @@ models:
       meta:
         grain: "line x direction_id x trip_instance_key x segment x stop_sequence"
     data_tests:
+      - line_stops_belong_to_line:
+          arguments:
+            column_name: stop_id
       - unique_grain:
           arguments:
             columns: [line, direction_id, trip_instance_key, segment, stop_sequence]
@@ -2023,6 +2035,12 @@ models:
       meta:
         grain: "line x direction_id x from_station_id x to_station_id x time_band x window_label"
     data_tests:
+      - line_stops_belong_to_line:
+          arguments:
+            column_name: from_station_id
+      - line_stops_belong_to_line:
+          arguments:
+            column_name: to_station_id
       - unique_grain:
           arguments:
             columns: [line, direction_id, from_station_id, to_station_id, time_band, window_label]
@@ -2081,6 +2099,12 @@ models:
       meta:
         grain: "line x direction_id x from_stop_id x to_stop_id x time_band x window_label"
     data_tests:
+      - line_stops_belong_to_line:
+          arguments:
+            column_name: from_stop_id
+      - line_stops_belong_to_line:
+          arguments:
+            column_name: to_stop_id
       - unique_grain:
           arguments:
             columns: [line, direction_id, from_stop_id, to_stop_id, time_band, window_label]

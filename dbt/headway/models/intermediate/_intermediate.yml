@@ -1256,3 +1256,26 @@ models:
         description: "True when still active and the alert has no end time."
       - name: age_h
         description: "Hours from the start to the latest capture for a still-active alert; null otherwise."
+
+  - name: int_line_stops
+    description: "The stops and stations each line serves in the static GTFS (route to trips to stop times, every feed version). The reference for the line-membership data tests."
+    config:
+      meta:
+        grain: "line x stop_id"
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [line, stop_id]
+    columns:
+      - name: line
+        description: "Line (route_id)."
+        data_tests:
+          - not_null
+      - name: stop_id
+        description: "Stop identifier served by the line."
+        data_tests:
+          - not_null
+      - name: station_id
+        description: "Parent station of the stop, else the stop itself."
+        data_tests:
+          - not_null

@@ -330,6 +330,9 @@ models:
       meta:
         grain: "trip_instance_key x segment x stop_sequence"
     data_tests:
+      - line_stops_belong_to_line:
+          arguments:
+            column_name: stop_id
       # Elementary anomaly detection (ADR-018): warn only, never blocks an export.
       - elementary.volume_anomalies:
           config:
