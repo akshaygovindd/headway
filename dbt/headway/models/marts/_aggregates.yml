@@ -218,7 +218,7 @@ models:
                 min_value: 0
                 max_value: 100
   - name: agg_pipeline_health
-    description: "One row per ingest run: per-feed capture status, size and duplication, vehicle count and quarantine counts by reason. Records filtered out of scope are not persisted by curation and so are not reported."
+    description: "One row per ingest run: per-feed capture status, size and duplication, vehicle count and quarantine counts by reason. A feed's status is that of its poll-0 fetch for the minute; the extra 15 s vehicle polls are counted apart in vehicle_polls_ok and vehicle_polls_error. Records filtered out of scope are not persisted by curation and so are not reported."
     config:
       meta:
         grain: "run_id"
@@ -236,15 +236,15 @@ models:
         data_tests:
           - not_null
       - name: n_captures
-        description: "Captures recorded for the run: one per feed at poll 0, plus up to three 15 s vehicle polls."
+        description: "Polls recorded for the run: one per feed at poll 0, plus up to three 15 s vehicle polls. Polls that returned the same payload within a second share a capture_id and are still counted once each."
         data_tests:
           - not_null
       - name: vehicle_polls_ok
-        description: "Successful vehicle_positions captures in the run (1 before 15 s sampling, up to 4 after)."
+        description: "Successful vehicle_positions polls in the run (1 before 15 s sampling, up to 4 after), counted per poll."
         data_tests:
           - not_null
       - name: vehicle_polls_error
-        description: "Failed vehicle_positions captures in the run."
+        description: "Failed vehicle_positions polls in the run, counted per poll."
         data_tests:
           - not_null
       - name: duplicate_delivery_count

@@ -1,7 +1,8 @@
 -- One row per capture attempt. is_duplicate_capture marks a capture whose
 -- payload hash equals the previous successful capture of the same feed. With 15 s sampling a
 -- minute holds up to four vehicle_positions captures: they share scheduled_at, hence one
--- capture_minute, and are ordered by poll_index within it.
+-- capture_minute, and are ordered by poll_index within it. Polls that returned the same payload in
+-- the same second share a capture_id and are one row (the earliest poll); n_polls counts them.
 with ok as (
     select
         capture_id,
@@ -18,6 +19,7 @@ select
     m.feed,
     m.scheduled_at,
     m.poll_index,
+    m.n_polls,
     date_trunc('minute', m.scheduled_at) as capture_minute,
     m.fetched_at,
     m.status,

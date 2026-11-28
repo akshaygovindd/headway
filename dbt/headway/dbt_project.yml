@@ -62,6 +62,9 @@ models:
         +materialized: table
         +tags: ["s3_load"]
       stg_manifests: *s3_load
+      # A thin view over the curated manifests source: read by stg_manifest_deliveries.
+      stg_manifest_entries:
+        +tags: ["s3_load"]
       stg_quarantine: *s3_load
       # Release 3 (ADR-022); skipped by the transform unless HEADWAY_ENABLE_R3=true.
       stg_weather_daily:

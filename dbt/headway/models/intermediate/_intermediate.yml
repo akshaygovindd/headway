@@ -38,6 +38,8 @@ models:
               arguments:
                 values: [0, 1, 2, 3]
                 quote: false
+      - name: n_polls
+        description: "Polls of the run that share this capture_id and so stand in this one row: 1, or 2 when vehicle polls 0 and 1 returned the same payload within one second."
       - name: capture_minute
         description: scheduled_at truncated to the minute; the unit of observation coverage.
         data_tests:

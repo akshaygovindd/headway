@@ -12,6 +12,7 @@ select
     feed,
     scheduled_at,
     poll_index,
+    n_polls,
     fetched_at,
     status,
     http_status,

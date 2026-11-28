@@ -1,0 +1,26 @@
+version: 2
+
+unit_tests:
+  - name: manifest_deliveries_keep_every_poll_and_one_row_per_capture_id
+    description: >-
+      Run r1 is a 15 s minute: vehicle polls 0 and 1 were fetched within one second with the same
+      payload, so both entries carry the capture_id v-a. The row kept is the earliest poll (poll 0,
+      which gives the minute's vehicle status) and n_polls says it stands for two polls; polls 2
+      and 3 have their own ids. The same entry read twice from overlapping parts counts once.
+      Run r2 is a 1-minute minute from before 15 s sampling (no poll_index): one poll each.
+    model: stg_manifest_deliveries
+    given:
+      - input: ref('stg_manifest_entries')
+        rows:
+          - {run_id: r1, capture_id: v-a, feed: vehicle_positions, status: ok, poll_index: 0, scheduled_at: "2026-11-27 12:00:00+00", fetched_at: "2026-11-27 12:00:18.1+00"}
+          - {run_id: r1, capture_id: v-a, feed: vehicle_positions, status: ok, poll_index: 1, scheduled_at: "2026-11-27 12:00:00+00", fetched_at: "2026-11-27 12:00:18.5+00"}
+          - {run_id: r1, capture_id: v-a, feed: vehicle_positions, status: ok, poll_index: 1, scheduled_at: "2026-11-27 12:00:00+00", fetched_at: "2026-11-27 12:00:18.5+00"}
+          - {run_id: r1, capture_id: v-b, feed: vehicle_positions, status: ok, poll_index: 2, scheduled_at: "2026-11-27 12:00:00+00", fetched_at: "2026-11-27 12:00:30+00"}
+          - {run_id: r1, capture_id: v-c, feed: vehicle_positions, status: ok, poll_index: 3, scheduled_at: "2026-11-27 12:00:00+00", fetched_at: "2026-11-27 12:00:45+00"}
+          - {run_id: r2, capture_id: t-d, feed: trip_updates, status: ok, poll_index: 0, scheduled_at: "2026-11-27 12:01:00+00", fetched_at: "2026-11-27 12:01:02+00"}
+    expect:
+      rows:
+        - {run_id: r1, capture_id: v-a, poll_index: 0, n_polls: 2, delivery_rank: 1}
+        - {run_id: r1, capture_id: v-b, poll_index: 2, n_polls: 1, delivery_rank: 1}
+        - {run_id: r1, capture_id: v-c, poll_index: 3, n_polls: 1, delivery_rank: 1}
+        - {run_id: r2, capture_id: t-d, poll_index: 0, n_polls: 1, delivery_rank: 1}

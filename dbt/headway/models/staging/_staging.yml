@@ -504,6 +504,48 @@ models:
                 quote: false
       - name: holiday_name
         description: Holiday name.
+  - name: stg_manifest_entries
+    description: "The curated manifests table as written by curation, one row per manifest entry (a poll of a feed in a run), with poll_index never null (0 for parts written before 15 s sampling). Not deduplicated: stg_manifest_deliveries collapses parts written twice and polls that share a capture_id."
+    config:
+      meta:
+        grain: "run_id x capture_id x poll_index"
+    data_tests:
+      - unique_grain:
+          config:
+            severity: warn
+          arguments:
+            columns: [run_id, capture_id, poll_index]
+    columns:
+      - name: capture_id
+        description: Capture identifier (feed, fetch second, payload hash, or error).
+      - name: run_id
+        description: Ingest run (delivery) that recorded the entry.
+      - name: city_id
+        description: City the capture belongs to.
+      - name: feed
+        description: Feed fetched.
+      - name: scheduled_at
+        description: UTC time the run was scheduled for.
+      - name: poll_index
+        description: Position of the poll within its scheduled minute, 0-3; 0 for entries written before 15 s sampling.
+      - name: fetched_at
+        description: UTC time the fetch completed.
+      - name: status
+        description: ok, error or duplicate_delivery.
+      - name: http_status
+        description: HTTP status of the fetch.
+      - name: bytes
+        description: Payload size in bytes.
+      - name: entity_count
+        description: Entities in the payload.
+      - name: content_hash
+        description: SHA-256 of the payload.
+      - name: feed_header_ts
+        description: Feed header timestamp.
+      - name: header_parse_error
+        description: Error text when the feed header could not be parsed.
+      - name: error
+        description: Fetch error text.
   - name: stg_manifest_deliveries
     description: "Every delivery row of the curated manifests table, with the dedupe rank. Ingest records a second scheduler delivery of a minute as a duplicate delivery (status duplicate_delivery); older data can hold two runs with the same capture_id. delivery_rank = 1 marks the row stg_manifests keeps (earliest fetched_at, then lowest run_id); duplicate-delivery rows have no rank."
     config:
@@ -536,6 +578,13 @@ models:
           - accepted_values:
               arguments:
                 values: [0, 1, 2, 3]
+                quote: false
+      - name: n_polls
+        description: "Polls of the run that share this capture_id and so stand in this one row: 1, or 2 when vehicle polls 0 and 1 returned the same payload within one second. The row is the earliest of them."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
                 quote: false
       - name: scheduled_minute
         description: scheduled_at truncated to the minute; the unit a delivery claims.
@@ -601,6 +650,13 @@ models:
           - accepted_values:
               arguments:
                 values: [0, 1, 2, 3]
+                quote: false
+      - name: n_polls
+        description: "Polls of the run that share this capture_id and so stand in this one row: 1, or 2 when vehicle polls 0 and 1 returned the same payload within one second. The row is the earliest of them."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
                 quote: false
       - name: fetched_at
         description: UTC time the fetch completed; null when the fetch failed before a response.

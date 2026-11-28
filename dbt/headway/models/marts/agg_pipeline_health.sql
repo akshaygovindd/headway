@@ -1,7 +1,9 @@
 -- One row per ingest run: how each feed fetched, what it contained, and what was
 -- quarantined from the run's captures. The per-feed status, bytes, entity count and duplicate
--- columns describe poll 0 (every feed fetched once per run); the extra 15 s vehicle polls are
--- summarised in vehicle_polls_ok / vehicle_polls_error, and n_captures counts all captures.
+-- columns describe poll 0 (every feed fetched once per run): a feed's status for the minute is the
+-- status of its poll-0 fetch, and the extra 15 s vehicle polls are summarised separately in
+-- vehicle_polls_ok / vehicle_polls_error. Polls are counted by n_polls, so two polls that share a
+-- capture_id (same payload within a second) still count as two; n_captures counts all polls.
 with feeds as (
     select
         run_id,
@@ -12,9 +14,9 @@ with feeds as (
         max(entity_count) filter (where feed = '{{ feed }}' and poll_index = 0) as {{ feed }}_entity_count,
         bool_or(is_duplicate_capture) filter (where feed = '{{ feed }}' and poll_index = 0) as {{ feed }}_is_duplicate,
         {% endfor %}
-        count(*) filter (where feed = 'vehicle_positions' and status = 'ok') as vehicle_polls_ok,
-        count(*) filter (where feed = 'vehicle_positions' and status <> 'ok') as vehicle_polls_error,
-        count(*) as n_captures
+        cast(coalesce(sum(coalesce(n_polls, 1)) filter (where feed = 'vehicle_positions' and status = 'ok'), 0) as bigint) as vehicle_polls_ok,
+        cast(coalesce(sum(coalesce(n_polls, 1)) filter (where feed = 'vehicle_positions' and status <> 'ok'), 0) as bigint) as vehicle_polls_error,
+        cast(sum(coalesce(n_polls, 1)) as bigint) as n_captures
     from {{ ref('int_captures') }}
     group by run_id
 ),
