@@ -181,8 +181,9 @@ def test_rebuild_payload_validation() -> None:
 def test_a_backfill_writes_only_tables_at_the_requested_version(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setitem(history.METRIC_VERSIONS, "stop_deviation", 4)
-    assert history.versions_for(4) == {"agg_stop_deviation_daily": 4}
+    other = history.ARRIVAL_TIMES_VERSION + 1
+    monkeypatch.setitem(history.METRIC_VERSIONS, "stop_deviation", other)
+    assert history.versions_for(other) == {"agg_stop_deviation_daily": other}
     assert "agg_stop_deviation_daily" not in history.versions_for(history.ARRIVAL_TIMES_VERSION)
 
 
