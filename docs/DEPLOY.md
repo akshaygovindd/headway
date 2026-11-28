@@ -198,6 +198,7 @@ Fill this in on a fresh clone (acceptance test A8). Times are wall clock, includ
 | Release | Signed off | Evidence |
 | --- | --- | --- |
 | Release 1 | 2026-11-26 | `make acceptance`: 11 PASS, 0 FAIL, and the A8 walkthrough recorded above (commit `cfb8155`). A2 (72 h, missed under 1 %) is measured in [MEASUREMENTS](MEASUREMENTS.md#72-hour-window-release-1-acceptance-a2). |
+| Release 2 | not yet signed off | `make acceptance-r2` table, MANUAL evidence (see Release 2 sign-off) |
 
 Checked again on 2026-11-27: `make acceptance` at `cfb8155` gives A2 PASS and A9 PASS. A1 read the
 manifest of the current minute and could report FAIL in the first 45 seconds of a minute, because
@@ -205,6 +206,54 @@ the four polls of a run finish before it writes the manifest; it now reads the l
 minute. At `bbf10bb` A9 failed because the e2e expected tables had not followed the dwell correction
 (38ed4a8); they were updated with the explanation in the commit, and `make e2e` passes again. That
 was a test to fix, not a withdrawal of the sign-off.
+
+## Release 2 sign-off
+
+`make acceptance-r2` (`scripts/acceptance_r2.py`) reports PASS, FAIL or MANUAL for each Release 2
+criterion, then for a separate set of additional checks. It is read-only: repository, public
+gold, and AWS S3 list/get and CloudWatch describe/get when credentials are available (without
+them, the AWS-backed checks report MANUAL). It writes nothing.
+
+**Source of B1-B12:** the Release 2 spec, written before the build. They are implemented
+verbatim; the wording below is the spec's. Release 2 is signed off when B1-B12 are all PASS, or
+MANUAL with the evidence recorded in the sign-off row below, and no check FAILs.
+
+| # | Criterion | Checked by | MANUAL evidence to record |
+| --- | --- | --- | --- |
+| B1 | Every reconstructed arrival has method and confidence; low confidence excluded from metrics | dbt tests on `fct_reconstructed_arrivals` (method not null and accepted values, confidence accepted values); `int_usable_arrivals` keeps high and medium only | none |
+| B2 | Reconstruction validated on at least 10 hand-checked trips across 4 lines, agreement recorded | the 10-trip hand-check row in [MEASUREMENTS](MEASUREMENTS.md) naming Red, Orange, Blue and Green; [VALIDATION](VALIDATION.md) present | trips, lines, agreement figure |
+| B3 | Sampling decision recorded with evidence | ADR-014 with the spike figures; `docs/spikes/2026-11-sampling.md` | none |
+| B4 | Four new metrics documented in METRICS.md before display, each with coverage | METRICS.md sections 6-9 mention coverage; app policy tests | none |
+| B5 | Accuracy compares predictions with arrivals only, never predictions with predictions | `fct_prediction_errors` refs only `fct_stop_predictions` and `int_usable_arrivals`, which comes from `fct_reconstructed_arrivals` | none |
+| B6 | History partitions for closed days exist and are immutable; 30-day metrics read them | S3 listing of `history/` (every closed day since switch-on, every table); history and conditional-put tests | none |
+| B7 | 7- and 30-day SLO report generated from public gold | `docs/SLO_REPORT.md` is a real report at most a day old; public `agg_slo_daily` and `agg_slo_rollup` with `last_7d` and `last_30d` | run `make slo-report`, commit the report |
+| B8 | Six failure simulations pass as replay tests in CI | `pytest tests/simulations`, six files | none |
+| B9 | Feed-down drill recorded: detect, warn, label, alarm, recover | a `DRILL` entry for `feed_down` in [INCIDENTS](INCIDENTS.md#drills) whose Observed names all five stages | run the drill: [RUNBOOK](RUNBOOK.md#feed-down-drill-b9) |
+| B10 | Elementary report published and linked; anomaly tests on key models | HTTP 200 at `<gold base>/observability/index.html`; linked from the Pipeline health page; `elementary.*` tests in the dbt schemas | none |
+| B11 | New alarms exist, each linked to a RUNBOOK section | every `alarm_description` in `infra/main/alerts.tf` links to an existing RUNBOOK heading | none |
+| B12 | R2 pipeline ran 72 h with no unexplained alarms | missed minutes under 1 % in `agg_pipeline_health` since switch-on; every alarm that went to ALARM since then is matched to a known cause (`KNOWN_CAUSES` in the script) | any alarm with a cause to add |
+
+The soak starts at the first transform run with `r2_enabled` in the run state (`--since` overrides
+it; the fallback is the documented switch-on, 2026-11-26 20:00 UTC) and the report says which was
+used. `data-tests-failed` is a known cause: `data_invariants_r2` failed on countdown coverage above
+100 %, fixed in `4825cc5` and `ee94ef7`. An alarm not in the table makes B12 FAIL until its cause
+is understood and added with a commit that says what it was.
+
+### Additional checks (operational, not part of B1-B12)
+
+Printed in a separate table; a FAIL still makes the command exit 1, and each is part of the
+sign-off judgment, but none replaces a criterion above.
+
+| Check | Rule |
+| --- | --- |
+| X1 transform success | at least 99 % of hourly slots since switch-on exported and published |
+| X2 duration, memory | `TransformDurationSeconds` at most 600 s and `TransformMemoryUsedPct` at most 85 over the soak |
+| X3 R2 tables fresh | all `R2_GOLD_TABLES` in public gold; manifest `exported_at` at most 90 minutes old |
+| X4 coverage <= 100 | numerator at most denominator in the window and daily marts |
+| X5 ingest at 4 polls | newest manifest has six entries, `poll_index` 0-3; record run time (45-58 s) and memory (under 190 MB) from the logs |
+
+Sign-off: run `make acceptance-r2`, paste the table into the Evidence cell of the Release 2 row
+below (with the commit), and list each MANUAL item with its evidence.
 
 ## Operations
 
