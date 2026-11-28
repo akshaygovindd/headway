@@ -262,6 +262,17 @@ A near miss: nothing failed.
   one in any table, and `tests/unit/test_facts_state.py` fails when a day that closes between two
   runs, or after a missed run, is not persisted exactly once.
 
+## dbt unit tests failed inside the Lambda after the first Release 2 run
+
+- **Symptom:** `headway-transform-errors` went to ALARM on 26 Nov at 18:29 UTC; the 18:00 slot had no
+  gold export and the 19:00 slot failed the same way until a run after the deploy.
+- **Root cause:** the Lambda ran the dbt unit tests, which with Release 2 on also see persisted
+  history; the first R2 run wrote history, and from the next run three unit tests failed on those
+  real rows, four models were skipped and `export_gold` found their tables missing.
+- **Fix:** unit tests no longer run in the Lambda (`728643f`, deployed 19:38 UTC); they run in CI.
+- **Detail:** request ids, times and the slot accounting are in
+  [MEASUREMENTS](MEASUREMENTS.md#release-2-soak-transform-slots-since-switch-on-investigated-2026-11-28).
+
 ## Drills
 
 Failures caused on purpose with the chaos switch ([ADR-017](ARCHITECTURE_DECISIONS.md), how to

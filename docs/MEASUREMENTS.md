@@ -190,6 +190,93 @@ difference, and a deliberately emptied partition is caught. Two columns of
 `agg_service_disruptions` are left out of the comparison because two full builds already differ
 there (the first and last affected station follow an unordered list in `int_alert_scopes`).
 
+## Release 2 soak: transform slots since switch-on (investigated 2026-11-28)
+
+Read-only: the run state (`state/transform_runs/`), the `/aws/lambda/headway-transform` log group,
+CloudWatch alarm history, CloudTrail and ECR push times. Window: the 51 hourly slots from 26 Nov
+18:00 UTC to 28 Nov 20:00 UTC (the slots whose scheduled `:20` run came after the switch-on).
+
+**Switch-on.** The transform Lambda was updated with `HEADWAY_ENABLE_R2=true` on 26 Nov at
+17:47:54 UTC (CloudTrail `UpdateFunctionConfiguration`, 12:47:54 EST); its first Release 2 run
+started at 17:49:32 UTC (slot 17:00, manual invocation, 453 s) and the ingest Lambda moved to
+four polls at 17:59 UTC. The run state labels that run with slot 17:00, the hour it falls in, which
+is where the 17:00 UTC seen in the state comes from. The 20:00 UTC used elsewhere in these
+documents is not the switch-on: it is the start of the window after the incremental closed-day
+facts deploy (`a672c9d`, 19:38 UTC), used for the duration figures above. Deploys in the window
+(ECR push and Lambda code update): `843956f` 17:47 UTC (R2 on), `a672c9d` 19:38 UTC, `324934d`
+27 Nov 02:25 UTC.
+
+| Slot status | Slots | Cause |
+| --- | --- | --- |
+| exported, tests passed | 37 | none |
+| exported, a data test failed (`tests_failed`) | 13 | `data_invariants_r2`, in the slots of 27 Nov 04, 10-14 and 21 UTC and 28 Nov 10-14 and 17 UTC. 27 Nov: the countdown coverage above 100 % (DATA_QUALITY.md). 28 Nov: the same test, the same hours of the day and the same deployed code (the fix is in the repo, not deployed), but the failing rows are not in the logs, so each is consistent with that cause rather than shown to be it; gold now has no coverage above 100 % (acceptance X4) |
+| not exported (`failed`) | 1 | 26 Nov 18:00 UTC: dbt unit tests ran inside the Lambda (below). The 19:00 slot failed the same way at 19:20 and was exported by a run at 19:39 UTC, after the deploy |
+| missing | 0 | 55 invocations in the log group since 17:00 UTC 26 Nov, 55 rows in the state |
+| skipped (lock) | 0 | a lock skip leaves no state row; none shows as a missing slot, and the invocations equal the rows |
+
+Three runs were not at `:20` and were started by hand: 26 Nov 17:49 (the first R2 run), 19:39
+(after the deploy; it exported the 19:00 slot) and 20:16 (a second check after the deploy). There
+were no rebuild runs in the window.
+
+**Which rate the 99 % bar applies to.** [SLO.md](SLO.md) defines transform success as a
+scheduled run that exported and published gold, and says a run whose dbt tests failed but which
+exported gold is a good slot: tests are reported by the quality checks and the
+`headway-data-tests-failed` alarm, not by this objective. The acceptance check follows that: the bar
+is the gold-exported rate, and the strict rate (tests also passed) is printed beside it and is not
+a pass condition. Data quality is judged separately (B12 lists the alarm and its cause; X4 reads the
+coverage).
+
+| Rate | Slots | Share |
+| --- | --- | --- |
+| Gold exported (the bar) | 50 of 51 | 98.0 % |
+| Gold exported, counting only the `:20` run of each slot (no manual reruns) | 49 of 51 | 96.1 % |
+| Strict: exported and every data test passed | 37 of 51 | 72.5 % |
+
+Against the 99 % bar the result is a miss: one slot in 51 allows no failure. It is one deploy
+window, 18:00 UTC on 26 Nov (the 19:00 slot was recovered by a rerun that the SLO counts, though
+SLO.md says manual runs do not stand in for a slot, which gives the 96.1 % line); all 49
+slots from 19:00 UTC on 26 Nov to 20:00 UTC on 28 Nov exported. Nothing was changed to reach the
+bar. The public `agg_slo_daily` agrees: transform success 23 of 24 on 26 Nov, 24 of 24 on 27 Nov and
+12 of 12 on 28 Nov.
+
+### `headway-transform-errors`, 26 Nov 18:29 UTC
+
+- **Alarm:** ALARM at 18:29:49 UTC, OK at 20:21:49 UTC (alarm history).
+- **Invocation:** request `7a6b0878-500d-4407-a44a-e07c8485c243`, started 18:20:48, ended 18:28:01,
+  432.8 s, `TransformError: dbt run-operation export_gold failed`
+  (`handler.py:919`, `Table with name agg_prediction_accuracy_daily does not exist!`). The next hour's
+  run, `7a6b0886-600d-4407-a44a-e07c8485c243` (19:20 UTC, 341.6 s), failed the same way; the alarm
+  stayed in ALARM until the 20:20 run succeeded.
+- **Root cause:** the dbt build ran the dbt unit tests in the Lambda. Unit tests check SQL
+  against mocked inputs, but with Release 2 on the models also read persisted history. The first R2
+  run (17:49 UTC) wrote the closed days 22-25 Nov to history at 17:56:59 UTC; from the next run
+  on, three unit tests (`ett_second_to_second_last_stop_by_band`,
+  `slo_gold_freshness_and_transform_success`,
+  `prediction_accuracy_statistics_and_outage_exclusion`) saw those real rows beside their mocked
+  ones and failed, dbt skipped `agg_ett_daily`, `agg_slo_daily`, `agg_prediction_accuracy_daily` and
+  `agg_slo_rollup`, and `export_gold` found them missing. The first R2 run passed because there was no
+  history yet.
+- **Fix:** `728643f` excludes `resource_type:unit_test` from the Lambda's build and test steps
+  (they run in CI and in `make e2e`); deployed with `a672c9d` at 19:38 UTC. No run has failed since.
+  No further fix is needed; the known-cause entry is limited to 26 Nov 18:00-20:00 UTC, so a new
+  `headway-transform-errors` stays unexplained until understood.
+- **Not a cause:** Lambda's own `Max Memory Used` reads 2991 to 3008 MB of 3008 for every run in
+  the window, successful ones included (the figure counts memory the process holds, cache
+  included); the transform's `memory_used_pct`, which the alarm uses, is 62-65 %. The failed runs
+  are not different on either.
+
+### Open: capture completeness in the public SLO
+
+The same read-only pass found, in the public gold, `agg_pipeline_health.vehicle_positions_status`
+null for 23 to 58 of 60 minutes in most hours since 26 Nov 18:00 UTC (0 before), so
+`agg_slo_daily` reports capture completeness 58.8 % on 26 Nov and 37.6 % on 27 Nov, while the raw
+manifests read (28 Nov 18:00-18:23 UTC) have all three feeds and four vehicle polls `ok` each
+minute and the gold shows no missed minute. It is a transform-side measurement problem with 15 s
+sampling (poll 0 of the vehicle feed is missing from the gold's captures), not capture loss;
+the cause is not found. Until it is fixed the 7- and 30-day SLO report shows capture completeness
+as missed. This does not affect B12 (which counts minutes with a manifest), but it does affect how
+the SLO report reads at sign-off.
+
 ## Transform memory under the account cap
 
 Measured on 2026-11-25 on a Mac (Docker VM, arm64) with `scripts/measure_transform.py`: the

@@ -233,11 +233,17 @@ MANUAL with the evidence recorded in the sign-off row below, and no check FAILs.
 | B11 | New alarms exist, each linked to a RUNBOOK section | every `alarm_description` in `infra/main/alerts.tf` links to an existing RUNBOOK heading | none |
 | B12 | R2 pipeline ran 72 h with no unexplained alarms | missed minutes under 1 % in `agg_pipeline_health` since switch-on; every alarm that went to ALARM since then is matched to a known cause (`KNOWN_CAUSES` in the script) | any alarm with a cause to add |
 
-The soak starts at the first transform run with `r2_enabled` in the run state (`--since` overrides
-it; the fallback is the documented switch-on, 2026-11-26 20:00 UTC) and the report says which was
-used. `data-tests-failed` is a known cause: `data_invariants_r2` failed on countdown coverage above
-100 %, fixed in `4825cc5` and `ee94ef7`. An alarm not in the table makes B12 FAIL until its cause
-is understood and added with a commit that says what it was.
+The soak starts when the first transform run with `r2_enabled` started in the run state, 2026-11-26
+17:49:32 UTC (`--since` overrides it; the fallback is the CloudTrail time of the switch, 17:47:54 UTC)
+and the report says which was used. The state labels that run with its slot, 17:00 UTC, the hour it
+falls in; the 20:00 UTC seen elsewhere in these documents is the window after the incremental
+facts deploy (19:38 UTC), not the switch-on
+([MEASUREMENTS](MEASUREMENTS.md#release-2-soak-transform-slots-since-switch-on-investigated-2026-11-28)).
+Known causes in the script are limited to a time window, so a recurrence is not hidden:
+`data-tests-failed` (`data_invariants_r2`, countdown coverage above 100 %, fixed in `4825cc5` and
+`ee94ef7`, not yet deployed) and one `headway-transform-errors` on 26 Nov 18:00-20:00 UTC (dbt unit
+tests inside the Lambda, fixed in `728643f`). An alarm not in the table makes B12 FAIL until its
+cause is understood and added with a commit that says what it was.
 
 ### Additional checks (operational, not part of B1-B12)
 
@@ -246,7 +252,7 @@ sign-off judgment, but none replaces a criterion above.
 
 | Check | Rule |
 | --- | --- |
-| X1 transform success | at least 99 % of hourly slots since switch-on exported and published |
+| X1 transform success | at least 99 % of hourly slots since switch-on exported and published gold ([SLO.md](SLO.md): a run whose tests failed but which exported is a good slot); the share that also passed every data test is printed beside it, not a pass condition |
 | X2 duration, memory | `TransformDurationSeconds` at most 600 s and `TransformMemoryUsedPct` at most 85 over the soak |
 | X3 R2 tables fresh | all `R2_GOLD_TABLES` in public gold; manifest `exported_at` at most 90 minutes old |
 | X4 coverage <= 100 | numerator at most denominator in the window and daily marts |
