@@ -36,13 +36,18 @@ def test_soak_does_not_count_minutes_before_switch_on() -> None:
     assert state == "PASS", detail
 
 
-def test_switch_on_is_the_first_slot_with_r2_enabled() -> None:
+def test_switch_on_is_the_start_of_the_first_run_with_r2_enabled() -> None:
+    first = T0 + timedelta(minutes=49)
     rows = [
-        {"slot": T0 - timedelta(hours=1), "r2_enabled": False},
-        {"slot": T0 + timedelta(hours=1), "r2_enabled": True},
-        {"slot": T0, "r2_enabled": True},
+        {"slot": T0, "started_at": T0 - timedelta(minutes=40), "r2_enabled": False},
+        {
+            "slot": T0 + timedelta(hours=1),
+            "started_at": T0 + timedelta(hours=1),
+            "r2_enabled": True,
+        },
+        {"slot": T0, "started_at": first, "r2_enabled": True},
     ]
-    assert r2.switch_on_from_runs(rows) == T0
+    assert r2.switch_on_from_runs(rows) == first
     assert r2.switch_on_from_runs([]) is None
 
 
@@ -50,19 +55,42 @@ def run(slot: int, status: str = "success", published: bool = True) -> dict[str,
     return {"slot": T0 + timedelta(hours=slot), "status": status, "gold_published": published}
 
 
-def test_transform_success_counts_a_slot_good_if_any_run_succeeded() -> None:
-    rows = [run(0, "tests_failed"), run(0)] + [run(h) for h in range(1, 100)]
-    assert r2.transform_success(rows, T0)[0] == "PASS"
+def test_slot_counts_as_exported_if_any_run_exported_it_clean() -> None:
+    rows = [run(0, "failed", False), run(0, "tests_failed"), run(0)]
+    assert r2.slot_statuses(rows, T0) == {T0: "exported"}
 
 
-def test_transform_success_fails_below_99_percent_and_names_slots() -> None:
-    rows = [run(h) for h in range(72)] + [run(72, "tests_failed")]
+def test_slot_statuses_distinguish_tests_failed_failed_and_missing() -> None:
+    rows = [run(0), run(1, "tests_failed"), run(2, "failed", False), run(4)]
+    assert list(r2.slot_statuses(rows, T0).values()) == [
+        "exported",
+        "tests_failed",
+        "failed",
+        "missing",
+        "exported",
+    ]
+
+
+def test_slots_before_switch_on_are_left_out() -> None:
+    rows = [run(0), run(1)]
+    assert list(r2.slot_statuses(rows, T0 + timedelta(minutes=49))) == [T0 + timedelta(hours=1)]
+
+
+def test_tests_failed_slots_count_as_exported_but_not_as_clean() -> None:
+    rows = [run(h) for h in range(98)] + [run(98, "tests_failed"), run(99, "tests_failed")]
     state, detail = r2.transform_success(rows, T0)
-    assert state == "FAIL" and "failed:" in detail
+    assert state == "PASS", detail
+    assert "gold exported in 100 of 100" in detail and "tests also passed in 98 (98.0 %)" in detail
+
+
+def test_transform_success_fails_below_99_percent_exported_and_names_slots() -> None:
+    rows = [run(h) for h in range(72)] + [run(72, "failed", False)]
+    state, detail = r2.transform_success(rows, T0)
+    assert state == "FAIL" and "29 Nov 20Z failed" in detail
 
 
 def test_transform_success_ignores_unpublished_runs() -> None:
-    assert r2.transform_success([run(0, published=False)], T0)[0] == "FAIL"
+    assert r2.transform_success([run(0, "success", False)], T0)[0] == "FAIL"
 
 
 def test_budget_limits() -> None:
@@ -95,6 +123,15 @@ def test_unexplained_alarm_fails_and_says_so() -> None:
     state, detail = r2.judge_alarms([("headway-gold-stale", T0)], r2.KNOWN_CAUSES)
     assert state == "FAIL" and "headway-gold-stale x1: UNEXPLAINED" in detail
     assert r2.judge_alarms([], r2.KNOWN_CAUSES)[0] == "PASS"
+
+
+def test_transform_errors_is_explained_only_inside_its_window() -> None:
+    inside = datetime(2026, 11, 26, 18, 29, tzinfo=UTC)
+    state, detail = r2.judge_alarms([("headway-transform-errors", inside)], r2.KNOWN_CAUSES)
+    assert state == "PASS" and "unit tests" in detail and "728643f" in detail
+    later = inside + timedelta(days=2)
+    state, detail = r2.judge_alarms([("headway-transform-errors", later)], r2.KNOWN_CAUSES)
+    assert state == "FAIL" and "UNEXPLAINED (28 Nov 18:29Z)" in detail
 
 
 def test_feed_errors_alarm_on_a_recorded_drill_day_is_explained() -> None:

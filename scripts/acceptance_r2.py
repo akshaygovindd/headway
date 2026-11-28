@@ -53,17 +53,34 @@ MIN_TRANSFORM_SUCCESS_PCT = 99.0
 MAX_DURATION_S = 600.0
 MAX_MEMORY_PCT = 85.0
 MAX_GOLD_AGE_MIN = 90
-FALLBACK_SWITCH_ON = datetime(2026, 11, 26, 20, 0, tzinfo=UTC)
+# Release 2 switched on when the transform Lambda was updated with HEADWAY_ENABLE_R2=true
+# (CloudTrail UpdateFunctionConfiguration, 2026-11-26 12:47:54 EST); its first run was 17:49:32Z.
+FALLBACK_SWITCH_ON = datetime(2026, 11, 26, 17, 47, 54, tzinfo=UTC)
 DRILL_STAGES = ("detect", "warn", "label", "alarm", "recover")
 SIM_FILES = 6
 
-# Alarm transitions that are understood. Anything else in the soak is unexplained.
-KNOWN_CAUSES: dict[str, str] = {
-    "headway-data-tests-failed": (
-        "data_invariants_r2: countdown coverage above 100 % (numerator by predicted hour, "
-        "denominator by scheduled hour); fixed in 4825cc5 and ee94ef7 "
-        "(in the repo; not deployed until the 2026-11-29 deploy)"
-    ),
+# Alarm transitions that are understood: alarm name -> (from, until, cause). A transition counts
+# as explained only inside its window (None is open-ended), so a later recurrence is not hidden.
+Cause = tuple[datetime | None, datetime | None, str]
+KNOWN_CAUSES: dict[str, list[Cause]] = {
+    "headway-data-tests-failed": [
+        (
+            None,
+            None,
+            "data_invariants_r2: countdown coverage above 100 % (numerator by predicted hour, "
+            "denominator by scheduled hour); fixed in 4825cc5 and ee94ef7 "
+            "(in the repo; not deployed until the 2026-11-29 deploy)",
+        )
+    ],
+    "headway-transform-errors": [
+        (
+            datetime(2026, 11, 26, 18, 0, tzinfo=UTC),
+            datetime(2026, 11, 26, 20, 0, tzinfo=UTC),
+            "dbt unit tests ran inside the Lambda after the first R2 run wrote history; "
+            "3 failed on the real history rows, 4 models were skipped and export_gold failed "
+            "(18:20 and 19:20 runs); fixed in 728643f, deployed 19:38Z (MEASUREMENTS.md)",
+        )
+    ],
 }
 
 
@@ -79,9 +96,9 @@ def worst(results: Iterable[Result]) -> str:
 
 
 def switch_on_from_runs(rows: list[dict[str, Any]]) -> datetime | None:
-    """The slot of the first run with Release 2 on."""
-    slots = [r["slot"] for r in rows if r.get("r2_enabled") and r.get("slot")]
-    return min(slots).astimezone(UTC) if slots else None
+    """The start of the first run with Release 2 on."""
+    starts = [r["started_at"] for r in rows if r.get("r2_enabled") and r.get("started_at")]
+    return min(starts).astimezone(UTC) if starts else None
 
 
 def soak_missed(
@@ -112,23 +129,55 @@ def soak_missed(
 # --- transform runs ------------------------------------------------------------------------
 
 
-def transform_success(rows: list[dict[str, Any]], since: datetime) -> Result:
-    """Share of hourly slots since `since` whose final run succeeded and published gold."""
-    by_slot: dict[datetime, bool] = {}
+def slot_statuses(rows: list[dict[str, Any]], since: datetime) -> dict[datetime, str]:
+    """Best outcome per hourly slot whose start is at or after `since`, from the run state.
+
+    exported: a run exported and published gold and its dbt tests passed;
+    tests_failed: it exported and published gold but an error-severity data test failed;
+    failed: every run of the slot raised; missing: the slot has no run (a lock skip is not
+    recorded in the state, so it shows as a slot with no run).
+    """
+    rank = {"exported": 0, "tests_failed": 1, "failed": 2}
+    out: dict[datetime, str] = {}
     for r in rows:
-        if r.get("slot") is None or r["slot"] < since:
+        slot = r.get("slot")
+        if slot is None or slot < since:
             continue
-        ok = r.get("status") == "success" and bool(r.get("gold_published"))
-        by_slot[r["slot"]] = by_slot.get(r["slot"], False) or ok
-    if not by_slot:
+        if r.get("gold_published") and r.get("status") == "success":
+            status = "exported"
+        elif r.get("gold_published"):
+            status = "tests_failed"
+        else:
+            status = "failed"
+        if slot not in out or rank[status] < rank[out[slot]]:
+            out[slot] = status
+    if out:
+        slot = min(out)
+        end = max(out)
+        while slot <= end:
+            out.setdefault(slot, "missing")
+            slot += timedelta(hours=1)
+    return dict(sorted(out.items()))
+
+
+def transform_success(rows: list[dict[str, Any]], since: datetime) -> Result:
+    """The 99 % bar applies to slots that exported and published gold (docs/SLO.md); the strict
+    share of slots with passing data tests is reported beside it."""
+    slots = slot_statuses(rows, since)
+    if not slots:
         return "MANUAL", "no transform run rows since switch-on"
-    good = sum(by_slot.values())
-    pct = 100.0 * good / len(by_slot)
-    detail = f"{good} of {len(by_slot)} hourly slots succeeded ({pct:.1f} %)"
+    total = len(slots)
+    clean = sum(1 for s in slots.values() if s == "exported")
+    gold_out = sum(1 for s in slots.values() if s in {"exported", "tests_failed"})
+    pct = 100.0 * gold_out / total
+    detail = (
+        f"gold exported in {gold_out} of {total} hourly slots ({pct:.1f} %); "
+        f"tests also passed in {clean} ({100.0 * clean / total:.1f} %)"
+    )
+    bad = [f"{s:%d %b %H}Z {v}" for s, v in slots.items() if v in {"failed", "missing"}]
     if pct < MIN_TRANSFORM_SUCCESS_PCT:
-        failed = sorted(s for s, ok in by_slot.items() if not ok)
-        return "FAIL", f"{detail}; need {MIN_TRANSFORM_SUCCESS_PCT} %; failed: " + ", ".join(
-            f"{s:%d %b %H:%M}Z" for s in failed[:8]
+        return "FAIL", f"{detail}; need {MIN_TRANSFORM_SUCCESS_PCT} % exported; not exported: " + (
+            ", ".join(bad)
         )
     return "PASS", detail
 
@@ -160,9 +209,16 @@ def alarm_transitions(items: list[dict[str, Any]]) -> list[tuple[str, datetime]]
     return sorted(out, key=lambda t: t[1])
 
 
+def explain(name: str, when: datetime, known: dict[str, list[Cause]]) -> str | None:
+    for start, end, cause in known.get(name, []):
+        if (start is None or when >= start) and (end is None or when < end):
+            return cause
+    return None
+
+
 def judge_alarms(
     transitions: list[tuple[str, datetime]],
-    known: dict[str, str],
+    known: dict[str, list[Cause]],
     drill_dates: set[str] | None = None,
 ) -> Result:
     """Each alarm with its cause; feed-errors on a recorded drill day is the drill."""
@@ -170,18 +226,18 @@ def judge_alarms(
         return "PASS", "no alarm went to ALARM"
     causes: dict[str, set[str]] = {}
     for name, when in transitions:
-        if name in known:
-            cause = known[name]
-        elif name == "headway-feed-errors" and f"{when:%Y-%m-%d}" in (drill_dates or set()):
+        cause = explain(name, when, known)
+        if (
+            cause is None
+            and name == "headway-feed-errors"
+            and f"{when:%Y-%m-%d}" in (drill_dates or set())
+        ):
             cause = f"feed_down drill of {when:%Y-%m-%d} (INCIDENTS.md)"
-        else:
-            cause = "UNEXPLAINED"
-        causes.setdefault(name, set()).add(cause)
+        causes.setdefault(name, set()).add(cause or f"UNEXPLAINED ({when:%d %b %H:%M}Z)")
     counts = {n: sum(1 for t, _ in transitions if t == n) for n in causes}
     parts = [f"{n} x{counts[n]}: " + " / ".join(sorted(c)) for n, c in sorted(causes.items())]
-    return ("FAIL" if any("UNEXPLAINED" in c for c in causes.values()) else "PASS"), "; ".join(
-        parts
-    )
+    unexplained = any("UNEXPLAINED" in x for c in causes.values() for x in c)
+    return ("FAIL" if unexplained else "PASS"), "; ".join(parts)
 
 
 # --- history -------------------------------------------------------------------------------
@@ -633,6 +689,9 @@ def table(title: str, results: dict[str, Result], key: Callable[[str], Any] = st
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--since", help="soak start (UTC ISO), default: first Release 2 run")
+    parser.add_argument(
+        "--slots", action="store_true", help="also list every hourly transform slot since switch-on"
+    )
     args = parser.parse_args()
 
     now = datetime.now(UTC)
@@ -643,7 +702,7 @@ def main() -> int:
     elif (found := switch_on_from_runs(rows)) is not None and s3:
         since, source = found, "first r2_enabled transform run in state"
     else:
-        since, source = FALLBACK_SWITCH_ON, "documented switch-on 2026-11-26 20:00 UTC"
+        since, source = FALLBACK_SWITCH_ON, "documented switch-on 2026-11-26 17:47:54Z"
 
     try:
         ph = r1.gold("agg_pipeline_health")["scheduled_at"]
@@ -672,6 +731,11 @@ def main() -> int:
     extra["X3 R2 tables fresh"] = r2_tables_fresh(now)
     extra["X4 coverage <= 100"] = coverage_check()
     extra["X5 ingest 4 polls"] = ingest_polls(s3, raw)
+
+    if args.slots and s3:
+        print("\nHourly transform slots since switch-on")
+        for slot, status in slot_statuses(rows, since).items():
+            print(f"{slot:%Y-%m-%d %H}:00Z  {status}")
 
     table("Release 2 acceptance B1-B12", b, key=lambda n: int(n[1:]))
     table("Additional checks (operational; not part of B1-B12)", extra)
