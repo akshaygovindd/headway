@@ -61,7 +61,8 @@ SIM_FILES = 6
 KNOWN_CAUSES: dict[str, str] = {
     "headway-data-tests-failed": (
         "data_invariants_r2: countdown coverage above 100 % (numerator by predicted hour, "
-        "denominator by scheduled hour); fixed in 4825cc5 and ee94ef7 (in the repo; not deployed until the 2026-11-29 deploy)"
+        "denominator by scheduled hour); fixed in 4825cc5 and ee94ef7 "
+        "(in the repo; not deployed until the 2026-11-29 deploy)"
     ),
 }
 
