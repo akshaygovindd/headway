@@ -570,6 +570,35 @@ as a run with facts off. The duration alarm needs more than 600 s in two consecu
 slow run does not page.
 Rollback: `git checkout` the previous sha tag in `terraform.tfvars` (`:324934d`) and `make deploy`.
 
+### A2. `backfill_manifests` (the curated manifests, before B and C)
+
+Release 2's capture-completeness bug (DATA_QUALITY, "Capture completeness read 58.8%") lost the
+vehicle poll-0 entry of 1,862 of 3,040 runs from 26 Nov 18:00 UTC in the **curated** manifests; the
+raw manifests are intact. Curation after step A keeps every poll, but the hours already curated
+need the raw manifests merged back. Run it straight after A:
+
+```sh
+aws lambda invoke --function-name headway-curate --cli-read-timeout 330 \
+  --cli-binary-format raw-in-base64-out --payload '{"task":"backfill_manifests"}' /dev/stdout
+```
+Idempotent and read-only on raw (about a minute per week; measured locally on a copy of production
+at 21:02 UTC on 28 Nov: 35,893 manifest rows, 159 hours rewritten). Expected: `manifest_rows` about
+six per capture minute since 26 Nov plus three before, `hours_rewritten` in the low hundreds, and
+`hours_rewritten: 0` on a second run.
+Check: the next scheduled :20 run has no failed test and `DataTestsFailed` is 0. **Until A2 has run,
+a scheduled run after A fails `manifest_runs_have_poll_zero_of_every_feed`** (the curated hours still
+lack poll 0) and `headway-data-tests-failed` can notify once: expected, and it clears on the next
+run after A2. Later, in public gold, `agg_pipeline_health.vehicle_positions_status` has no nulls
+and `agg_slo_daily` shows capture completeness near 100% for 26 and 27 Nov.
+Order matters for C: `rebuild_history` computes the closed days' capture-completeness events from
+the curated manifests and writes them once, immutably; run A2 first or v4 keeps the wrong figures.
+No metric version needs bumping for this fix: the only closed-day history that carries capture
+completeness is `agg_slo_daily`, version 4 of its family has never been written, and the v2 files
+for 22-27 Nov that are in the bucket today are not read once the code asks for v4.
+After C, regenerate the report from public gold (`make slo-report`) and commit it:
+`docs/SLO_REPORT.md` committed on 28 Nov shows the wrong figures.
+Rollback: none needed.
+
 ### B. `rebuild_facts` v3
 
 ```sh
@@ -669,14 +698,16 @@ refit trigger (three full 15-second days) is met on 30 Nov. Either accept that, 
 ### Sunday order, in one list
 
 1. `make deploy` (A), check image and a clean ingest.
-2. `rebuild_facts` 2026-11-22..2026-11-28 v3 (B), check the S3 listings.
-3. `rebuild_history` same range v4 (C), check the history listing. History is v4, facts stay v3:
+2. `backfill_manifests` on the curate Lambda (A2), straight after A.
+3. `rebuild_facts` 2026-11-22..2026-11-28 v3 (B), check the S3 listings.
+4. `rebuild_history` same range v4 (C), check the history listing. History is v4, facts stay v3:
    v4 carries the coverage numerator fix (agg_accuracy_window, agg_prediction_accuracy_daily,
    agg_countdown_accuracy_daily; DATA_QUALITY), and no v3 history was ever written.
-4. Watch the next :20 run: `duration_ms` under 300000, `facts_loaded_days` 7, memory under 85%
+5. Watch the next :20 run: `duration_ms` under 300000, `facts_loaded_days` 7, memory under 85%
    (`TransformMemoryUsedPct`), no failed dbt tests (the `unique_grain_agg_pipeline_health_run_id` failure seen
    on synthetic data does not occur on real data).
-5. R3 (D) only if step 4 is clean; otherwise stop. Nothing in D is needed for the site.
+6. `make slo-report`, check capture completeness is met for 26-28 Nov, commit `docs/SLO_REPORT.md`.
+7. R3 (D) only if step 5 is clean; otherwise stop. Nothing in D is needed for the site.
 
 ## Release 4 and Vercel go-live checklist (dry run, 2026-11-27)
 

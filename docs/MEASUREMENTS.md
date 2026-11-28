@@ -265,17 +265,46 @@ bar. The public `agg_slo_daily` agrees: transform success 23 of 24 on 26 Nov, 24
   included); the transform's `memory_used_pct`, which the alarm uses, is 62-65 %. The failed runs
   are not different on either.
 
-### Open: capture completeness in the public SLO
+### Capture completeness in the public SLO: cause and corrected figures (2026-11-28)
 
-The same read-only pass found, in the public gold, `agg_pipeline_health.vehicle_positions_status`
-null for 23 to 58 of 60 minutes in most hours since 26 Nov 18:00 UTC (0 before), so
-`agg_slo_daily` reports capture completeness 58.8 % on 26 Nov and 37.6 % on 27 Nov, while the raw
-manifests read (28 Nov 18:00-18:23 UTC) have all three feeds and four vehicle polls `ok` each
-minute and the gold shows no missed minute. It is a transform-side measurement problem with 15 s
-sampling (poll 0 of the vehicle feed is missing from the gold's captures), not capture loss;
-the cause is not found. Until it is fixed the 7- and 30-day SLO report shows capture completeness
-as missed. This does not affect B12 (which counts minutes with a manifest), but it does affect how
-the SLO report reads at sign-off.
+The SLO report published capture completeness 58.8 % on 26 Nov and 37.6 % on 27 Nov while the raw
+manifests had every feed `ok` each minute and the gold showed no missed minute:
+`agg_pipeline_health.vehicle_positions_status` was null for 23 to 58 of 60 minutes in most hours
+since 26 Nov 18:00 UTC. Cause and fix: [DATA_QUALITY](DATA_QUALITY.md#bugs-these-tests-found-on-production-data).
+In short, vehicle polls 0 and 1 share a `capture_id` when their payload is unchanged within the
+second, and curation kept only the later poll, so 1,862 of 3,040 runs since 26 Nov 18:00 UTC had
+no vehicle poll 0 in the curated manifests.
+
+Measured on a **local build of a read-only copy of production** (`aws s3 sync` of `curated/`, then
+of `manifests/` and `quarantine/`, 28 Nov 20:53 to 21:02 UTC; `HEADWAY_ENABLE_R2=true`, R3 and R4
+off like the deployed Lambda; nothing written to AWS). "Before" builds the copy as it is in
+production; "after" rebuilds the curated manifests from the raw ones with `backfill_manifests` (run
+on a local copy of the bucket layout, 35,893 manifest rows, 159 hours rewritten) and uses the fixed
+models.
+
+| Measure | Before (the copy as in production) | After (fixed code, manifests rebuilt) |
+| --- | --- | --- |
+| Capture completeness 26 Nov | 58.82 % (847 of 1,440) | 100.00 % (1,440 of 1,440) |
+| Capture completeness 27 Nov | 37.64 % (542 of 1,440) | 100.00 % (1,440 of 1,440) |
+| Capture completeness 28 Nov (partial) | 51.18 % (389 of 760) | 100.00 % (783 of 783) |
+| Capture completeness, 7 days | 79.03 % | 99.99 % (the one minute missed is 22 Nov) |
+| Runs with a null `vehicle_positions_status` | 1,862 | 0 |
+| Hours with `feed_gap_min` failing (26, 27, 28 Nov) | 13, 16, 7 | 0, 0, 0 |
+| Data-outage hours; arrival coverage 26 and 27 Nov | 32; 82.83 %, 76.67 % | 32; 82.83 %, 76.67 % (unchanged) |
+| Test `manifest_runs_have_poll_zero_of_every_feed` | fails on 1,862 runs | passes |
+
+The "before" column reproduces what production published to the digit (58.82 %, 37.64 %), which is
+the check that the copy is a faithful stand-in. The 28 Nov figures differ in their base because the
+raw manifests read for "after" run to 21:02 UTC and the curated copy to about 20:39 UTC. Only
+capture completeness and the `feed_gap_min` check change: outage hours, capture minutes and every
+metric are unchanged, because the payload tables were never affected.
+
+**Report not committed.** The corrected SLO report above is from local data. It has no gold
+freshness or transform success rows (the local build has no run state) and its source is a file
+path, so it differs from what production will publish; `docs/SLO_REPORT.md` is left as the
+production report of 28 Nov 20:34 UTC, which still shows the wrong capture completeness. Regenerate
+it from public gold after the Sunday deploy and `backfill_manifests` and `rebuild_history`
+([DEPLOY](DEPLOY.md), steps A2 and 6).
 
 ## Transform memory under the account cap
 

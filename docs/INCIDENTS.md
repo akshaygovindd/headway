@@ -273,6 +273,30 @@ A near miss: nothing failed.
 - **Detail:** request ids, times and the slot accounting are in
   [MEASUREMENTS](MEASUREMENTS.md#release-2-soak-transform-slots-since-switch-on-investigated-2026-11-28).
 
+## Capture completeness read 37-59% while every feed was fetched
+
+- **Symptom:** the 7- and 30-day SLO report showed capture completeness at 79 % (58.8 % on 26 Nov,
+  37.6 % on 27 Nov) and `agg_pipeline_health.vehicle_positions_status` null in most minutes since
+  15-second sampling began (26 Nov about 18:00 UTC), while the raw manifests had every feed `ok`.
+  `feed_gap_min` failed in 13, 16 and 7 hours of the three days for the same reason.
+- **Found by:** reading the public gold against the raw manifests while checking the transform
+  slots (MEASUREMENTS), then the curated manifests: 1,862 of 3,040 runs had no vehicle poll 0.
+- **Root cause:** a capture id is the feed, the fetch second and the payload hash. The ingest Lambda
+  starts about 15 seconds into its minute, so vehicle poll 1 follows poll 0 within a second and, with
+  an unchanged payload, has the same id. Curation keyed manifest entries by `(run_id, capture_id)`
+  and the later poll replaced poll 0. Poll 0 is the minute's status for every feed, so the minute had
+  none. The data, the raw manifests and every payload table were intact.
+- **Fix:** manifest entries are keyed by `(run_id, capture_id, poll_index)` in curation and its
+  backfill; staging keeps one row per capture id with `n_polls`, so a minute's vehicle status is
+  that of poll 0 and polls are counted exactly (`vehicle_polls_ok`, `vehicle_polls_error`,
+  `n_captures`). `backfill_manifests` restores the curated hours from raw (DEPLOY, step A2).
+- **Guard:** `manifest_runs_have_poll_zero_of_every_feed` (a delivered run has poll 0 of all three
+  feeds), `capture_health_matches_manifests` and `capture_slo_matches_manifests` (the pipeline
+  health and the SLO count the manifests' own minutes), dbt unit tests with a 15-second minute and
+  a 1-minute minute for staging, pipeline health and the SLO, and curation tests for polls that
+  share an id. Measurements before and after:
+  [MEASUREMENTS](MEASUREMENTS.md#capture-completeness-in-the-public-slo-cause-and-corrected-figures-2026-11-28).
+
 ## Drills
 
 Failures caused on purpose with the chaos switch ([ADR-017](ARCHITECTURE_DECISIONS.md), how to

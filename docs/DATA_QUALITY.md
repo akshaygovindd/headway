@@ -27,11 +27,28 @@ Units are those of METRICS.md: `pct_*`, `share_*` (reconstruction) and every `co
 | Median is not above p90 or p95, p90 not above p95, where both exist | `data_invariants_*` | error | Pairs found by name (`median_x` with `p90_x`, `p95_x`; `median_s` with `p95_s`) |
 | `coverage_pct` is its own row's numerator over denominator, and the numerator never exceeds the denominator | `data_invariants_*` | error | A line-wide value copied onto a row fails. Tolerance 0.06 points (rounding). |
 | No reconstructed arrival at a station inside an active line-scope shuttle or detour stretch, in an hour the alert named that station | `no_arrivals_in_shuttle_stretch` | error | Effects `DETOUR` and `NO_SERVICE`, or header text matching shuttle or suspension. Delay and reduced-service alerts are left out: trains still run. |
+| Every delivered run has poll-0 entries of all three feeds in the curated manifests | `manifest_runs_have_poll_zero_of_every_feed` | error | Poll 0 fetches every feed and ingest records an entry for each, ok or error. A run with fewer lost an entry between the raw manifest and the curated table (below). The rows are the runs that lost one. |
+| Capture health agrees with the manifests: per service date, minutes with all three feeds ok in `agg_pipeline_health` against minutes with an ok poll-0 entry of all three feeds in the manifest entries | `capture_health_matches_manifests` | error | Tolerance one minute or 0.1% of the day. Reads the entries without the staging dedupe, so a status lost in staging or the aggregate fails here. |
+| The capture-completeness objective counts the same minutes as the manifests do | `capture_slo_matches_manifests` | error | `agg_slo_daily` `good_events` against the same manifest minutes, same tolerance. A closed day written to history before a fix fails until it is rebuilt. |
 | Window marts cover exactly the stated window | `window_marts_consistent` | error | Only labels `last_24h` and `last_7d`; never more hours than the window holds (fewer is fine: no overnight service, outages); `last_24h` inside `last_7d`; headway and reliability window counts equal the sum of their hours. The actual-deviation window is at least its hourly sum, and equal for a line with no stop-level alert in the window (the hourly table leaves those stops out, the window does not: METRICS.md "Stop-level flags"). |
 | A withheld row carries a reason and no value; a row that is not withheld carries no reason | `withheld_rows_consistent` (weather comparison); the API checks the rule for coverage-withheld rows in `tests/unit/test_web_fixtures.py` over every API answer of the real snapshot | error | |
 | Medians of deviation beyond 30 minutes, headway median ratio outside 0.1-10, a percentage of exactly 0 or 100 over 200 or more observations | `data_suspicious_{r2,r4}` | warn | Real service can do this (a long shuttle hour, a very quiet line); the row is worth a look, not a stop. |
 
 ## Bugs these tests found on production data
+
+- **Capture completeness read 58.8% and 37.6% (26 and 27 Nov) while every feed was fetched.**
+  Vehicle polls 0 and 1 of a minute are fetched a fraction of a second apart and, with an
+  unchanged payload, share a `capture_id` (feed, fetch second, payload hash), because the ingest
+  Lambda starts about 15 seconds into its minute and takes poll 1 as soon as poll 0 is done.
+  Curation keyed manifest entries by `(run_id, capture_id)`, so poll 1 replaced poll 0 in the
+  curated manifests: 1,862 of 3,040 runs since 26 Nov 18:00 UTC had no vehicle poll 0, so
+  `agg_pipeline_health.vehicle_positions_status` was null and the SLO, which counts minutes
+  with poll 0 of all three feeds ok, called them bad (`feed_gap_min` too). The raw manifests,
+  the payloads and every other table were intact. Curation now keys entries by
+  `(run_id, capture_id, poll_index)` (`headway.curate.meta`), staging keeps one row per capture id
+  with `n_polls` (the polls it stands for) so poll counts stay exact, and `backfill_manifests`
+  restores the curated hours from raw. The three tests above guard it: the first would have
+  failed on 26 Nov 18:00 UTC.
 
 - **Headway coverage above 100%** (`agg_headway_adherence_hourly`, Mattapan, 22 Nov, hour 20:
   39 valid headways over 38 scheduled). `fct_headways` made one headway for every run of a reused

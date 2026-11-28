@@ -25,7 +25,11 @@ The targets and the 90 minutes live in the `slo_targets` seed.
   so the 30-day rollup keeps working beyond the 7-day build window.
 - **Capture completeness** counts minutes from the first capture ever recorded to the end of the
   measurement. A minute with a failed or missing feed, or a run that never happened, is bad.
-  Duplicate payloads are not failures: only the capture status matters.
+  Duplicate payloads are not failures: only the capture status matters. A minute's status for each
+  feed is that of its poll-0 fetch, which every run makes for all three feeds; the extra 15 s
+  vehicle polls are counted apart (`agg_pipeline_health.vehicle_polls_ok` and
+  `vehicle_polls_error`, one per poll even when two polls returned the same payload), so a failed
+  poll 3 does not make a minute bad and a missing poll 0 does.
 - **Gold freshness** compares each hour start with the `gold_exported_at` of the runs recorded in
   `agg_transform_runs`. A single missed run leaves gold about 100 minutes old at the next top of
   the hour, which is a bad hour; an hourly schedule that works is 40 minutes old at the top of the
