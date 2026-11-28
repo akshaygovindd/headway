@@ -10,7 +10,7 @@ from fixtures import gtfs_rt as fx
 from fixtures.rows import FETCHED_AT
 from headway.config import load_city_config
 from headway.curate.compact import COMPACTED, compact_hour
-from headway.curate.meta import backfill_manifests, write_manifest_parts
+from headway.curate.meta import backfill_manifests, manifest_row, write_manifest_parts
 from headway.curate.normalize import normalize_batch
 from headway.curate.schemas import META_SCHEMAS
 from headway.storage import LocalStorage
@@ -146,3 +146,51 @@ def test_backfill_includes_duplicate_delivery_records_with_their_flag(tmp_path: 
     backfill_manifests(storage, CONFIG)
     statuses = sorted(str(r["status"]) for r in _rows(storage, MANIFESTS))
     assert statuses == ["duplicate_delivery", "ok"]
+
+
+def test_polls_that_share_a_capture_id_are_both_kept(tmp_path: Path) -> None:
+    """Vehicle polls 0 and 1 are fetched a fraction of a second apart; with the same payload they
+    share a capture id (feed, fetch second, payload hash). Poll 1 used to replace poll 0, so the
+    minute had no poll 0 and read as missing in pipeline health and the capture SLO."""
+    storage = LocalStorage(tmp_path)
+    poll0 = put_capture(storage, "vp-1", fx.trip_updates_feed(), feed="vehicle_positions")
+    poll1 = poll0.model_copy(update={"poll_index": 1})
+    write_manifest_parts(storage, CONFIG, [poll0, poll1])
+    rows = _rows(storage, MANIFESTS)
+    assert sorted((str(r["capture_id"]), r["poll_index"]) for r in rows) == [
+        ("vp-1", 0),
+        ("vp-1", 1),
+    ]
+
+
+def test_backfill_restores_a_poll_zero_row_the_live_curation_lost(tmp_path: Path) -> None:
+    """Production state before the fix: the curated hour holds only poll 1 of a shared capture
+    id (and rows from before 15 s sampling with a null poll_index). Raw is the source of truth:
+    the backfill adds poll 0, keeps poll 1 once, and a null poll_index is not a duplicate."""
+    storage = LocalStorage(tmp_path)
+    poll0 = put_capture(storage, "vp-1", fx.trip_updates_feed(), feed="vehicle_positions")
+    poll1 = poll0.model_copy(update={"poll_index": 1})
+    old = put_capture(storage, "tu-1", fx.trip_updates_feed())
+    _raw_manifest(storage, "run1", [poll0, poll1, old])
+    legacy = pa.table(  # what live curation wrote: poll 1 only, and a null poll_index row
+        {
+            name: [
+                {**manifest_row(poll1)}[name],
+                {**manifest_row(old), "poll_index": None}[name],
+            ]
+            for name in META_SCHEMAS["manifests"].names
+        },
+        schema=META_SCHEMAS["manifests"],
+    )
+    buf = io.BytesIO()
+    pq.write_table(legacy, buf)
+    storage.put_bytes(MANIFESTS + "part-legacy.parquet", buf.getvalue())
+
+    result = backfill_manifests(storage, CONFIG)
+
+    assert result.manifest_rows == 3
+    assert sorted((str(r["capture_id"]), r["poll_index"]) for r in _rows(storage, MANIFESTS)) == [
+        ("tu-1", 0),
+        ("vp-1", 0),
+        ("vp-1", 1),
+    ]

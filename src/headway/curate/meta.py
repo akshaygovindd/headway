@@ -53,7 +53,10 @@ def manifest_row(entry: ManifestEntry) -> Row:
 
 def _row_key(table: str, row: Row) -> tuple[Any, ...]:
     if table == "manifests":
-        return (row["run_id"], row["capture_id"])
+        # A capture id is the feed, the fetch second and the payload hash, so the vehicle polls
+        # 0 and 1 of a minute, fetched a fraction of a second apart with the same payload, share
+        # one: the poll is part of the key or the later poll replaces the earlier (poll 0).
+        return (row["run_id"], row["capture_id"], row["poll_index"] or 0)
     return (row["capture_id"], row["source_table"], row["line_no"])
 
 
@@ -74,13 +77,15 @@ def write_manifest_parts(
 
     The part name is derived from the capture ids, so rewriting the same entries is a no-op.
     """
-    by_hour: dict[HourKey, dict[tuple[str, str], ManifestEntry]] = defaultdict(dict)
+    by_hour: dict[HourKey, dict[tuple[str, str, int], ManifestEntry]] = defaultdict(dict)
     for e in entries:
-        by_hour[_hour_of(e.fetched_at)][(e.run_id, e.capture_id)] = e
+        by_hour[_hour_of(e.fetched_at)][(e.run_id, e.capture_id, e.poll_index)] = e
     keys = []
     for hour in sorted(by_hour):
-        group = sorted(by_hour[hour].values(), key=lambda e: (e.fetched_at, e.capture_id))
-        name = f"part-{batch_id_for([e.capture_id for e in group])}.parquet"
+        group = sorted(
+            by_hour[hour].values(), key=lambda e: (e.fetched_at, e.capture_id, e.poll_index)
+        )
+        name = f"part-{batch_id_for([f'{e.capture_id}/{e.poll_index}' for e in group])}.parquet"
         key = curated_key(config.storage_prefix, "manifests", group[0].fetched_at, name)
         storage.put_bytes(key, _parquet("manifests", [manifest_row(e) for e in group]))
         keys.append(key)
