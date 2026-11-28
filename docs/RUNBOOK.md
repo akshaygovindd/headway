@@ -897,3 +897,60 @@ What to expect:
 After the window: confirm recovery with the section of the drill
 ([Feed down](#simulation-feed-down), [MotherDuck unavailable](#simulation-motherduck-unavailable)),
 and add a drill entry to [INCIDENTS.md](INCIDENTS.md#drills).
+
+## Feed-down drill (B9)
+
+Release 2 criterion B9 ([DEPLOY.md](DEPLOY.md#release-2-sign-off)): a feed-down drill recorded
+with all five stages, detect, warn, label, alarm and recover. It is a real failure of the real
+pipeline for 15 minutes, so it spends error budget and sends an alarm email. Announce it first and
+run it once, in service hours, at the start of a clock hour.
+
+**Before:** nothing else running (no deploy, no `rebuild_*`), the previous transform run
+succeeded, and the switch is off:
+
+```sh
+aws ssm get-parameter --name /headway/chaos --query Parameter.Value --output text   # missing or off
+aws logs tail /aws/lambda/headway-ingest-rt --since 3m                                 # statuses ok
+```
+
+**Start** (note `T0`, the UTC time of this command, for the record). Start between `:01` and `:03`
+so the 15 minutes sit inside one hour:
+
+```sh
+T0=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+UNTIL=$(date -u -v+15M +%Y-%m-%dT%H:%M:%SZ)    # Linux: date -u -d '+15 minutes'
+aws ssm put-parameter --name /headway/chaos --type String --overwrite \
+  --value "{\"mode\":\"feed_down\",\"until\":\"$UNTIL\"}"
+echo "$T0 -> $UNTIL"
+```
+
+**Observe, in order.** Write down the UTC time of each.
+
+| Stage | When | Where | What you should see |
+| --- | --- | --- | --- |
+| Detect | T0 + 1 min | `aws logs tail /aws/lambda/headway-ingest-rt --since 3m --filter-pattern CHAOS` and the ingest summary lines | `CHAOS ACTIVE mode=feed_down until=...`; `statuses` all `error`; the Lambda itself still succeeds |
+| Warn | about T0 + 5 min | the `FeedErrorCount` metric (namespace `Headway`) and, after the next `:20` transform, `feed_gap_min` for the hour in the pipeline health quality checks | feed errors every minute; `feed_gap_min` at least 5 minutes, status warn (fail at 10) |
+| Alarm | about T0 + 5 to 10 min | `aws cloudwatch describe-alarm-history --alarm-name headway-feed-errors --history-item-type StateUpdate --max-items 3` and the alarm email | `headway-feed-errors` goes to ALARM (5 of the last 10 minutes with errors). No Lambda `Errors` alarm should fire |
+| Label | after the next `:20` transform run (up to about 80 minutes) | public gold: `agg_pipeline_health` for the hour, `agg_quality_checks_hourly`, and `n_excluded_outage` in the accuracy marts | the hour is labelled `data_outage` (fewer than 55 capture minutes), excluded from every metric; capture completeness spends about 15 minutes of budget |
+| Recover | the first minute after `UNTIL` | the ingest summary lines and `agg_pipeline_health` | `statuses` all `ok`; `headway-feed-errors` returns to OK within about 10 minutes; later hours have `feed_gap_min` 0; the outage hour stays labelled |
+
+**Stop early** if something unexpected breaks (anything that is not in the table, or a Lambda
+`Errors` alarm):
+
+```sh
+aws ssm put-parameter --name /headway/chaos --type String --overwrite \
+  --value "{\"mode\":\"off\",\"until\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+```
+
+**Confirm it is over:** `aws logs tail /aws/lambda/headway-ingest-rt --since 3m --filter-pattern CHAOS`
+shows nothing new, and the parameter is `off` or has a past `until`.
+
+**Record it** in [INCIDENTS.md](INCIDENTS.md#drills), replacing "No drill has been run yet", as one
+entry titled `### DRILL YYYY-MM-DD: feed_down for 15 min`. Fill every field. In **Observed**,
+name each stage by its word, `detect`, `warn`, `label`, `alarm` and `recover`, with the time
+seen, and say plainly any stage that did not happen or came late. `make acceptance-r2` reads that
+entry for B9: it is PASS when all five words are present, MANUAL when some are missing, FAIL
+without an entry. The label stage can only be written once the next `:20` run has finished, so
+finish the entry then. Also re-run `make acceptance-r2` afterwards: the drill's hours and its
+`headway-feed-errors` transition are real, and B12 will list the alarm as unexplained until the
+drill is added to `KNOWN_CAUSES` in `scripts/acceptance_r2.py` (with the drill date).
