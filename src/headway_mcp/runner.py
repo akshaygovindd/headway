@@ -32,7 +32,8 @@ def _connect() -> duckdb.DuckDBPyConnection:
     """A DuckDB connection; on a read-only image the baked extension directory is loaded, never
     installed into, and nothing is auto-downloaded."""
     ext, home = os.environ.get(ENV_EXTENSIONS_DIR), os.environ.get(ENV_HOME)
-    cfg: dict[str, Any] = {}
+    # UTC, so a timestamptz cast to text reads the same on every host (it was the host's zone)
+    cfg: dict[str, Any] = {"TimeZone": "UTC"}
     if ext:
         cfg.update(extension_directory=ext, autoinstall_known_extensions=False,
                    autoload_known_extensions=False)  # fmt: skip

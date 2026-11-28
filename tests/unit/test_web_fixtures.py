@@ -84,3 +84,22 @@ def test_withheld_rows_carry_a_reason_and_no_value(path: Path) -> None:
         for k, v in row.items():
             if k.startswith("pct_") and v is not None:
                 assert 0 <= v <= 100, (k, row)
+
+
+@pytest.mark.parametrize("tz", ["UTC", "Pacific/Kiritimati", "America/Los_Angeles"])
+def test_fixtures_do_not_depend_on_the_host_timezone(
+    tz: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """DuckDB rendered timestamptz in the host zone, so the forecast and incident fixtures written
+    on a US laptop were stale on the UTC CI runner."""
+    import time
+
+    monkeypatch.setenv("TZ", tz)
+    time.tzset()
+    try:
+        files = bwf.build()
+    finally:
+        monkeypatch.undo()
+        time.tzset()
+    stale = [n for n, text in files.items() if (bwf.OUT / n).read_text() != text]
+    assert not stale, stale[:5]

@@ -29,6 +29,12 @@ cd "$work/repo"
 export UV_PROJECT_ENVIRONMENT=.local/ci-venv
 uv sync --frozen
 for target in "${targets[@]}"; do
+  if [ "$target" = check ]; then
+    # Fixtures must be byte-identical whatever the host zone and the clock (CI is UTC; this Mac is not).
+    echo "prepush: web fixtures under TZ=UTC / Pacific/Kiritimati at a fake now"
+    TZ=UTC FAKE_NOW=1893456000 PYTHONPATH=scripts/faketime uv run python scripts/build_web_fixtures.py --check
+    TZ=Pacific/Kiritimati FAKE_NOW=1600000000 PYTHONPATH=scripts/faketime uv run python scripts/build_web_fixtures.py --check
+  fi
   echo "prepush: make $target ($(git -C "$root" rev-parse --short HEAD), clean checkout)"
   make "$target"
 done
