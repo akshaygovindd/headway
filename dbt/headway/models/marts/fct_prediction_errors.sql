@@ -4,7 +4,8 @@
 -- minutes, the lower bound included. Only snapshots collected at or before the reconstructed
 -- arrival count; arrivals are high or medium confidence. error_s is predicted minus
 -- reconstructed (positive: the prediction was late). data_outage and service_disruption are the
--- flags of the arrival hour; outage rows stay here and are left out of the aggregate.
+-- flags of the arrival hour (scheduled_hour_local is the hour of the trip stop's scheduled
+-- arrival, the one coverage is counted by); outage rows stay here and are left out of the aggregate.
 with snapshots as (
     select
         a.trip_instance_key,
@@ -16,6 +17,7 @@ with snapshots as (
         a.stop_id,
         a.arrival_service_date,
         a.arrival_hour_local as hour_local,
+        a.sched_hour_local as scheduled_hour_local,
         a.data_outage,
         a.service_disruption,
         a.confidence,
@@ -63,6 +65,7 @@ select
     stop_id,
     arrival_service_date,
     hour_local,
+    scheduled_hour_local,
     capture_id,
     collected_at,
     horizon_s,

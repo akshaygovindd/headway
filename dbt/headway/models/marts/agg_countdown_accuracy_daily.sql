@@ -1,7 +1,9 @@
 -- Countdown accuracy of MBTA's published predictions per line, station, service date (of the
 -- predicted arrival) and countdown bucket: the daily history of agg_countdown_accuracy_window,
 -- with the same definitions (see fct_countdown_outcomes and that model). Closed days are kept as
--- immutable history (ADR-015).
+-- immutable history (ADR-015). Coverage places both sides by the trip stop's scheduled service
+-- date and hour (the denominator's key); a countdown scored on the next service date or in a later
+-- hour because the train ran late still belongs to the trip stop it was scheduled for.
 with computed as (
 with stats as (
     select
@@ -22,6 +24,21 @@ with stats as (
         count(*) filter (where not data_outage and hit_120) as n_within_120s
     from {{ ref('fct_countdown_outcomes') }}
     group by line, station_id, predicted_service_date, countdown_min
+),
+
+numerators as (
+    select
+        o.line,
+        o.station_id,
+        o.service_date,
+        o.countdown_min,
+        count(*) as scheduled_basis_n
+    from {{ ref('fct_countdown_outcomes') }} o
+    join {{ ref('int_hour_flags') }} f
+        on f.service_date = o.service_date and f.hour_local = o.scheduled_hour_local
+        and not f.data_outage
+    where o.outcome <> 'unknown'
+    group by o.line, o.station_id, o.service_date, o.countdown_min
 ),
 
 denominators as (
@@ -53,10 +70,13 @@ select
     s.n_within_120s,
     100.0 * s.n_within_60s / nullif(s.n, 0) as pct_within_60s,
     100.0 * s.n_within_120s / nullif(s.n, 0) as pct_within_120s,
-    s.n as coverage_numerator,
+    coalesce(m.scheduled_basis_n, 0) as coverage_numerator,
     coalesce(d.scheduled_trip_stops, 0) as coverage_denominator,
-    100.0 * s.n / nullif(d.scheduled_trip_stops, 0) as coverage_pct
+    100.0 * coalesce(m.scheduled_basis_n, 0) / nullif(d.scheduled_trip_stops, 0) as coverage_pct
 from stats s
+left join numerators m
+    on m.line = s.line and m.station_id = s.station_id and m.service_date = s.service_date
+    and m.countdown_min = s.countdown_min
 left join denominators d
     on d.line = s.line and d.station_id = s.station_id and d.service_date = s.service_date
 )

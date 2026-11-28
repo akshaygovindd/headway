@@ -288,11 +288,11 @@ unit_tests:
     given:
       - input: ref('fct_prediction_errors')
         rows:
-          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, abs_error_s: 10, error_s: 10}
-          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, abs_error_s: 50, error_s: -50}
-          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, abs_error_s: 100, error_s: 100}
-          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, abs_error_s: 200, error_s: -200}
-          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: true, abs_error_s: 5000, error_s: 5000}
+          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, scheduled_hour_local: 8, abs_error_s: 10, error_s: 10}
+          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, scheduled_hour_local: 8, abs_error_s: 50, error_s: -50}
+          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, scheduled_hour_local: 8, abs_error_s: 100, error_s: 100}
+          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, scheduled_hour_local: 8, abs_error_s: 200, error_s: -200}
+          - {line: "Red", service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: true, scheduled_hour_local: 9, abs_error_s: 5000, error_s: 5000}
       - input: ref('int_scheduled_stop_times')
         rows:
           - {line: "Red", service_date: "2026-11-22", hour_local: 8}
@@ -469,14 +469,14 @@ unit_tests:
           - {window_label: last_7d, service_date: "2026-11-23", hour_local: 9}
       - input: ref('fct_prediction_errors')
         rows:
-          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-22", hour_local: 8, abs_error_s: 10.0, data_outage: false, service_disruption: false}
-          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-22", hour_local: 8, abs_error_s: 10.0, data_outage: false, service_disruption: false}
-          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-22", hour_local: 8, abs_error_s: 10.0, data_outage: false, service_disruption: false}
-          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-23", hour_local: 8, abs_error_s: 100.0, data_outage: false, service_disruption: false}
-          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-23", hour_local: 8, abs_error_s: 200.0, data_outage: false, service_disruption: true}
-          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-23", hour_local: 9, abs_error_s: 500.0, data_outage: true, service_disruption: false}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-22", hour_local: 8, service_date: "2026-11-22", scheduled_hour_local: 8, abs_error_s: 10.0, data_outage: false, service_disruption: false}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-22", hour_local: 8, service_date: "2026-11-22", scheduled_hour_local: 8, abs_error_s: 10.0, data_outage: false, service_disruption: false}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-22", hour_local: 8, service_date: "2026-11-22", scheduled_hour_local: 8, abs_error_s: 10.0, data_outage: false, service_disruption: false}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-23", hour_local: 8, service_date: "2026-11-23", scheduled_hour_local: 8, abs_error_s: 100.0, data_outage: false, service_disruption: false}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-23", hour_local: 8, service_date: "2026-11-23", scheduled_hour_local: 8, abs_error_s: 200.0, data_outage: false, service_disruption: true}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-23", hour_local: 9, service_date: "2026-11-23", scheduled_hour_local: 9, abs_error_s: 500.0, data_outage: true, service_disruption: false}
           # outside the window
-          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-01", hour_local: 8, abs_error_s: 900.0, data_outage: false, service_disruption: false}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-01", hour_local: 8, service_date: "2026-11-01", scheduled_hour_local: 8, abs_error_s: 900.0, data_outage: false, service_disruption: false}
       - input: ref('int_scheduled_stop_times')
         rows:
           - {line: Red, service_date: "2026-11-22", hour_local: 8}
@@ -1242,6 +1242,98 @@ unit_tests:
     expect:
       rows:
         - {line: Blue, station_id: place-a, window_label: last_24h, countdown_min: 1, n: 2, coverage_numerator: 1, coverage_denominator: 1, coverage_pct: 100.0}
+
+  - name: countdown_accuracy_daily_coverage_is_placed_by_the_scheduled_service_date_and_hour
+    config:
+      tags: [r2]
+    description: >-
+      Blue, Alpha, the 1 minute countdown, service date 2026-11-23, which holds one scheduled trip
+      stop (03:xx). The 02:58 train of the 22nd ran 5 minutes late: its countdown is scored on the
+      23rd (the predicted arrival, so n counts it) but the trip stop is scheduled on the 22nd, in
+      a day the denominator of the 23rd does not hold. The 03:03 train is on time. n is 2 and the
+      day holds one scheduled trip stop, yet coverage is 1 of 1, 100 percent, never above: the
+      numerator counts the countdowns of the trip stops the denominator counts.
+    model: agg_countdown_accuracy_daily
+    given:
+      - input: ref('fct_countdown_outcomes')
+        rows:
+          - {line: Blue, station_id: place-a, station_name: Alpha, countdown_min: 1, predicted_service_date: "2026-11-23", hour_local: 3, service_date: "2026-11-22", scheduled_hour_local: 2, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: false}
+          - {line: Blue, station_id: place-a, station_name: Alpha, countdown_min: 1, predicted_service_date: "2026-11-23", hour_local: 3, service_date: "2026-11-23", scheduled_hour_local: 3, outcome: arrived, hit_60: true, hit_120: true, data_outage: false, service_disruption: false}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {line: Blue, service_date: "2026-11-22", hour_local: 2, stop_id: s1}
+          - {line: Blue, service_date: "2026-11-23", hour_local: 3, stop_id: s1}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 2, data_outage: false}
+          - {service_date: "2026-11-23", hour_local: 3, data_outage: false}
+      - input: ref('int_stop_stations')
+        rows:
+          - {stop_id: s1, station_id: place-a, station_name: Alpha}
+    expect:
+      rows:
+        - {line: Blue, station_id: place-a, service_date: "2026-11-23", countdown_min: 1, n: 2, coverage_numerator: 1, coverage_denominator: 1, coverage_pct: 100.0}
+
+  - name: prediction_accuracy_daily_coverage_is_placed_by_the_scheduled_hour_and_label
+    config:
+      tags: [r2]
+    description: >-
+      Red, 0-5 minutes, 2026-11-22. Hour 8 is under a service-disruption alert and holds one scheduled
+      trip stop; hour 9 is not and holds one. The 08:58 train ran 5 minutes late: both errors are
+      scored in the undisrupted hour 9 (the arrival hour, so n is 2 for the undisrupted label), but
+      the first trip stop is scheduled in the disrupted hour 8. The undisrupted label holds one
+      scheduled trip stop, so coverage is 1 of 1, 100 percent, never 2 of 1: the numerator takes the
+      outage flag and the label of the scheduled hour, like the denominator.
+    model: agg_prediction_accuracy_daily
+    given:
+      - input: ref('fct_prediction_errors')
+        rows:
+          - {line: Red, service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, hour_local: 9, scheduled_hour_local: 8, abs_error_s: 300, error_s: 300}
+          - {line: Red, service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, data_outage: false, hour_local: 9, scheduled_hour_local: 9, abs_error_s: 20, error_s: 20}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 8}
+          - {line: Red, service_date: "2026-11-22", hour_local: 9}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 8, data_outage: false}
+          - {service_date: "2026-11-22", hour_local: 9, data_outage: false}
+      - input: ref('int_disrupted_line_hours')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 8}
+    expect:
+      rows:
+        - {line: Red, service_date: "2026-11-22", horizon_bucket: "0-5", service_disruption: false, n: 2, n_excluded_outage: 0, coverage_numerator: 1, coverage_denominator: 1, coverage_pct: 100.0}
+
+  - name: accuracy_window_coverage_is_placed_by_the_scheduled_hour
+    config:
+      tags: [r2]
+    description: >-
+      Red, 0-5 minutes, a last_24h window that starts at hour 9 and holds one scheduled trip stop. The
+      08:58 train ran 5 minutes late: its error is scored in hour 9 (the arrival hour, so n counts it)
+      but the trip stop is scheduled in hour 8, outside the window. The 09:03 train is on time. n is
+      2 and the window holds one scheduled trip stop, yet coverage is 1 of 1, 100 percent, never
+      above: the numerator counts the errors of the trip stops the denominator counts.
+    model: agg_accuracy_window
+    given:
+      - input: ref('int_window_hours')
+        rows:
+          - {window_label: last_24h, service_date: "2026-11-22", hour_local: 9}
+      - input: ref('fct_prediction_errors')
+        rows:
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-22", hour_local: 9, service_date: "2026-11-22", scheduled_hour_local: 8, abs_error_s: 300.0, data_outage: false, service_disruption: false}
+          - {line: Red, horizon_bucket: "0-5", arrival_service_date: "2026-11-22", hour_local: 9, service_date: "2026-11-22", scheduled_hour_local: 9, abs_error_s: 20.0, data_outage: false, service_disruption: false}
+      - input: ref('int_scheduled_stop_times')
+        rows:
+          - {line: Red, service_date: "2026-11-22", hour_local: 8}
+          - {line: Red, service_date: "2026-11-22", hour_local: 9}
+      - input: ref('int_hour_flags')
+        rows:
+          - {service_date: "2026-11-22", hour_local: 8, data_outage: false}
+          - {service_date: "2026-11-22", hour_local: 9, data_outage: false}
+    expect:
+      rows:
+        - {line: Red, window_label: last_24h, horizon_bucket: "0-5", n: 2, coverage_numerator: 1, coverage_denominator: 1, coverage_pct: 100.0}
 
   - name: segment_window_bands_coverage_outage_disruption_and_health
     config:

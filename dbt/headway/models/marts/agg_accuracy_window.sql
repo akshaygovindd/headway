@@ -4,7 +4,11 @@
 -- excluded from every statistic and counted in n_excluded_outage; hours with an active
 -- service-disruption alert are kept and counted in n_disruption. Coverage: trip stops with an
 -- error in the bucket over the scheduled trip stops of the line in the window (outage hours
--- excluded), the same basis as agg_actual_deviation_window. Percentages are 0-100.
+-- excluded), the same basis as agg_actual_deviation_window. Both sides are placed by the trip
+-- stop's scheduled hour: a train running late across an hour boundary has its error scored in the
+-- later hour (n and the statistics) but is still one of the scheduled trip stops of the earlier
+-- hour, so counting it by arrival hour could put more errors over the window's edge than the
+-- schedule has trip stops (coverage above 100%). Percentages are 0-100.
 with stats as (
     select
         e.line,
@@ -23,6 +27,20 @@ with stats as (
     from {{ ref('fct_prediction_errors') }} e
     join {{ ref('int_window_hours') }} w
         on w.service_date = e.arrival_service_date and w.hour_local = e.hour_local
+    group by 1, 2, 3
+),
+
+numerators as (
+    select
+        e.line,
+        w.window_label,
+        e.horizon_bucket,
+        count(*) as scheduled_basis_n
+    from {{ ref('fct_prediction_errors') }} e
+    join {{ ref('int_window_hours') }} w
+        on w.service_date = e.service_date and w.hour_local = e.scheduled_hour_local
+    join {{ ref('int_hour_flags') }} f
+        on f.service_date = e.service_date and f.hour_local = e.scheduled_hour_local and not f.data_outage
     group by 1, 2, 3
 ),
 
@@ -53,8 +71,10 @@ select
     s.mae_s,
     s.pct_within_60s,
     s.pct_within_120s,
-    s.n as coverage_numerator,
+    coalesce(m.scheduled_basis_n, 0) as coverage_numerator,
     coalesce(d.scheduled_trip_stops, 0) as coverage_denominator,
-    100.0 * s.n / nullif(d.scheduled_trip_stops, 0) as coverage_pct
+    100.0 * coalesce(m.scheduled_basis_n, 0) / nullif(d.scheduled_trip_stops, 0) as coverage_pct
 from stats s
+left join numerators m
+    on m.line = s.line and m.window_label = s.window_label and m.horizon_bucket = s.horizon_bucket
 left join denominators d on d.line = s.line and d.window_label = s.window_label

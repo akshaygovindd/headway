@@ -530,6 +530,8 @@ models:
         description: "Service date of the reconstructed arrival time."
       - name: hour_local
         description: "Local hour of the reconstructed arrival."
+      - name: scheduled_hour_local
+        description: "Local hour of the trip stop's scheduled arrival; coverage is placed by it, like the scheduled trip stops it is counted against."
       - name: capture_id
         description: "Capture of the snapshot."
       - name: collected_at

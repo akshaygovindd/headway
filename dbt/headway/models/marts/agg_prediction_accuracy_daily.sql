@@ -2,7 +2,10 @@
 -- fct_prediction_errors. Outage hours are excluded from every statistic and counted in
 -- n_excluded_outage. Coverage: trip stops with an error in the bucket over the scheduled trip
 -- stops of the same line, day and label (outage hours excluded), the same basis as
--- agg_actual_deviation_daily.
+-- agg_actual_deviation_daily. The coverage numerator is placed like the denominator: by the trip
+-- stop's scheduled hour, which gives its outage flag and its service-disruption label, not by the
+-- arrival hour of a train that ran late across an hour boundary. n and the error statistics keep the
+-- arrival-hour flags.
 -- Percentages are 0-100.
 with computed as (
 with stats as (
@@ -20,6 +23,21 @@ with stats as (
         100.0 * count(*) filter (where not data_outage and abs_error_s <= 120)
             / nullif(count(*) filter (where not data_outage), 0) as pct_within_120s
     from {{ ref('fct_prediction_errors') }}
+    group by 1, 2, 3, 4
+),
+
+numerators as (
+    select
+        e.line,
+        e.service_date,
+        e.horizon_bucket,
+        d.line is not null as service_disruption,
+        count(*) as scheduled_basis_n
+    from {{ ref('fct_prediction_errors') }} e
+    join {{ ref('int_hour_flags') }} f
+        on f.service_date = e.service_date and f.hour_local = e.scheduled_hour_local and not f.data_outage
+    left join {{ ref('int_disrupted_line_hours') }} d
+        on d.line = e.line and d.service_date = e.service_date and d.hour_local = e.scheduled_hour_local
     group by 1, 2, 3, 4
 ),
 
@@ -48,10 +66,13 @@ select
     s.mae_s,
     s.pct_within_60s,
     s.pct_within_120s,
-    s.n as coverage_numerator,
+    coalesce(m.scheduled_basis_n, 0) as coverage_numerator,
     coalesce(d.scheduled_trip_stops, 0) as coverage_denominator,
-    100.0 * s.n / nullif(d.scheduled_trip_stops, 0) as coverage_pct
+    100.0 * coalesce(m.scheduled_basis_n, 0) / nullif(d.scheduled_trip_stops, 0) as coverage_pct
 from stats s
+left join numerators m
+    on m.line = s.line and m.service_date = s.service_date and m.horizon_bucket = s.horizon_bucket
+    and m.service_disruption = s.service_disruption
 left join denominators d
     on d.line = s.line and d.service_date = s.service_date and d.service_disruption = s.service_disruption
 )
