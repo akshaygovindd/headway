@@ -1,7 +1,7 @@
 # Packages provided by the Lambda Python runtime; excluded from the zip.
 LAMBDA_EXCLUDE := boto3 botocore s3transfer jmespath python-dateutil six urllib3 pyarrow
 
-.PHONY: prepush images-list push-images-list api-dev web-dev api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance validate check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke transform-smoke-r4 curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
+.PHONY: prepush images-list push-images-list api-dev web-dev api-smoke ml-test backtest dbt-deps slo-report demo-r2 acceptance acceptance-r2 validate check lambda-zip tf-validate dbt e2e app-test demo-data demo images-build images-push transform-smoke transform-smoke-r4 curate-smoke train-smoke ingest-smoke images-smoke deploy seed evals alert-classifier
 
 DEMO_DIR := .local/demo
 DEMO_DATA_URL := file://$(abspath $(DEMO_DIR))/public/boston
@@ -79,6 +79,11 @@ e2e: dbt-deps
 # read-only AWS; also refreshes the latency and cost rows of docs/MEASUREMENTS.md.
 acceptance:
 	uv run python scripts/acceptance.py
+
+# Release 2 acceptance report (PASS/FAIL/MANUAL per B1-B12, then additional operational checks);
+# read-only, writes nothing.
+acceptance-r2:
+	uv run python scripts/acceptance_r2.py
 
 # Cross-check reconstructed arrivals against MBTA LAMP (downloads to .local/validation; needs a
 # built .local/prod_test.duckdb, see docs/VALIDATION.md). Not part of `make check`.
