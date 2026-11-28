@@ -97,6 +97,12 @@ def test_unexplained_alarm_fails_and_says_so() -> None:
     assert r2.judge_alarms([], r2.KNOWN_CAUSES)[0] == "PASS"
 
 
+def test_feed_errors_alarm_on_a_recorded_drill_day_is_explained() -> None:
+    trans = [("headway-feed-errors", T0)]
+    assert r2.judge_alarms(trans, r2.KNOWN_CAUSES, {"2026-11-26"})[0] == "PASS"
+    assert r2.judge_alarms(trans, r2.KNOWN_CAUSES, {"2026-11-29"})[0] == "FAIL"
+
+
 class FakePaginator:
     def __init__(self, pages: list[dict[str, Any]]) -> None:
         self.pages = pages

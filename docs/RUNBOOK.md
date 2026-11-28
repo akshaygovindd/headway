@@ -952,5 +952,5 @@ seen, and say plainly any stage that did not happen or came late. `make acceptan
 entry for B9: it is PASS when all five words are present, MANUAL when some are missing, FAIL
 without an entry. The label stage can only be written once the next `:20` run has finished, so
 finish the entry then. Also re-run `make acceptance-r2` afterwards: the drill's hours and its
-`headway-feed-errors` transition are real, and B12 will list the alarm as unexplained until the
-drill is added to `KNOWN_CAUSES` in `scripts/acceptance_r2.py` (with the drill date).
+`headway-feed-errors` transition are real, and B12 explains a `headway-feed-errors` alarm on the day of
+a recorded `feed_down` drill by that entry, and lists it as unexplained until the entry exists.

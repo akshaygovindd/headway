@@ -159,15 +159,28 @@ def alarm_transitions(items: list[dict[str, Any]]) -> list[tuple[str, datetime]]
     return sorted(out, key=lambda t: t[1])
 
 
-def judge_alarms(transitions: list[tuple[str, datetime]], known: dict[str, str]) -> Result:
+def judge_alarms(
+    transitions: list[tuple[str, datetime]],
+    known: dict[str, str],
+    drill_dates: set[str] | None = None,
+) -> Result:
+    """Each alarm with its cause; feed-errors on a recorded drill day is the drill."""
     if not transitions:
         return "PASS", "no alarm went to ALARM"
-    counts: dict[str, int] = {}
-    for name, _ in transitions:
-        counts[name] = counts.get(name, 0) + 1
-    unknown = {n: c for n, c in counts.items() if n not in known}
-    parts = [f"{n} x{c}: " + known.get(n, "UNEXPLAINED") for n, c in sorted(counts.items())]
-    return ("FAIL" if unknown else "PASS"), "; ".join(parts)
+    causes: dict[str, set[str]] = {}
+    for name, when in transitions:
+        if name in known:
+            cause = known[name]
+        elif name == "headway-feed-errors" and f"{when:%Y-%m-%d}" in (drill_dates or set()):
+            cause = f"feed_down drill of {when:%Y-%m-%d} (INCIDENTS.md)"
+        else:
+            cause = "UNEXPLAINED"
+        causes.setdefault(name, set()).add(cause)
+    counts = {n: sum(1 for t, _ in transitions if t == n) for n in causes}
+    parts = [f"{n} x{counts[n]}: " + " / ".join(sorted(c)) for n, c in sorted(causes.items())]
+    return ("FAIL" if any("UNEXPLAINED" in c for c in causes.values()) else "PASS"), "; ".join(
+        parts
+    )
 
 
 # --- history -------------------------------------------------------------------------------
@@ -475,7 +488,10 @@ def b12(
             items += [i for i in page["AlarmHistoryItems"] if i["AlarmName"].startswith("headway")]
     except Exception as exc:
         return "MANUAL", f"cannot read alarm history: {exc}; soak: {soak[0]} {soak[1]}"
-    alarms = judge_alarms(alarm_transitions(items), KNOWN_CAUSES)
+    drills = {
+        d["date"] for d in parse_drills(read("docs/INCIDENTS.md")) if d["mode"] == "feed_down"
+    }
+    alarms = judge_alarms(alarm_transitions(items), KNOWN_CAUSES, drills)
     state = worst([soak, alarms])
     return (
         state,
