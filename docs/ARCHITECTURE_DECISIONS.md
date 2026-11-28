@@ -816,7 +816,8 @@ Template: Status, Context, Decision, Consequences, Revisit when.
   after the fit. Observed arrivals, confidence and the schema are unchanged.
   `fct_reconstructed_arrivals` and `fct_headways` (which reads it) move to version 3 and are
   backfilled with one `rebuild_facts`; every history family that reads arrival times moves to
-  metric version 3 together (`history.ARRIVAL_TIMES_VERSION`, kept true by a lineage test) and is
+  metric version 4 together (3 was never written; 4 also carries the coverage numerator fix of
+  DATA_QUALITY) (`history.ARRIVAL_TIMES_VERSION`, kept true by a lineage test) and is
   rebuilt with one `rebuild_history`, so closed days are on one method.
 - **Alternatives:** the median dwell of observed stops (rejected: a short dwell is less likely to
   be seen, and a single sighting carries no dwell information, so it over-corrects by 17 s; the

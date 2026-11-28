@@ -38,9 +38,13 @@ _CONFLICT = {"PreconditionFailed", "ConditionalRequestConflict"}
 # int_usable_arrivals (fct_reconstructed_arrivals, fct_headways): bracketed arrivals are corrected
 # for the dwell the polls straddled (ADR-026), so closed days are rebuilt with one method instead
 # of mixing the old and the new. They share one version number so a single `rebuild_history` call
-# with metric_version 3 rebuilds them all; tests/unit/test_history_lineage.py checks that every
+# with that metric_version rebuilds them all; tests/unit/test_history_lineage.py checks that every
 # family that depends on those facts is at this version.
-ARRIVAL_TIMES_VERSION = 3
+# Version 4: the coverage numerator of prediction_accuracy and countdown_accuracy is placed by the
+# trip stop's scheduled hour (and service date and label), like its denominator, so coverage never
+# exceeds 100% (docs/DATA_QUALITY.md). Version 3 history was never written, so every family moves
+# to 4 and one call still rebuilds them all; the facts stay at their own version 3 (facts_state).
+ARRIVAL_TIMES_VERSION = 4
 METRIC_VERSIONS: dict[str, int] = {
     "arrival_reconstruction": ARRIVAL_TIMES_VERSION,
     "prediction_accuracy": ARRIVAL_TIMES_VERSION,

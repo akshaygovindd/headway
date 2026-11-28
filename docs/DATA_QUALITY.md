@@ -46,9 +46,19 @@ Units are those of METRICS.md: `pct_*`, `share_*` (reconstruction) and every `co
   so a train late across the window's first hour (its trip stop is scheduled outside the window,
   its countdown is scored inside) pushed the ratio over 100. The coverage numerator is now placed
   by the scheduled hour like the denominator (`fct_countdown_outcomes.scheduled_hour_local`); n and
-  the accuracy shares keep the predicted-hour window. Not changed, because closed days are history:
-  `agg_countdown_accuracy_daily` and the arrival-hour numerator of `agg_accuracy_window` have the
-  same shape at the service-day and window edge and have not tripped the test.
+  the accuracy shares keep the predicted-hour window.
+- **The same mismatch in three more models** (found by auditing every ratio, share and coverage
+  column; not seen in production data, which had not tripped the test). `agg_accuracy_window`
+  counted its coverage numerator by the arrival hour of the error, `agg_prediction_accuracy_daily`
+  by the arrival hour's outage flag and service-disruption label, and `agg_countdown_accuracy_daily`
+  by the predicted service date and hour, while each denominator counts scheduled trip stops by the
+  scheduled hour (and date). Each numerator is now placed by the scheduled hour like the
+  denominator (`fct_prediction_errors.scheduled_hour_local`); n and the accuracy shares keep the
+  arrival or predicted hour. The two daily tables are history, so the history families are at
+  metric version 4 (DEPLOY, Sunday step C). The other models with a numerator over a denominator
+  (deviation, headway, ETT, reliability, stop deviation, slow segments, trip-time budget, SLO,
+  reconstruction shares, quality checks) count both sides from one set of rows or by the scheduled
+  hour, and are unchanged.
 - **Median above its own p95** (`agg_trip_time_budget`, 333 rows): `p95_s` was rounded to 0.1 s and
   `median_s` was not, so a median of 101.84 sat above a p95 of 101.8 when the trips were almost
   identical. `median_s` is rounded the same way.

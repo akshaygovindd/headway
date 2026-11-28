@@ -602,26 +602,26 @@ and `facts_written`.
   `fct_reconstructed_arrivals` was never used. Roll back by setting both versions back in
   `facts_state.py` and deploying: the old partitions are still there.
 - **Then rebuild the closed-day history, in this order** (the history families that read
-  reconstructed arrival times are all at version 3, `history.ARRIVAL_TIMES_VERSION`: `actual_deviation`,
+  reconstructed arrival times are all at version 4, `history.ARRIVAL_TIMES_VERSION` (the facts stay at 3; version 3 of the history was never written): `actual_deviation`,
   `headway_adherence`, `ett`, `prediction_accuracy`, `countdown_accuracy`, `slo` and
   `arrival_reconstruction`; `stop_deviation` does not read arrivals and stays at version 1;
   `tests/unit/test_history_lineage.py` keeps that list true). Closed days written at the old
   versions stay in the bucket and are never read again; days before and after the deploy would
-  otherwise be on different methods. One call with `metric_version` 3 writes every table at
-  version 3, at most 14 days per call, walking back from the latest closed day, and it needs the
+  otherwise be on different methods. One call with `metric_version` 4 writes every table at
+  version 4, at most 14 days per call, walking back from the latest closed day, and it needs the
   curated raw data of the range (it builds the window from the oldest day):
   1. deploy the image;
   2. `rebuild_facts` with `metric_version` 3 (above), so the scheduled runs are cheap again;
-  3. `rebuild_history`, per range of at most 14 days, until every closed day has version 3:
+  3. `rebuild_history`, per range of at most 14 days, until every closed day has version 4:
      ```sh
      aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
        --cli-binary-format raw-in-base64-out \
-       --payload '{"task":"rebuild_history","from":"2026-11-13","to":"2026-11-26","metric_version":3}' \
+       --payload '{"task":"rebuild_history","from":"2026-11-13","to":"2026-11-26","metric_version":4}' \
        /dev/stdout
-     aws s3 ls s3://headway-public-<account>/public/boston/history/table=agg_actual_deviation_daily/metric_version=3/
+     aws s3 ls s3://headway-public-<account>/public/boston/history/table=agg_actual_deviation_daily/metric_version=4/
      ```
   4. check the next scheduled run: `history_written` lists the day that closed, and the Release 3
-     incident baseline (`agg_actual_deviation_hourly`) has version-3 days only.
+     incident baseline (`agg_actual_deviation_hourly`) has version-4 days only.
   Not covered by this: the training examples that use arrival times as targets
   (`state/forecast_examples`, `forecast_state.py`) stay at their version; bump and rebuild them
   (`rebuild_forecast_examples`, [DEPLOY](DEPLOY.md)) before the next training run if the targets

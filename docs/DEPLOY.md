@@ -342,7 +342,7 @@ Switch-on, Phase 3.4 (incidents, summaries, alert vs reality; built and smoke-te
    `s3://<public>/public/boston/history/table=agg_actual_deviation_hourly/`). The deviation rule
    of incidents needs 14 closed days of the same day type (7 weeks for weekends) and stays off, and
    says so in each incident's evidence, until then. To start earlier, backfill with
-   `{"task":"rebuild_history","from":...,"to":...,"metric_version":3}` (at most 14 days per call),
+   `{"task":"rebuild_history","from":...,"to":...,"metric_version":4}` (at most 14 days per call),
    as far back as the raw curated data goes.
 4. Check the run summary for `incident_summary_status` (`ok`), `incident_count`,
    `incident_summaries_llm` / `incident_summaries_template`, `incident_llm_calls` and
@@ -388,7 +388,7 @@ family's current version; existing days are left as they are and gold is not tou
 ```
 aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
   --cli-binary-format raw-in-base64-out \
-  --payload '{"task":"rebuild_history","from":"2026-11-16","to":"2026-11-22","metric_version":3}' out.json
+  --payload '{"task":"rebuild_history","from":"2026-11-16","to":"2026-11-22","metric_version":4}' out.json
 ```
 
 A backfill reads as many days of curated data as separate it from today, inside the 900 s limit of
@@ -537,23 +537,23 @@ aws s3 ls s3://$R/state/facts/fct_headways/metric_version=3/      # 7 service_da
 ```
 Rollback: set both versions back in `facts_state.py` and deploy; v1 partitions are still there.
 
-### C. `rebuild_history` v3
+### C. `rebuild_history` v4
 
 ```sh
 aws lambda invoke --function-name headway-transform --cli-read-timeout 930 \
   --cli-binary-format raw-in-base64-out \
-  --payload '{"task":"rebuild_history","from":"2026-11-22","to":"2026-11-28","metric_version":3}' \
+  --payload '{"task":"rebuild_history","from":"2026-11-22","to":"2026-11-28","metric_version":4}' \
   /dev/stdout
 ```
-**One invocation** (7 days is under the 14-day cap) writes every family at version 3 (seven
+**One invocation** (7 days is under the 14-day cap) writes every family at version 4 (seven
 families; `stop_deviation` stays at v1). It also publishes to MotherDuck, so the SSM token must
 work. Expect about the same duration as B or a little less; the summary shows `history_written`
 per table and `history_existing`.
-Check: `aws s3 ls s3://headway-public-381232271655/public/boston/history/table=agg_actual_deviation_daily/metric_version=3/`
+Check: `aws s3 ls s3://headway-public-381232271655/public/boston/history/table=agg_actual_deviation_daily/metric_version=4/`
 lists service dates 2026-11-22 to 2026-11-28; repeat for `agg_actual_deviation_hourly`. Then wait
 for the next :20 run: `facts_loaded_days` lists the closed days, `duration_ms` is under 300000,
 no `skipped`.
-Risk: history objects are conditional puts that the transform role cannot delete. A wrong v3
+Risk: history objects are conditional puts that the transform role cannot delete. A wrong v4
 object cannot be undone by rollback; it needs an admin delete and a re-run.
 
 ### D. Release 3 switch-on (`enable_r3 = true`)
@@ -615,7 +615,9 @@ refit trigger (three full 15-second days) is met on 30 Nov. Either accept that, 
 
 1. `make deploy` (A), check image and a clean ingest.
 2. `rebuild_facts` 2026-11-22..2026-11-28 v3 (B), check the S3 listings.
-3. `rebuild_history` same range v3 (C), check the history listing.
+3. `rebuild_history` same range v4 (C), check the history listing. History is v4, facts stay v3:
+   v4 carries the coverage numerator fix (agg_accuracy_window, agg_prediction_accuracy_daily,
+   agg_countdown_accuracy_daily; DATA_QUALITY), and no v3 history was ever written.
 4. Watch the next :20 run: `duration_ms` under 300000, `facts_loaded_days` 7, memory under 85%
    (`TransformMemoryUsedPct`), no failed dbt tests (the `unique_grain_agg_pipeline_health_run_id` failure seen
    on synthetic data does not occur on real data).
@@ -716,7 +718,7 @@ unset or down fails or bakes in an error state. Deploy R4 first, check `/v1/meta
 CLI alternative: `cd web && npx vercel link && npx vercel env add HEADWAY_API_URL production && npx vercel --prod`.
 
 **Risks, in one place.** Corrected-vs-uncorrected examples frozen by v1 (see D); first transform
-duration unknown on production; v3 history objects cannot be deleted by the role; train job
+duration unknown on production; v4 history objects cannot be deleted by the role; train job
 untested on real data (a failure now raises `headway-train-errors`); `make deploy` checks the train and api tags as well when their switches are on; the
 site build needs the API live; axe findings above; reserved concurrency 3 and throttle 10/20 will
 cap a traffic spike (5xx alarm fires at 5 in 5 minutes).
